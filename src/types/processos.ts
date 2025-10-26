@@ -1,7 +1,9 @@
 export type ProcessoStatus = 'em_andamento' | 'concluido' | 'arquivado' | 'suspenso';
-export type TipoAndamento = 'audiencia' | 'decisao' | 'peticao' | 'recurso' | 'outro';
+export type TipoAndamento = 'audiencia' | 'decisao' | 'peticao' | 'recurso' | 'sentenca' | 'juntada' | 'despacho' | 'outro';
 export type TipoPrazo = 'recurso' | 'contestacao' | 'audiencia' | 'outro';
 export type StatusPrazo = 'pendente' | 'cumprido' | 'cancelado';
+export type PrazoPrioridade = 'alta' | 'media' | 'baixa';
+export type CategoriaDocumento = 'peticao' | 'decisao' | 'prova' | 'parecer' | 'outro';
 
 export interface Processo {
   id: string;
@@ -12,6 +14,7 @@ export interface Processo {
   valor: number | null;
   data_inicio: string;
   data_ultima_atualizacao: string | null;
+  data_prevista_conclusao: string | null;
   prazo_proximo: string | null;
   tribunal: string | null;
   comarca: string | null;
@@ -32,6 +35,8 @@ export interface Processo {
   };
   andamentos?: ProcessoAndamento[];
   prazos?: ProcessoPrazo[];
+  documentos?: ProcessoDocumento[];
+  historico?: ProcessoHistorico[];
 }
 
 export interface ProcessoAndamento {
@@ -54,6 +59,10 @@ export interface ProcessoPrazo {
   status: StatusPrazo;
   responsavel_id: string | null;
   alerta_dias_antes: number;
+  prioridade: PrazoPrioridade;
+  alerta_7_dias: boolean;
+  alerta_3_dias: boolean;
+  alerta_1_dia: boolean;
   observacoes: string | null;
   created_at: string;
   created_by: string | null;
@@ -61,6 +70,32 @@ export interface ProcessoPrazo {
   // Calculado
   dias_restantes?: number;
   alerta_ativo?: boolean;
+}
+
+export interface ProcessoDocumento {
+  id: string;
+  processo_id: string;
+  andamento_id: string | null;
+  nome_arquivo: string;
+  categoria: CategoriaDocumento;
+  caminho_storage: string;
+  tamanho_bytes: number;
+  mime_type: string;
+  created_at: string;
+  uploaded_by: string | null;
+}
+
+export interface ProcessoHistorico {
+  id: string;
+  processo_id: string;
+  entidade_tipo: string;
+  entidade_id: string | null;
+  acao: string;
+  campo_alterado: string | null;
+  valor_anterior: string | null;
+  valor_novo: string | null;
+  usuario_id: string | null;
+  created_at: string;
 }
 
 export interface ProcessosFilters {
@@ -88,6 +123,9 @@ export const TIPO_ANDAMENTO_LABELS: Record<TipoAndamento, string> = {
   decisao: 'Decisão',
   peticao: 'Petição',
   recurso: 'Recurso',
+  sentenca: 'Sentença',
+  juntada: 'Juntada',
+  despacho: 'Despacho',
   outro: 'Outro',
 };
 
@@ -95,6 +133,20 @@ export const TIPO_PRAZO_LABELS: Record<TipoPrazo, string> = {
   recurso: 'Recurso',
   contestacao: 'Contestação',
   audiencia: 'Audiência',
+  outro: 'Outro',
+};
+
+export const PRIORIDADE_LABELS: Record<PrazoPrioridade, string> = {
+  alta: 'Alta',
+  media: 'Média',
+  baixa: 'Baixa',
+};
+
+export const CATEGORIA_DOCUMENTO_LABELS: Record<CategoriaDocumento, string> = {
+  peticao: 'Petição',
+  decisao: 'Decisão',
+  prova: 'Prova',
+  parecer: 'Parecer',
   outro: 'Outro',
 };
 

@@ -54,3 +54,65 @@ export function useCreateAndamento() {
     },
   });
 }
+
+export function useUpdateAndamento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<ProcessoAndamento> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("processos_andamentos")
+        .update(updates as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processo-andamentos"] });
+      toast({
+        title: "Andamento atualizado",
+        description: "O andamento foi atualizado com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar andamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useDeleteAndamento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (andamentoId: string) => {
+      const { error } = await supabase
+        .from("processos_andamentos")
+        .delete()
+        .eq("id", andamentoId);
+
+      if (error) throw error;
+      return andamentoId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processo-andamentos"] });
+      toast({
+        title: "Andamento excluído",
+        description: "O andamento foi removido com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir andamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

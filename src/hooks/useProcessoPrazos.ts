@@ -111,3 +111,61 @@ export function useUpdatePrazo() {
     },
   });
 }
+
+export function useDeletePrazo() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (prazoId: string) => {
+      const { error } = await supabase
+        .from("processos_prazos")
+        .delete()
+        .eq("id", prazoId);
+
+      if (error) throw error;
+      return prazoId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processo-prazos"] });
+      toast({
+        title: "Prazo excluído",
+        description: "O prazo foi removido com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir prazo",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useTogglePrazoCumprido() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, cumprido }: { id: string; cumprido: boolean }) => {
+      const { data, error } = await supabase
+        .from("processos_prazos")
+        .update({ status: cumprido ? 'cumprido' : 'pendente' } as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processo-prazos"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar status",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

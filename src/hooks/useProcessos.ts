@@ -141,3 +141,33 @@ export function useUpdateProcesso() {
     },
   });
 }
+
+export function useDeleteProcesso() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (processoId: string) => {
+      const { error } = await supabase
+        .from("processos")
+        .delete()
+        .eq("id", processoId);
+
+      if (error) throw error;
+      return processoId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processos"] });
+      toast({
+        title: "Processo excluído",
+        description: "O processo foi removido com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir processo",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ProcessosHeader } from "@/components/processos/ProcessosHeader";
 import { ProcessosFilters } from "@/components/processos/ProcessosFilters";
 import { ProcessosTable } from "@/components/processos/ProcessosTable";
+import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
+import { NewProcessoDialog } from "@/components/processos/NewProcessoDialog";
 import { useProcessos } from "@/hooks/useProcessos";
 import { ProcessosFilters as FiltersType } from "@/types/processos";
 
@@ -61,16 +63,16 @@ export default function Processos() {
         onApply={setFilters}
       />
 
-      {/* TODO: Implementar dialogs */}
-      {showNewProcesso && (
-        <div>Novo Processo Dialog - A implementar</div>
-      )}
-      {selectedProcesso && (
-        <div>Detalhes do Processo Dialog - A implementar</div>
-      )}
-      {showPrazos && (
-        <div>Prazos Dialog - A implementar</div>
-      )}
+      <ProcessoDetailsDialog
+        processoId={selectedProcesso}
+        open={!!selectedProcesso}
+        onClose={() => setSelectedProcesso(null)}
+      />
+
+      <NewProcessoDialog
+        open={showNewProcesso}
+        onClose={() => setShowNewProcesso(false)}
+      />
     </div>
   );
 }

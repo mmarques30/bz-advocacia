@@ -300,6 +300,7 @@ export type Database = {
           created_at: string | null
           data_distribuicao: string | null
           data_inicio: string
+          data_prevista_conclusao: string | null
           data_ultima_atualizacao: string | null
           id: string
           lead_id: string | null
@@ -320,6 +321,7 @@ export type Database = {
           created_at?: string | null
           data_distribuicao?: string | null
           data_inicio: string
+          data_prevista_conclusao?: string | null
           data_ultima_atualizacao?: string | null
           id?: string
           lead_id?: string | null
@@ -340,6 +342,7 @@ export type Database = {
           created_at?: string | null
           data_distribuicao?: string | null
           data_inicio?: string
+          data_prevista_conclusao?: string | null
           data_ultima_atualizacao?: string | null
           id?: string
           lead_id?: string | null
@@ -405,8 +408,112 @@ export type Database = {
           },
         ]
       }
+      processos_documentos: {
+        Row: {
+          andamento_id: string | null
+          caminho_storage: string
+          categoria: string
+          created_at: string | null
+          id: string
+          mime_type: string | null
+          nome_arquivo: string
+          processo_id: string
+          tamanho_bytes: number | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          andamento_id?: string | null
+          caminho_storage: string
+          categoria: string
+          created_at?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo: string
+          processo_id: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          andamento_id?: string | null
+          caminho_storage?: string
+          categoria?: string
+          created_at?: string | null
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string
+          processo_id?: string
+          tamanho_bytes?: number | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_documentos_andamento_id_fkey"
+            columns: ["andamento_id"]
+            isOneToOne: false
+            referencedRelation: "processos_andamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_documentos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      processos_historico: {
+        Row: {
+          acao: string
+          campo_alterado: string | null
+          created_at: string | null
+          entidade_id: string | null
+          entidade_tipo: string
+          id: string
+          processo_id: string
+          usuario_id: string | null
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          acao: string
+          campo_alterado?: string | null
+          created_at?: string | null
+          entidade_id?: string | null
+          entidade_tipo: string
+          id?: string
+          processo_id: string
+          usuario_id?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          acao?: string
+          campo_alterado?: string | null
+          created_at?: string | null
+          entidade_id?: string | null
+          entidade_tipo?: string
+          id?: string
+          processo_id?: string
+          usuario_id?: string | null
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_historico_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processos_prazos: {
         Row: {
+          alerta_1_dia: boolean | null
+          alerta_3_dias: boolean | null
+          alerta_7_dias: boolean | null
           alerta_dias_antes: number | null
           created_at: string | null
           created_by: string | null
@@ -414,12 +521,16 @@ export type Database = {
           descricao: string
           id: string
           observacoes: string | null
+          prioridade: string | null
           processo_id: string
           responsavel_id: string | null
           status: string | null
           tipo_prazo: string
         }
         Insert: {
+          alerta_1_dia?: boolean | null
+          alerta_3_dias?: boolean | null
+          alerta_7_dias?: boolean | null
           alerta_dias_antes?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -427,12 +538,16 @@ export type Database = {
           descricao: string
           id?: string
           observacoes?: string | null
+          prioridade?: string | null
           processo_id: string
           responsavel_id?: string | null
           status?: string | null
           tipo_prazo: string
         }
         Update: {
+          alerta_1_dia?: boolean | null
+          alerta_3_dias?: boolean | null
+          alerta_7_dias?: boolean | null
           alerta_dias_antes?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -440,6 +555,7 @@ export type Database = {
           descricao?: string
           id?: string
           observacoes?: string | null
+          prioridade?: string | null
           processo_id?: string
           responsavel_id?: string | null
           status?: string | null
