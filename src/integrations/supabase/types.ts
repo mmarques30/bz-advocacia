@@ -394,6 +394,42 @@ export type Database = {
           },
         ]
       }
+      notificacoes: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          lida: boolean | null
+          link: string | null
+          metadata: Json | null
+          tipo: string
+          titulo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          metadata?: Json | null
+          tipo: string
+          titulo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          metadata?: Json | null
+          tipo?: string
+          titulo?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       parcelas_financeiras: {
         Row: {
           acordo_id: string
