@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
+import Processos from "./pages/Processos";
 import NotFound from "./pages/NotFound";
 
 // Protected Route Component
@@ -50,6 +51,14 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Leads />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/processos" 
+          element={
+            <ProtectedRoute>
+              <Processos />
             </ProtectedRoute>
           } 
         />
