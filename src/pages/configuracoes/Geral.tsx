@@ -1,8 +1,18 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info } from "lucide-react";
+import { EscritorioForm } from "@/components/configuracoes/EscritorioForm";
+import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
+import { Loader2 } from "lucide-react";
 
 export default function Geral() {
+  const { isLoading } = useConfiguracoesEscritorio();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -12,26 +22,7 @@ export default function Geral() {
         </p>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          Esta funcionalidade está em desenvolvimento. Em breve você poderá configurar dados do escritório, integrações e preferências.
-        </AlertDescription>
-      </Alert>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Dados do Escritório</CardTitle>
-          <CardDescription>
-            Informações básicas do seu escritório
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Funcionalidade disponível em breve.
-          </p>
-        </CardContent>
-      </Card>
+      <EscritorioForm />
     </div>
   );
 }
