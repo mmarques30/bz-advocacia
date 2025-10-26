@@ -103,6 +103,7 @@ export function useUpdateLeadStage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-activities"] });
       toast({
         title: "Lead atualizado",
         description: "O estágio do lead foi atualizado com sucesso.",
@@ -130,6 +131,7 @@ export function useCreateLead() {
           ...dataToInsert,
           estagio: leadData.estagio || 'novo',
           origem: leadData.origem || 'site',
+          prioridade: leadData.prioridade || 'media',
           data_ultima_atividade: new Date().toISOString(),
           lgpd_consent: true,
         } as any)
@@ -137,10 +139,20 @@ export function useCreateLead() {
         .single();
 
       if (error) throw error;
+
+      // Criar atividade de lead criado
+      await supabase.from("atividades").insert({
+        tipo: "lead_criado",
+        descricao: "Lead criado manualmente",
+        entidade_tipo: "lead",
+        entidade_id: data.id,
+      });
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-activities"] });
       toast({
         title: "Lead criado",
         description: "O lead foi cadastrado com sucesso.",
@@ -170,10 +182,20 @@ export function useUpdateLead() {
         .single();
 
       if (error) throw error;
+
+      // Criar atividade de edição
+      await supabase.from("atividades").insert({
+        tipo: "editado",
+        descricao: "Informações do lead foram atualizadas",
+        entidade_tipo: "lead",
+        entidade_id: id,
+      });
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-activities"] });
       toast({
         title: "Lead atualizado",
         description: "As informações do lead foram atualizadas.",

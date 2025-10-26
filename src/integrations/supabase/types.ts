@@ -62,10 +62,12 @@ export type Database = {
           origem: string | null
           outro_como_conheceu: string | null
           outro_tipo_processo: string | null
+          prioridade: string | null
           regime_casamento: string | null
           responsavel_id: string | null
           situacao_atual: string | null
           status: string
+          tags: string[] | null
           telefone: string
           tem_filhos: boolean | null
           tipo_processo: string
@@ -90,10 +92,12 @@ export type Database = {
           origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
+          prioridade?: string | null
           regime_casamento?: string | null
           responsavel_id?: string | null
           situacao_atual?: string | null
           status?: string
+          tags?: string[] | null
           telefone: string
           tem_filhos?: boolean | null
           tipo_processo: string
@@ -118,10 +122,12 @@ export type Database = {
           origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
+          prioridade?: string | null
           regime_casamento?: string | null
           responsavel_id?: string | null
           situacao_atual?: string | null
           status?: string
+          tags?: string[] | null
           telefone?: string
           tem_filhos?: boolean | null
           tipo_processo?: string
@@ -210,6 +216,82 @@ export type Database = {
           total_leads?: number | null
         }
         Relationships: []
+      }
+      lead_comunicacoes: {
+        Row: {
+          created_at: string
+          enviado_por: string | null
+          id: string
+          lead_id: string
+          mensagem: string
+          status: string
+          template_usado: string | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          lead_id: string
+          mensagem: string
+          status?: string
+          template_usado?: string | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          enviado_por?: string | null
+          id?: string
+          lead_id?: string
+          mensagem?: string
+          status?: string
+          template_usado?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_comunicacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_notas: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          texto: string
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          texto: string
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          texto?: string
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_notas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       processos: {
         Row: {

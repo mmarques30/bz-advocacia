@@ -1,5 +1,6 @@
 export type LeadStatus = 'novo' | 'contato_inicial' | 'em_analise' | 'proposta_enviada' | 'fechado' | 'perdido';
 export type LeadOrigem = 'google' | 'meta' | 'indicacao' | 'site' | 'outro';
+export type LeadPrioridade = 'alta' | 'media' | 'baixa';
 
 export interface Lead {
   id: string;
@@ -28,7 +29,39 @@ export interface Lead {
   valor_pretendido: string | null;
   documentos: string[] | null;
   lgpd_consent: boolean;
+  prioridade: LeadPrioridade;
+  tags: string[] | null;
   dias_parado?: number;
+}
+
+export interface LeadNota {
+  id: string;
+  lead_id: string;
+  usuario_id: string;
+  texto: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface LeadAtividade {
+  id: string;
+  tipo: string;
+  descricao: string;
+  entidade_tipo: string;
+  entidade_id: string;
+  usuario_id: string | null;
+  created_at: string;
+}
+
+export interface LeadComunicacao {
+  id: string;
+  lead_id: string;
+  tipo: 'email' | 'whatsapp' | 'ligacao';
+  template_usado: string | null;
+  mensagem: string;
+  status: 'enviado' | 'entregue' | 'lido' | 'erro';
+  enviado_por: string | null;
+  created_at: string;
 }
 
 export interface LeadsFilters {
