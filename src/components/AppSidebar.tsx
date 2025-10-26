@@ -61,6 +61,7 @@ const menuItems: MenuItem[] = [
       { title: "Leads", url: "/dashboard/leads?tipo=leads" },
       { title: "Clientes", url: "/dashboard/leads?tipo=clientes" },
       { title: "Todos", url: "/dashboard/leads" },
+      { title: "Relatórios para Clientes", url: "/dashboard/leads/relatorios-cliente" },
     ]
   },
   {

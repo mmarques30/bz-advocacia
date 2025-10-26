@@ -800,6 +800,47 @@ export type Database = {
         }
         Relationships: []
       }
+      relatorios_compartilhados: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          expires_at: string
+          id: string
+          tipo_relatorio: string
+          token: string
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          expires_at: string
+          id?: string
+          tipo_relatorio: string
+          token: string
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          expires_at?: string
+          id?: string
+          tipo_relatorio?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relatorios_compartilhados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_invites: {
         Row: {
           accepted_at: string | null
