@@ -12,22 +12,22 @@ export default function FinanceiroRelatorios() {
         </p>
       </div>
 
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
+      <Alert className="border-blue-200 bg-blue-50/50 dark:border-blue-900/50 dark:bg-blue-950/20">
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <AlertDescription className="text-sm">
           Esta funcionalidade está em desenvolvimento. Em breve você poderá gerar relatórios personalizados e exportá-los.
         </AlertDescription>
       </Alert>
 
       <Card>
         <CardHeader>
-          <CardTitle>Relatórios Disponíveis</CardTitle>
+          <CardTitle className="text-xl">Relatórios Disponíveis</CardTitle>
           <CardDescription>
             Análises e exportações de dados financeiros
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Funcionalidade disponível em breve.
           </p>
         </CardContent>
