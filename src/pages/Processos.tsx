@@ -4,6 +4,7 @@ import { ProcessosFilters } from "@/components/processos/ProcessosFilters";
 import { ProcessosTable } from "@/components/processos/ProcessosTable";
 import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
 import { NewProcessoDialog } from "@/components/processos/NewProcessoDialog";
+import { AddAndamentoDialog } from "@/components/processos/AddAndamentoDialog";
 import { useProcessos } from "@/hooks/useProcessos";
 import { ProcessosFilters as FiltersType } from "@/types/processos";
 
@@ -15,11 +16,18 @@ export default function Processos() {
   const [showNewProcesso, setShowNewProcesso] = useState(false);
   const [showPrazos, setShowPrazos] = useState(false);
   const [selectedProcesso, setSelectedProcesso] = useState<string | null>(null);
+  const [showAddAndamento, setShowAddAndamento] = useState(false);
+  const [processoForAndamento, setProcessoForAndamento] = useState<string | null>(null);
 
   const { data: processos, isLoading } = useProcessos(filters);
 
   const handleOpenDetails = (processoId: string) => {
     setSelectedProcesso(processoId);
+  };
+
+  const handleAddAndamento = (processoId: string) => {
+    setProcessoForAndamento(processoId);
+    setShowAddAndamento(true);
   };
 
   const calculateActiveFilters = (filters: FiltersType): number => {
@@ -54,6 +62,7 @@ export default function Processos() {
         processos={processos || []}
         isLoading={isLoading}
         onViewDetails={handleOpenDetails}
+        onAddAndamento={handleAddAndamento}
       />
 
       <ProcessosFilters
@@ -72,6 +81,15 @@ export default function Processos() {
       <NewProcessoDialog
         open={showNewProcesso}
         onClose={() => setShowNewProcesso(false)}
+      />
+
+      <AddAndamentoDialog
+        processoId={processoForAndamento || ""}
+        open={showAddAndamento}
+        onClose={() => {
+          setShowAddAndamento(false);
+          setProcessoForAndamento(null);
+        }}
       />
     </div>
   );

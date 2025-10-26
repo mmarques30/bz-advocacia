@@ -24,12 +24,14 @@ interface ProcessosTableProps {
   processos: Processo[];
   isLoading: boolean;
   onViewDetails: (processoId: string) => void;
+  onAddAndamento: (processoId: string) => void;
 }
 
 export function ProcessosTable({
   processos,
   isLoading,
   onViewDetails,
+  onAddAndamento,
 }: ProcessosTableProps) {
   const getStatusBadgeVariant = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -161,7 +163,7 @@ export function ProcessosTable({
                       <Eye className="h-4 w-4 mr-2" />
                       Ver Detalhes
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onAddAndamento(processo.id)}>
                       <FileText className="h-4 w-4 mr-2" />
                       Adicionar Andamento
                     </DropdownMenuItem>
