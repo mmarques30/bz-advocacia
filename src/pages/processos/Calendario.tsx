@@ -145,14 +145,34 @@ export default function ProcessosCalendario() {
             </div>
           ) : (
             <>
-              <div className="flex justify-center">
+              <div className="w-full max-w-5xl mx-auto">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDayClick}
                   month={month}
                   onMonthChange={setMonth}
-                  className="rounded-md border"
+                  className="rounded-md border w-full p-4"
+                  classNames={{
+                    months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 w-full",
+                    month: "space-y-4 w-full",
+                    caption: "flex justify-center pt-1 relative items-center",
+                    caption_label: "text-lg font-medium",
+                    nav: "space-x-1 flex items-center",
+                    nav_button: "h-9 w-9 bg-transparent p-0 opacity-50 hover:opacity-100",
+                    nav_button_previous: "absolute left-1",
+                    nav_button_next: "absolute right-1",
+                    table: "w-full border-collapse space-y-1",
+                    head_row: "flex w-full",
+                    head_cell: "text-muted-foreground rounded-md font-normal text-sm flex-1 p-2",
+                    row: "flex w-full mt-2",
+                    cell: "relative p-0 text-center focus-within:relative focus-within:z-20 flex-1 h-14",
+                    day: "h-14 w-full p-0 font-normal aria-selected:opacity-100 text-base hover:bg-accent hover:text-accent-foreground rounded-md transition-colors",
+                    day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
+                    day_today: "bg-accent text-accent-foreground font-semibold",
+                    day_outside: "text-muted-foreground opacity-50",
+                    day_disabled: "text-muted-foreground opacity-50",
+                  }}
                   modifiers={{
                     urgente: diasUrgentes,
                     alerta: diasAlerta,
