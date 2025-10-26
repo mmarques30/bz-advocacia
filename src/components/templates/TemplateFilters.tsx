@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -8,43 +7,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { X, Search } from "lucide-react";
-import type { TemplateFilters as Filters, TemplateType } from "@/types/templates";
+import type { TemplateFilters as Filters } from "@/types/templates";
 
 interface TemplateFiltersProps {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
 }
 
-const tipoOptions: { value: TemplateType; label: string }[] = [
-  { value: 'contrato', label: 'Contrato' },
-  { value: 'procuracao', label: 'Procuração' },
-  { value: 'peticao', label: 'Petição' },
-  { value: 'email', label: 'Email' },
-  { value: 'documento', label: 'Documento' },
-  { value: 'comunicacao', label: 'Comunicação' },
-];
-
 export default function TemplateFilters({ filters, onFiltersChange }: TemplateFiltersProps) {
-  const hasActiveFilters = filters.busca || filters.tipo?.length || filters.categoria || filters.ativo !== null;
+  const hasActiveFilters = filters.busca || filters.categoria || filters.ativo !== null;
 
   const clearFilters = () => {
     onFiltersChange({
       busca: '',
-      tipo: [],
       categoria: '',
       ativo: null,
       ordenacao: 'recente',
     });
-  };
-
-  const toggleTipo = (tipo: TemplateType) => {
-    const currentTipos = filters.tipo || [];
-    const newTipos = currentTipos.includes(tipo)
-      ? currentTipos.filter(t => t !== tipo)
-      : [...currentTipos, tipo];
-    onFiltersChange({ ...filters, tipo: newTipos });
   };
 
   return (
@@ -100,22 +80,6 @@ export default function TemplateFilters({ filters, onFiltersChange }: TemplateFi
             Limpar
           </Button>
         )}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Tipo de Template</Label>
-        <div className="flex flex-wrap gap-2">
-          {tipoOptions.map(option => (
-            <Badge
-              key={option.value}
-              variant={filters.tipo?.includes(option.value) ? "default" : "outline"}
-              className="cursor-pointer"
-              onClick={() => toggleTipo(option.value)}
-            >
-              {option.label}
-            </Badge>
-          ))}
-        </div>
       </div>
     </div>
   );
