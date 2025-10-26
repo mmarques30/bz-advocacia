@@ -1,4 +1,5 @@
-import { AlertTriangle, Eye, Edit, MoreVertical } from "lucide-react";
+import { AlertTriangle, Eye, Edit, MoreVertical, Trash2 } from "lucide-react";
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -23,8 +24,18 @@ import {
 import { Lead, LEAD_STATUS_LABELS } from "@/types/leads";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { useUpdateLeadStage } from "@/hooks/useLeads";
+import { useUpdateLeadStage, useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface LeadsTableProps {
   leads: Lead[] | undefined;
@@ -35,6 +46,8 @@ interface LeadsTableProps {
 
 export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTableProps) {
   const updateStage = useUpdateLeadStage();
+  const deleteLead = useDeleteLead();
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
 
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
@@ -166,6 +179,14 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTab
                         ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuSub>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={() => setLeadToDelete(lead)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
@@ -173,6 +194,34 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTab
           ))}
         </TableBody>
       </Table>
+
+      {/* Dialog de Confirmação de Exclusão */}
+      <AlertDialog open={!!leadToDelete} onOpenChange={(open) => !open && setLeadToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o lead <strong>{leadToDelete?.nome_completo}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (leadToDelete) {
+                  deleteLead.mutate(leadToDelete.id);
+                  setLeadToDelete(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

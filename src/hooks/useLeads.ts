@@ -210,3 +210,36 @@ export function useUpdateLead() {
     },
   });
 }
+
+export function useDeleteLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (leadId: string) => {
+      const { error } = await supabase
+        .from("contact_submissions")
+        .delete()
+        .eq("id", leadId);
+
+      if (error) throw error;
+      
+      return leadId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-activities"] });
+      
+      toast({
+        title: "Lead excluído",
+        description: "O lead foi removido com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir lead",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
