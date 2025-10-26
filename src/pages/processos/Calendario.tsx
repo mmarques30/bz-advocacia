@@ -1,21 +1,26 @@
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useProcessoPrazos, useTogglePrazoCumprido } from "@/hooks/useProcessoPrazos";
-import { ProcessoPrazo } from "@/types/processos";
+import { ProcessoPrazo, TIPO_PRAZO_LABELS } from "@/types/processos";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 export default function ProcessosCalendario() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [month, setMonth] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data: prazos = [], isLoading } = useProcessoPrazos();
   const toggleCumprido = useTogglePrazoCumprido();
@@ -31,6 +36,14 @@ export default function ProcessosCalendario() {
     });
 
     return mapa;
+  }, [prazos]);
+
+  // Filtrar os 5 processos mais urgentes (≤ 3 dias)
+  const prazosUrgentes = useMemo(() => {
+    return prazos
+      .filter(p => p.status === 'pendente' && (p.dias_restantes ?? 999) <= 3)
+      .sort((a, b) => (a.dias_restantes ?? 999) - (b.dias_restantes ?? 999))
+      .slice(0, 5);
   }, [prazos]);
 
   // Classificar datas por status
@@ -281,6 +294,107 @@ export default function ProcessosCalendario() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Tabela de Processos Urgentes */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            Processos com Prazos Urgentes
+          </CardTitle>
+          <CardDescription>
+            Top 5 processos com prazos vencendo nos próximos 3 dias
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : prazosUrgentes.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+              <p className="text-muted-foreground">
+                Nenhum prazo urgente no momento
+              </p>
+            </div>
+          ) : (
+            <div className="border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nº Processo</TableHead>
+                    <TableHead>Tipo Prazo</TableHead>
+                    <TableHead>Data Limite</TableHead>
+                    <TableHead>Dias Restantes</TableHead>
+                    <TableHead>Prioridade</TableHead>
+                    <TableHead className="w-[100px]">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {prazosUrgentes.map((prazo) => {
+                    const diasRestantes = prazo.dias_restantes ?? 0;
+                    const isVenceHoje = diasRestantes === 0;
+                    
+                    return (
+                      <TableRow 
+                        key={prazo.id}
+                        className={isVenceHoje ? "bg-red-50 dark:bg-red-950/10" : ""}
+                      >
+                        <TableCell className="font-mono text-sm font-medium">
+                          {(prazo as any).processo?.numero_processo || "Sem número"}
+                        </TableCell>
+                        
+                        <TableCell>
+                          {TIPO_PRAZO_LABELS[prazo.tipo_prazo]}
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {diasRestantes <= 1 && (
+                              <AlertTriangle className="h-4 w-4 text-red-600" />
+                            )}
+                            {format(new Date(prazo.data_prazo), "dd/MM/yyyy")}
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <span className={cn(
+                            "font-medium",
+                            isVenceHoje && "text-red-600",
+                            diasRestantes === 1 && "text-orange-600",
+                            diasRestantes > 1 && "text-yellow-600"
+                          )}>
+                            {getDiasRestantesTexto(prazo)}
+                          </span>
+                        </TableCell>
+                        
+                        <TableCell>
+                          {getPrioridadeBadge(prazo.prioridade)}
+                        </TableCell>
+                        
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigate(`/dashboard/processos?id=${prazo.processo_id}`);
+                            }}
+                          >
+                            Ver Processo
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

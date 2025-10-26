@@ -9,7 +9,18 @@ export function useProcessoPrazos(processoId?: string) {
     queryFn: async () => {
       let query = supabase
         .from("processos_prazos")
-        .select("*")
+        .select(`
+          *,
+          processo:processos(
+            id,
+            numero_processo,
+            tipo,
+            tribunal,
+            status,
+            autor,
+            reu
+          )
+        `)
         .order("data_prazo", { ascending: true });
 
       if (processoId) {
