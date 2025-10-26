@@ -1,0 +1,190 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Lead, LeadsFilters } from "@/types/leads";
+import { toast } from "@/hooks/use-toast";
+
+export function useLeads(filters: LeadsFilters) {
+  return useQuery({
+    queryKey: ["leads", filters],
+    queryFn: async () => {
+      let query = supabase
+        .from("contact_submissions")
+        .select("*")
+        .order("data_ultima_atividade", { ascending: false });
+
+      // Apply search filter
+      if (filters.search) {
+        query = query.or(
+          `nome_completo.ilike.%${filters.search}%,email.ilike.%${filters.search}%,telefone.ilike.%${filters.search}%`
+        );
+      }
+
+      // Apply status filter
+      if (filters.status.length > 0) {
+        query = query.in("estagio", filters.status);
+      }
+
+      // Apply origem filter
+      if (filters.origem.length > 0) {
+        query = query.in("origem", filters.origem);
+      }
+
+      // Apply tipo processo filter
+      if (filters.tipoProcesso.length > 0) {
+        query = query.in("tipo_processo", filters.tipoProcesso);
+      }
+
+      // Apply date range filter
+      if (filters.dateRange.start) {
+        query = query.gte("created_at", filters.dateRange.start.toISOString());
+      }
+      if (filters.dateRange.end) {
+        query = query.lte("created_at", filters.dateRange.end.toISOString());
+      }
+
+      // Apply responsavel filter
+      if (filters.responsavel) {
+        query = query.eq("responsavel_id", filters.responsavel);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Calculate dias_parado for each lead
+      const leadsWithDiasParado = (data || []).map((lead) => {
+        const dataUltimaAtividade = new Date(lead.data_ultima_atividade);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - dataUltimaAtividade.getTime());
+        const diasParado = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return {
+          ...lead,
+          dias_parado: diasParado,
+        } as Lead;
+      });
+
+      // Apply dias parado filter
+      let filteredLeads = leadsWithDiasParado;
+      if (filters.diasParado.max !== null) {
+        filteredLeads = leadsWithDiasParado.filter(
+          (lead) =>
+            lead.dias_parado! >= filters.diasParado.min &&
+            lead.dias_parado! <= filters.diasParado.max!
+        );
+      } else if (filters.diasParado.min > 0) {
+        filteredLeads = leadsWithDiasParado.filter(
+          (lead) => lead.dias_parado! >= filters.diasParado.min
+        );
+      }
+
+      return filteredLeads;
+    },
+  });
+}
+
+export function useUpdateLeadStage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, estagio }: { id: string; estagio: string }) => {
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .update({ 
+          estagio,
+          data_ultima_atividade: new Date().toISOString()
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      toast({
+        title: "Lead atualizado",
+        description: "O estágio do lead foi atualizado com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar lead",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useCreateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (leadData: Partial<Lead>) => {
+      const { dias_parado, ...dataToInsert } = leadData;
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .insert({
+          ...dataToInsert,
+          estagio: leadData.estagio || 'novo',
+          origem: leadData.origem || 'site',
+          data_ultima_atividade: new Date().toISOString(),
+          lgpd_consent: true,
+        } as any)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      toast({
+        title: "Lead criado",
+        description: "O lead foi cadastrado com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao criar lead",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdateLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Lead> & { id: string }) => {
+      const { dias_parado, ...dataToUpdate } = updates;
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .update(dataToUpdate as any)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      toast({
+        title: "Lead atualizado",
+        description: "As informações do lead foram atualizadas.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}

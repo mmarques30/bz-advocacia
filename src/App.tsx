@@ -7,6 +7,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Leads from "./pages/Leads";
 import NotFound from "./pages/NotFound";
 
 // Protected Route Component
@@ -41,6 +42,14 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/leads" 
+          element={
+            <ProtectedRoute>
+              <Leads />
             </ProtectedRoute>
           } 
         />

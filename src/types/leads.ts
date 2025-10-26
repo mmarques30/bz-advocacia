@@ -1,0 +1,68 @@
+export type LeadStatus = 'novo' | 'contato_inicial' | 'em_analise' | 'proposta_enviada' | 'fechado' | 'perdido';
+export type LeadOrigem = 'google' | 'meta' | 'indicacao' | 'site' | 'outro';
+
+export interface Lead {
+  id: string;
+  nome_completo: string;
+  email: string;
+  telefone: string;
+  tipo_processo: string;
+  outro_tipo_processo: string | null;
+  status: string;
+  estagio: LeadStatus;
+  origem: LeadOrigem;
+  created_at: string;
+  data_ultima_atividade: string;
+  responsavel_id: string | null;
+  valor_proposta: number | null;
+  notas_internas: string | null;
+  mensagem: string;
+  como_conheceu: string;
+  outro_como_conheceu: string | null;
+  regime_casamento: string | null;
+  tem_filhos: boolean | null;
+  numero_herdeiros: number | null;
+  bens_partilhar: string | null;
+  valor_estimado_bens: string | null;
+  situacao_atual: string | null;
+  valor_pretendido: string | null;
+  documentos: string[] | null;
+  lgpd_consent: boolean;
+  dias_parado?: number;
+}
+
+export interface LeadsFilters {
+  search: string;
+  status: LeadStatus[];
+  origem: LeadOrigem[];
+  tipoProcesso: string[];
+  dateRange: { start: Date | null; end: Date | null };
+  diasParado: { min: number; max: number | null };
+  responsavel: string | null;
+}
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  novo: 'Novo',
+  contato_inicial: 'Contato Inicial',
+  em_analise: 'Em Análise',
+  proposta_enviada: 'Proposta Enviada',
+  fechado: 'Fechado',
+  perdido: 'Perdido',
+};
+
+export const ORIGEM_LABELS: Record<LeadOrigem, string> = {
+  google: 'Google',
+  meta: 'Meta',
+  indicacao: 'Indicação',
+  site: 'Site',
+  outro: 'Outro',
+};
+
+export const TIPO_PROCESSO_OPTIONS = [
+  'Divórcio Consensual',
+  'Divórcio Litigioso',
+  'Inventário',
+  'Pensão Alimentícia',
+  'União Estável',
+  'Outro',
+];
