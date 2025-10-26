@@ -33,7 +33,7 @@ export function LeadsHeader({
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, email ou telefone..."
+            placeholder="Buscar por nome, CPF, email ou telefone..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             className="pl-10"

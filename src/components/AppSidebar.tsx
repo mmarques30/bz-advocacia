@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Leads", url: "/dashboard/leads", icon: Users },
+  { title: "Gestão de Vendas", url: "/dashboard/leads", icon: Users },
   { title: "Processos", url: "/dashboard/processos", icon: Briefcase },
   { title: "Financeiro", url: "/dashboard/financeiro", icon: DollarSign },
   { title: "Configurações", url: "/dashboard/configuracoes", icon: Settings },
