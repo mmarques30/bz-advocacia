@@ -53,7 +53,7 @@ export function FinanceiroWidgets({ onRegistrarPagamento }: FinanceiroWidgetsPro
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <AlertTriangle className="h-5 w-5" />
             Clientes Inadimplentes
           </CardTitle>
         </CardHeader>
@@ -86,7 +86,7 @@ export function FinanceiroWidgets({ onRegistrarPagamento }: FinanceiroWidgetsPro
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-green-600" />
+            <TrendingUp className="h-5 w-5" />
             Maiores Pagadores do Mês
           </CardTitle>
         </CardHeader>
@@ -108,7 +108,7 @@ export function FinanceiroWidgets({ onRegistrarPagamento }: FinanceiroWidgetsPro
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-green-600">
+                  <Badge variant="outline">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pagador.total_pago)}
                   </Badge>
                 </div>
