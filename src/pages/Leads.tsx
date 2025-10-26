@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { LeadsHeader } from "@/components/leads/LeadsHeader";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsTable } from "@/components/leads/LeadsTable";
@@ -9,6 +10,9 @@ import { useLeads } from "@/hooks/useLeads";
 import { LeadsFilters as FiltersType, Lead } from "@/types/leads";
 
 export default function Leads() {
+  const [searchParams] = useSearchParams();
+  const tipoParam = searchParams.get('tipo');
+  
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [showFilters, setShowFilters] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
@@ -24,6 +28,27 @@ export default function Leads() {
     diasParado: { min: 0, max: null },
     responsavel: null,
   });
+
+  // Aplicar filtros baseado no query parameter
+  useEffect(() => {
+    if (tipoParam === 'leads') {
+      setFilters(prev => ({
+        ...prev,
+        status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada']
+      }));
+    } else if (tipoParam === 'clientes') {
+      setFilters(prev => ({
+        ...prev,
+        status: ['fechado']
+      }));
+    } else {
+      // "Todos" - limpar filtro de status
+      setFilters(prev => ({
+        ...prev,
+        status: []
+      }));
+    }
+  }, [tipoParam]);
 
   const { data: leads, isLoading } = useLeads(filters);
 
