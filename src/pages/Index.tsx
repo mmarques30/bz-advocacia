@@ -1,7 +1,7 @@
 import { useState } from "react";
 import ContactForm from "@/components/ContactForm";
 import Success from "./Success";
-import logoBZ from "@/assets/logo-bz.png";
+import logoBZ from "@/assets/logo-bz-new.png";
 import lawyersImg1 from "@/assets/lawyers-1.png";
 import lawyersImg2 from "@/assets/lawyers-2.png";
 
@@ -33,9 +33,9 @@ export default function Index() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-3xl">
-          <div className="bg-card/95 backdrop-blur-xl rounded-3xl shadow-[var(--shadow-elegant)] border border-border/50 overflow-hidden">
+          <div className="bg-card/70 backdrop-blur-xl rounded-3xl shadow-[var(--shadow-elegant)] border border-border/50 overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 text-center border-b border-border/50">
+            <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-8 text-center border-b border-border/50">
               <div className="flex justify-center mb-6">
                 <img src={logoBZ} alt="B&Z Advocacia" className="h-40 w-auto" />
               </div>
