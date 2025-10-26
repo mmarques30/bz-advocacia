@@ -12,6 +12,23 @@ import Processos from "./pages/Processos";
 import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 
+// Configurações
+import Configuracoes from "./pages/configuracoes/index";
+import Perfil from "./pages/configuracoes/Perfil";
+import Usuarios from "./pages/configuracoes/Usuarios";
+import Geral from "./pages/configuracoes/Geral";
+import Templates from "./pages/configuracoes/Templates";
+import Tags from "./pages/configuracoes/Tags";
+import Logs from "./pages/configuracoes/Logs";
+
+// Processos
+import ProcessosPrazos from "./pages/processos/Prazos";
+import ProcessosCalendario from "./pages/processos/Calendario";
+
+// Financeiro
+import FinanceiroAcordos from "./pages/financeiro/Acordos";
+import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
+
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -71,6 +88,101 @@ const App = () => (
             </ProtectedRoute>
           } 
         />
+        
+        {/* Configurações */}
+        <Route 
+          path="/dashboard/configuracoes" 
+          element={
+            <ProtectedRoute>
+              <Configuracoes />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/perfil" 
+          element={
+            <ProtectedRoute>
+              <Perfil />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/usuarios" 
+          element={
+            <ProtectedRoute>
+              <Usuarios />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/geral" 
+          element={
+            <ProtectedRoute>
+              <Geral />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/templates" 
+          element={
+            <ProtectedRoute>
+              <Templates />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/tags" 
+          element={
+            <ProtectedRoute>
+              <Tags />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/logs" 
+          element={
+            <ProtectedRoute>
+              <Logs />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Processos - Subrotas */}
+        <Route 
+          path="/dashboard/processos/prazos" 
+          element={
+            <ProtectedRoute>
+              <ProcessosPrazos />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/processos/calendario" 
+          element={
+            <ProtectedRoute>
+              <ProcessosCalendario />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Financeiro - Subrotas */}
+        <Route 
+          path="/dashboard/financeiro/acordos" 
+          element={
+            <ProtectedRoute>
+              <FinanceiroAcordos />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/financeiro/relatorios" 
+          element={
+            <ProtectedRoute>
+              <FinanceiroRelatorios />
+            </ProtectedRoute>
+          } 
+        />
+        
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
