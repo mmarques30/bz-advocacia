@@ -12,7 +12,7 @@ import { useProcessoPrazos, useTogglePrazoCumprido } from "@/hooks/useProcessoPr
 import { ProcessoPrazo, TIPO_PRAZO_LABELS } from "@/types/processos";
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, AlertTriangle, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 
@@ -298,8 +298,7 @@ export default function ProcessosCalendario() {
       {/* Tabela de Processos Urgentes */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
+          <CardTitle>
             Processos com Prazos Urgentes
           </CardTitle>
           <CardDescription>
@@ -315,7 +314,6 @@ export default function ProcessosCalendario() {
             </div>
           ) : prazosUrgentes.length === 0 ? (
             <div className="text-center py-8">
-              <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
               <p className="text-muted-foreground">
                 Nenhum prazo urgente no momento
               </p>
@@ -352,12 +350,7 @@ export default function ProcessosCalendario() {
                         </TableCell>
                         
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {diasRestantes <= 1 && (
-                              <AlertTriangle className="h-4 w-4 text-red-600" />
-                            )}
-                            {format(new Date(prazo.data_prazo), "dd/MM/yyyy")}
-                          </div>
+                          {format(new Date(prazo.data_prazo), "dd/MM/yyyy")}
                         </TableCell>
                         
                         <TableCell>

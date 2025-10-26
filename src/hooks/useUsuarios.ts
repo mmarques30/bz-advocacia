@@ -1,0 +1,217 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+export interface Usuario {
+  id: string;
+  nome_completo: string;
+  email: string;
+  telefone: string | null;
+  avatar_url: string | null;
+  cargo: string | null;
+  ativo: boolean;
+  ultimo_acesso: string | null;
+  created_at: string;
+  roles: string[];
+}
+
+export interface ConvitePendente {
+  id: string;
+  email: string;
+  role: string;
+  invited_by: string;
+  expires_at: string;
+  created_at: string;
+  invited_by_name?: string;
+}
+
+export const useUsuarios = () => {
+  return useQuery({
+    queryKey: ["usuarios"],
+    queryFn: async () => {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("nome_completo");
+
+      if (profilesError) throw profilesError;
+
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("*");
+
+      if (rolesError) throw rolesError;
+
+      const usuarios: Usuario[] = profiles.map((profile) => ({
+        ...profile,
+        roles: roles
+          .filter((r) => r.user_id === profile.id)
+          .map((r) => r.role),
+      }));
+
+      return usuarios;
+    },
+  });
+};
+
+export const useInvitesPendentes = () => {
+  return useQuery({
+    queryKey: ["invites-pendentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_invites")
+        .select("*")
+        .is("accepted_at", null)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Buscar nomes dos convidadores
+      const invitedByIds = [...new Set(data.map((i) => i.invited_by))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome_completo")
+        .in("id", invitedByIds);
+
+      const profileMap = new Map(profiles?.map((p) => [p.id, p.nome_completo]) || []);
+
+      return data.map((invite) => ({
+        ...invite,
+        invited_by_name: profileMap.get(invite.invited_by) || "Desconhecido",
+      })) as ConvitePendente[];
+    },
+  });
+};
+
+export const useUpdateUserRole = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, roles }: { userId: string; roles: string[] }) => {
+      // Remove all existing roles
+      const { error: deleteError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+
+      if (deleteError) throw deleteError;
+
+      // Add new roles
+      if (roles.length > 0) {
+        const { error: insertError } = await supabase
+          .from("user_roles")
+          .insert(roles.map((role) => ({ 
+            user_id: userId, 
+            role: role as "admin" | "advogado" | "assistente" | "financeiro"
+          })));
+
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      toast.success("Permissões atualizadas com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao atualizar permissões: " + error.message);
+    },
+  });
+};
+
+export const useToggleUserStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ userId, ativo }: { userId: string; ativo: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ ativo })
+        .eq("id", userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      toast.success("Status atualizado com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao atualizar status: " + error.message);
+    },
+  });
+};
+
+export const useCreateInvite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ email, role }: { email: string; role: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+      const { error } = await supabase.from("user_invites").insert({
+        email,
+        role: role as "admin" | "advogado" | "assistente" | "financeiro",
+        invited_by: user.id,
+        token,
+        expires_at: expiresAt.toISOString(),
+      });
+
+      if (error) throw error;
+
+      return { token };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invites-pendentes"] });
+      toast.success("Convite enviado com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao enviar convite: " + error.message);
+    },
+  });
+};
+
+export const useCancelInvite = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (inviteId: string) => {
+      const { error } = await supabase
+        .from("user_invites")
+        .delete()
+        .eq("id", inviteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invites-pendentes"] });
+      toast.success("Convite cancelado");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao cancelar convite: " + error.message);
+    },
+  });
+};
+
+export const useCheckIsAdmin = () => {
+  return useQuery({
+    queryKey: ["is-admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+
+      if (error) return false;
+      return !!data;
+    },
+  });
+};
