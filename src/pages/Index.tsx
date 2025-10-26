@@ -2,8 +2,7 @@ import { useState } from "react";
 import ContactForm from "@/components/ContactForm";
 import Success from "./Success";
 import logoBZ from "@/assets/logo-bz-new.png";
-import lawyersImg1 from "@/assets/lawyers-1.png";
-import lawyersImg2 from "@/assets/lawyers-2.png";
+import lawyersImg from "@/assets/lawyers-new.png";
 
 export default function Index() {
   const [showSuccess, setShowSuccess] = useState(false);
@@ -22,10 +21,10 @@ export default function Index() {
         <div 
           className="absolute inset-0 opacity-60"
           style={{
-            backgroundImage: `url(${lawyersImg1}), url(${lawyersImg2})`,
-            backgroundSize: 'cover, cover',
-            backgroundPosition: 'left center, right center',
-            backgroundRepeat: 'no-repeat, no-repeat',
+            backgroundImage: `url(${lawyersImg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center center',
+            backgroundRepeat: 'no-repeat',
           }}
         />
       </div>
