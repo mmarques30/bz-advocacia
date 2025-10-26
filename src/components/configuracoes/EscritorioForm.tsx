@@ -220,8 +220,7 @@ export function EscritorioForm() {
                 value={form.watch("cnpj")}
                 onChange={(e) => form.setValue("cnpj", e.target.value)}
               >
-                {/* @ts-ignore */}
-                {(inputProps) => <Input {...inputProps} id="cnpj" placeholder="00.000.000/0000-00" />}
+                {(inputProps: any) => <Input {...inputProps} id="cnpj" placeholder="00.000.000/0000-00" />}
               </InputMask>
             </div>
 
@@ -254,8 +253,7 @@ export function EscritorioForm() {
                 value={form.watch("telefone")}
                 onChange={(e) => form.setValue("telefone", e.target.value)}
               >
-                {/* @ts-ignore */}
-                {(inputProps) => <Input {...inputProps} id="telefone" placeholder="(00) 00000-0000" />}
+                {(inputProps: any) => <Input {...inputProps} id="telefone" placeholder="(00) 00000-0000" />}
               </InputMask>
             </div>
 
@@ -290,15 +288,14 @@ export function EscritorioForm() {
                 mask="99999-999"
                 value={form.watch("cep")}
                 onChange={(e) => form.setValue("cep", e.target.value)}
-                onBlur={(e) => fetchAddressByCEP(e.target.value)}
+                onBlur={(e: any) => fetchAddressByCEP(e.target.value)}
+                disabled={loadingCep}
               >
-                {/* @ts-ignore */}
-                {(inputProps) => (
+                {(inputProps: any) => (
                   <Input
                     {...inputProps}
                     id="cep"
                     placeholder="00000-000"
-                    disabled={loadingCep}
                   />
                 )}
               </InputMask>
