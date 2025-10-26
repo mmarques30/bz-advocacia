@@ -14,22 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      atividades: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          entidade_id: string | null
+          entidade_tipo: string | null
+          id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          entidade_id?: string | null
+          entidade_tipo?: string | null
+          id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           bens_partilhar: string | null
           como_conheceu: string
           created_at: string
+          data_ultima_atividade: string | null
           documentos: string[] | null
           email: string
+          estagio: string | null
           id: string
           lgpd_consent: boolean
           mensagem: string
           nome_completo: string
           notas_internas: string | null
           numero_herdeiros: number | null
+          origem: string | null
           outro_como_conheceu: string | null
           outro_tipo_processo: string | null
           regime_casamento: string | null
+          responsavel_id: string | null
           situacao_atual: string | null
           status: string
           telefone: string
@@ -37,22 +71,27 @@ export type Database = {
           tipo_processo: string
           valor_estimado_bens: string | null
           valor_pretendido: string | null
+          valor_proposta: number | null
         }
         Insert: {
           bens_partilhar?: string | null
           como_conheceu: string
           created_at?: string
+          data_ultima_atividade?: string | null
           documentos?: string[] | null
           email: string
+          estagio?: string | null
           id?: string
           lgpd_consent?: boolean
           mensagem: string
           nome_completo: string
           notas_internas?: string | null
           numero_herdeiros?: number | null
+          origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
           regime_casamento?: string | null
+          responsavel_id?: string | null
           situacao_atual?: string | null
           status?: string
           telefone: string
@@ -60,22 +99,27 @@ export type Database = {
           tipo_processo: string
           valor_estimado_bens?: string | null
           valor_pretendido?: string | null
+          valor_proposta?: number | null
         }
         Update: {
           bens_partilhar?: string | null
           como_conheceu?: string
           created_at?: string
+          data_ultima_atividade?: string | null
           documentos?: string[] | null
           email?: string
+          estagio?: string | null
           id?: string
           lgpd_consent?: boolean
           mensagem?: string
           nome_completo?: string
           notas_internas?: string | null
           numero_herdeiros?: number | null
+          origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
           regime_casamento?: string | null
+          responsavel_id?: string | null
           situacao_atual?: string | null
           status?: string
           telefone?: string
@@ -83,8 +127,136 @@ export type Database = {
           tipo_processo?: string
           valor_estimado_bens?: string | null
           valor_pretendido?: string | null
+          valor_proposta?: number | null
         }
         Relationships: []
+      }
+      financeiro: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          descricao: string | null
+          id: string
+          processo_id: string | null
+          status: string | null
+          tipo: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          descricao?: string | null
+          id?: string
+          processo_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          descricao?: string | null
+          id?: string
+          processo_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financeiro_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kpis: {
+        Row: {
+          created_at: string | null
+          data: string
+          id: string
+          novos_clientes: number | null
+          processos_ativos: number | null
+          receita_mes: number | null
+          taxa_conversao: number | null
+          taxa_inadimplencia: number | null
+          total_leads: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data: string
+          id?: string
+          novos_clientes?: number | null
+          processos_ativos?: number | null
+          receita_mes?: number | null
+          taxa_conversao?: number | null
+          taxa_inadimplencia?: number | null
+          total_leads?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: string
+          id?: string
+          novos_clientes?: number | null
+          processos_ativos?: number | null
+          receita_mes?: number | null
+          taxa_conversao?: number | null
+          taxa_inadimplencia?: number | null
+          total_leads?: number | null
+        }
+        Relationships: []
+      }
+      processos: {
+        Row: {
+          created_at: string | null
+          data_inicio: string
+          data_ultima_atualizacao: string | null
+          id: string
+          lead_id: string | null
+          numero_processo: string | null
+          prazo_proximo: string | null
+          status: string | null
+          tipo: string
+          valor: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_inicio: string
+          data_ultima_atualizacao?: string | null
+          id?: string
+          lead_id?: string | null
+          numero_processo?: string | null
+          prazo_proximo?: string | null
+          status?: string | null
+          tipo: string
+          valor?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data_inicio?: string
+          data_ultima_atualizacao?: string | null
+          id?: string
+          lead_id?: string | null
+          numero_processo?: string | null
+          prazo_proximo?: string | null
+          status?: string | null
+          tipo?: string
+          valor?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -1,46 +1,101 @@
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
-import logoBZ from "@/assets/logo-bz-new.png";
+import { Users, TrendingUp, UserPlus, Briefcase, DollarSign, AlertTriangle } from "lucide-react";
+import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
+import { KPICard } from "@/components/dashboard/KPICard";
+import { ConversionFunnel } from "@/components/dashboard/ConversionFunnel";
+import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
+import { RevenueChart } from "@/components/dashboard/RevenueChart";
+import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
+import { RecentActivities } from "@/components/dashboard/RecentActivities";
+import { useDateFilter } from "@/hooks/useDateFilter";
+import {
+  useKPIs,
+  useConversionFunnel,
+  useLeadsEvolution,
+  useRevenue,
+  useAlerts,
+  useRecentActivities,
+} from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { filters, setPreset, clearFilters } = useDateFilter();
+
+  const { data: kpis, isLoading: kpisLoading } = useKPIs(filters);
+  const { data: funnelData, isLoading: funnelLoading } = useConversionFunnel(filters);
+  const { data: leadsData, isLoading: leadsLoading } = useLeadsEvolution(filters);
+  const { data: revenueData, isLoading: revenueLoading } = useRevenue(filters);
+  const { data: alerts, isLoading: alertsLoading } = useAlerts(filters);
+  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(10);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src={logoBZ} alt="B&Z Advocacia" className="h-12 w-auto" />
-            <div>
-              <h1 className="text-xl font-seasons font-bold text-card-foreground">
-                B&Z Advocacia
-              </h1>
-              <p className="text-xs text-muted-foreground">Painel Administrativo</p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={signOut} size="sm">
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
-          </Button>
-        </div>
-      </header>
+    <div className="space-y-6">
+      <DashboardFilters
+        periodo={filters.periodo}
+        onPeriodoChange={setPreset}
+        onClearFilters={clearFilters}
+      />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="bg-card rounded-xl border border-border p-8 text-center">
-          <h2 className="text-2xl font-seasons font-bold text-card-foreground mb-4">
-            Bem-vindo ao Dashboard
-          </h2>
-          <p className="text-muted-foreground mb-2">
-            Olá, <span className="font-semibold text-foreground">{user?.email}</span>
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Sistema de gerenciamento de leads e casos em desenvolvimento.
-          </p>
-        </div>
-      </main>
+      {/* KPIs Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <KPICard
+          title="Total de Leads"
+          value={kpis?.totalLeads || 0}
+          icon={Users}
+          trend={12.5}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Taxa de Conversão"
+          value={kpis?.taxaConversao || 0}
+          icon={TrendingUp}
+          format="percentage"
+          trend={5.2}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Novos Clientes"
+          value={kpis?.novosClientes || 0}
+          icon={UserPlus}
+          trend={8.3}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Processos Ativos"
+          value={kpis?.processosAtivos || 0}
+          icon={Briefcase}
+          trend={-2.1}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Receita do Mês"
+          value={kpis?.receitaMes || 0}
+          icon={DollarSign}
+          format="currency"
+          trend={15.7}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Taxa de Inadimplência"
+          value={kpis?.taxaInadimplencia || 0}
+          icon={AlertTriangle}
+          format="percentage"
+          trend={-1.2}
+          loading={kpisLoading}
+        />
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ConversionFunnel data={funnelData || []} loading={funnelLoading} />
+        <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
+      </div>
+
+      <RevenueChart data={revenueData || []} loading={revenueLoading} />
+
+      {/* Widgets Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AlertsWidget data={alerts || []} loading={alertsLoading} />
+        <RecentActivities data={activities || []} loading={activitiesLoading} />
+      </div>
     </div>
   );
 }
