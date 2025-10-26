@@ -17,10 +17,10 @@ export default function Index() {
       {/* Background Images with Overlay */}
       <div className="fixed inset-0 z-0">
         <div className="absolute inset-0 bg-[image:var(--gradient-overlay)]" style={{
-          background: 'linear-gradient(135deg, hsla(72, 6%, 18%, 0.85) 0%, hsla(220, 4%, 40%, 0.75) 100%)'
+          background: 'linear-gradient(135deg, hsla(72, 6%, 18%, 0.35) 0%, hsla(220, 4%, 40%, 0.25) 100%)'
         }} />
         <div 
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0 opacity-60"
           style={{
             backgroundImage: `url(${lawyersImg1}), url(${lawyersImg2})`,
             backgroundSize: 'cover, cover',
@@ -33,11 +33,11 @@ export default function Index() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-3xl">
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl shadow-[var(--shadow-elegant)] border border-border/50 overflow-hidden">
+          <div className="bg-card/95 backdrop-blur-xl rounded-3xl shadow-[var(--shadow-elegant)] border border-border/50 overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-primary/10 to-secondary/10 p-8 text-center border-b border-border/50">
               <div className="flex justify-center mb-6">
-                <img src={logoBZ} alt="B&Z Advocacia" className="h-24 w-auto" />
+                <img src={logoBZ} alt="B&Z Advocacia" className="h-40 w-auto" />
               </div>
               <h1 className="text-4xl font-bold text-card-foreground mb-2">
                 Fale Conosco
