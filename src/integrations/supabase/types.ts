@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      acordos_financeiros: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          created_by: string | null
+          data_primeiro_vencimento: string | null
+          forma_pagamento: string
+          id: string
+          numero_parcelas: number | null
+          observacoes: string | null
+          processo_id: string | null
+          status: string | null
+          tipo_servico: string
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          created_by?: string | null
+          data_primeiro_vencimento?: string | null
+          forma_pagamento: string
+          id?: string
+          numero_parcelas?: number | null
+          observacoes?: string | null
+          processo_id?: string | null
+          status?: string | null
+          tipo_servico: string
+          valor_total: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          created_by?: string | null
+          data_primeiro_vencimento?: string | null
+          forma_pagamento?: string
+          id?: string
+          numero_parcelas?: number | null
+          observacoes?: string | null
+          processo_id?: string | null
+          status?: string | null
+          tipo_servico?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "acordos_financeiros_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "acordos_financeiros_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atividades: {
         Row: {
           created_at: string | null
@@ -181,6 +241,47 @@ export type Database = {
           },
         ]
       }
+      historico_pagamentos: {
+        Row: {
+          created_at: string | null
+          data_pagamento: string
+          forma_pagamento: string
+          id: string
+          observacoes: string | null
+          parcela_id: string
+          registrado_por: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          data_pagamento: string
+          forma_pagamento: string
+          id?: string
+          observacoes?: string | null
+          parcela_id: string
+          registrado_por?: string | null
+          valor: number
+        }
+        Update: {
+          created_at?: string | null
+          data_pagamento?: string
+          forma_pagamento?: string
+          id?: string
+          observacoes?: string | null
+          parcela_id?: string
+          registrado_por?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_pagamentos_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas_financeiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpis: {
         Row: {
           created_at: string | null
@@ -289,6 +390,59 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parcelas_financeiras: {
+        Row: {
+          acordo_id: string
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          forma_pagamento_recebido: string | null
+          id: string
+          numero_parcela: number
+          observacoes: string | null
+          pago_por: string | null
+          status: string | null
+          valor: number
+          valor_pago: number | null
+        }
+        Insert: {
+          acordo_id: string
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          forma_pagamento_recebido?: string | null
+          id?: string
+          numero_parcela: number
+          observacoes?: string | null
+          pago_por?: string | null
+          status?: string | null
+          valor: number
+          valor_pago?: number | null
+        }
+        Update: {
+          acordo_id?: string
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          forma_pagamento_recebido?: string | null
+          id?: string
+          numero_parcela?: number
+          observacoes?: string | null
+          pago_por?: string | null
+          status?: string | null
+          valor?: number
+          valor_pago?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcelas_financeiras_acordo_id_fkey"
+            columns: ["acordo_id"]
+            isOneToOne: false
+            referencedRelation: "acordos_financeiros"
             referencedColumns: ["id"]
           },
         ]

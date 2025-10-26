@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Processos from "./pages/Processos";
+import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 
 // Protected Route Component
@@ -59,6 +60,14 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Processos />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/financeiro" 
+          element={
+            <ProtectedRoute>
+              <Financeiro />
             </ProtectedRoute>
           } 
         />
