@@ -17,7 +17,7 @@ export function LeadsEvolution({ data, loading }: LeadsEvolutionProps) {
           <CardTitle>Evolução de Leads</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[400px] w-full" />
         </CardContent>
       </Card>
     );
@@ -29,7 +29,7 @@ export function LeadsEvolution({ data, loading }: LeadsEvolutionProps) {
         <CardTitle className="font-seasons">Evolução de Leads</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={400}>
           <LineChart data={data}>
             <CartesianGrid {...chartTheme.grid} />
             <XAxis dataKey="mes" />
@@ -48,10 +48,10 @@ export function LeadsEvolution({ data, loading }: LeadsEvolutionProps) {
               type="monotone"
               dataKey="anterior"
               name="Período Anterior"
-              stroke={chartColors.muted}
+              stroke={chartColors.secondary}
               strokeWidth={2}
               strokeDasharray="5 5"
-              dot={{ fill: chartColors.muted }}
+              dot={{ fill: chartColors.secondary }}
             />
           </LineChart>
         </ResponsiveContainer>
