@@ -38,9 +38,29 @@ const formSchema = z.object({
   situacao_atual: z.string().optional(),
   valor_pretendido: z.string().optional(),
   
+  // Campos condicionais - Outro
+  outro_tipo_processo: z.string().optional(),
+  outro_como_conheceu: z.string().optional(),
+  
   lgpd_consent: z.boolean().refine((val) => val === true, {
     message: "Você deve aceitar os termos LGPD",
   }),
+}).refine((data) => {
+  if (data.tipo_processo === "outro" && !data.outro_tipo_processo?.trim()) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Especifique o tipo de processo",
+  path: ["outro_tipo_processo"],
+}).refine((data) => {
+  if (data.como_conheceu === "outro" && !data.outro_como_conheceu?.trim()) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Especifique como nos conheceu",
+  path: ["outro_como_conheceu"],
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -64,6 +84,7 @@ export default function ContactForm({ onSuccess }: ContactFormProps) {
   });
 
   const tipoProcesso = watch("tipo_processo");
+  const comoConheceu = watch("como_conheceu");
   const telefone = watch("telefone");
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,6 +143,8 @@ export default function ContactForm({ onSuccess }: ContactFormProps) {
         numero_herdeiros: data.numero_herdeiros || null,
         situacao_atual: data.situacao_atual || null,
         valor_pretendido: data.valor_pretendido || null,
+        outro_tipo_processo: data.outro_tipo_processo || null,
+        outro_como_conheceu: data.outro_como_conheceu || null,
         documentos,
         lgpd_consent: data.lgpd_consent,
       };
@@ -218,6 +241,24 @@ export default function ContactForm({ onSuccess }: ContactFormProps) {
             <p className="text-destructive text-sm mt-1">{errors.tipo_processo.message}</p>
           )}
         </div>
+
+        {/* Conditional Field - Outro Tipo de Processo */}
+        {tipoProcesso === "outro" && (
+          <div>
+            <Label htmlFor="outro_tipo_processo" className="text-card-foreground/90">
+              Especifique o tipo de processo *
+            </Label>
+            <Input
+              id="outro_tipo_processo"
+              {...register("outro_tipo_processo")}
+              className="mt-1.5 bg-card/50 backdrop-blur-sm border-border"
+              placeholder="Descreva o tipo de processo que deseja consultar"
+            />
+            {errors.outro_tipo_processo && (
+              <p className="text-destructive text-sm mt-1">{errors.outro_tipo_processo.message}</p>
+            )}
+          </div>
+        )}
 
         {/* Conditional Fields - Divórcio */}
         {tipoProcesso === "divorcio" && (
@@ -345,6 +386,24 @@ export default function ContactForm({ onSuccess }: ContactFormProps) {
             <p className="text-destructive text-sm mt-1">{errors.como_conheceu.message}</p>
           )}
         </div>
+
+        {/* Conditional Field - Outro Como Conheceu */}
+        {comoConheceu === "outro" && (
+          <div>
+            <Label htmlFor="outro_como_conheceu" className="text-card-foreground/90">
+              Especifique como nos conheceu *
+            </Label>
+            <Input
+              id="outro_como_conheceu"
+              {...register("outro_como_conheceu")}
+              className="mt-1.5 bg-card/50 backdrop-blur-sm border-border"
+              placeholder="Descreva como conheceu nosso escritório"
+            />
+            {errors.outro_como_conheceu && (
+              <p className="text-destructive text-sm mt-1">{errors.outro_como_conheceu.message}</p>
+            )}
+          </div>
+        )}
 
         <div>
           <Label htmlFor="mensagem" className="text-card-foreground/90">

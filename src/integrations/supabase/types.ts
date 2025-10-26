@@ -27,6 +27,8 @@ export type Database = {
           nome_completo: string
           notas_internas: string | null
           numero_herdeiros: number | null
+          outro_como_conheceu: string | null
+          outro_tipo_processo: string | null
           regime_casamento: string | null
           situacao_atual: string | null
           status: string
@@ -48,6 +50,8 @@ export type Database = {
           nome_completo: string
           notas_internas?: string | null
           numero_herdeiros?: number | null
+          outro_como_conheceu?: string | null
+          outro_tipo_processo?: string | null
           regime_casamento?: string | null
           situacao_atual?: string | null
           status?: string
@@ -69,6 +73,8 @@ export type Database = {
           nome_completo?: string
           notas_internas?: string | null
           numero_herdeiros?: number | null
+          outro_como_conheceu?: string | null
+          outro_tipo_processo?: string | null
           regime_casamento?: string | null
           situacao_atual?: string | null
           status?: string
