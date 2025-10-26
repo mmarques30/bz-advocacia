@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Upload, Loader2, MessageCircle } from "lucide-react";
 
 const formSchema = z.object({
   nome_completo: z.string().trim().min(1, "Nome é obrigatório").max(200, "Nome muito longo"),
@@ -487,20 +487,32 @@ export default function ContactForm({ onSuccess }: ContactFormProps) {
         )}
       </div>
 
-      <Button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6 text-lg"
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Enviando...
-          </>
-        ) : (
-          "Enviar Contato"
-        )}
-      </Button>
+      <div className="space-y-3">
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-6 text-lg"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Enviando...
+            </>
+          ) : (
+            "Enviar Contato"
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full font-medium py-6 text-lg"
+          onClick={() => window.open('https://wa.me/5511999999999?text=Ol%C3%A1!%20Gostaria%20de%20falar%20com%20a%20B%26Z%20Advocacia.', '_blank')}
+        >
+          <MessageCircle className="mr-2 h-5 w-5" />
+          Falar com a B&Z
+        </Button>
+      </div>
     </form>
   );
 }
