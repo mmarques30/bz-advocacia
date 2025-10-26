@@ -61,7 +61,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
               type="monotone"
               dataKey="meta"
               name="Meta"
-              stroke={chartColors.muted}
+              stroke={chartColors.secondary}
               strokeWidth={2}
               strokeDasharray="5 5"
             />
