@@ -104,63 +104,6 @@ export type Database = {
         }
         Relationships: []
       }
-      configuracoes_escritorio: {
-        Row: {
-          cep: string | null
-          cidade: string | null
-          cnpj: string | null
-          created_at: string | null
-          email: string | null
-          endereco_completo: string | null
-          estado: string | null
-          id: string
-          logo_url: string | null
-          nome_escritorio: string
-          oab_principal: string | null
-          preferencias: Json | null
-          redes_sociais: Json | null
-          site: string | null
-          telefone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string | null
-          created_at?: string | null
-          email?: string | null
-          endereco_completo?: string | null
-          estado?: string | null
-          id?: string
-          logo_url?: string | null
-          nome_escritorio: string
-          oab_principal?: string | null
-          preferencias?: Json | null
-          redes_sociais?: Json | null
-          site?: string | null
-          telefone?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string | null
-          created_at?: string | null
-          email?: string | null
-          endereco_completo?: string | null
-          estado?: string | null
-          id?: string
-          logo_url?: string | null
-          nome_escritorio?: string
-          oab_principal?: string | null
-          preferencias?: Json | null
-          redes_sociais?: Json | null
-          site?: string | null
-          telefone?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       contact_submissions: {
         Row: {
           bens_partilhar: string | null
@@ -253,38 +196,6 @@ export type Database = {
           valor_proposta?: number | null
         }
         Relationships: []
-      }
-      entidade_tags: {
-        Row: {
-          created_at: string | null
-          entidade_id: string
-          entidade_tipo: string
-          id: string
-          tag_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          entidade_id: string
-          entidade_tipo: string
-          id?: string
-          tag_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          entidade_id?: string
-          entidade_tipo?: string
-          id?: string
-          tag_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "entidade_tags_tag_id_fkey"
-            columns: ["tag_id"]
-            isOneToOne: false
-            referencedRelation: "tags"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       financeiro: {
         Row: {
@@ -482,45 +393,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      logs_sistema: {
-        Row: {
-          acao: string
-          created_at: string | null
-          descricao: string
-          entidade_id: string | null
-          entidade_tipo: string
-          id: string
-          ip_address: unknown
-          metadata: Json | null
-          user_agent: string | null
-          usuario_id: string | null
-        }
-        Insert: {
-          acao: string
-          created_at?: string | null
-          descricao: string
-          entidade_id?: string | null
-          entidade_tipo: string
-          id?: string
-          ip_address?: unknown
-          metadata?: Json | null
-          user_agent?: string | null
-          usuario_id?: string | null
-        }
-        Update: {
-          acao?: string
-          created_at?: string | null
-          descricao?: string
-          entidade_id?: string | null
-          entidade_tipo?: string
-          id?: string
-          ip_address?: unknown
-          metadata?: Json | null
-          user_agent?: string | null
-          usuario_id?: string | null
-        }
-        Relationships: []
       }
       notificacoes: {
         Row: {
@@ -968,78 +840,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      tags: {
-        Row: {
-          cor: string
-          created_at: string | null
-          created_by: string | null
-          descricao: string | null
-          id: string
-          nome: string
-          tipo: string
-        }
-        Insert: {
-          cor: string
-          created_at?: string | null
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          nome: string
-          tipo: string
-        }
-        Update: {
-          cor?: string
-          created_at?: string | null
-          created_by?: string | null
-          descricao?: string | null
-          id?: string
-          nome?: string
-          tipo?: string
-        }
-        Relationships: []
-      }
-      templates: {
-        Row: {
-          ativo: boolean | null
-          categoria: string | null
-          conteudo: string
-          created_at: string | null
-          criado_por: string | null
-          descricao: string | null
-          id: string
-          nome: string
-          tipo: string
-          updated_at: string | null
-          variaveis: string[] | null
-        }
-        Insert: {
-          ativo?: boolean | null
-          categoria?: string | null
-          conteudo: string
-          created_at?: string | null
-          criado_por?: string | null
-          descricao?: string | null
-          id?: string
-          nome: string
-          tipo: string
-          updated_at?: string | null
-          variaveis?: string[] | null
-        }
-        Update: {
-          ativo?: boolean | null
-          categoria?: string | null
-          conteudo?: string
-          created_at?: string | null
-          criado_por?: string | null
-          descricao?: string | null
-          id?: string
-          nome?: string
-          tipo?: string
-          updated_at?: string | null
-          variaveis?: string[] | null
-        }
-        Relationships: []
       }
       user_invites: {
         Row: {
