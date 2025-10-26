@@ -42,23 +42,18 @@ export function KPICard({ title, value, icon: Icon, trend, format = 'number', lo
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Icon className="h-5 w-5 text-primary" />
-          </div>
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <p className="text-sm text-muted-foreground">{title}</p>
           {trend !== undefined && (
             <span className={`text-sm font-medium ${getTrendColor()}`}>
               {trend > 0 ? '+' : ''}{trend}%
             </span>
           )}
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">{title}</p>
-          <p className="text-3xl font-seasons font-bold text-foreground">
-            {formatValue()}
-          </p>
-        </div>
+        <p className="text-5xl font-seasons font-bold text-foreground">
+          {formatValue()}
+        </p>
       </CardContent>
     </Card>
   );
