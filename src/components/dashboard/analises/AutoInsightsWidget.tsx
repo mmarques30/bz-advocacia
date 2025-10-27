@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AutoInsight } from "@/types/analytics";
-import { Target, TrendingUp, DollarSign, Zap, LucideIcon } from "lucide-react";
+import { Target, TrendingUp, DollarSign, Clock, LucideIcon } from "lucide-react";
 
 interface AutoInsightsWidgetProps {
   insights: AutoInsight[];
@@ -17,8 +17,8 @@ export function AutoInsightsWidget({ insights }: AutoInsightsWidgetProps) {
         return TrendingUp;
       case 'highest_ticket':
         return DollarSign;
-      case 'fastest_conversion':
-        return Zap;
+      case 'average_time':
+        return Clock;
     }
   };
 
@@ -30,8 +30,8 @@ export function AutoInsightsWidget({ insights }: AutoInsightsWidgetProps) {
         return 'Mais Leads';
       case 'highest_ticket':
         return 'Maior Ticket';
-      case 'fastest_conversion':
-        return 'Conversão Rápida';
+      case 'average_time':
+        return 'Tempo Médio';
     }
   };
 

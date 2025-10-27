@@ -69,7 +69,7 @@ export interface ChannelEvolution {
 
 export interface AutoInsight {
   id: string;
-  tipo: 'best_conversion' | 'most_leads' | 'highest_ticket' | 'fastest_conversion';
+  tipo: 'best_conversion' | 'most_leads' | 'highest_ticket' | 'average_time';
   valor: string;
   descricao: string;
   canal?: LeadOrigem;

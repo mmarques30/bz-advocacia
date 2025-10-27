@@ -282,30 +282,26 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
         canal: highestTicket.origem,
       });
 
-      // 4. Conversão mais rápida (ou receita total como fallback)
-      const validChannels = channelData.filter(c => c.tempoMedioConversao > 0);
-      if (validChannels.length > 0) {
-        const fastest = validChannels.reduce((prev, curr) => 
+      // 4. Tempo médio de conversão
+      const channelsWithTime = channelData.filter(c => c.tempoMedioConversao > 0);
+      if (channelsWithTime.length > 0) {
+        const fastest = channelsWithTime.reduce((prev, curr) => 
           curr.tempoMedioConversao < prev.tempoMedioConversao ? curr : prev
         );
         insights.push({
-          id: 'fastest-conversion',
-          tipo: 'fastest_conversion',
+          id: 'average-time',
+          tipo: 'average_time',
           valor: `${Math.round(fastest.tempoMedioConversao)}`,
           descricao: 'dias em média',
           canal: fastest.origem,
         });
       } else {
-        // Fallback: mostrar maior receita total
-        const highestRevenue = channelData.reduce((prev, curr) => 
-          curr.receitaTotal > prev.receitaTotal ? curr : prev
-        );
         insights.push({
-          id: 'highest-revenue',
-          tipo: 'highest_ticket',
-          valor: `R$ ${highestRevenue.receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
-          descricao: 'receita total',
-          canal: highestRevenue.origem,
+          id: 'average-time-fallback',
+          tipo: 'average_time',
+          valor: '0',
+          descricao: 'dias em média',
+          canal: mostLeads.origem,
         });
       }
 
