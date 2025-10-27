@@ -35,20 +35,6 @@ export function AutoInsightsWidget({ insights }: AutoInsightsWidgetProps) {
     }
   };
 
-  const getBackgroundColor = (tipo: AutoInsight['tipo']) => {
-    switch (tipo) {
-      case 'best_conversion':
-        return 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800';
-      case 'most_leads':
-        return 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800';
-      case 'highest_ticket':
-        return 'bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800';
-      case 'fastest_conversion':
-        return 'bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800';
-      default:
-        return 'bg-secondary/50';
-    }
-  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -57,10 +43,10 @@ export function AutoInsightsWidget({ insights }: AutoInsightsWidgetProps) {
         const title = getTitle(insight.tipo);
         
         return (
-          <Card key={insight.id} className={`border ${getBackgroundColor(insight.tipo)}`}>
+          <Card key={insight.id} className="border-border">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Icon className="h-4 w-4" />
+              <CardTitle className="flex items-center gap-2 text-base font-medium">
+                <Icon className="h-4 w-4 text-muted-foreground" />
                 {title}
               </CardTitle>
             </CardHeader>

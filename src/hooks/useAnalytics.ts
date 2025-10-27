@@ -282,7 +282,7 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
         canal: highestTicket.origem,
       });
 
-      // 4. Conversão mais rápida
+      // 4. Conversão mais rápida (ou receita total como fallback)
       const validChannels = channelData.filter(c => c.tempoMedioConversao > 0);
       if (validChannels.length > 0) {
         const fastest = validChannels.reduce((prev, curr) => 
@@ -294,6 +294,18 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
           valor: `${Math.round(fastest.tempoMedioConversao)}`,
           descricao: 'dias em média',
           canal: fastest.origem,
+        });
+      } else {
+        // Fallback: mostrar maior receita total
+        const highestRevenue = channelData.reduce((prev, curr) => 
+          curr.receitaTotal > prev.receitaTotal ? curr : prev
+        );
+        insights.push({
+          id: 'highest-revenue',
+          tipo: 'highest_ticket',
+          valor: `R$ ${highestRevenue.receitaTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+          descricao: 'receita total',
+          canal: highestRevenue.origem,
         });
       }
 
