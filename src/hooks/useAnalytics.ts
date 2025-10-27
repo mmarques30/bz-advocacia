@@ -253,10 +253,9 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
       insights.push({
         id: 'best-conversion',
         tipo: 'best_conversion',
-        texto: `${bestConversion.origem} tem a melhor taxa de conversão`,
         valor: `${bestConversion.taxaConversao.toFixed(1)}%`,
+        descricao: 'taxa de conversão',
         canal: bestConversion.origem,
-        icone: '🎯',
       });
 
       // 2. Mais leads
@@ -266,10 +265,9 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
       insights.push({
         id: 'most-leads',
         tipo: 'most_leads',
-        texto: `${mostLeads.origem} trouxe mais leads este período`,
-        valor: `${mostLeads.totalLeads} leads`,
+        valor: `${mostLeads.totalLeads}`,
+        descricao: 'leads no período',
         canal: mostLeads.origem,
-        icone: '📈',
       });
 
       // 3. Maior ticket médio
@@ -279,10 +277,9 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
       insights.push({
         id: 'highest-ticket',
         tipo: 'highest_ticket',
-        texto: `${highestTicket.origem} tem maior ticket médio`,
-        valor: `R$ ${highestTicket.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+        valor: `R$ ${highestTicket.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+        descricao: 'ticket médio',
         canal: highestTicket.origem,
-        icone: '💰',
       });
 
       // 4. Conversão mais rápida
@@ -294,10 +291,9 @@ export function useAutoInsights(channelData?: ChannelPerformance[]) {
         insights.push({
           id: 'fastest-conversion',
           tipo: 'fastest_conversion',
-          texto: `${fastest.origem} converte mais rápido`,
-          valor: `${Math.round(fastest.tempoMedioConversao)} dias`,
+          valor: `${Math.round(fastest.tempoMedioConversao)}`,
+          descricao: 'dias em média',
           canal: fastest.origem,
-          icone: '⚡',
         });
       }
 

@@ -70,10 +70,9 @@ export interface ChannelEvolution {
 export interface AutoInsight {
   id: string;
   tipo: 'best_conversion' | 'most_leads' | 'highest_ticket' | 'fastest_conversion';
-  texto: string;
   valor: string;
+  descricao: string;
   canal?: LeadOrigem;
-  icone: string; // emoji ou ícone
 }
 
 export interface AnalyticsFilters extends DashboardFilters {
