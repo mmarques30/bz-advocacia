@@ -1,4 +1,3 @@
-import { ChannelPerformanceCard } from "./ChannelPerformanceCard";
 import { LeadsDistributionChart } from "./LeadsDistributionChart";
 import { ChannelEvolutionChart } from "./ChannelEvolutionChart";
 import { ChannelComparisonTable } from "./ChannelComparisonTable";
@@ -17,23 +16,6 @@ export function DashboardPerformanceCanal({ filters }: DashboardPerformanceCanal
 
   return (
     <div className="space-y-6">
-      {/* Cards Comparativos (Grid de 4) */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {isLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <ChannelPerformanceCard key={i} channel={{} as any} loading={true} />
-          ))
-        ) : (
-          channelData?.map(channel => (
-            <ChannelPerformanceCard 
-              key={channel.origem}
-              channel={channel}
-              loading={false}
-            />
-          ))
-        )}
-      </div>
-
       {/* Insights Automáticos */}
       {insights && insights.length > 0 && (
         <AutoInsightsWidget insights={insights} />
