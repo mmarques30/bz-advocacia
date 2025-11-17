@@ -30,6 +30,21 @@ import ProcessosCalendario from "./pages/processos/Calendario";
 import FinanceiroAcordos from "./pages/financeiro/Acordos";
 import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
 
+// Root Redirect Component - Redirects based on auth status
+function RootRedirect() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return <Navigate to={user ? "/dashboard" : "/auth"} replace />;
+}
+
 // Protected Route Component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -55,7 +70,7 @@ const App = () => (
     <Sonner />
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/auth" element={<Auth />} />
         <Route 
           path="/dashboard" 
