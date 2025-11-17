@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 
 export default function Perfil() {
   const { user } = useAuth();
@@ -16,6 +16,15 @@ export default function Perfil() {
     full_name: user?.user_metadata?.full_name || "",
     phone: user?.user_metadata?.phone || "",
   });
+  
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +46,50 @@ export default function Perfil() {
       toast.error("Erro ao atualizar perfil: " + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      // Validar a senha atual fazendo login
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || "",
+        password: passwordData.currentPassword,
+      });
+
+      if (signInError) {
+        toast.error("Senha atual incorreta");
+        setPasswordLoading(false);
+        return;
+      }
+
+      // Atualizar para a nova senha
+      const { error } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (error) throw error;
+
+      toast.success("Senha alterada com sucesso!");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      toast.error("Erro ao alterar senha: " + error.message);
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -107,27 +160,75 @@ export default function Perfil() {
         <CardHeader>
           <CardTitle>Alterar Senha</CardTitle>
           <CardDescription>
-            Para alterar sua senha, você receberá um email com instruções
+            Digite sua senha atual e a nova senha desejada
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button
-            variant="outline"
-            onClick={async () => {
-              try {
-                const { error } = await supabase.auth.resetPasswordForEmail(
-                  user?.email || "",
-                  { redirectTo: window.location.origin + "/auth" }
-                );
-                if (error) throw error;
-                toast.success("Email de recuperação enviado!");
-              } catch (error: any) {
-                toast.error("Erro: " + error.message);
-              }
-            }}
-          >
-            Solicitar Alteração de Senha
-          </Button>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current_password">Senha Atual</Label>
+              <div className="relative">
+                <Input
+                  id="current_password"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={passwordData.currentPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                  }
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new_password">Nova Senha</Label>
+              <div className="relative">
+                <Input
+                  id="new_password"
+                  type={showNewPassword ? "text" : "password"}
+                  value={passwordData.newPassword}
+                  onChange={(e) =>
+                    setPasswordData({ ...passwordData, newPassword: e.target.value })
+                  }
+                  minLength={6}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground">Mínimo de 6 caracteres</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm_password">Confirmar Nova Senha</Label>
+              <Input
+                id="confirm_password"
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) =>
+                  setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                }
+                required
+              />
+            </div>
+
+            <Button type="submit" disabled={passwordLoading}>
+              {passwordLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Alterar Senha
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
