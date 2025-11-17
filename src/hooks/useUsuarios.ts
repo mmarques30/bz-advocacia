@@ -262,3 +262,45 @@ export const useCheckIsAdmin = () => {
     },
   });
 };
+
+export const useResetUserPassword = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      userId, 
+      newPassword 
+    }: { 
+      userId: string; 
+      newPassword: string;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ user_id: userId, new_password: newPassword }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao redefinir senha");
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast.success("Senha redefinida com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao redefinir senha: " + error.message);
+    },
+  });
+};

@@ -3,12 +3,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MoreVertical, UserCog, Power } from "lucide-react";
+import { MoreVertical, UserCog, Power, Key } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Usuario } from "@/hooks/useUsuarios";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EditUserRoleDialog } from "./EditUserRoleDialog";
+import { ResetPasswordDialog } from "./ResetPasswordDialog";
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
@@ -44,6 +45,8 @@ const getRoleLabel = (role: string) => {
 export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosTableProps) {
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<Usuario | null>(null);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -141,6 +144,15 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
                           Editar Permissões
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          onClick={() => {
+                            setResetPasswordUser(usuario);
+                            setResetPasswordOpen(true);
+                          }}
+                        >
+                          <Key className="h-4 w-4 mr-2" />
+                          Redefinir Senha
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           onClick={() => onToggleStatus(usuario.id, !usuario.ativo)}
                         >
                           <Power className="h-4 w-4 mr-2" />
@@ -161,6 +173,15 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           usuario={selectedUser}
+        />
+      )}
+      
+      {resetPasswordUser && (
+        <ResetPasswordDialog
+          open={resetPasswordOpen}
+          onOpenChange={setResetPasswordOpen}
+          userId={resetPasswordUser.id}
+          userName={resetPasswordUser.nome_completo}
         />
       )}
     </>
