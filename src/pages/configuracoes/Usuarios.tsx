@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { UserPlus, Search } from "lucide-react";
 import { useUsuarios, useToggleUserStatus, useCheckIsAdmin } from "@/hooks/useUsuarios";
 import { UsuariosTable } from "@/components/usuarios/UsuariosTable";
-import { InviteUserDialog } from "@/components/usuarios/InviteUserDialog";
+import { CreateUserDialog } from "@/components/usuarios/CreateUserDialog";
 import { InvitesPendentesCard } from "@/components/usuarios/InvitesPendentesCard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -74,7 +74,7 @@ export default function Usuarios() {
         </div>
         <Button onClick={() => setInviteDialogOpen(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
-          Convidar Usuário
+          Cadastrar Usuário
         </Button>
       </div>
 
@@ -86,7 +86,7 @@ export default function Usuarios() {
 
       <InvitesPendentesCard />
 
-      <InviteUserDialog
+      <CreateUserDialog
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
       />
