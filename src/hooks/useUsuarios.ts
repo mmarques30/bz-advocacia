@@ -196,6 +196,53 @@ export const useCancelInvite = () => {
   });
 };
 
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      email, 
+      password, 
+      role,
+      nome_completo 
+    }: { 
+      email: string; 
+      password: string; 
+      role: string;
+      nome_completo: string;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ email, password, role, nome_completo }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao criar usuário");
+      }
+
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      toast.success("Usuário criado com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao criar usuário: " + error.message);
+    },
+  });
+};
+
 export const useCheckIsAdmin = () => {
   return useQuery({
     queryKey: ["is-admin"],
