@@ -72,6 +72,7 @@ const menuItems: MenuItem[] = [
       { title: "Todos os Processos", url: "/dashboard/processos" },
       { title: "Prazos Próximos", url: "/dashboard/processos/prazos" },
       { title: "Calendário", url: "/dashboard/processos/calendario" },
+      { title: "Documentos", url: "/dashboard/processos/documentos" },
     ]
   },
   {
