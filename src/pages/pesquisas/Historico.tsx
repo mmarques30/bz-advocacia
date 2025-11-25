@@ -38,16 +38,16 @@ export default function Historico() {
               <div>
                 <Label>Tipo</Label>
                 <Select
-                  value={filters.tipo || ""}
+                  value={filters.tipo || "all"}
                   onValueChange={(value) =>
-                    setFilters({ ...filters, tipo: value as TipoConsulta || undefined })
+                    setFilters({ ...filters, tipo: value === "all" ? undefined : value as TipoConsulta })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todas" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas</SelectItem>
+                    <SelectItem value="all">Todas</SelectItem>
                     <SelectItem value="veiculo">Veículo</SelectItem>
                     <SelectItem value="pessoa">Pessoa</SelectItem>
                     <SelectItem value="imovel">Imóvel</SelectItem>
@@ -58,16 +58,16 @@ export default function Historico() {
               <div>
                 <Label>Status</Label>
                 <Select
-                  value={filters.status || ""}
+                  value={filters.status || "all"}
                   onValueChange={(value) =>
-                    setFilters({ ...filters, status: value as StatusConsulta || undefined })
+                    setFilters({ ...filters, status: value === "all" ? undefined : value as StatusConsulta })
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="sucesso">Sucesso</SelectItem>
                     <SelectItem value="erro">Erro</SelectItem>
                     <SelectItem value="sem_dados">Sem dados</SelectItem>
