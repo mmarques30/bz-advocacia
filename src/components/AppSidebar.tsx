@@ -90,12 +90,12 @@ const menuItems: MenuItem[] = [
     label: "Configurações",
     icon: Settings,
     submenu: [
+      { title: "Consultoria", url: "/dashboard/configuracoes/demandas" },
       { title: "Meu Perfil", url: "/dashboard/configuracoes/perfil" },
       { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
       { title: "Escritório", url: "/dashboard/configuracoes/geral" },
       { title: "Templates", url: "/dashboard/configuracoes/templates" },
       { title: "Tags", url: "/dashboard/configuracoes/tags" },
-      { title: "Consultoria", url: "/dashboard/configuracoes/demandas" },
       { title: "Logs", url: "/dashboard/configuracoes/logs" },
     ]
   },
