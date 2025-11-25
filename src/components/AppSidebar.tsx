@@ -95,7 +95,7 @@ const menuItems: MenuItem[] = [
       { title: "Escritório", url: "/dashboard/configuracoes/geral" },
       { title: "Templates", url: "/dashboard/configuracoes/templates" },
       { title: "Tags", url: "/dashboard/configuracoes/tags" },
-      { title: "Demandas Internas", url: "/dashboard/configuracoes/demandas" },
+      { title: "Consultoria", url: "/dashboard/configuracoes/demandas" },
       { title: "Logs", url: "/dashboard/configuracoes/logs" },
     ]
   },

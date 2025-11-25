@@ -9,7 +9,7 @@ export const DemandasHeader = ({ onNewDemanda }: DemandasHeaderProps) => {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
       <div>
-        <h1 className="text-3xl font-bold">Demandas Internas</h1>
+        <h1 className="text-3xl font-bold">Consultoria</h1>
         <p className="text-muted-foreground mt-1">
           Acompanhe a evolução e melhorias do sistema
         </p>
