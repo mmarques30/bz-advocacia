@@ -297,7 +297,10 @@ export type Database = {
       contact_submissions: {
         Row: {
           bens_partilhar: string | null
+          bot_finalizado: boolean | null
+          canal_especifico: string | null
           como_conheceu: string
+          conversa_bot_completa: Json | null
           created_at: string
           data_ultima_atividade: string | null
           documentos: string[] | null
@@ -312,6 +315,8 @@ export type Database = {
           origem: string | null
           outro_como_conheceu: string | null
           outro_tipo_processo: string | null
+          perguntas_respondidas: number | null
+          primeiro_contato_em: string | null
           prioridade: string | null
           regime_casamento: string | null
           responsavel_id: string | null
@@ -321,13 +326,21 @@ export type Database = {
           telefone: string
           tem_filhos: boolean | null
           tipo_processo: string
+          ultimo_contato_em: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
           valor_estimado_bens: string | null
           valor_pretendido: string | null
           valor_proposta: number | null
+          whatsapp_id: string | null
         }
         Insert: {
           bens_partilhar?: string | null
+          bot_finalizado?: boolean | null
+          canal_especifico?: string | null
           como_conheceu: string
+          conversa_bot_completa?: Json | null
           created_at?: string
           data_ultima_atividade?: string | null
           documentos?: string[] | null
@@ -342,6 +355,8 @@ export type Database = {
           origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
+          perguntas_respondidas?: number | null
+          primeiro_contato_em?: string | null
           prioridade?: string | null
           regime_casamento?: string | null
           responsavel_id?: string | null
@@ -351,13 +366,21 @@ export type Database = {
           telefone: string
           tem_filhos?: boolean | null
           tipo_processo: string
+          ultimo_contato_em?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           valor_estimado_bens?: string | null
           valor_pretendido?: string | null
           valor_proposta?: number | null
+          whatsapp_id?: string | null
         }
         Update: {
           bens_partilhar?: string | null
+          bot_finalizado?: boolean | null
+          canal_especifico?: string | null
           como_conheceu?: string
+          conversa_bot_completa?: Json | null
           created_at?: string
           data_ultima_atividade?: string | null
           documentos?: string[] | null
@@ -372,6 +395,8 @@ export type Database = {
           origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
+          perguntas_respondidas?: number | null
+          primeiro_contato_em?: string | null
           prioridade?: string | null
           regime_casamento?: string | null
           responsavel_id?: string | null
@@ -381,9 +406,14 @@ export type Database = {
           telefone?: string
           tem_filhos?: boolean | null
           tipo_processo?: string
+          ultimo_contato_em?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           valor_estimado_bens?: string | null
           valor_pretendido?: string | null
           valor_proposta?: number | null
+          whatsapp_id?: string | null
         }
         Relationships: []
       }
@@ -743,6 +773,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lead_comunicacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_interacoes: {
+        Row: {
+          canal: string
+          created_at: string | null
+          direcao: string
+          eh_bot: boolean | null
+          id: string
+          lead_id: string
+          mensagem: string
+          tipo: string
+        }
+        Insert: {
+          canal: string
+          created_at?: string | null
+          direcao: string
+          eh_bot?: boolean | null
+          id?: string
+          lead_id: string
+          mensagem: string
+          tipo: string
+        }
+        Update: {
+          canal?: string
+          created_at?: string | null
+          direcao?: string
+          eh_bot?: boolean | null
+          id?: string
+          lead_id?: string
+          mensagem?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_interacoes_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
