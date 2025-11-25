@@ -1,0 +1,35 @@
+import {
+  FileText,
+  FileX,
+  FileCheck,
+  RotateCcw,
+  Gavel,
+  Stamp,
+  FileSignature,
+  UserCircle,
+  Files,
+  Image,
+  Mic,
+  ClipboardList,
+  Mail,
+  FolderOpen,
+  LucideIcon,
+} from "lucide-react";
+import { TipoDocumentoDrive } from "@/types/documentos-drive";
+
+export const ICONES_DOCUMENTO: Record<TipoDocumentoDrive, LucideIcon> = {
+  peticao_inicial: FileText,
+  contestacao: FileX,
+  replica_treplica: FileCheck,
+  recurso: RotateCcw,
+  sentenca_decisao: Gavel,
+  procuracao: Stamp,
+  contrato: FileSignature,
+  documentos_pessoais: UserCircle,
+  provas_documentais: Files,
+  provas_fotograficas: Image,
+  depoimentos_atas: Mic,
+  laudos_pericias: ClipboardList,
+  correspondencias: Mail,
+  outros: FolderOpen,
+};

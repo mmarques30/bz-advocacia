@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Eye, FileText, Calendar, MoreVertical } from "lucide-react";
+import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -19,20 +19,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Processo, PROCESSO_STATUS_LABELS } from "@/types/processos";
+import { useDocumentosDriveCount } from "@/hooks/useDocumentosDriveCount";
 
-interface ProcessosTableProps {
-  processos: Processo[];
-  isLoading: boolean;
-  onViewDetails: (processoId: string) => void;
-  onAddAndamento: (processoId: string) => void;
-}
-
-export function ProcessosTable({
-  processos,
-  isLoading,
+function ProcessoRow({
+  processo,
   onViewDetails,
   onAddAndamento,
-}: ProcessosTableProps) {
+}: {
+  processo: Processo;
+  onViewDetails: (processoId: string) => void;
+  onAddAndamento: (processoId: string) => void;
+}) {
+  const { data: docsCount } = useDocumentosDriveCount(processo.id);
+
   const getStatusBadgeVariant = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
       em_andamento: "default",
@@ -51,6 +50,122 @@ export function ProcessosTable({
     return diasRestantes >= 0 && diasRestantes <= 7;
   };
 
+  return (
+    <TableRow>
+      <TableCell className="font-mono text-sm">
+        {processo.numero_processo || "Sem número"}
+      </TableCell>
+
+      <TableCell>
+        {processo.cliente ? (
+          <Button
+            variant="link"
+            className="p-0 h-auto font-normal"
+            onClick={() => {
+              // TODO: Navegar para perfil do cliente
+            }}
+          >
+            {processo.cliente.nome_completo}
+          </Button>
+        ) : (
+          <span className="text-muted-foreground">Sem cliente</span>
+        )}
+      </TableCell>
+
+      <TableCell>{processo.tipo}</TableCell>
+
+      <TableCell>
+        {processo.tribunal ? (
+          <Badge variant="outline">{processo.tribunal}</Badge>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        )}
+      </TableCell>
+
+      <TableCell>
+        <Badge variant={getStatusBadgeVariant(processo.status)}>
+          {PROCESSO_STATUS_LABELS[processo.status]}
+        </Badge>
+      </TableCell>
+
+      <TableCell>
+        {processo.data_ultima_atualizacao
+          ? format(new Date(processo.data_ultima_atualizacao), "dd/MM/yyyy", {
+              locale: ptBR,
+            })
+          : "-"}
+      </TableCell>
+
+      <TableCell>
+        {processo.prazo_proximo ? (
+          <div className="flex items-center gap-2">
+            {isPrazoProximo(processo.prazo_proximo) && (
+              <AlertTriangle className="h-4 w-4 text-orange-500" />
+            )}
+            <span
+              className={
+                isPrazoProximo(processo.prazo_proximo) ? "text-orange-600 font-medium" : ""
+              }
+            >
+              {format(new Date(processo.prazo_proximo), "dd/MM/yyyy")}
+            </span>
+          </div>
+        ) : (
+          "-"
+        )}
+      </TableCell>
+
+      <TableCell>
+        {docsCount !== undefined && docsCount > 0 ? (
+          <Badge variant="secondary" className="gap-1">
+            <Link2 className="h-3 w-3" />
+            {docsCount}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground text-sm">-</span>
+        )}
+      </TableCell>
+
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onViewDetails(processo.id)}>
+              <Eye className="h-4 w-4 mr-2" />
+              Ver Detalhes
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onAddAndamento(processo.id)}>
+              <FileText className="h-4 w-4 mr-2" />
+              Adicionar Andamento
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Calendar className="h-4 w-4 mr-2" />
+              Ver Prazos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}
+
+interface ProcessosTableProps {
+  processos: Processo[];
+  isLoading: boolean;
+  onViewDetails: (processoId: string) => void;
+  onAddAndamento: (processoId: string) => void;
+}
+
+export function ProcessosTable({
+  processos,
+  isLoading,
+  onViewDetails,
+  onAddAndamento,
+}: ProcessosTableProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -82,99 +197,18 @@ export function ProcessosTable({
             <TableHead>Status</TableHead>
             <TableHead>Última Atualização</TableHead>
             <TableHead>Próximo Prazo</TableHead>
+            <TableHead>Docs Drive</TableHead>
             <TableHead className="w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {processos.map((processo) => (
-            <TableRow key={processo.id}>
-              <TableCell className="font-mono text-sm">
-                {processo.numero_processo || "Sem número"}
-              </TableCell>
-
-              <TableCell>
-                {processo.cliente ? (
-                  <Button
-                    variant="link"
-                    className="p-0 h-auto font-normal"
-                    onClick={() => {
-                      // TODO: Navegar para perfil do cliente
-                    }}
-                  >
-                    {processo.cliente.nome_completo}
-                  </Button>
-                ) : (
-                  <span className="text-muted-foreground">Sem cliente</span>
-                )}
-              </TableCell>
-
-              <TableCell>{processo.tipo}</TableCell>
-
-              <TableCell>
-                {processo.tribunal ? (
-                  <Badge variant="outline">{processo.tribunal}</Badge>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-
-              <TableCell>
-                <Badge variant={getStatusBadgeVariant(processo.status)}>
-                  {PROCESSO_STATUS_LABELS[processo.status]}
-                </Badge>
-              </TableCell>
-
-              <TableCell>
-                {processo.data_ultima_atualizacao
-                  ? format(new Date(processo.data_ultima_atualizacao), "dd/MM/yyyy", {
-                      locale: ptBR,
-                    })
-                  : "-"}
-              </TableCell>
-
-              <TableCell>
-                {processo.prazo_proximo ? (
-                  <div className="flex items-center gap-2">
-                    {isPrazoProximo(processo.prazo_proximo) && (
-                      <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    )}
-                    <span
-                      className={
-                        isPrazoProximo(processo.prazo_proximo) ? "text-orange-600 font-medium" : ""
-                      }
-                    >
-                      {format(new Date(processo.prazo_proximo), "dd/MM/yyyy")}
-                    </span>
-                  </div>
-                ) : (
-                  "-"
-                )}
-              </TableCell>
-
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onViewDetails(processo.id)}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onAddAndamento(processo.id)}>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Adicionar Andamento
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Ver Prazos
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
+            <ProcessoRow
+              key={processo.id}
+              processo={processo}
+              onViewDetails={onViewDetails}
+              onAddAndamento={onAddAndamento}
+            />
           ))}
         </TableBody>
       </Table>

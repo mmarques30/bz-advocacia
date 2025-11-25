@@ -8,10 +8,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ExternalLink, MoreVertical, Copy, Edit, Trash2, FileText } from "lucide-react";
+import { ExternalLink, MoreVertical, Copy, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { gerarLinkVisualizacao } from "@/lib/driveUtils";
 import { toast } from "@/hooks/use-toast";
+import { ICONES_DOCUMENTO } from "@/lib/documentoIcons";
 
 interface DriveDocumentoCardProps {
   documento: DocumentoDrive;
@@ -34,12 +35,14 @@ export function DriveDocumentoCard({ documento, onEdit, onDelete }: DriveDocumen
     });
   };
 
+  const IconeDocumento = ICONES_DOCUMENTO[documento.tipo_documento];
+
   return (
     <Card className="p-4 hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+            <IconeDocumento className="h-4 w-4 text-primary flex-shrink-0" />
             <span className="text-sm font-medium text-muted-foreground">
               {TIPO_DOCUMENTO_DRIVE_LABELS[documento.tipo_documento]}
             </span>
