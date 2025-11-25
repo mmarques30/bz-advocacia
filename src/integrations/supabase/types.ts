@@ -161,6 +161,139 @@ export type Database = {
         }
         Relationships: []
       }
+      consultas_auditoria: {
+        Row: {
+          acao: string
+          consulta_id: string | null
+          created_at: string | null
+          detalhes: Json | null
+          id: string
+          ip_origem: string | null
+          usuario_id: string
+        }
+        Insert: {
+          acao: string
+          consulta_id?: string | null
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          ip_origem?: string | null
+          usuario_id: string
+        }
+        Update: {
+          acao?: string
+          consulta_id?: string | null
+          created_at?: string | null
+          detalhes?: Json | null
+          id?: string
+          ip_origem?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultas_auditoria_consulta_id_fkey"
+            columns: ["consulta_id"]
+            isOneToOne: false
+            referencedRelation: "consultas_realizadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultas_config: {
+        Row: {
+          ambiente: string | null
+          api_token: string | null
+          ativo: boolean | null
+          created_at: string | null
+          creditos_disponiveis: number | null
+          id: string
+          provedor: string
+          ultima_sincronizacao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ambiente?: string | null
+          api_token?: string | null
+          ativo?: boolean | null
+          created_at?: string | null
+          creditos_disponiveis?: number | null
+          id?: string
+          provedor?: string
+          ultima_sincronizacao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ambiente?: string | null
+          api_token?: string | null
+          ativo?: boolean | null
+          created_at?: string | null
+          creditos_disponiveis?: number | null
+          id?: string
+          provedor?: string
+          ultima_sincronizacao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      consultas_realizadas: {
+        Row: {
+          created_at: string | null
+          custo: number | null
+          id: string
+          id_consulta_externa: string | null
+          ip_origem: string | null
+          justificativa: string
+          mensagem_erro: string | null
+          motivo: string
+          parametro_busca: string
+          processo_id: string | null
+          resultado: Json | null
+          status: string
+          tipo_consulta: string
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          custo?: number | null
+          id?: string
+          id_consulta_externa?: string | null
+          ip_origem?: string | null
+          justificativa: string
+          mensagem_erro?: string | null
+          motivo: string
+          parametro_busca: string
+          processo_id?: string | null
+          resultado?: Json | null
+          status: string
+          tipo_consulta: string
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          custo?: number | null
+          id?: string
+          id_consulta_externa?: string | null
+          ip_origem?: string | null
+          justificativa?: string
+          mensagem_erro?: string | null
+          motivo?: string
+          parametro_busca?: string
+          processo_id?: string | null
+          resultado?: Json | null
+          status?: string
+          tipo_consulta?: string
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultas_realizadas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_submissions: {
         Row: {
           bens_partilhar: string | null
