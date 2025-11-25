@@ -119,10 +119,10 @@ export function NotificationsDrawer() {
                   >
                     {/* Ícone */}
                     <div className={cn(
-                      "h-10 w-10 rounded-full flex items-center justify-center text-xl flex-shrink-0",
+                      "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0",
                       config.color
                     )}>
-                      {config.icon}
+                      <config.icon className="h-5 w-5" />
                     </div>
                     
                     {/* Conteúdo */}

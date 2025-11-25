@@ -153,10 +153,10 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="melhoria">🔧 Melhoria</SelectItem>
-                    <SelectItem value="bug">🐛 Bug</SelectItem>
-                    <SelectItem value="sugestao">💡 Sugestão</SelectItem>
-                    <SelectItem value="tarefa">📋 Tarefa</SelectItem>
+                    <SelectItem value="melhoria">Melhoria</SelectItem>
+                    <SelectItem value="bug">Bug</SelectItem>
+                    <SelectItem value="sugestao">Sugestão</SelectItem>
+                    <SelectItem value="tarefa">Tarefa</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -183,12 +183,12 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pendente">📋 Pendente</SelectItem>
-                  <SelectItem value="em_andamento">🔄 Em Andamento</SelectItem>
-                  <SelectItem value="concluido">✅ Concluído</SelectItem>
-                  <SelectItem value="cancelado">❌ Cancelado</SelectItem>
-                </SelectContent>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                  </SelectContent>
               </Select>
             </div>
 

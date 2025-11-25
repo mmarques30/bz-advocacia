@@ -25,17 +25,17 @@ interface DemandasTableProps {
 }
 
 const tipoConfig = {
-  melhoria: { icon: '🔧', label: 'Melhoria', variant: 'default' as const },
-  bug: { icon: '🐛', label: 'Bug', variant: 'destructive' as const },
-  sugestao: { icon: '💡', label: 'Sugestão', variant: 'secondary' as const },
-  tarefa: { icon: '📋', label: 'Tarefa', variant: 'outline' as const },
+  melhoria: { label: 'Melhoria', variant: 'default' as const },
+  bug: { label: 'Bug', variant: 'destructive' as const },
+  sugestao: { label: 'Sugestão', variant: 'secondary' as const },
+  tarefa: { label: 'Tarefa', variant: 'outline' as const },
 };
 
 const statusConfig = {
-  pendente: { icon: '📋', label: 'Pendente', variant: 'secondary' as const },
-  em_andamento: { icon: '🔄', label: 'Em Andamento', variant: 'default' as const },
-  concluido: { icon: '✅', label: 'Concluído', variant: 'outline' as const },
-  cancelado: { icon: '❌', label: 'Cancelado', variant: 'destructive' as const },
+  pendente: { label: 'Pendente', variant: 'secondary' as const },
+  em_andamento: { label: 'Em Andamento', variant: 'default' as const },
+  concluido: { label: 'Concluído', variant: 'outline' as const },
+  cancelado: { label: 'Cancelado', variant: 'destructive' as const },
 };
 
 const prioridadeConfig = {
@@ -73,12 +73,12 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                 <TableCell className="font-medium">{demanda.titulo}</TableCell>
                 <TableCell>
                   <Badge variant={tipoConfig[demanda.tipo].variant}>
-                    {tipoConfig[demanda.tipo].icon} {tipoConfig[demanda.tipo].label}
+                    {tipoConfig[demanda.tipo].label}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={statusConfig[demanda.status].variant}>
-                    {statusConfig[demanda.status].icon} {statusConfig[demanda.status].label}
+                    {statusConfig[demanda.status].label}
                   </Badge>
                 </TableCell>
                 <TableCell>
