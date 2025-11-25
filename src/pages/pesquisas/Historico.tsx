@@ -20,8 +20,14 @@ export default function Historico() {
   const custoTotal = consultas?.reduce((acc, c) => acc + Number(c.custo), 0) || 0;
 
   return (
-    <DashboardLayout title="Histórico de Consultas">
+    <DashboardLayout>
       <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Histórico de Consultas</h1>
+          <p className="text-muted-foreground mt-2">
+            Todas as consultas realizadas com filtros e estatísticas
+          </p>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Filtros</CardTitle>

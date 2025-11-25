@@ -34,6 +34,14 @@ import FinanceiroAcordos from "./pages/financeiro/Acordos";
 import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
 import RelatoriosDespesas from "./pages/financeiro/RelatoriosDespesas";
 
+// Pesquisas
+import PesquisasIndex from "./pages/pesquisas/Index";
+import PesquisasVeiculos from "./pages/pesquisas/Veiculos";
+import PesquisasPessoas from "./pages/pesquisas/Pessoas";
+import PesquisasImoveis from "./pages/pesquisas/Imoveis";
+import PesquisasHistorico from "./pages/pesquisas/Historico";
+import PesquisasConfiguracao from "./pages/pesquisas/Configuracao";
+
 // Root Redirect Component - Redirects based on auth status
 function RootRedirect() {
   const { user, loading } = useAuth();
@@ -239,6 +247,56 @@ const App = () => (
           element={
             <ProtectedRoute>
               <RelatoriosDespesas />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Pesquisas - Subrotas */}
+        <Route 
+          path="/dashboard/pesquisas" 
+          element={
+            <ProtectedRoute>
+              <PesquisasIndex />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/pesquisas/veiculos" 
+          element={
+            <ProtectedRoute>
+              <PesquisasVeiculos />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/pesquisas/pessoas" 
+          element={
+            <ProtectedRoute>
+              <PesquisasPessoas />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/pesquisas/imoveis" 
+          element={
+            <ProtectedRoute>
+              <PesquisasImoveis />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/pesquisas/historico" 
+          element={
+            <ProtectedRoute>
+              <PesquisasHistorico />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/pesquisas/configuracao" 
+          element={
+            <ProtectedRoute>
+              <PesquisasConfiguracao />
             </ProtectedRoute>
           } 
         />

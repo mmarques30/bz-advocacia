@@ -12,7 +12,13 @@ export default function Pessoas() {
   const [resultado, setResultado] = useState<ConsultaPessoaResponse | null>(null);
 
   return (
-    <DashboardLayout title="Localizar Pessoa">
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Localizar Pessoa</h1>
+        <p className="text-muted-foreground mt-2">
+          Busque endereços, telefones e outras informações de pessoas físicas
+        </p>
+      </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <ConsultaPessoaForm onResultado={setResultado} />

@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronDown,
   ChevronUp,
+  Search,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -74,6 +75,19 @@ const menuItems: MenuItem[] = [
       { title: "Prazos Próximos", url: "/dashboard/processos/prazos" },
       { title: "Calendário", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
+    ]
+  },
+  {
+    title: "Pesquisas",
+    label: "Pesquisas",
+    icon: Search,
+    submenu: [
+      { title: "Visão Geral", url: "/dashboard/pesquisas" },
+      { title: "Consultar Veículo", url: "/dashboard/pesquisas/veiculos" },
+      { title: "Localizar Pessoa", url: "/dashboard/pesquisas/pessoas" },
+      { title: "Consultar Imóvel", url: "/dashboard/pesquisas/imoveis" },
+      { title: "Histórico", url: "/dashboard/pesquisas/historico" },
+      { title: "Configuração API", url: "/dashboard/pesquisas/configuracao" },
     ]
   },
   {
