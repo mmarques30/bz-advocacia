@@ -311,6 +311,62 @@ export type Database = {
           },
         ]
       }
+      despesas: {
+        Row: {
+          anexo_url: string | null
+          categoria: string
+          created_at: string | null
+          created_by: string | null
+          data: string
+          descricao: string
+          forma_pagamento: string | null
+          id: string
+          observacoes: string | null
+          processo_id: string | null
+          status: string | null
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          anexo_url?: string | null
+          categoria: string
+          created_at?: string | null
+          created_by?: string | null
+          data: string
+          descricao: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          processo_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor: number
+        }
+        Update: {
+          anexo_url?: string | null
+          categoria?: string
+          created_at?: string | null
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          forma_pagamento?: string | null
+          id?: string
+          observacoes?: string | null
+          processo_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "despesas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entidade_tags: {
         Row: {
           created_at: string | null
