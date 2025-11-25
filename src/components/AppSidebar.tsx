@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
+  MessageSquare,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -75,6 +76,17 @@ const menuItems: MenuItem[] = [
       { title: "Prazos Próximos", url: "/dashboard/processos/prazos" },
       { title: "Calendário", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
+    ]
+  },
+  {
+    title: "Comunicação",
+    label: "Comunicação",
+    icon: MessageSquare,
+    submenu: [
+      { title: "Visão Geral", url: "/dashboard/comunicacao" },
+      { title: "Templates WhatsApp", url: "/dashboard/comunicacao/templates" },
+      { title: "Histórico", url: "/dashboard/comunicacao/historico" },
+      { title: "Configuração WhatsApp", url: "/dashboard/comunicacao/configuracao" },
     ]
   },
   {
