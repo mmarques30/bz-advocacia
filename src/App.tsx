@@ -21,6 +21,7 @@ import Geral from "./pages/configuracoes/Geral";
 import Templates from "./pages/configuracoes/Templates";
 import Tags from "./pages/configuracoes/Tags";
 import Logs from "./pages/configuracoes/Logs";
+import Demandas from "./pages/configuracoes/Demandas";
 
 // Processos
 import ProcessosPrazos from "./pages/processos/Prazos";
@@ -167,6 +168,14 @@ const App = () => (
           element={
             <ProtectedRoute>
               <Logs />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/configuracoes/demandas" 
+          element={
+            <ProtectedRoute>
+              <Demandas />
             </ProtectedRoute>
           } 
         />

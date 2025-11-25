@@ -254,6 +254,63 @@ export type Database = {
         }
         Relationships: []
       }
+      demandas_internas: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data_conclusao: string | null
+          descricao: string | null
+          id: string
+          prioridade: string
+          responsavel_id: string | null
+          status: string
+          tipo: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data_conclusao?: string | null
+          descricao?: string | null
+          id?: string
+          prioridade?: string
+          responsavel_id?: string | null
+          status?: string
+          tipo: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data_conclusao?: string | null
+          descricao?: string | null
+          id?: string
+          prioridade?: string
+          responsavel_id?: string | null
+          status?: string
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandas_internas_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandas_internas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entidade_tags: {
         Row: {
           created_at: string | null
