@@ -101,83 +101,61 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {/* Indicadores laterais e gráfico */}
-          <div className="flex items-center gap-4">
-            {/* Coluna de totais */}
-            <div className="flex flex-col gap-8 text-right min-w-[80px]">
-              {chartData.map((stage) => (
-                <div key={stage.estagio} className="h-10 flex flex-col justify-center">
-                  <span className="text-2xl font-bold text-foreground">{stage.total}</span>
-                  {stage.taxaConversao < 100 && (
-                    <span className="text-xs text-muted-foreground">
-                      {stage.taxaConversao.toFixed(0)}%
-                    </span>
-                  )}
-                </div>
+        <ResponsiveContainer width="100%" height={350}>
+          <BarChart 
+            data={chartData} 
+            layout="vertical" 
+            barSize={40}
+            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+          >
+            <XAxis 
+              type="number" 
+              tickFormatter={(value) => `${value}`}
+              stroke="hsl(var(--muted-foreground))"
+            />
+            <YAxis 
+              dataKey="estagio" 
+              type="category" 
+              width={100}
+              stroke="hsl(var(--muted-foreground))"
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.2)' }} />
+            <Legend content={<CustomLegend />} />
+            
+            {/* Barra de leads que avançaram */}
+            <Bar 
+              dataKey="avancaram" 
+              stackId="stack" 
+              name="Avançaram"
+              radius={[0, 4, 4, 0]}
+              animationBegin={0}
+              animationDuration={800}
+              animationEasing="ease-out"
+            >
+              {chartData.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.estagio === gargalo?.estagio 
+                    ? chartColors.danger 
+                    : chartColors.primary
+                  } 
+                />
               ))}
-            </div>
-
-            {/* Gráfico */}
-            <div className="flex-1">
-              <ResponsiveContainer width="100%" height={350}>
-                <BarChart 
-                  data={chartData} 
-                  layout="vertical" 
-                  barSize={40}
-                  margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-                >
-                  <XAxis 
-                    type="number" 
-                    tickFormatter={(value) => `${value}`}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <YAxis 
-                    dataKey="estagio" 
-                    type="category" 
-                    width={100}
-                    stroke="hsl(var(--muted-foreground))"
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.2)' }} />
-                  <Legend content={<CustomLegend />} />
-                  
-                  {/* Barra de leads que avançaram */}
-                  <Bar 
-                    dataKey="avancaram" 
-                    stackId="stack" 
-                    name="Avançaram"
-                    radius={[0, 4, 4, 0]}
-                    animationBegin={0}
-                    animationDuration={800}
-                    animationEasing="ease-out"
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.estagio === gargalo?.estagio 
-                          ? chartColors.danger 
-                          : chartColors.primary
-                        } 
-                      />
-                    ))}
-                  </Bar>
-                  
-                  {/* Barra de leads perdidos */}
-                  <Bar 
-                    dataKey="perdidos" 
-                    stackId="stack" 
-                    name="Perdidos"
-                    fill={chartColors.muted}
-                    radius={[0, 4, 4, 0]}
-                    animationBegin={0}
-                    animationDuration={800}
-                    animationEasing="ease-out"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
+            </Bar>
+            
+            {/* Barra de leads perdidos */}
+            <Bar 
+              dataKey="perdidos" 
+              stackId="stack" 
+              name="Perdidos"
+              fill={chartColors.muted}
+              radius={[0, 4, 4, 0]}
+              animationBegin={0}
+              animationDuration={800}
+              animationEasing="ease-out"
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );
