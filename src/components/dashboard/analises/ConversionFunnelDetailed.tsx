@@ -2,13 +2,63 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ConversionFunnelStage } from "@/types/analytics";
-import { AlertTriangle, ChevronRight } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, TooltipProps } from "recharts";
+import { chartColors } from "@/lib/chartConfig";
 
 interface ConversionFunnelDetailedProps {
   data: ConversionFunnelStage[];
   gargalo?: { estagio: string; taxaPerdida: number };
   loading?: boolean;
 }
+
+// Tooltip customizado
+const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+  if (!active || !payload || !payload.length) return null;
+
+  const data = payload[0].payload;
+  const avancaram = data.avancaram || 0;
+  const perdidos = data.perdidos || 0;
+  const total = avancaram + perdidos;
+  const taxaConversao = total > 0 ? ((avancaram / total) * 100).toFixed(1) : '0.0';
+  const taxaPerda = total > 0 ? ((perdidos / total) * 100).toFixed(1) : '0.0';
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-4 shadow-lg">
+      <p className="font-bold text-card-foreground mb-2">{data.estagio}</p>
+      <div className="space-y-1 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-primary" />
+          <span className="text-muted-foreground">Avançaram:</span>
+          <span className="font-semibold text-card-foreground">{avancaram} ({taxaConversao}%)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-muted" />
+          <span className="text-muted-foreground">Perdidos:</span>
+          <span className="font-semibold text-card-foreground">{perdidos} ({taxaPerda}%)</span>
+        </div>
+        <div className="pt-2 mt-2 border-t border-border">
+          <span className="text-muted-foreground">Total:</span>
+          <span className="font-bold ml-2 text-card-foreground">{total}</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Legenda customizada
+const CustomLegend = () => (
+  <div className="flex items-center justify-center gap-6 mt-4 text-sm">
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-4 rounded bg-primary" />
+      <span className="text-muted-foreground">Avançaram para próxima etapa</span>
+    </div>
+    <div className="flex items-center gap-2">
+      <div className="w-4 h-4 rounded bg-muted" />
+      <span className="text-muted-foreground">Perdidos/Desqualificados</span>
+    </div>
+  </div>
+);
 
 export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionFunnelDetailedProps) {
   if (loading) {
@@ -19,13 +69,20 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
           <Skeleton className="h-4 w-64 mt-2" />
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  const maxCount = Math.max(...data.map(d => d.count), 1);
+  // Transformar dados para formato Recharts
+  const chartData = data.map(stage => ({
+    estagio: stage.estagio,
+    total: stage.count,
+    avancaram: stage.count - stage.perdido,
+    perdidos: stage.perdido,
+    taxaConversao: stage.taxaConversao,
+  }));
 
   return (
     <Card>
@@ -43,50 +100,84 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {data.map((stage, index) => {
-          const isGargalo = gargalo?.estagio === stage.estagio;
-          const width = (stage.count / maxCount) * 100;
-          
-          return (
-            <div key={stage.estagio} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="font-medium min-w-[120px]">{stage.estagio}</span>
-                  <span className="text-2xl font-bold">{stage.count}</span>
-                  <Badge variant="secondary">{stage.percentage.toFixed(1)}%</Badge>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Indicadores laterais e gráfico */}
+          <div className="flex items-center gap-4">
+            {/* Coluna de totais */}
+            <div className="flex flex-col gap-8 text-right min-w-[80px]">
+              {chartData.map((stage) => (
+                <div key={stage.estagio} className="h-10 flex flex-col justify-center">
+                  <span className="text-2xl font-bold text-foreground">{stage.total}</span>
+                  {stage.taxaConversao < 100 && (
+                    <span className="text-xs text-muted-foreground">
+                      {stage.taxaConversao.toFixed(0)}%
+                    </span>
+                  )}
                 </div>
-                {stage.taxaConversao < 100 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Conversão: {stage.taxaConversao.toFixed(1)}%</span>
-                    {stage.perdido > 0 && (
-                      <Badge variant="outline" className="text-destructive">
-                        -{stage.perdido} perdidos
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-              
-              <div className="relative h-12 bg-secondary/20 rounded-lg overflow-hidden">
-                <div
-                  className={`h-full transition-all ${
-                    isGargalo 
-                      ? 'bg-destructive' 
-                      : 'bg-gradient-to-r from-primary to-primary/70'
-                  }`}
-                  style={{ width: `${width}%` }}
-                />
-              </div>
-              
-              {index < data.length - 1 && (
-                <div className="flex items-center justify-center py-1">
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
+              ))}
             </div>
-          );
-        })}
+
+            {/* Gráfico */}
+            <div className="flex-1">
+              <ResponsiveContainer width="100%" height={350}>
+                <BarChart 
+                  data={chartData} 
+                  layout="vertical" 
+                  barSize={40}
+                  margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
+                >
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={(value) => `${value}`}
+                    stroke="hsl(var(--muted-foreground))"
+                  />
+                  <YAxis 
+                    dataKey="estagio" 
+                    type="category" 
+                    width={100}
+                    stroke="hsl(var(--muted-foreground))"
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.2)' }} />
+                  <Legend content={<CustomLegend />} />
+                  
+                  {/* Barra de leads que avançaram */}
+                  <Bar 
+                    dataKey="avancaram" 
+                    stackId="stack" 
+                    name="Avançaram"
+                    radius={[0, 4, 4, 0]}
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.estagio === gargalo?.estagio 
+                          ? chartColors.danger 
+                          : chartColors.primary
+                        } 
+                      />
+                    ))}
+                  </Bar>
+                  
+                  {/* Barra de leads perdidos */}
+                  <Bar 
+                    dataKey="perdidos" 
+                    stackId="stack" 
+                    name="Perdidos"
+                    fill={chartColors.muted}
+                    radius={[0, 4, 4, 0]}
+                    animationBegin={0}
+                    animationDuration={800}
+                    animationEasing="ease-out"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
