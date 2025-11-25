@@ -32,7 +32,7 @@ export default function Demandas() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: demandas = [], isLoading } = useDemandas(filters);
-  const { data: isAdmin } = useCheckIsAdmin();
+  const { data: isAdmin, isLoading: isLoadingAdmin } = useCheckIsAdmin();
   const deleteDemanda = useDeleteDemanda();
 
   const handleFilterChange = (key: string, value: string) => {
@@ -103,7 +103,7 @@ export default function Demandas() {
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          isAdmin={isAdmin || false}
+          isAdmin={!isLoadingAdmin && (isAdmin || false)}
         />
       )}
 
@@ -114,7 +114,7 @@ export default function Demandas() {
         open={detailsOpen}
         onOpenChange={setDetailsOpen}
         isEditing={isEditing}
-        isAdmin={isAdmin || false}
+        isAdmin={!isLoadingAdmin && (isAdmin || false)}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
