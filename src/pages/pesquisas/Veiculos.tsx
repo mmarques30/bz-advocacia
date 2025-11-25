@@ -12,7 +12,13 @@ export default function Veiculos() {
   const [resultado, setResultado] = useState<ConsultaVeiculoResponse | null>(null);
 
   return (
-    <DashboardLayout title="Consultar Veículo">
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Consultar Veículo</h1>
+        <p className="text-muted-foreground mt-2">
+          Busque informações detalhadas sobre veículos
+        </p>
+      </div>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <ConsultaVeiculoForm onResultado={setResultado} />

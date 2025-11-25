@@ -7,8 +7,14 @@ import { Link } from "react-router-dom";
 
 export default function PesquisasIndex() {
   return (
-    <DashboardLayout title="Pesquisas e Consultas">
+    <DashboardLayout>
       <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Pesquisas e Consultas</h1>
+          <p className="text-muted-foreground mt-2">
+            Sistema de consultas de dados para investigação processual
+          </p>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

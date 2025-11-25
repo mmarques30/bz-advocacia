@@ -5,7 +5,13 @@ import { Construction } from "lucide-react";
 
 export default function Imoveis() {
   return (
-    <DashboardLayout title="Consultar Imóvel">
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Consultar Imóvel</h1>
+        <p className="text-muted-foreground mt-2">
+          Busque informações sobre propriedades e registros imobiliários
+        </p>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Consulta de Imóveis</CardTitle>
