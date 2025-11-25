@@ -71,16 +71,16 @@ export function ProcessosFilters({
           <div>
             <Label htmlFor="tribunal">Tribunal</Label>
             <Select
-              value={localFilters.tribunal || ""}
+              value={localFilters.tribunal || "all"}
               onValueChange={(value) =>
-                setLocalFilters({ ...localFilters, tribunal: value || undefined })
+                setLocalFilters({ ...localFilters, tribunal: value === "all" ? undefined : value })
               }
             >
               <SelectTrigger>
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 {TRIBUNAIS_OPCOES.map((tribunal) => (
                   <SelectItem key={tribunal} value={tribunal}>
                     {tribunal}

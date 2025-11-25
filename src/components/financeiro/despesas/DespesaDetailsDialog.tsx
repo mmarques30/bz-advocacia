@@ -173,12 +173,12 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
 
             <div className="space-y-2">
               <Label htmlFor="processo">Processo (opcional)</Label>
-              <Select value={processoId} onValueChange={setProcessoId}>
+              <Select value={processoId || "none"} onValueChange={(val) => setProcessoId(val === "none" ? "" : val)}>
                 <SelectTrigger id="processo">
                   <SelectValue placeholder="Nenhum" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {processos?.map((processo) => (
                     <SelectItem key={processo.id} value={processo.id}>
                       {processo.numero_processo || processo.tipo}
@@ -190,12 +190,12 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
 
             <div className="space-y-2">
               <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
-              <Select value={formaPagamento} onValueChange={(value) => setFormaPagamento(value as FormaPagamentoRecebido)}>
+              <Select value={formaPagamento || "none"} onValueChange={(value) => setFormaPagamento(value === "none" ? "" : value as FormaPagamentoRecebido)}>
                 <SelectTrigger id="forma_pagamento">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Não informado</SelectItem>
+                  <SelectItem value="none">Não informado</SelectItem>
                   {Object.entries(FORMA_PAGAMENTO_RECEBIDO_LABELS).map(([key, label]) => (
                     <SelectItem key={key} value={key}>
                       {label}
