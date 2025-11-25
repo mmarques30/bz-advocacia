@@ -90,3 +90,46 @@ export function exportToCSV(data: any[], filename: string) {
     description: `Arquivo ${filename}.csv foi baixado`,
   });
 }
+
+export function exportToExcel(data: any[], filename: string) {
+  if (!data || data.length === 0) {
+    toast({
+      title: "Sem dados",
+      description: "Não há dados para exportar",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Converter para TSV (Tab-Separated Values) para melhor compatibilidade com Excel
+  const headers = Object.keys(data[0]);
+  const tsvContent = [
+    headers.join("\t"),
+    ...data.map((row) =>
+      headers.map((header) => {
+        const value = row[header];
+        // Converter para string e escapar tabs
+        return String(value || "").replace(/\t/g, " ");
+      }).join("\t")
+    ),
+  ].join("\n");
+
+  // Criar arquivo e fazer download com BOM para UTF-8
+  const BOM = "\uFEFF";
+  const blob = new Blob([BOM + tsvContent], { type: "application/vnd.ms-excel;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute("href", url);
+  link.setAttribute("download", `${filename}-${new Date().toISOString().split("T")[0]}.xls`);
+  link.style.visibility = "hidden";
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  toast({
+    title: "Exportado com sucesso",
+    description: `Arquivo ${filename}.xls foi baixado`,
+  });
+}

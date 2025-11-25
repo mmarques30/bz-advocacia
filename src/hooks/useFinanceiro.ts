@@ -211,6 +211,7 @@ export function useReceitaMensal(meses: number = 12) {
         const primeiroDia = new Date(data.getFullYear(), data.getMonth(), 1);
         const ultimoDia = new Date(data.getFullYear(), data.getMonth() + 1, 0);
 
+        // Buscar receitas (parcelas pagas)
         const { data: parcelas } = await supabase
           .from("parcelas_financeiras")
           .select("*")
@@ -218,9 +219,17 @@ export function useReceitaMensal(meses: number = 12) {
           .gte("data_pagamento", format(primeiroDia, "yyyy-MM-dd"))
           .lte("data_pagamento", format(ultimoDia, "yyyy-MM-dd"));
 
+        // Buscar despesas do mês
+        const { data: despesas } = await supabase
+          .from("despesas")
+          .select("valor")
+          .gte("data", format(primeiroDia, "yyyy-MM-dd"))
+          .lte("data", format(ultimoDia, "yyyy-MM-dd"));
+
         resultado.push({
           mes: format(data, "MMM/yy"),
           receita: parcelas?.reduce((sum, p) => sum + (p.valor_pago || 0), 0) || 0,
+          despesas: despesas?.reduce((sum, d) => sum + Number(d.valor), 0) || 0,
           quantidade: parcelas?.length || 0,
         });
       }
