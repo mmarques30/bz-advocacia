@@ -9,6 +9,7 @@ import { ProcessoPrazosTab } from "./tabs/ProcessoPrazosTab";
 import { ProcessoDocumentosTab } from "./tabs/ProcessoDocumentosTab";
 import { ProcessoFinanceiroTab } from "./tabs/ProcessoFinanceiroTab";
 import { ProcessoHistoricoTab } from "./tabs/ProcessoHistoricoTab";
+import { ProcessoComunicacaoTab } from "./tabs/ProcessoComunicacaoTab";
 import { Loader2 } from "lucide-react";
 
 interface ProcessoDetailsDialogProps {
@@ -60,11 +61,12 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
           </div>
         ) : processo ? (
           <Tabs defaultValue="informacoes" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="informacoes">Informações</TabsTrigger>
               <TabsTrigger value="andamentos">Andamentos</TabsTrigger>
               <TabsTrigger value="prazos">Prazos</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
+              <TabsTrigger value="comunicacao">Comunicação</TabsTrigger>
               <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
             </TabsList>
@@ -83,6 +85,10 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
 
             <TabsContent value="documentos" className="mt-6">
               <ProcessoDocumentosTab processoId={processo.id} />
+            </TabsContent>
+
+            <TabsContent value="comunicacao" className="mt-6">
+              <ProcessoComunicacaoTab processoId={processo.id} processo={processo} />
             </TabsContent>
 
             <TabsContent value="financeiro" className="mt-6">
