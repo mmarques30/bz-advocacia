@@ -21,10 +21,10 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todos os tipos</SelectItem>
-          <SelectItem value="melhoria">🔧 Melhoria</SelectItem>
-          <SelectItem value="bug">🐛 Bug</SelectItem>
-          <SelectItem value="sugestao">💡 Sugestão</SelectItem>
-          <SelectItem value="tarefa">📋 Tarefa</SelectItem>
+          <SelectItem value="melhoria">Melhoria</SelectItem>
+          <SelectItem value="bug">Bug</SelectItem>
+          <SelectItem value="sugestao">Sugestão</SelectItem>
+          <SelectItem value="tarefa">Tarefa</SelectItem>
         </SelectContent>
       </Select>
 
@@ -34,10 +34,10 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todos os status</SelectItem>
-          <SelectItem value="pendente">📋 Pendente</SelectItem>
-          <SelectItem value="em_andamento">🔄 Em Andamento</SelectItem>
-          <SelectItem value="concluido">✅ Concluído</SelectItem>
-          <SelectItem value="cancelado">❌ Cancelado</SelectItem>
+          <SelectItem value="pendente">Pendente</SelectItem>
+          <SelectItem value="em_andamento">Em Andamento</SelectItem>
+          <SelectItem value="concluido">Concluído</SelectItem>
+          <SelectItem value="cancelado">Cancelado</SelectItem>
         </SelectContent>
       </Select>
 

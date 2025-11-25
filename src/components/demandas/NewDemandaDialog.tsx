@@ -89,10 +89,10 @@ export const NewDemandaDialog = ({ open, onOpenChange }: NewDemandaDialogProps) 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="melhoria">🔧 Melhoria</SelectItem>
-                  <SelectItem value="bug">🐛 Bug</SelectItem>
-                  <SelectItem value="sugestao">💡 Sugestão</SelectItem>
-                  <SelectItem value="tarefa">📋 Tarefa</SelectItem>
+                  <SelectItem value="melhoria">Melhoria</SelectItem>
+                  <SelectItem value="bug">Bug</SelectItem>
+                  <SelectItem value="sugestao">Sugestão</SelectItem>
+                  <SelectItem value="tarefa">Tarefa</SelectItem>
                 </SelectContent>
               </Select>
             </div>

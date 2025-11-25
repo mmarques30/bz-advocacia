@@ -76,19 +76,19 @@ export default function Demandas() {
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{statusCounts.pendente}</div>
-            <p className="text-sm text-muted-foreground">📋 Pendentes</p>
+            <p className="text-sm text-muted-foreground">Pendentes</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{statusCounts.em_andamento}</div>
-            <p className="text-sm text-muted-foreground">🔄 Em Andamento</p>
+            <p className="text-sm text-muted-foreground">Em Andamento</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <div className="text-2xl font-bold">{statusCounts.concluido}</div>
-            <p className="text-sm text-muted-foreground">✅ Concluídas</p>
+            <p className="text-sm text-muted-foreground">Concluídas</p>
           </CardContent>
         </Card>
       </div>
