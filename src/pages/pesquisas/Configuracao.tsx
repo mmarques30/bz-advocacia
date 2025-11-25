@@ -1,9 +1,8 @@
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConfiguracaoAPIForm } from "@/components/pesquisas/ConfiguracaoAPIForm";
 
 export default function Configuracao() {
   return (
-    <DashboardLayout>
+    <div className="space-y-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Configuração de API</h1>
         <p className="text-muted-foreground mt-2">
@@ -11,6 +10,6 @@ export default function Configuracao() {
         </p>
       </div>
       <ConfiguracaoAPIForm />
-    </DashboardLayout>
+    </div>
   );
 }

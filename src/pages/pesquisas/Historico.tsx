@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HistoricoTable } from "@/components/pesquisas/HistoricoTable";
 import { useHistoricoConsultas } from "@/hooks/useHistoricoConsultas";
@@ -20,8 +19,7 @@ export default function Historico() {
   const custoTotal = consultas?.reduce((acc, c) => acc + Number(c.custo), 0) || 0;
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Histórico de Consultas</h1>
           <p className="text-muted-foreground mt-2">
@@ -130,6 +128,5 @@ export default function Historico() {
           </CardContent>
         </Card>
       </div>
-    </DashboardLayout>
   );
 }

@@ -1,4 +1,3 @@
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditosWidget } from "@/components/pesquisas/CreditosWidget";
@@ -7,8 +6,7 @@ import { Link } from "react-router-dom";
 
 export default function PesquisasIndex() {
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Pesquisas e Consultas</h1>
           <p className="text-muted-foreground mt-2">
@@ -167,6 +165,5 @@ export default function PesquisasIndex() {
 
         <CreditosWidget />
       </div>
-    </DashboardLayout>
   );
 }
