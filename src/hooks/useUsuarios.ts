@@ -255,9 +255,12 @@ export const useCheckIsAdmin = () => {
         .select("role")
         .eq("user_id", user.id)
         .eq("role", "admin")
-        .single();
+        .maybeSingle();
 
-      if (error) return false;
+      if (error) {
+        console.error("Erro ao verificar admin:", error);
+        return false;
+      }
       return !!data;
     },
   });

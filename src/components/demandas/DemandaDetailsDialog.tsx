@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Demanda {
   id: string;
@@ -38,6 +38,7 @@ interface DemandaDetailsDialogProps {
 export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, isAdmin }: DemandaDetailsDialogProps) => {
   const { register, handleSubmit, reset, setValue, watch } = useForm();
   const updateDemanda = useUpdateDemanda();
+  const [localEditing, setLocalEditing] = useState(isEditing);
 
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-demandas'],
@@ -66,6 +67,10 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     }
   }, [demanda, reset]);
 
+  useEffect(() => {
+    setLocalEditing(isEditing);
+  }, [isEditing]);
+
   const onSubmit = (data: any) => {
     if (!demanda) return;
     
@@ -76,6 +81,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
       data_conclusao: data.status === 'concluido' ? new Date().toISOString().split('T')[0] : null,
     }, {
       onSuccess: () => {
+        setLocalEditing(false);
         onOpenChange(false);
       },
     });
@@ -87,10 +93,10 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Demanda' : 'Detalhes da Demanda'}</DialogTitle>
+          <DialogTitle>{localEditing ? 'Editar Demanda' : 'Detalhes da Demanda'}</DialogTitle>
         </DialogHeader>
 
-        {!isEditing ? (
+        {!localEditing ? (
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-lg mb-2">{demanda.titulo}</h3>
@@ -220,11 +226,16 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
           </form>
         )}
 
-        {!isEditing && (
-          <div className="flex justify-end">
+        {!localEditing && (
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Fechar
             </Button>
+            {isAdmin && (
+              <Button onClick={() => setLocalEditing(true)}>
+                Editar
+              </Button>
+            )}
           </div>
         )}
       </DialogContent>
