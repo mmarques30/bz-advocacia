@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DocumentoDrive } from "@/types/documentos-drive";
 import { toast } from "@/hooks/use-toast";
 import { validarLinkDrive, extrairFileId } from "@/lib/driveUtils";
+import { useCreateHistorico } from "./useProcessoHistorico";
 
 export function useDocumentosDrive(processoId: string) {
   return useQuery({
@@ -23,6 +24,7 @@ export function useDocumentosDrive(processoId: string) {
 
 export function useCreateDocumentoDrive() {
   const queryClient = useQueryClient();
+  const createHistorico = useCreateHistorico();
 
   return useMutation({
     mutationFn: async (documento: {
@@ -57,6 +59,16 @@ export function useCreateDocumentoDrive() {
         .single();
 
       if (error) throw error;
+
+      // Registrar no histórico
+      createHistorico.mutate({
+        processo_id: documento.processo_id,
+        entidade_tipo: "documento_drive",
+        entidade_id: data.id,
+        acao: "criar",
+        valor_novo: documento.nome,
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -78,6 +90,7 @@ export function useCreateDocumentoDrive() {
 
 export function useUpdateDocumentoDrive() {
   const queryClient = useQueryClient();
+  const createHistorico = useCreateHistorico();
 
   return useMutation({
     mutationFn: async ({
@@ -111,6 +124,16 @@ export function useUpdateDocumentoDrive() {
         .single();
 
       if (error) throw error;
+
+      // Registrar no histórico
+      createHistorico.mutate({
+        processo_id: data.processo_id,
+        entidade_tipo: "documento_drive",
+        entidade_id: id,
+        acao: "editar",
+        campo_alterado: "informações",
+      });
+
       return data;
     },
     onSuccess: () => {
@@ -132,15 +155,26 @@ export function useUpdateDocumentoDrive() {
 
 export function useDeleteDocumentoDrive() {
   const queryClient = useQueryClient();
+  const createHistorico = useCreateHistorico();
 
   return useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async ({ id, processoId, nome }: { id: string; processoId: string; nome: string }) => {
       const { error } = await supabase
         .from("documentos_drive")
         .delete()
         .eq("id", id);
 
       if (error) throw error;
+
+      // Registrar no histórico
+      createHistorico.mutate({
+        processo_id: processoId,
+        entidade_tipo: "documento_drive",
+        entidade_id: id,
+        acao: "deletar",
+        valor_anterior: nome,
+      });
+
       return id;
     },
     onSuccess: () => {

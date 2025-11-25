@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessoHistorico } from "@/types/processos";
 
@@ -18,3 +18,37 @@ export function useProcessoHistorico(processoId: string) {
     enabled: !!processoId,
   });
 }
+
+export function useCreateHistorico() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (historico: {
+      processo_id: string;
+      entidade_tipo: string;
+      entidade_id?: string;
+      acao: string;
+      campo_alterado?: string;
+      valor_anterior?: string;
+      valor_novo?: string;
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { data, error } = await supabase
+        .from("processos_historico")
+        .insert({
+          ...historico,
+          usuario_id: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processo-historico"] });
+    },
+  });
+}
+
