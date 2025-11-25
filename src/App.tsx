@@ -30,6 +30,7 @@ import ProcessosCalendario from "./pages/processos/Calendario";
 // Financeiro
 import FinanceiroAcordos from "./pages/financeiro/Acordos";
 import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
+import RelatoriosDespesas from "./pages/financeiro/RelatoriosDespesas";
 
 // Root Redirect Component - Redirects based on auth status
 function RootRedirect() {
@@ -212,6 +213,14 @@ const App = () => (
           element={
             <ProtectedRoute>
               <FinanceiroRelatorios />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/financeiro/relatorios-despesas" 
+          element={
+            <ProtectedRoute>
+              <RelatoriosDespesas />
             </ProtectedRoute>
           } 
         />

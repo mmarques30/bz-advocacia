@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FinanceiroKPIs } from "@/components/financeiro/FinanceiroKPIs";
 import { FinanceiroCharts } from "@/components/financeiro/FinanceiroCharts";
 import { FinanceiroWidgets } from "@/components/financeiro/FinanceiroWidgets";
+import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { AcordosHeader } from "@/components/financeiro/AcordosHeader";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
 import { NewAcordoDialog } from "@/components/financeiro/NewAcordoDialog";
@@ -42,6 +43,7 @@ export default function Financeiro() {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
+          <DespesasAlerts />
           <FinanceiroKPIs />
           <FinanceiroCharts />
           <FinanceiroWidgets 

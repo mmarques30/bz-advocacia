@@ -74,6 +74,7 @@ export interface KPIsFinanceiros {
 export interface ReceitaMensal {
   mes: string;
   receita: number;
+  despesas?: number;
   quantidade: number;
 }
 
