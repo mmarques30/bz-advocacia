@@ -367,6 +367,62 @@ export type Database = {
           },
         ]
       }
+      documentos_drive: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data_documento: string | null
+          descricao: string | null
+          drive_file_id: string
+          drive_url: string
+          id: string
+          nome: string
+          processo_id: string
+          tags: string[] | null
+          tipo_documento: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data_documento?: string | null
+          descricao?: string | null
+          drive_file_id: string
+          drive_url: string
+          id?: string
+          nome: string
+          processo_id: string
+          tags?: string[] | null
+          tipo_documento: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data_documento?: string | null
+          descricao?: string | null
+          drive_file_id?: string
+          drive_url?: string
+          id?: string
+          nome?: string
+          processo_id?: string
+          tags?: string[] | null
+          tipo_documento?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_drive_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entidade_tags: {
         Row: {
           created_at: string | null
