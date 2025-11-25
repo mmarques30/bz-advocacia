@@ -26,6 +26,7 @@ import Demandas from "./pages/configuracoes/Demandas";
 // Processos
 import ProcessosPrazos from "./pages/processos/Prazos";
 import ProcessosCalendario from "./pages/processos/Calendario";
+import ProcessosDocumentos from "./pages/processos/Documentos";
 
 // Financeiro
 import FinanceiroAcordos from "./pages/financeiro/Acordos";
@@ -195,6 +196,14 @@ const App = () => (
           element={
             <ProtectedRoute>
               <ProcessosCalendario />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/processos/documentos" 
+          element={
+            <ProtectedRoute>
+              <ProcessosDocumentos />
             </ProtectedRoute>
           } 
         />
