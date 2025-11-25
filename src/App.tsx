@@ -13,6 +13,7 @@ import Processos from "./pages/Processos";
 import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 import MetaAds from "./pages/vendas/MetaAds";
+import BotLeads from "./pages/vendas/BotLeads";
 
 // Configurações
 import Configuracoes from "./pages/configuracoes/index";
@@ -114,7 +115,15 @@ const App = () => (
           } 
         />
         <Route 
-          path="/dashboard/vendas/meta-ads" 
+          path="/dashboard/vendas/bot" 
+          element={
+            <ProtectedRoute>
+              <BotLeads />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard/vendas/meta-ads"
           element={
             <ProtectedRoute>
               <MetaAds />

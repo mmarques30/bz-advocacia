@@ -1,5 +1,5 @@
 export type LeadStatus = 'novo' | 'contato_inicial' | 'em_analise' | 'proposta_enviada' | 'fechado' | 'perdido';
-export type LeadOrigem = 'google' | 'meta' | 'indicacao' | 'site' | 'outro';
+export type LeadOrigem = 'google' | 'meta' | 'indicacao' | 'site' | 'whatsapp_bot' | 'outro';
 export type LeadPrioridade = 'alta' | 'media' | 'baixa';
 
 export interface Lead {
@@ -88,6 +88,7 @@ export const ORIGEM_LABELS: Record<LeadOrigem, string> = {
   meta: 'Meta',
   indicacao: 'Indicação',
   site: 'Site',
+  whatsapp_bot: 'WhatsApp Bot',
   outro: 'Outro',
 };
 
