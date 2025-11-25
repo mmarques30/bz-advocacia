@@ -61,7 +61,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
         tipo: demanda.tipo,
         prioridade: demanda.prioridade,
         status: demanda.status,
-        responsavel_id: demanda.responsavel_id || '',
+        responsavel_id: demanda.responsavel_id || 'sem_responsavel',
       });
     }
   }, [demanda, reset]);
@@ -72,7 +72,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     updateDemanda.mutate({
       id: demanda.id,
       ...data,
-      responsavel_id: data.responsavel_id || null,
+      responsavel_id: data.responsavel_id === 'sem_responsavel' ? null : data.responsavel_id || null,
       data_conclusao: data.status === 'concluido' ? new Date().toISOString().split('T')[0] : null,
     }, {
       onSuccess: () => {
@@ -199,7 +199,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                   <SelectValue placeholder="Selecione um responsável" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem responsável</SelectItem>
+                  <SelectItem value="sem_responsavel">Sem responsável</SelectItem>
                   {usuarios?.map((usuario) => (
                     <SelectItem key={usuario.id} value={usuario.id}>
                       {usuario.nome_completo}
