@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { MetaAdsConnection } from "@/components/meta-ads/MetaAdsConnection";
 import { MetaAdsKPIs } from "@/components/meta-ads/MetaAdsKPIs";
 import { MetaAdsCampaigns } from "@/components/meta-ads/MetaAdsCampaigns";
@@ -19,8 +18,7 @@ export default function MetaAds() {
   const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns();
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Meta Ads</h1>
@@ -77,6 +75,5 @@ export default function MetaAds() {
         {/* Automation */}
         <MetaAdsAutomation />
       </div>
-    </DashboardLayout>
   );
 }

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsultaPessoaForm } from "@/components/pesquisas/ConsultaPessoaForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ export default function Pessoas() {
   const [resultado, setResultado] = useState<ConsultaPessoaResponse | null>(null);
 
   return (
-    <DashboardLayout>
+    <div className="space-y-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Localizar Pessoa</h1>
         <p className="text-muted-foreground mt-2">
@@ -164,6 +163,6 @@ export default function Pessoas() {
           </div>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
