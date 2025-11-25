@@ -151,6 +151,87 @@ export const FORMA_PAGAMENTO_RECEBIDO_LABELS: Record<FormaPagamentoRecebido, str
   transferencia: 'Transferência',
 };
 
+// Tipos de Despesas
+export type CategoriaDespesa = 
+  | 'aluguel_condominio'
+  | 'salarios_encargos'
+  | 'honorarios_terceiros'
+  | 'marketing_publicidade'
+  | 'materiais_expediente'
+  | 'telefonia_internet'
+  | 'software_licencas'
+  | 'energia_agua'
+  | 'impostos_taxas'
+  | 'outros';
+
+export type StatusDespesa = 'pago' | 'pendente' | 'atrasado';
+
+export interface Despesa {
+  id: string;
+  descricao: string;
+  valor: number;
+  data: string;
+  categoria: CategoriaDespesa;
+  processo_id: string | null;
+  forma_pagamento: FormaPagamentoRecebido | null;
+  status: StatusDespesa;
+  observacoes: string | null;
+  anexo_url: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+  
+  // Relações
+  processo?: {
+    id: string;
+    numero_processo: string | null;
+    tipo: string;
+  };
+}
+
+export interface DespesasFilters {
+  search?: string;
+  categoria?: CategoriaDespesa[];
+  status?: StatusDespesa[];
+  processo_id?: string;
+  data_inicio?: Date;
+  data_fim?: Date;
+}
+
+export interface KPIsDespesas {
+  total_mes: number;
+  total_pendente: number;
+  total_atrasado: number;
+  total_pago_mes: number;
+}
+
+export interface DespesaPorCategoria {
+  categoria: CategoriaDespesa;
+  total: number;
+  percentual: number;
+  quantidade: number;
+}
+
+// Labels para Despesas
+export const CATEGORIA_DESPESA_LABELS: Record<CategoriaDespesa, string> = {
+  aluguel_condominio: 'Aluguel e Condomínio',
+  salarios_encargos: 'Salários e Encargos',
+  honorarios_terceiros: 'Honorários de Terceiros',
+  marketing_publicidade: 'Marketing e Publicidade',
+  materiais_expediente: 'Materiais de Expediente',
+  telefonia_internet: 'Telefonia e Internet',
+  software_licencas: 'Software e Licenças',
+  energia_agua: 'Energia e Água',
+  impostos_taxas: 'Impostos e Taxas',
+  outros: 'Outros',
+};
+
+export const STATUS_DESPESA_LABELS: Record<StatusDespesa, string> = {
+  pago: 'Pago',
+  pendente: 'Pendente',
+  atrasado: 'Atrasado',
+};
+
 export type TipoRelatorio = 
   | 'receitas_periodo'
   | 'inadimplencia_detalhada'
