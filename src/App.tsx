@@ -32,7 +32,6 @@ import ProcessosDocumentos from "./pages/processos/Documentos";
 // Financeiro
 import FinanceiroAcordos from "./pages/financeiro/Acordos";
 import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
-import RelatoriosDespesas from "./pages/financeiro/RelatoriosDespesas";
 
 // Pesquisas
 import PesquisasIndex from "./pages/pesquisas/Index";
@@ -245,14 +244,6 @@ const App = () => (
           element={
             <ProtectedRoute>
               <FinanceiroRelatorios />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dashboard/financeiro/relatorios-despesas" 
-          element={
-            <ProtectedRoute>
-              <RelatoriosDespesas />
             </ProtectedRoute>
           } 
         />

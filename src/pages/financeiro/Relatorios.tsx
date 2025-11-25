@@ -8,7 +8,9 @@ import { RelatorioInadimplencia } from "@/components/financeiro/relatorios/Relat
 import { RelatorioFluxoCaixa } from "@/components/financeiro/relatorios/RelatorioFluxoCaixa";
 import { RelatorioPerformanceTipo } from "@/components/financeiro/relatorios/RelatorioPerformanceTipo";
 import { RelatorioPerformanceCliente } from "@/components/financeiro/relatorios/RelatorioPerformanceCliente";
-import { BarChart3, TrendingDown, TrendingUp, PieChart, Users } from "lucide-react";
+import { RelatorioDespesasPeriodo } from "@/components/financeiro/relatorios/RelatorioDespesasPeriodo";
+import { RelatorioDespesasCategoria } from "@/components/financeiro/relatorios/RelatorioDespesasCategoria";
+import { BarChart3, TrendingDown, TrendingUp, PieChart, Users, Receipt, Tags } from "lucide-react";
 
 export default function FinanceiroRelatorios() {
   const [tipoRelatorio, setTipoRelatorio] = useState<TipoRelatorio | null>(null);
@@ -47,6 +49,18 @@ export default function FinanceiroRelatorios() {
       descricao: "Ranking dos maiores pagadores",
       icon: Users,
     },
+    {
+      tipo: "despesas_periodo" as TipoRelatorio,
+      titulo: "Despesas do Período",
+      descricao: "Análise detalhada das despesas",
+      icon: Receipt,
+    },
+    {
+      tipo: "despesas_categoria" as TipoRelatorio,
+      titulo: "Despesas por Categoria",
+      descricao: "Distribuição de despesas por tipo",
+      icon: Tags,
+    },
   ];
 
   const handleSelecionarRelatorio = (tipo: TipoRelatorio) => {
@@ -82,6 +96,10 @@ export default function FinanceiroRelatorios() {
         return <RelatorioPerformanceTipo />;
       case "performance_cliente":
         return <RelatorioPerformanceCliente />;
+      case "despesas_periodo":
+        return <RelatorioDespesasPeriodo dataInicio={dataInicio} dataFim={dataFim} />;
+      case "despesas_categoria":
+        return <RelatorioDespesasCategoria />;
       default:
         return null;
     }
