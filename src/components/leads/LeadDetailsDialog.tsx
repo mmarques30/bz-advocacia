@@ -175,7 +175,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDi
                       <span className="text-sm">{doc}</span>
                     </div>
                     <Button size="sm" variant="ghost">
-                      Download
+                      Baixar
                     </Button>
                   </div>
                 ))}
