@@ -691,6 +691,257 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_campanhas: {
+        Row: {
+          atualizado_em: string | null
+          campaign_id: string
+          cliques: number | null
+          connection_id: string | null
+          ctr: number | null
+          custo_lead: number | null
+          gasto: number | null
+          id: string
+          impressoes: number | null
+          leads: number | null
+          nome: string
+          objetivo: string | null
+          status: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          campaign_id: string
+          cliques?: number | null
+          connection_id?: string | null
+          ctr?: number | null
+          custo_lead?: number | null
+          gasto?: number | null
+          id?: string
+          impressoes?: number | null
+          leads?: number | null
+          nome: string
+          objetivo?: string | null
+          status?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          campaign_id?: string
+          cliques?: number | null
+          connection_id?: string | null
+          ctr?: number | null
+          custo_lead?: number | null
+          gasto?: number | null
+          id?: string
+          impressoes?: number | null
+          leads?: number | null
+          nome?: string
+          objetivo?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_campanhas_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "meta_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_connections: {
+        Row: {
+          access_token: string
+          account_id: string
+          account_name: string | null
+          conectado_em: string | null
+          created_at: string | null
+          id: string
+          status: string | null
+          token_expires_at: string
+          ultima_sincronizacao: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          account_name?: string | null
+          conectado_em?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          token_expires_at: string
+          ultima_sincronizacao?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          account_name?: string | null
+          conectado_em?: string | null
+          created_at?: string | null
+          id?: string
+          status?: string | null
+          token_expires_at?: string
+          ultima_sincronizacao?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      meta_envios_historico: {
+        Row: {
+          data_envio: string | null
+          destinatarios: string[] | null
+          erro_mensagem: string | null
+          id: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          relatorio_config_id: string | null
+          status: string | null
+        }
+        Insert: {
+          data_envio?: string | null
+          destinatarios?: string[] | null
+          erro_mensagem?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          relatorio_config_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          data_envio?: string | null
+          destinatarios?: string[] | null
+          erro_mensagem?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          relatorio_config_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_envios_historico_relatorio_config_id_fkey"
+            columns: ["relatorio_config_id"]
+            isOneToOne: false
+            referencedRelation: "meta_relatorios_auto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_metricas: {
+        Row: {
+          alcance: number | null
+          cliques: number | null
+          connection_id: string | null
+          cpc: number | null
+          created_at: string | null
+          ctr: number | null
+          custo_lead: number | null
+          data_referencia: string
+          gasto: number | null
+          id: string
+          impressoes: number | null
+          leads: number | null
+        }
+        Insert: {
+          alcance?: number | null
+          cliques?: number | null
+          connection_id?: string | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          custo_lead?: number | null
+          data_referencia: string
+          gasto?: number | null
+          id?: string
+          impressoes?: number | null
+          leads?: number | null
+        }
+        Update: {
+          alcance?: number | null
+          cliques?: number | null
+          connection_id?: string | null
+          cpc?: number | null
+          created_at?: string | null
+          ctr?: number | null
+          custo_lead?: number | null
+          data_referencia?: string
+          gasto?: number | null
+          id?: string
+          impressoes?: number | null
+          leads?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_metricas_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "meta_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meta_relatorios_auto: {
+        Row: {
+          assunto: string | null
+          ativo: boolean | null
+          connection_id: string | null
+          created_at: string | null
+          destinatarios: string[]
+          dia_mes: number | null
+          dia_semana: number | null
+          formato: string | null
+          frequencia: string
+          horario: string
+          id: string
+          mensagem: string | null
+          proximo_envio: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assunto?: string | null
+          ativo?: boolean | null
+          connection_id?: string | null
+          created_at?: string | null
+          destinatarios: string[]
+          dia_mes?: number | null
+          dia_semana?: number | null
+          formato?: string | null
+          frequencia: string
+          horario: string
+          id?: string
+          mensagem?: string | null
+          proximo_envio?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assunto?: string | null
+          ativo?: boolean | null
+          connection_id?: string | null
+          created_at?: string | null
+          destinatarios?: string[]
+          dia_mes?: number | null
+          dia_semana?: number | null
+          formato?: string | null
+          frequencia?: string
+          horario?: string
+          id?: string
+          mensagem?: string | null
+          proximo_envio?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_relatorios_auto_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "meta_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notificacoes: {
         Row: {
           created_at: string | null
