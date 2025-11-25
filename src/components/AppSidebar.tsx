@@ -62,6 +62,7 @@ const menuItems: MenuItem[] = [
       { title: "Clientes", url: "/dashboard/leads?tipo=clientes" },
       { title: "Todos", url: "/dashboard/leads" },
       { title: "Relatórios para Clientes", url: "/dashboard/leads/relatorios-cliente" },
+      { title: "Meta Ads", url: "/dashboard/vendas/meta-ads" },
     ]
   },
   {
