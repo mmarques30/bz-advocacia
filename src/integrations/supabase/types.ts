@@ -1648,6 +1648,328 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_aprovacao: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string | null
+          historico_id: string | null
+          id: string
+          motivo_rejeicao: string | null
+          rejeitado: boolean | null
+          status: string | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          historico_id?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          rejeitado?: boolean | null
+          status?: string | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string | null
+          historico_id?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          rejeitado?: boolean | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_aprovacao_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_aprovacao_historico_id_fkey"
+            columns: ["historico_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_historico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_config: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          credentials: Json
+          id: string
+          phone_number: string
+          phone_number_id: string | null
+          provider: string
+          updated_at: string | null
+          webhook_verify_token: string | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          credentials?: Json
+          id?: string
+          phone_number: string
+          phone_number_id?: string | null
+          provider: string
+          updated_at?: string | null
+          webhook_verify_token?: string | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          credentials?: Json
+          id?: string
+          phone_number?: string
+          phone_number_id?: string | null
+          provider?: string
+          updated_at?: string | null
+          webhook_verify_token?: string | null
+        }
+        Relationships: []
+      }
+      whatsapp_historico: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          cliente_id: string | null
+          cliente_respondeu: boolean | null
+          created_at: string | null
+          custo: number | null
+          destinatario_nome: string | null
+          destinatario_telefone: string
+          entregue_em: string | null
+          enviado_em: string | null
+          erro_mensagem: string | null
+          id: string
+          lido_em: string | null
+          mensagem: string
+          message_id_externo: string | null
+          processo_id: string | null
+          provider: string | null
+          regra_id: string | null
+          resposta_cliente: string | null
+          resposta_em: string | null
+          status: string
+          template_id: string | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cliente_id?: string | null
+          cliente_respondeu?: boolean | null
+          created_at?: string | null
+          custo?: number | null
+          destinatario_nome?: string | null
+          destinatario_telefone: string
+          entregue_em?: string | null
+          enviado_em?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          lido_em?: string | null
+          mensagem: string
+          message_id_externo?: string | null
+          processo_id?: string | null
+          provider?: string | null
+          regra_id?: string | null
+          resposta_cliente?: string | null
+          resposta_em?: string | null
+          status?: string
+          template_id?: string | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          cliente_id?: string | null
+          cliente_respondeu?: boolean | null
+          created_at?: string | null
+          custo?: number | null
+          destinatario_nome?: string | null
+          destinatario_telefone?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
+          erro_mensagem?: string | null
+          id?: string
+          lido_em?: string | null
+          mensagem?: string
+          message_id_externo?: string | null
+          processo_id?: string | null
+          provider?: string | null
+          regra_id?: string | null
+          resposta_cliente?: string | null
+          resposta_em?: string | null
+          status?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_historico_aprovado_por_fkey"
+            columns: ["aprovado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_historico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_historico_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_historico_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_regras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_historico_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_regras: {
+        Row: {
+          agendamento: Json | null
+          ativa: boolean | null
+          condicoes: Json | null
+          created_at: string | null
+          destinatarios: string
+          evento_gatilho: string | null
+          horario_comercial: boolean | null
+          id: string
+          ignorar_fim_semana: boolean | null
+          intervalo_minimo: number | null
+          lembretes: Json | null
+          lista_destinatarios: string[] | null
+          nome: string
+          periodicidade: Json | null
+          requer_aprovacao: boolean | null
+          template_id: string | null
+          tipo_gatilho: string
+          total_envios: number | null
+          ultima_execucao: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agendamento?: Json | null
+          ativa?: boolean | null
+          condicoes?: Json | null
+          created_at?: string | null
+          destinatarios: string
+          evento_gatilho?: string | null
+          horario_comercial?: boolean | null
+          id?: string
+          ignorar_fim_semana?: boolean | null
+          intervalo_minimo?: number | null
+          lembretes?: Json | null
+          lista_destinatarios?: string[] | null
+          nome: string
+          periodicidade?: Json | null
+          requer_aprovacao?: boolean | null
+          template_id?: string | null
+          tipo_gatilho: string
+          total_envios?: number | null
+          ultima_execucao?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agendamento?: Json | null
+          ativa?: boolean | null
+          condicoes?: Json | null
+          created_at?: string | null
+          destinatarios?: string
+          evento_gatilho?: string | null
+          horario_comercial?: boolean | null
+          id?: string
+          ignorar_fim_semana?: boolean | null
+          intervalo_minimo?: number | null
+          lembretes?: Json | null
+          lista_destinatarios?: string[] | null
+          nome?: string
+          periodicidade?: Json | null
+          requer_aprovacao?: boolean | null
+          template_id?: string | null
+          tipo_gatilho?: string
+          total_envios?: number | null
+          ultima_execucao?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_regras_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          ativo: boolean | null
+          categoria: string
+          created_at: string | null
+          criado_por: string | null
+          id: string
+          mensagem: string
+          nome: string
+          total_envios: number | null
+          updated_at: string | null
+          usado_ultima_vez: string | null
+          variaveis: string[] | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria: string
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          mensagem: string
+          nome: string
+          total_envios?: number | null
+          updated_at?: string | null
+          usado_ultima_vez?: string | null
+          variaveis?: string[] | null
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string
+          created_at?: string | null
+          criado_por?: string | null
+          id?: string
+          mensagem?: string
+          nome?: string
+          total_envios?: number | null
+          updated_at?: string | null
+          usado_ultima_vez?: string | null
+          variaveis?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_templates_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
