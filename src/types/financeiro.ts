@@ -238,7 +238,9 @@ export type TipoRelatorio =
   | 'inadimplencia_detalhada'
   | 'fluxo_caixa_projetado'
   | 'performance_tipo_processo'
-  | 'performance_cliente';
+  | 'performance_cliente'
+  | 'despesas_periodo'
+  | 'despesas_categoria';
 
 export const TIPOS_RELATORIO_LABELS: Record<TipoRelatorio, string> = {
   receitas_periodo: 'Receitas do Período',
@@ -246,4 +248,6 @@ export const TIPOS_RELATORIO_LABELS: Record<TipoRelatorio, string> = {
   fluxo_caixa_projetado: 'Fluxo de Caixa Projetado',
   performance_tipo_processo: 'Performance por Tipo de Processo',
   performance_cliente: 'Performance por Cliente',
+  despesas_periodo: 'Despesas do Período',
+  despesas_categoria: 'Despesas por Categoria',
 };

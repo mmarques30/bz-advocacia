@@ -110,7 +110,6 @@ const menuItems: MenuItem[] = [
       { title: "Dashboard", url: "/dashboard/financeiro" },
       { title: "Acordos", url: "/dashboard/financeiro/acordos" },
       { title: "Relatórios", url: "/dashboard/financeiro/relatorios" },
-      { title: "Relatórios de Despesas", url: "/dashboard/financeiro/relatorios-despesas" },
     ]
   },
   {
