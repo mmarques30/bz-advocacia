@@ -13,6 +13,7 @@ import Processos from "./pages/Processos";
 import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 import MetaAds from "./pages/vendas/MetaAds";
+import MetaAdsCallback from "./pages/vendas/MetaAdsCallback";
 
 // Configurações
 import Configuracoes from "./pages/configuracoes/index";
@@ -120,6 +121,10 @@ const App = () => (
             <MetaAds />
           </ProtectedRoute>
         } 
+      />
+      <Route 
+        path="/dashboard/vendas/meta-ads/callback"
+        element={<MetaAdsCallback />}
       />
       <Route 
         path="/dashboard/processos" 

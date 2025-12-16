@@ -2,3 +2,18 @@ project_id = "nvkxblrwblhvggndlfax"
 
 [functions.receive-sheet-lead]
 verify_jwt = false
+
+[functions.meta-auth]
+verify_jwt = true
+
+[functions.meta-callback]
+verify_jwt = true
+
+[functions.meta-metrics]
+verify_jwt = true
+
+[functions.meta-campaigns]
+verify_jwt = true
+
+[functions.meta-report]
+verify_jwt = true

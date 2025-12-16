@@ -21,6 +21,32 @@ export function useMetaConnection() {
     },
   });
 
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("meta-auth", {
+        body: { action: "get_auth_url" },
+      });
+
+      if (error) throw error;
+      
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.authUrl) {
+        // Store state for verification
+        sessionStorage.setItem("meta_oauth_state", data.state);
+        // Redirect to Meta OAuth
+        window.location.href = data.authUrl;
+      }
+
+      return data;
+    },
+    onError: (error) => {
+      toast.error("Erro ao conectar: " + error.message);
+    },
+  });
+
   const disconnectMutation = useMutation({
     mutationFn: async (connectionId: string) => {
       const { error } = await supabase
@@ -41,7 +67,6 @@ export function useMetaConnection() {
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      // Chamará edge function para sincronizar quando credenciais estiverem disponíveis
       const { data, error } = await supabase.functions.invoke("meta-metrics", {
         body: { action: "sync" },
       });
@@ -64,6 +89,8 @@ export function useMetaConnection() {
     connection,
     isLoading,
     isConnected: !!connection,
+    connect: connectMutation.mutate,
+    isConnecting: connectMutation.isPending,
     disconnect: disconnectMutation.mutate,
     sync: syncMutation.mutate,
     isSyncing: syncMutation.isPending,
