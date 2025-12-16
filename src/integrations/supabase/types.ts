@@ -128,6 +128,30 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_financeiras: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       configuracoes_escritorio: {
         Row: {
           cep: string | null
@@ -1740,6 +1764,41 @@ export type Database = {
         }
         Relationships: []
       }
+      subcategorias_financeiras: {
+        Row: {
+          categoria_codigo: string | null
+          codigo: string
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          categoria_codigo?: string | null
+          codigo: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          categoria_codigo?: string | null
+          codigo?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subcategorias_financeiras_categoria_codigo_fkey"
+            columns: ["categoria_codigo"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       tags: {
         Row: {
           cor: string
@@ -1812,6 +1871,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tipos_transacao: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       transacoes_externas: {
         Row: {
           ano: number
@@ -1859,6 +1942,70 @@ export type Database = {
           valor?: number
         }
         Relationships: []
+      }
+      transacoes_financeiras: {
+        Row: {
+          ano: number
+          categoria_codigo: string | null
+          created_at: string | null
+          data_transacao: string | null
+          descricao: string | null
+          id: string
+          mes: number
+          mes_nome: string | null
+          subcategoria_codigo: string | null
+          tipo_codigo: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          categoria_codigo?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          id?: string
+          mes: number
+          mes_nome?: string | null
+          subcategoria_codigo?: string | null
+          tipo_codigo?: string | null
+          valor: number
+        }
+        Update: {
+          ano?: number
+          categoria_codigo?: string | null
+          created_at?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          id?: string
+          mes?: number
+          mes_nome?: string | null
+          subcategoria_codigo?: string | null
+          tipo_codigo?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transacoes_financeiras_categoria_codigo_fkey"
+            columns: ["categoria_codigo"]
+            isOneToOne: false
+            referencedRelation: "categorias_financeiras"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "transacoes_financeiras_subcategoria_codigo_fkey"
+            columns: ["subcategoria_codigo"]
+            isOneToOne: false
+            referencedRelation: "subcategorias_financeiras"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "transacoes_financeiras_tipo_codigo_fkey"
+            columns: ["tipo_codigo"]
+            isOneToOne: false
+            referencedRelation: "tipos_transacao"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       user_invites: {
         Row: {
