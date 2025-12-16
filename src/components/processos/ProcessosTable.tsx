@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2 } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -16,19 +17,33 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Processo, PROCESSO_STATUS_LABELS } from "@/types/processos";
 import { useDocumentosDriveCount } from "@/hooks/useDocumentosDriveCount";
+import { useDeleteProcesso } from "@/hooks/useProcessos";
 
 function ProcessoRow({
   processo,
   onViewDetails,
   onAddAndamento,
+  onDelete,
 }: {
   processo: Processo;
   onViewDetails: (processoId: string) => void;
   onAddAndamento: (processoId: string) => void;
+  onDelete: (processo: Processo) => void;
 }) {
   const { data: docsCount } = useDocumentosDriveCount(processo.id);
 
@@ -146,6 +161,14 @@ function ProcessoRow({
               <Calendar className="h-4 w-4 mr-2" />
               Ver Prazos
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => onDelete(processo)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -166,6 +189,16 @@ export function ProcessosTable({
   onViewDetails,
   onAddAndamento,
 }: ProcessosTableProps) {
+  const [processoToDelete, setProcessoToDelete] = useState<Processo | null>(null);
+  const deleteProcesso = useDeleteProcesso();
+
+  const handleDelete = () => {
+    if (processoToDelete) {
+      deleteProcesso.mutate(processoToDelete.id);
+      setProcessoToDelete(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -186,32 +219,58 @@ export function ProcessosTable({
   }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nº Processo</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Tribunal</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Última Atualização</TableHead>
-            <TableHead>Próximo Prazo</TableHead>
-            <TableHead>Docs Drive</TableHead>
-            <TableHead className="w-[100px]">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {processos.map((processo) => (
-            <ProcessoRow
-              key={processo.id}
-              processo={processo}
-              onViewDetails={onViewDetails}
-              onAddAndamento={onAddAndamento}
-            />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <>
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nº Processo</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Tribunal</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Última Atualização</TableHead>
+              <TableHead>Próximo Prazo</TableHead>
+              <TableHead>Docs Drive</TableHead>
+              <TableHead className="w-[100px]">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {processos.map((processo) => (
+              <ProcessoRow
+                key={processo.id}
+                processo={processo}
+                onViewDetails={onViewDetails}
+                onAddAndamento={onAddAndamento}
+                onDelete={setProcessoToDelete}
+              />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <AlertDialog open={!!processoToDelete} onOpenChange={() => setProcessoToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o processo{" "}
+              <strong>{processoToDelete?.numero_processo || "sem número"}</strong>?
+              <br />
+              <span className="text-destructive">Esta ação não pode ser desfeita.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
