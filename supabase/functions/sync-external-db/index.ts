@@ -37,8 +37,8 @@ const SYNCABLE_TABLES = [
 ];
 
 interface SyncRequest {
-  action: 'push' | 'pull' | 'sync' | 'read' | 'write' | 'delete' | 'delete-external';
-  table: string;
+  action: 'push' | 'pull' | 'sync' | 'read' | 'write' | 'delete' | 'delete-external' | 'list-tables' | 'pull-external';
+  table?: string;
   data?: Record<string, unknown> | Record<string, unknown>[];
   filters?: Record<string, unknown>;
   id?: string;
@@ -73,10 +73,123 @@ serve(async (req) => {
 
     const { action, table, data, filters, id }: SyncRequest = await req.json();
 
-    console.log(`Sync request: action=${action}, table=${table}`);
+    console.log(`Sync request: action=${action}, table=${table || 'N/A'}`);
 
-    // Validate table
-    if (!SYNCABLE_TABLES.includes(table)) {
+    // LIST-TABLES action doesn't require table validation
+    if (action === 'list-tables') {
+      console.log('Listing tables from external database...');
+      
+      // Try to get tables by querying known common tables first
+      const commonTables = [
+        'contact_submissions', 'leads', 'clientes', 'customers',
+        'processos', 'cases', 'casos',
+        'acordos_financeiros', 'agreements', 'contratos',
+        'parcelas_financeiras', 'installments', 'parcelas',
+        'despesas', 'expenses', 'gastos',
+        'profiles', 'users', 'usuarios',
+        'top_receitas', 'receitas', 'revenues',
+        'top_despesas', 'top_clientes', 'top_processos'
+      ];
+      
+      const existingTables: string[] = [];
+      const tableDetails: Record<string, { exists: boolean; count?: number; sample?: unknown }> = {};
+      
+      // Check each table
+      for (const tableName of commonTables) {
+        try {
+          const { data: tableData, error, count } = await externalSupabase
+            .from(tableName)
+            .select('*', { count: 'exact', head: false })
+            .limit(1);
+          
+          if (!error) {
+            existingTables.push(tableName);
+            tableDetails[tableName] = {
+              exists: true,
+              count: count || tableData?.length || 0,
+              sample: tableData?.[0] || null
+            };
+            console.log(`Found table: ${tableName} with ${count || tableData?.length || 0} rows`);
+          }
+        } catch (e) {
+          // Table doesn't exist, continue
+        }
+      }
+      
+      // Also try the SYNCABLE_TABLES list
+      for (const tableName of SYNCABLE_TABLES) {
+        if (!existingTables.includes(tableName)) {
+          try {
+            const { data: tableData, error, count } = await externalSupabase
+              .from(tableName)
+              .select('*', { count: 'exact', head: false })
+              .limit(1);
+            
+            if (!error) {
+              existingTables.push(tableName);
+              tableDetails[tableName] = {
+                exists: true,
+                count: count || tableData?.length || 0,
+                sample: tableData?.[0] || null
+              };
+              console.log(`Found table: ${tableName} with ${count || tableData?.length || 0} rows`);
+            }
+          } catch (e) {
+            // Table doesn't exist, continue
+          }
+        }
+      }
+      
+      console.log(`Total tables found: ${existingTables.length}`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          tables: existingTables,
+          details: tableDetails,
+          totalTables: existingTables.length
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // PULL-EXTERNAL: Read from EXTERNAL database
+    if (action === 'pull-external') {
+      if (!table) {
+        throw new Error('Table is required for pull-external action');
+      }
+      
+      console.log(`Pulling data from external table: ${table}`);
+      
+      let query = externalSupabase.from(table).select('*');
+      
+      if (filters) {
+        Object.entries(filters).forEach(([key, value]) => {
+          query = query.eq(key, value);
+        });
+      }
+      
+      if (id) {
+        query = query.eq('id', id);
+      }
+
+      const { data: pullData, error } = await query;
+      
+      if (error) {
+        console.error('Pull-external error:', error);
+        throw error;
+      }
+      
+      console.log(`Pulled ${pullData?.length || 0} rows from external ${table}`);
+      
+      return new Response(
+        JSON.stringify({ success: true, data: pullData, count: pullData?.length || 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate table for other actions
+    if (!table || !SYNCABLE_TABLES.includes(table)) {
       return new Response(
         JSON.stringify({ 
           error: 'Invalid table',
