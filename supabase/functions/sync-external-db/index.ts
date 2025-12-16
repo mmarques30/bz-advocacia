@@ -37,7 +37,7 @@ const SYNCABLE_TABLES = [
 ];
 
 interface SyncRequest {
-  action: 'push' | 'pull' | 'sync' | 'read' | 'write' | 'delete';
+  action: 'push' | 'pull' | 'sync' | 'read' | 'write' | 'delete' | 'delete-external';
   table: string;
   data?: Record<string, unknown> | Record<string, unknown>[];
   filters?: Record<string, unknown>;
@@ -184,7 +184,36 @@ serve(async (req) => {
           throw error;
         }
 
-        result = { success: true, message: 'Deleted successfully' };
+        result = { success: true, message: 'Deleted successfully from internal' };
+        break;
+      }
+
+      // DELETE-EXTERNAL: Delete from EXTERNAL Supabase
+      case 'delete-external': {
+        if (!id && !filters) {
+          throw new Error('ID or filters required for delete-external action');
+        }
+
+        let query = externalSupabase.from(table).delete();
+        
+        if (id) {
+          query = query.eq('id', id);
+        }
+        
+        if (filters) {
+          Object.entries(filters).forEach(([key, value]) => {
+            query = query.eq(key, value);
+          });
+        }
+
+        const { error } = await query;
+
+        if (error) {
+          console.error('Delete-external error:', error);
+          throw error;
+        }
+
+        result = { success: true, message: 'Deleted successfully from external' };
         break;
       }
 

@@ -1,0 +1,11 @@
+-- Enable realtime for priority tables
+ALTER PUBLICATION supabase_realtime ADD TABLE public.contact_submissions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.lead_interacoes;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.lead_notas;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.processos;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.processos_andamentos;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.processos_prazos;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.acordos_financeiros;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.parcelas_financeiras;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.despesas;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
