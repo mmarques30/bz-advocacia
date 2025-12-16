@@ -90,7 +90,7 @@ export function MetaAdsChart({ data, isLoading }: MetaAdsChartProps) {
               yAxisId="right"
               type="monotone"
               dataKey="leads"
-              stroke="hsl(var(--chart-2))"
+              stroke="#22c55e"
               strokeWidth={2}
               name="Leads"
               dot={false}
