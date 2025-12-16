@@ -104,6 +104,30 @@ export type Database = {
         }
         Relationships: []
       }
+      categorias_externas: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          external_id: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          external_id?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          external_id?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       configuracoes_escritorio: {
         Row: {
           cep: string | null
@@ -1593,6 +1617,129 @@ export type Database = {
           },
         ]
       }
+      resumo_anual_externo: {
+        Row: {
+          ano: number
+          created_at: string | null
+          external_id: string | null
+          id: string
+          saldo: number | null
+          total_despesas: number | null
+          total_receitas: number | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          saldo?: number | null
+          total_despesas?: number | null
+          total_receitas?: number | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          saldo?: number | null
+          total_despesas?: number | null
+          total_receitas?: number | null
+        }
+        Relationships: []
+      }
+      resumo_mensal_externo: {
+        Row: {
+          ano: number
+          created_at: string | null
+          external_id: string | null
+          id: string
+          mes: number
+          mes_nome: string | null
+          saldo: number | null
+          total_despesas: number | null
+          total_receitas: number | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          mes: number
+          mes_nome?: string | null
+          saldo?: number | null
+          total_despesas?: number | null
+          total_receitas?: number | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          mes?: number
+          mes_nome?: string | null
+          saldo?: number | null
+          total_despesas?: number | null
+          total_receitas?: number | null
+        }
+        Relationships: []
+      }
+      resumo_por_subcategoria_externo: {
+        Row: {
+          ano: number | null
+          created_at: string | null
+          external_id: string | null
+          id: string
+          mes: number | null
+          subcategoria: string | null
+          tipo: string | null
+          total: number | null
+        }
+        Insert: {
+          ano?: number | null
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          mes?: number | null
+          subcategoria?: string | null
+          tipo?: string | null
+          total?: number | null
+        }
+        Update: {
+          ano?: number | null
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          mes?: number | null
+          subcategoria?: string | null
+          tipo?: string | null
+          total?: number | null
+        }
+        Relationships: []
+      }
+      subcategorias_externas: {
+        Row: {
+          categoria_id: string | null
+          created_at: string | null
+          external_id: string | null
+          id: string
+          nome: string
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          nome: string
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string | null
+          external_id?: string | null
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           cor: string
@@ -1662,6 +1809,54 @@ export type Database = {
           tipo?: string
           updated_at?: string | null
           variaveis?: string[] | null
+        }
+        Relationships: []
+      }
+      transacoes_externas: {
+        Row: {
+          ano: number
+          categoria: string
+          created_at: string | null
+          data_transacao: string
+          descricao: string | null
+          external_id: string | null
+          id: string
+          mes: number
+          mes_nome: string | null
+          subcategoria: string | null
+          tipo: string
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          categoria: string
+          created_at?: string | null
+          data_transacao: string
+          descricao?: string | null
+          external_id?: string | null
+          id?: string
+          mes: number
+          mes_nome?: string | null
+          subcategoria?: string | null
+          tipo: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          categoria?: string
+          created_at?: string | null
+          data_transacao?: string
+          descricao?: string | null
+          external_id?: string | null
+          id?: string
+          mes?: number
+          mes_nome?: string | null
+          subcategoria?: string | null
+          tipo?: string
+          updated_at?: string | null
+          valor?: number
         }
         Relationships: []
       }
