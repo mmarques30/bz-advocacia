@@ -11,14 +11,13 @@ serve(async (req) => {
   }
 
   try {
-    // TODO: Quando credenciais estiverem disponíveis, implementar OAuth flow
     const META_APP_ID = Deno.env.get('META_APP_ID');
-    const APP_URL = Deno.env.get('APP_URL') || 'http://localhost:5173';
+    const APP_URL = Deno.env.get('APP_URL');
     
     if (!META_APP_ID) {
       return new Response(
         JSON.stringify({ 
-          error: 'Meta App ID não configurado. Configure as credenciais da API Meta.' 
+          error: 'Meta App ID não configurado. Configure META_APP_ID nos secrets.' 
         }),
         { 
           status: 400, 
@@ -27,9 +26,21 @@ serve(async (req) => {
       );
     }
 
-    // Gerar URL de autorização OAuth
+    if (!APP_URL) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'APP_URL não configurado. Configure APP_URL nos secrets.' 
+        }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Generate OAuth authorization URL
     const state = crypto.randomUUID();
-    const redirectUri = `${APP_URL}/api/meta/callback`;
+    const redirectUri = `${APP_URL}/dashboard/vendas/meta-ads/callback`;
     
     const authUrl = new URL('https://www.facebook.com/v18.0/dialog/oauth');
     authUrl.searchParams.set('client_id', META_APP_ID);
@@ -37,6 +48,8 @@ serve(async (req) => {
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('scope', 'ads_read,ads_management,business_management');
     authUrl.searchParams.set('response_type', 'code');
+
+    console.log('Generated auth URL with redirect:', redirectUri);
 
     return new Response(
       JSON.stringify({ 
