@@ -13,6 +13,9 @@ import { DespesasHeader } from "@/components/financeiro/despesas/DespesasHeader"
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
+import { FinanceiroExternoKPIs } from "@/components/financeiro/FinanceiroExternoKPIs";
+import { FinanceiroExternoCharts } from "@/components/financeiro/FinanceiroExternoCharts";
+import { TransacoesExternasTable } from "@/components/financeiro/TransacoesExternasTable";
 import type { AcordosFilters, DespesasFilters } from "@/types/financeiro";
 
 export default function Financeiro() {
@@ -35,12 +38,19 @@ export default function Financeiro() {
         </p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-6">
+      <Tabs defaultValue="externo" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="externo">Dados Externos</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="acordos">Acordos</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="externo" className="space-y-6">
+          <FinanceiroExternoKPIs />
+          <FinanceiroExternoCharts />
+          <TransacoesExternasTable />
+        </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-6">
           <DespesasAlerts />
