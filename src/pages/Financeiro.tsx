@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 import { FinanceiroKPIs } from "@/components/financeiro/FinanceiroKPIs";
 import { FinanceiroCharts } from "@/components/financeiro/FinanceiroCharts";
 import { FinanceiroWidgets } from "@/components/financeiro/FinanceiroWidgets";
@@ -13,7 +15,13 @@ import { DespesasHeader } from "@/components/financeiro/despesas/DespesasHeader"
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
+import { TransacoesKPIs } from "@/components/financeiro/transacoes/TransacoesKPIs";
+import { TransacoesCharts } from "@/components/financeiro/transacoes/TransacoesCharts";
+import { TransacoesFilters } from "@/components/financeiro/transacoes/TransacoesFilters";
+import { TransacoesTable } from "@/components/financeiro/transacoes/TransacoesTable";
+import { NewTransacaoDialog } from "@/components/financeiro/transacoes/NewTransacaoDialog";
 import type { AcordosFilters, DespesasFilters } from "@/types/financeiro";
+import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
 export default function Financeiro() {
   const [filters, setFilters] = useState<AcordosFilters>({});
@@ -26,6 +34,10 @@ export default function Financeiro() {
   const [newDespesaOpen, setNewDespesaOpen] = useState(false);
   const [selectedDespesaId, setSelectedDespesaId] = useState<string | null>(null);
 
+  // Estados para transações
+  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
+  const [newTransacaoOpen, setNewTransacaoOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,12 +47,30 @@ export default function Financeiro() {
         </p>
       </div>
 
-      <Tabs defaultValue="dashboard" className="space-y-6">
+      <Tabs defaultValue="controle" className="space-y-6">
         <TabsList>
+          <TabsTrigger value="controle">Controle Financeiro</TabsTrigger>
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="acordos">Acordos</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="controle" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">Transações 2025</h2>
+              <p className="text-sm text-muted-foreground">411 transações importadas</p>
+            </div>
+            <Button onClick={() => setNewTransacaoOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Transação
+            </Button>
+          </div>
+          <TransacoesKPIs />
+          <TransacoesCharts />
+          <TransacoesFilters filters={transacoesFilters} onFiltersChange={setTransacoesFilters} />
+          <TransacoesTable filters={transacoesFilters} />
+        </TabsContent>
 
         <TabsContent value="dashboard" className="space-y-6">
           <DespesasAlerts />
@@ -104,6 +134,11 @@ export default function Financeiro() {
         despesaId={selectedDespesaId}
         open={!!selectedDespesaId}
         onClose={() => setSelectedDespesaId(null)}
+      />
+
+      <NewTransacaoDialog
+        open={newTransacaoOpen}
+        onClose={() => setNewTransacaoOpen(false)}
       />
     </div>
   );
