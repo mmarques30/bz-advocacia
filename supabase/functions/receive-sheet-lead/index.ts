@@ -7,23 +7,42 @@ const corsHeaders = {
 };
 
 interface SheetLeadPayload {
-  id?: string;
   created_time?: string;
-  platform?: string;
-  campaign_id?: string;
-  campaign_name?: string;
-  adset_id?: string;
-  adset_name?: string;
   ad_id?: string;
   ad_name?: string;
+  adset_id?: string;
+  adset_name?: string;
+  campaign_id?: string;
+  campaign_name?: string;
   form_id?: string;
   form_name?: string;
+  is_organic?: string;
+  platform?: string;
+  'qual_tipo_de_serviço_você_procura?'?: string;
+  'qual_bem_você_deseja_inventariar?_'?: string;
+  'qual_o_melhor_tipo_de_contato_para_você?'?: string;
   full_name?: string;
   phone_number?: string;
-  email?: string;
-  origem?: 'meta' | 'google';
-  // Additional fields from the sheet
+  'Contato no WhatsApp'?: string;
   [key: string]: any;
+}
+
+// Generate a simple hash for unique ID
+function generateLeadId(createdTime: string, phone: string): string {
+  const str = `${createdTime}-${phone}`;
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return `meta-${Math.abs(hash).toString(36)}`;
+}
+
+// Clean phone number
+function cleanPhone(phone: string | undefined): string {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '');
 }
 
 serve(async (req) => {
@@ -37,32 +56,59 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const payload: SheetLeadPayload = await req.json();
+    let payload: SheetLeadPayload;
+    
+    try {
+      const text = await req.text();
+      console.log('Raw request body:', text);
+      
+      if (!text || text.trim() === '') {
+        console.error('Empty request body received');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Request body is empty' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      payload = JSON.parse(text);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid JSON in request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     console.log('Received lead payload:', JSON.stringify(payload, null, 2));
 
-    // Validate required fields
-    const leadId = payload.id;
-    const fullName = payload.full_name || payload.nome || 'Lead sem nome';
-    const phone = payload.phone_number || payload.telefone || '';
+    // Extract fields from the exact column names
+    const fullName = payload.full_name || payload['full_name'] || 'Lead sem nome';
+    const phone = cleanPhone(payload.phone_number || payload['phone_number'] || payload['Contato no WhatsApp']);
+    const createdTime = payload.created_time || payload['created_time'] || new Date().toISOString();
     
-    if (!leadId) {
-      console.error('Missing Lead ID');
+    if (!phone) {
+      console.error('Missing phone number');
       return new Response(
-        JSON.stringify({ success: false, error: 'Lead ID é obrigatório' }),
+        JSON.stringify({ success: false, error: 'Telefone é obrigatório' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if lead already exists by Lead ID
+    // Generate unique ID from created_time + phone
+    const leadId = generateLeadId(createdTime, phone);
+    console.log('Generated lead ID:', leadId);
+
+    // Check if lead already exists by generated ID or phone in last 24h
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
     const { data: existingLead } = await supabase
       .from('contact_submissions')
-      .select('id, whatsapp_id')
-      .eq('whatsapp_id', leadId)
+      .select('id, whatsapp_id, telefone')
+      .or(`whatsapp_id.eq.${leadId},and(telefone.eq.${phone},created_at.gte.${twentyFourHoursAgo})`)
       .maybeSingle();
 
     if (existingLead) {
-      console.log('Lead already exists:', leadId);
+      console.log('Lead already exists:', existingLead.id);
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -74,24 +120,40 @@ serve(async (req) => {
       );
     }
 
-    // Determine origin (meta or google)
-    const origem = payload.origem || 'meta';
+    // Extract form responses
+    const tipoServico = payload['qual_tipo_de_serviço_você_procura?'] || 'A definir';
+    const bemInventariar = payload['qual_bem_você_deseja_inventariar?_'] || '';
+    const tipoContato = payload['qual_o_melhor_tipo_de_contato_para_você?'] || '';
 
-    // Extract Meta Ads specific data for JSONB storage
+    // Build Meta Ads data for JSONB storage
     const metaAdsData = {
-      lead_id_original: leadId,
-      platform: payload.platform,
-      campaign_id: payload.campaign_id,
-      campaign_name: payload.campaign_name,
-      adset_id: payload.adset_id,
-      adset_name: payload.adset_name,
+      created_time_original: createdTime,
       ad_id: payload.ad_id,
       ad_name: payload.ad_name,
+      adset_id: payload.adset_id,
+      adset_name: payload.adset_name,
+      campaign_id: payload.campaign_id,
+      campaign_name: payload.campaign_name,
       form_id: payload.form_id,
       form_name: payload.form_name,
-      created_time_original: payload.created_time,
-      raw_data: payload, // Store complete raw data
+      is_organic: payload.is_organic,
+      platform: payload.platform,
+      respostas_formulario: {
+        tipo_servico: tipoServico,
+        bem_inventariar: bemInventariar,
+        tipo_contato: tipoContato,
+      },
+      raw_data: payload,
     };
+
+    // Build message from form responses
+    let mensagem = `Lead capturado via Meta Ads`;
+    if (bemInventariar) {
+      mensagem += ` - Bem a inventariar: ${bemInventariar}`;
+    }
+    if (tipoContato) {
+      mensagem += ` - Contato preferido: ${tipoContato}`;
+    }
 
     // Insert new lead
     const { data: newLead, error: insertError } = await supabase
@@ -99,20 +161,20 @@ serve(async (req) => {
       .insert({
         nome_completo: fullName,
         telefone: phone,
-        email: payload.email || `lead-${leadId}@placeholder.com`,
-        tipo_processo: payload.tipo_processo || 'A definir',
-        como_conheceu: origem === 'meta' ? 'Meta Ads' : 'Google Ads',
-        mensagem: `Lead capturado via ${origem === 'meta' ? 'Meta Ads' : 'Google Ads'}`,
+        email: `lead-${leadId}@placeholder.com`,
+        tipo_processo: tipoServico,
+        como_conheceu: 'Meta Ads',
+        mensagem: mensagem,
         lgpd_consent: true,
-        origem: origem,
+        origem: 'meta',
         estagio: 'novo',
         prioridade: 'media',
         whatsapp_id: leadId,
-        utm_source: payload.platform || origem,
+        utm_source: payload.platform || 'meta',
         utm_campaign: payload.campaign_name,
         canal_especifico: payload.adset_name,
         conversa_bot_completa: metaAdsData,
-        primeiro_contato_em: payload.created_time ? new Date(payload.created_time).toISOString() : new Date().toISOString(),
+        primeiro_contato_em: createdTime ? new Date(createdTime).toISOString() : new Date().toISOString(),
         ultimo_contato_em: new Date().toISOString(),
       })
       .select()
@@ -134,9 +196,9 @@ serve(async (req) => {
       .insert({
         tipo: 'novo_lead',
         titulo: 'Novo lead recebido',
-        descricao: `${fullName} - via ${origem === 'meta' ? 'Meta Ads' : 'Google Ads'} (${payload.campaign_name || 'Campanha não identificada'})`,
+        descricao: `${fullName} - via Meta Ads (${payload.campaign_name || 'Campanha não identificada'})`,
         link: `/dashboard/leads?id=${newLead.id}`,
-        metadata: { leadId: newLead.id, origem },
+        metadata: { leadId: newLead.id, origem: 'meta' },
       });
 
     if (notifError) {
@@ -150,7 +212,7 @@ serve(async (req) => {
         tipo: 'lead_criado',
         entidade_tipo: 'lead',
         entidade_id: newLead.id,
-        descricao: `Lead ${fullName} capturado via ${origem === 'meta' ? 'Meta Ads' : 'Google Ads'}`,
+        descricao: `Lead ${fullName} capturado via Meta Ads`,
       });
 
     return new Response(
