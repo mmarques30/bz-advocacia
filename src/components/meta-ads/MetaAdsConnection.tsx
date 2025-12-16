@@ -92,15 +92,6 @@ export function MetaAdsConnection() {
           </>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
-              <p className="mb-2">A integração com Meta Ads permite:</p>
-              <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>Visualizar performance de campanhas em tempo real</li>
-                <li>Gerar relatórios automatizados</li>
-                <li>Acompanhar custo de aquisição por lead</li>
-                <li>Eliminar envio manual de relatórios para agência</li>
-              </ul>
-            </div>
             <Button className="w-full" disabled>
               Conectar com Meta Ads
               <span className="ml-2 text-xs opacity-70">(Em breve)</span>
