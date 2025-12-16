@@ -1,1 +1,4 @@
 project_id = "nvkxblrwblhvggndlfax"
+
+[functions.receive-sheet-lead]
+verify_jwt = false

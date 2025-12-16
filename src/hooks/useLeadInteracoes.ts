@@ -1,6 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { LeadInteracao } from "@/types/bot";
+
+export interface LeadInteracao {
+  id: string;
+  lead_id: string;
+  tipo: string;
+  canal: string;
+  mensagem: string;
+  eh_bot: boolean;
+  direcao: string;
+  created_at: string;
+}
 
 export function useLeadInteracoes(leadId: string) {
   return useQuery({
