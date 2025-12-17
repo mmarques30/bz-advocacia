@@ -7,7 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export function MetaAdsConnection() {
-  const { connection, isLoading, isConnected, disconnect, sync, isSyncing, isDisconnecting } = useMetaConnection();
+  const { connection, isLoading, isConnected, connect, isConnecting, disconnect, sync, isSyncing, isDisconnecting } = useMetaConnection();
 
   if (isLoading) {
     return (
@@ -92,12 +92,22 @@ export function MetaAdsConnection() {
           </>
         ) : (
           <div className="space-y-4">
-            <Button className="w-full" disabled>
-              Conectar com Meta Ads
-              <span className="ml-2 text-xs opacity-70">(Em breve)</span>
+            <Button 
+              className="w-full" 
+              onClick={() => connect()}
+              disabled={isConnecting}
+            >
+              {isConnecting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Conectando...
+                </>
+              ) : (
+                "Conectar com Meta Ads"
+              )}
             </Button>
             <p className="text-xs text-center text-muted-foreground">
-              Configure as credenciais da API Meta para habilitar a conexão
+              Clique para conectar sua conta Meta Ads
             </p>
           </div>
         )}
