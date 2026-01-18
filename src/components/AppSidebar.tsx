@@ -50,8 +50,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { 
-    title: "Dashboard", 
-    label: "Dashboard",
+    title: "PainelGeral", 
+    label: "Painel Geral",
     url: "/dashboard", 
     icon: LayoutDashboard 
   },
@@ -75,17 +75,10 @@ const menuItems: MenuItem[] = [
       { title: "Calendário", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
       { title: "Relatórios para Clientes", url: "/dashboard/leads/relatorios-cliente" },
-    ]
-  },
-  {
-    title: "Comunicação",
-    label: "Comunicação",
-    icon: MessageSquare,
-    submenu: [
-      { title: "Visão Geral", url: "/dashboard/comunicacao" },
+      { title: "Enviar Mensagem", url: "/dashboard/comunicacao" },
       { title: "Templates WhatsApp", url: "/dashboard/comunicacao/templates" },
-      { title: "Histórico", url: "/dashboard/comunicacao/historico" },
-      { title: "Configuração WhatsApp", url: "/dashboard/comunicacao/configuracao" },
+      { title: "Histórico Mensagens", url: "/dashboard/comunicacao/historico" },
+      { title: "Config. WhatsApp", url: "/dashboard/comunicacao/configuracao" },
     ]
   },
   {
@@ -107,13 +100,12 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     submenu: [
       { title: "Dashboard", url: "/dashboard/financeiro" },
-      { title: "Acordos", url: "/dashboard/financeiro/acordos" },
       { title: "Relatórios", url: "/dashboard/financeiro/relatorios" },
     ]
   },
   {
-    title: "Configurações",
-    label: "Configurações",
+    title: "Administrativo",
+    label: "Administrativo",
     icon: Settings,
     submenu: [
       { title: "Consultoria", url: "/dashboard/configuracoes/demandas" },
