@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -18,13 +19,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
-import { useCreateDespesa } from "@/hooks/useDespesas";
+import { useBulkCreateTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { CATEGORIA_DESPESA_LABELS } from "@/types/financeiro";
 
 interface Props {
   open: boolean;
@@ -32,21 +39,39 @@ interface Props {
 }
 
 interface ParsedRow {
-  data: string;
+  mes: string;
+  tipo: string;
   descricao: string;
-  categoria: string;
-  valor: string;
-  forma_pagamento?: string;
-  status?: string;
-  observacoes?: string;
+  data: string;
+  valor_eliziane: string;
+  valor_juliana: string;
+  valor_pj: string;
+  valor_total: string;
+  parcela_atual: string;
+  total_parcelas: string;
 }
 
 interface ProcessedRow extends ParsedRow {
   isValid: boolean;
   errors: string[];
+  mesNumero: number;
+  valorNumerico: number;
 }
 
-const VALID_CATEGORIAS = Object.keys(CATEGORIA_DESPESA_LABELS);
+const MESES_MAP: Record<string, number> = {
+  janeiro: 1, jan: 1,
+  fevereiro: 2, fev: 2,
+  março: 3, marco: 3, mar: 3,
+  abril: 4, abr: 4,
+  maio: 5, mai: 5,
+  junho: 6, jun: 6,
+  julho: 7, jul: 7,
+  agosto: 8, ago: 8,
+  setembro: 9, set: 9,
+  outubro: 10, out: 10,
+  novembro: 11, nov: 11,
+  dezembro: 12, dez: 12,
+};
 
 export function ImportDespesasDialog({ open, onClose }: Props) {
   const [step, setStep] = useState<"upload" | "preview" | "importing" | "done">("upload");
@@ -54,12 +79,30 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
   const [parsedData, setParsedData] = useState<ProcessedRow[]>([]);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState({ success: 0, errors: 0 });
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
-  const createDespesa = useCreateDespesa();
+  const bulkCreateTransacoes = useBulkCreateTransacoes();
   const queryClient = useQueryClient();
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+  const parseMes = (mesStr: string): number => {
+    if (!mesStr) return 0;
+    const mesLower = mesStr.toLowerCase().trim();
+    return MESES_MAP[mesLower] || 0;
+  };
 
   const parseDate = (dateStr: string): string | null => {
     if (!dateStr) return null;
+    
+    // Handle Excel serial date numbers
+    const numValue = parseFloat(dateStr);
+    if (!isNaN(numValue) && numValue > 40000 && numValue < 50000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + numValue * 24 * 60 * 60 * 1000);
+      return date.toISOString().split('T')[0];
+    }
     
     const formats = [
       /^(\d{2})\/(\d{2})\/(\d{4})$/,
@@ -79,33 +122,35 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
     return null;
   };
 
+  const parseValor = (valorStr: string): number => {
+    if (!valorStr) return 0;
+    const cleaned = valorStr.replace(/[^\d,.-]/g, "").replace(",", ".");
+    return parseFloat(cleaned) || 0;
+  };
+
   const validateRow = (row: ParsedRow): ProcessedRow => {
     const errors: string[] = [];
     
-    const parsedDate = parseDate(row.data);
-    if (!parsedDate) {
-      errors.push("Data inválida");
+    const mesNumero = parseMes(row.mes);
+    if (mesNumero === 0) {
+      errors.push("Mês inválido");
     }
 
     if (!row.descricao?.trim()) {
       errors.push("Descrição é obrigatória");
     }
 
-    const categoria = row.categoria?.toLowerCase().trim();
-    if (!categoria || !VALID_CATEGORIAS.includes(categoria)) {
-      errors.push(`Categoria inválida. Use: ${VALID_CATEGORIAS.join(", ")}`);
-    }
-
-    const valorStr = row.valor?.replace(/[^\d,.-]/g, "").replace(",", ".");
-    const valor = parseFloat(valorStr);
-    if (isNaN(valor) || valor <= 0) {
-      errors.push("Valor inválido");
+    const valorNumerico = parseValor(row.valor_total);
+    if (valorNumerico <= 0) {
+      errors.push("Valor total inválido");
     }
 
     return {
       ...row,
       isValid: errors.length === 0,
       errors,
+      mesNumero,
+      valorNumerico,
     };
   };
 
@@ -124,7 +169,7 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
         const result = Papa.parse<ParsedRow>(text, {
           header: true,
           skipEmptyLines: true,
-          transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, "_"),
+          transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, "_").replace(/\//g, "_"),
         });
         data = result.data;
       } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
@@ -137,16 +182,19 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
         data = jsonData.map(row => {
           const normalizedRow: Record<string, string> = {};
           Object.keys(row).forEach(key => {
-            normalizedRow[key.toLowerCase().trim().replace(/\s+/g, "_")] = row[key];
+            normalizedRow[key.toLowerCase().trim().replace(/\s+/g, "_").replace(/\//g, "_")] = row[key];
           });
           return {
-            data: normalizedRow.data || normalizedRow.date || "",
-            descricao: normalizedRow.descricao || normalizedRow.description || "",
-            categoria: normalizedRow.categoria || normalizedRow.category || "",
-            valor: normalizedRow.valor || normalizedRow.value || "",
-            forma_pagamento: normalizedRow.forma_pagamento || normalizedRow.pagamento || "",
-            status: normalizedRow.status || "pendente",
-            observacoes: normalizedRow.observacoes || "",
+            mes: normalizedRow.mês || normalizedRow.mes || "",
+            tipo: normalizedRow.tipo || "",
+            descricao: normalizedRow.descrição || normalizedRow.descricao || "",
+            data: normalizedRow.data || "",
+            valor_eliziane: normalizedRow.valor_eliziane || normalizedRow["eliziane"] || "0",
+            valor_juliana: normalizedRow.valor_juliana || normalizedRow["juliana"] || "0",
+            valor_pj: normalizedRow.valor_pj || normalizedRow["pj"] || "0",
+            valor_total: normalizedRow.valor_total || normalizedRow.total || normalizedRow.valor || "0",
+            parcela_atual: normalizedRow.parcela_atual || normalizedRow.parcela || "1",
+            total_parcelas: normalizedRow.total_parcelas || normalizedRow.parcelas || "1",
           };
         });
       } else {
@@ -154,7 +202,9 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
         return;
       }
 
-      const processedData = data.map(validateRow);
+      // Filter out empty rows
+      const filteredData = data.filter(row => row.descricao?.trim() || row.valor_total);
+      const processedData = filteredData.map(validateRow);
       setParsedData(processedData);
       setStep("preview");
     } catch (error) {
@@ -174,44 +224,45 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
     setStep("importing");
     setProgress(0);
 
-    let successCount = 0;
-    let errorCount = 0;
+    const ano = parseInt(selectedYear);
+    const mesesNomes = [
+      "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
 
-    for (let i = 0; i < validRows.length; i++) {
-      const row = validRows[i];
-      const valorStr = row.valor.replace(/[^\d,.-]/g, "").replace(",", ".");
-      const parsedDate = parseDate(row.data);
-      
-      try {
-        await createDespesa.mutateAsync({
-          data: parsedDate!,
-          descricao: row.descricao.trim(),
-          categoria: row.categoria.toLowerCase().trim() as any,
-          valor: parseFloat(valorStr),
-          forma_pagamento: (row.forma_pagamento || null) as any,
-          status: (row.status || "pendente") as any,
-          observacoes: row.observacoes || null,
-          processo_id: null,
-          anexo_url: null,
-        });
-        successCount++;
-      } catch (error) {
-        console.error("Import error:", error);
-        errorCount++;
+    try {
+      const transacoes = validRows.map(row => ({
+        ano,
+        mes: row.mesNumero,
+        mes_nome: mesesNomes[row.mesNumero],
+        tipo_codigo: "despesa" as const,
+        categoria_codigo: row.tipo?.toLowerCase() === "pj" ? "pj" : "pf",
+        subcategoria_codigo: null,
+        descricao: row.descricao.trim(),
+        valor: row.valorNumerico,
+        data_transacao: parseDate(row.data) || `${ano}-${String(row.mesNumero).padStart(2, '0')}-01`,
+      }));
+
+      // Import in batches of 50
+      const batchSize = 50;
+      let successCount = 0;
+
+      for (let i = 0; i < transacoes.length; i += batchSize) {
+        const batch = transacoes.slice(i, i + batchSize);
+        await bulkCreateTransacoes.mutateAsync(batch);
+        successCount += batch.length;
+        setProgress(Math.round((successCount / transacoes.length) * 100));
       }
 
-      setProgress(Math.round(((i + 1) / validRows.length) * 100));
+      setResult({ success: successCount, errors: 0 });
+      setStep("done");
+      toast.success(`${successCount} despesas importadas com sucesso`);
+    } catch (error) {
+      console.error("Import error:", error);
+      setResult({ success: 0, errors: validRows.length });
+      setStep("done");
+      toast.error("Erro ao importar despesas");
     }
-
-    // Invalidate all related queries
-    queryClient.invalidateQueries({ queryKey: ["despesas"] });
-    queryClient.invalidateQueries({ queryKey: ["kpis-despesas"] });
-    queryClient.invalidateQueries({ queryKey: ["transacoes-financeiras"] });
-    queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
-
-    setResult({ success: successCount, errors: errorCount });
-    setStep("done");
-    toast.success(`${successCount} despesas importadas com sucesso`);
   };
 
   const handleClose = () => {
@@ -235,12 +286,28 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
             Importar Despesas
           </DialogTitle>
           <DialogDescription>
-            Importe despesas de arquivos CSV ou XLSX
+            Importe despesas de arquivos CSV ou XLSX (planilha anual)
           </DialogDescription>
         </DialogHeader>
 
         {step === "upload" && (
           <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Ano da planilha</Label>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Selecione o ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(year => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
               <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
@@ -258,7 +325,7 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <strong>Formato esperado:</strong> O arquivo deve conter as colunas: 
-                data, descricao, categoria ({VALID_CATEGORIAS.join(", ")}), valor
+                Mês, Tipo (PF/PJ), Descrição, Data, Valor Total
               </AlertDescription>
             </Alert>
           </div>
@@ -279,9 +346,11 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                {file?.name}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Ano: {selectedYear}</span>
+                <span className="text-sm text-muted-foreground">|</span>
+                <span className="text-sm text-muted-foreground">{file?.name}</span>
+              </div>
             </div>
 
             <div className="border rounded-lg max-h-[400px] overflow-auto">
@@ -289,10 +358,10 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">Status</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead>Mês</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Valor</TableHead>
+                    <TableHead className="text-right">Valor Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -307,10 +376,12 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell>{row.data}</TableCell>
+                      <TableCell>{row.mes}</TableCell>
+                      <TableCell>{row.tipo}</TableCell>
                       <TableCell className="max-w-[200px] truncate">{row.descricao}</TableCell>
-                      <TableCell>{row.categoria}</TableCell>
-                      <TableCell>{row.valor}</TableCell>
+                      <TableCell className="text-right">
+                        {row.valorNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

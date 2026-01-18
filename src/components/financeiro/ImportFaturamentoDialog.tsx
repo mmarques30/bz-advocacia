@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
-import { useCreateAcordo } from "@/hooks/useFinanceiro";
+import { useBulkCreateTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Papa from "papaparse";
@@ -39,19 +39,39 @@ interface Props {
 }
 
 interface ParsedRow {
-  cliente: string;
-  tipo_servico: string;
+  mes: string;
+  tipo: string;
+  descricao: string;
+  data: string;
+  valor_eliziane: string;
+  valor_juliana: string;
+  valor_pj: string;
   valor_total: string;
-  forma_pagamento: string;
-  numero_parcelas: string;
-  data_primeiro_vencimento: string;
-  observacoes?: string;
+  parcela_atual: string;
+  total_parcelas: string;
 }
 
 interface ProcessedRow extends ParsedRow {
   isValid: boolean;
   errors: string[];
+  mesNumero: number;
+  valorNumerico: number;
 }
+
+const MESES_MAP: Record<string, number> = {
+  janeiro: 1, jan: 1,
+  fevereiro: 2, fev: 2,
+  março: 3, marco: 3, mar: 3,
+  abril: 4, abr: 4,
+  maio: 5, mai: 5,
+  junho: 6, jun: 6,
+  julho: 7, jul: 7,
+  agosto: 8, ago: 8,
+  setembro: 9, set: 9,
+  outubro: 10, out: 10,
+  novembro: 11, nov: 11,
+  dezembro: 12, dez: 12,
+};
 
 export function ImportFaturamentoDialog({ open, onClose }: Props) {
   const [step, setStep] = useState<"upload" | "preview" | "importing" | "done">("upload");
@@ -59,12 +79,30 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
   const [parsedData, setParsedData] = useState<ProcessedRow[]>([]);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState({ success: 0, errors: 0 });
-  const [defaultYear, setDefaultYear] = useState(new Date().getFullYear().toString());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
+  const bulkCreateTransacoes = useBulkCreateTransacoes();
   const queryClient = useQueryClient();
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+
+  const parseMes = (mesStr: string): number => {
+    if (!mesStr) return 0;
+    const mesLower = mesStr.toLowerCase().trim();
+    return MESES_MAP[mesLower] || 0;
+  };
 
   const parseDate = (dateStr: string): string | null => {
     if (!dateStr) return null;
+    
+    // Handle Excel serial date numbers
+    const numValue = parseFloat(dateStr);
+    if (!isNaN(numValue) && numValue > 40000 && numValue < 50000) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const date = new Date(excelEpoch.getTime() + numValue * 24 * 60 * 60 * 1000);
+      return date.toISOString().split('T')[0];
+    }
     
     const formats = [
       /^(\d{2})\/(\d{2})\/(\d{4})$/,
@@ -84,41 +122,35 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
     return null;
   };
 
+  const parseValor = (valorStr: string): number => {
+    if (!valorStr) return 0;
+    const cleaned = valorStr.replace(/[^\d,.-]/g, "").replace(",", ".");
+    return parseFloat(cleaned) || 0;
+  };
+
   const validateRow = (row: ParsedRow): ProcessedRow => {
     const errors: string[] = [];
     
-    if (!row.cliente?.trim()) {
-      errors.push("Cliente é obrigatório");
+    const mesNumero = parseMes(row.mes);
+    if (mesNumero === 0) {
+      errors.push("Mês inválido");
     }
 
-    if (!row.tipo_servico?.trim()) {
-      errors.push("Tipo de serviço é obrigatório");
+    if (!row.descricao?.trim()) {
+      errors.push("Descrição é obrigatória");
     }
 
-    const valorStr = row.valor_total?.replace(/[^\d,.-]/g, "").replace(",", ".");
-    const valor = parseFloat(valorStr);
-    if (isNaN(valor) || valor <= 0) {
+    const valorNumerico = parseValor(row.valor_total);
+    if (valorNumerico <= 0) {
       errors.push("Valor total inválido");
-    }
-
-    if (!row.forma_pagamento?.trim()) {
-      errors.push("Forma de pagamento é obrigatória");
-    }
-
-    const parcelas = parseInt(row.numero_parcelas);
-    if (isNaN(parcelas) || parcelas <= 0) {
-      errors.push("Número de parcelas inválido");
-    }
-
-    const parsedDate = parseDate(row.data_primeiro_vencimento);
-    if (!parsedDate) {
-      errors.push("Data de vencimento inválida");
     }
 
     return {
       ...row,
       isValid: errors.length === 0,
       errors,
+      mesNumero,
+      valorNumerico,
     };
   };
 
@@ -137,7 +169,7 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
         const result = Papa.parse<ParsedRow>(text, {
           header: true,
           skipEmptyLines: true,
-          transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, "_"),
+          transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, "_").replace(/\//g, "_"),
         });
         data = result.data;
       } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
@@ -150,16 +182,19 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
         data = jsonData.map(row => {
           const normalizedRow: Record<string, string> = {};
           Object.keys(row).forEach(key => {
-            normalizedRow[key.toLowerCase().trim().replace(/\s+/g, "_")] = row[key];
+            normalizedRow[key.toLowerCase().trim().replace(/\s+/g, "_").replace(/\//g, "_")] = row[key];
           });
           return {
-            cliente: normalizedRow.cliente || "",
-            tipo_servico: normalizedRow.tipo_servico || normalizedRow.tipo || "",
-            valor_total: normalizedRow.valor_total || normalizedRow.valor || "",
-            forma_pagamento: normalizedRow.forma_pagamento || normalizedRow.pagamento || "",
-            numero_parcelas: normalizedRow.numero_parcelas || normalizedRow.parcelas || "1",
-            data_primeiro_vencimento: normalizedRow.data_primeiro_vencimento || normalizedRow.vencimento || "",
-            observacoes: normalizedRow.observacoes || "",
+            mes: normalizedRow.mês || normalizedRow.mes || "",
+            tipo: normalizedRow.tipo || "",
+            descricao: normalizedRow["cliente_descrição"] || normalizedRow.cliente_descricao || normalizedRow.descricao || normalizedRow.cliente || "",
+            data: normalizedRow.data || "",
+            valor_eliziane: normalizedRow.valor_eliziane || normalizedRow["eliziane"] || "0",
+            valor_juliana: normalizedRow.valor_juliana || normalizedRow["juliana"] || "0",
+            valor_pj: normalizedRow.valor_pj || normalizedRow["pj"] || "0",
+            valor_total: normalizedRow.valor_total || normalizedRow.total || normalizedRow.valor || "0",
+            parcela_atual: normalizedRow.parcela_atual || normalizedRow.parcela || "1",
+            total_parcelas: normalizedRow.total_parcelas || normalizedRow.parcelas || "1",
           };
         });
       } else {
@@ -167,7 +202,9 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
         return;
       }
 
-      const processedData = data.map(validateRow);
+      // Filter out empty rows
+      const filteredData = data.filter(row => row.descricao?.trim() || row.valor_total);
+      const processedData = filteredData.map(validateRow);
       setParsedData(processedData);
       setStep("preview");
     } catch (error) {
@@ -187,36 +224,45 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
     setStep("importing");
     setProgress(0);
 
-    let successCount = 0;
-    let errorCount = 0;
+    const ano = parseInt(selectedYear);
+    const mesesNomes = [
+      "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+    ];
 
-    for (let i = 0; i < validRows.length; i++) {
-      const row = validRows[i];
-      const valorStr = row.valor_total.replace(/[^\d,.-]/g, "").replace(",", ".");
-      const parsedDate = parseDate(row.data_primeiro_vencimento);
-      
-      try {
-        // Note: This would need a proper import mutation that doesn't require cliente_id
-        // For now, we'll just simulate the import
-        await new Promise(resolve => setTimeout(resolve, 100));
-        successCount++;
-      } catch (error) {
-        console.error("Import error:", error);
-        errorCount++;
+    try {
+      const transacoes = validRows.map(row => ({
+        ano,
+        mes: row.mesNumero,
+        mes_nome: mesesNomes[row.mesNumero],
+        tipo_codigo: "receita" as const,
+        categoria_codigo: row.tipo?.toLowerCase() === "pj" ? "pj" : "pf",
+        subcategoria_codigo: null,
+        descricao: row.descricao.trim(),
+        valor: row.valorNumerico,
+        data_transacao: parseDate(row.data) || `${ano}-${String(row.mesNumero).padStart(2, '0')}-01`,
+      }));
+
+      // Import in batches of 50
+      const batchSize = 50;
+      let successCount = 0;
+
+      for (let i = 0; i < transacoes.length; i += batchSize) {
+        const batch = transacoes.slice(i, i + batchSize);
+        await bulkCreateTransacoes.mutateAsync(batch);
+        successCount += batch.length;
+        setProgress(Math.round((successCount / transacoes.length) * 100));
       }
 
-      setProgress(Math.round(((i + 1) / validRows.length) * 100));
+      setResult({ success: successCount, errors: 0 });
+      setStep("done");
+      toast.success(`${successCount} receitas importadas com sucesso`);
+    } catch (error) {
+      console.error("Import error:", error);
+      setResult({ success: 0, errors: validRows.length });
+      setStep("done");
+      toast.error("Erro ao importar receitas");
     }
-
-    // Invalidate queries
-    queryClient.invalidateQueries({ queryKey: ["acordos"] });
-    queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
-    queryClient.invalidateQueries({ queryKey: ["transacoes-financeiras"] });
-    queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
-
-    setResult({ success: successCount, errors: errorCount });
-    setStep("done");
-    toast.success(`${successCount} acordos importados com sucesso`);
   };
 
   const handleClose = () => {
@@ -240,12 +286,28 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
             Importar Faturamento
           </DialogTitle>
           <DialogDescription>
-            Importe acordos e receitas de arquivos CSV ou XLSX
+            Importe receitas de arquivos CSV ou XLSX (planilha anual)
           </DialogDescription>
         </DialogHeader>
 
         {step === "upload" && (
           <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Ano da planilha</Label>
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Selecione o ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map(year => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="border-2 border-dashed rounded-lg p-8 text-center">
               <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">
@@ -263,7 +325,7 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <strong>Formato esperado:</strong> O arquivo deve conter as colunas: 
-                cliente, tipo_servico, valor_total, forma_pagamento, numero_parcelas, data_primeiro_vencimento
+                Mês, Tipo (PF/PJ), Cliente/Descrição, Data, Valor Total
               </AlertDescription>
             </Alert>
           </div>
@@ -284,9 +346,11 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
                   </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
-                {file?.name}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Ano: {selectedYear}</span>
+                <span className="text-sm text-muted-foreground">|</span>
+                <span className="text-sm text-muted-foreground">{file?.name}</span>
+              </div>
             </div>
 
             <div className="border rounded-lg max-h-[400px] overflow-auto">
@@ -294,11 +358,10 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">Status</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Tipo Serviço</TableHead>
-                    <TableHead>Valor Total</TableHead>
-                    <TableHead>Parcelas</TableHead>
-                    <TableHead>Vencimento</TableHead>
+                    <TableHead>Mês</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="text-right">Valor Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -313,11 +376,12 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
                           </span>
                         )}
                       </TableCell>
-                      <TableCell className="max-w-[150px] truncate">{row.cliente}</TableCell>
-                      <TableCell>{row.tipo_servico}</TableCell>
-                      <TableCell>{row.valor_total}</TableCell>
-                      <TableCell>{row.numero_parcelas}</TableCell>
-                      <TableCell>{row.data_primeiro_vencimento}</TableCell>
+                      <TableCell>{row.mes}</TableCell>
+                      <TableCell>{row.tipo}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{row.descricao}</TableCell>
+                      <TableCell className="text-right">
+                        {row.valorNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -329,7 +393,7 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
                 Cancelar
               </Button>
               <Button onClick={handleImport} disabled={validCount === 0}>
-                Importar {validCount} Acordos
+                Importar {validCount} Receitas
               </Button>
             </div>
           </div>
@@ -338,7 +402,7 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
         {step === "importing" && (
           <div className="space-y-6 py-8">
             <div className="text-center">
-              <p className="text-lg font-medium mb-4">Importando acordos...</p>
+              <p className="text-lg font-medium mb-4">Importando receitas...</p>
               <Progress value={progress} className="w-full" />
               <p className="text-sm text-muted-foreground mt-2">{progress}%</p>
             </div>
@@ -351,7 +415,7 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
             <div>
               <p className="text-lg font-medium">Importação Concluída!</p>
               <p className="text-muted-foreground mt-2">
-                {result.success} acordos importados com sucesso
+                {result.success} receitas importadas com sucesso
                 {result.errors > 0 && `, ${result.errors} com erros`}
               </p>
             </div>

@@ -24,6 +24,8 @@ import { DespesasCharts } from "@/components/financeiro/DespesasCharts";
 import { DespesasWidgets } from "@/components/financeiro/DespesasWidgets";
 import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
 import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
+import { HistoricoFilters, getDefaultHistoricoFilters, type HistoricoFiltersState } from "@/components/financeiro/historico/HistoricoFilters";
+import { HistoricoTable } from "@/components/financeiro/historico/HistoricoTable";
 import type { AcordosFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
@@ -46,6 +48,9 @@ export default function Financeiro() {
   const [despesasGlobalFilters, setDespesasGlobalFilters] = useState<DespesasGlobalFiltersState>(getDefaultDespesasGlobalFilters());
   const [importDespesasOpen, setImportDespesasOpen] = useState(false);
 
+  // Estados para Histórico
+  const [historicoFilters, setHistoricoFilters] = useState<HistoricoFiltersState>(getDefaultHistoricoFilters());
+
   // Converter filtros globais para filtros de tabela
   const acordosFiltersFromGlobal: AcordosFilters = {
     search: faturamentoFilters.search,
@@ -67,6 +72,7 @@ export default function Financeiro() {
           <TabsTrigger value="geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
         {/* Aba Visão Geral */}
@@ -141,6 +147,12 @@ export default function Financeiro() {
             }}
             onSelectDespesa={setSelectedDespesaId}
           />
+        </TabsContent>
+
+        {/* Aba Histórico - Todas as transações importadas */}
+        <TabsContent value="historico" className="space-y-6">
+          <HistoricoFilters filters={historicoFilters} onChange={setHistoricoFilters} />
+          <HistoricoTable filters={historicoFilters} />
         </TabsContent>
       </Tabs>
 
