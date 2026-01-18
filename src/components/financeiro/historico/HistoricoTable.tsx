@@ -47,8 +47,8 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: transacoes, isLoading } = useTransacoes({
-    ano: filters.ano,
+  const { data: transacoes, isLoading, error } = useTransacoes({
+    ano: filters.ano ?? undefined, // Passa undefined se for null (mostra tudo)
     dataInicio: filters.dataInicio || undefined,
     dataFim: filters.dataFim || undefined,
     tipo_codigo: filters.tipo || undefined,
@@ -77,6 +77,14 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-10 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-destructive/10 text-destructive rounded-lg">
+        Erro ao carregar transações: {(error as Error).message}
       </div>
     );
   }

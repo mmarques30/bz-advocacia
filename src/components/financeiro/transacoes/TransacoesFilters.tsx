@@ -30,16 +30,15 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   const { data: subcategorias } = useSubcategorias(filters.categoria_codigo);
 
   const currentYear = new Date().getFullYear();
+  // Anos de 2020 até o ano atual
   const years = Array.from({ length: currentYear - 2020 + 1 }, (_, i) => currentYear - i);
 
   const handleClear = () => {
-    onFiltersChange({
-      ano: currentYear,
-    });
+    onFiltersChange({});
   };
 
   const hasFilters =
-    filters.ano !== currentYear ||
+    filters.ano !== undefined ||
     filters.dataInicio ||
     filters.dataFim ||
     filters.tipo_codigo ||
@@ -49,20 +48,21 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   return (
     <div className="flex flex-wrap gap-3 items-end">
       <Select
-        value={filters.ano?.toString() || currentYear.toString()}
+        value={filters.ano?.toString() || "all"}
         onValueChange={(value) =>
           onFiltersChange({
             ...filters,
-            ano: parseInt(value),
+            ano: value === "all" ? undefined : parseInt(value),
             dataInicio: undefined,
             dataFim: undefined,
           })
         }
       >
-        <SelectTrigger className="w-[100px]">
-          <SelectValue placeholder="Ano" />
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="Todos Anos" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">Todos Anos</SelectItem>
           {years.map((year) => (
             <SelectItem key={year} value={year.toString()}>
               {year}

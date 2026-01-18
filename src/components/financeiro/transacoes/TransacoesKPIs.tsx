@@ -16,8 +16,21 @@ interface TransacoesKPIsProps {
 }
 
 export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
-  const effectiveFilters = filters || { ano: new Date().getFullYear() };
-  const { data: kpis, isLoading } = useKPIsTransacoes(effectiveFilters);
+  // Passa os filtros diretamente, sem fallback para ano atual
+  const { data: kpis, isLoading, error } = useKPIsTransacoes(filters || {});
+
+  // Gera título dinâmico baseado nos filtros
+  const getFilterLabel = () => {
+    if (filters?.dataInicio && filters?.dataFim) {
+      return `${filters.dataInicio.toLocaleDateString('pt-BR')} - ${filters.dataFim.toLocaleDateString('pt-BR')}`;
+    }
+    if (filters?.ano) {
+      return String(filters.ano);
+    }
+    return "Tudo";
+  };
+
+  const filterLabel = getFilterLabel();
 
   if (isLoading) {
     return (
@@ -36,16 +49,24 @@ export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-4 bg-destructive/10 text-destructive rounded-lg">
+        Erro ao carregar KPIs: {(error as Error).message}
+      </div>
+    );
+  }
+
   const kpiData = [
     {
-      title: "Receita Total 2025",
+      title: `Receita Total (${filterLabel})`,
       value: formatCurrency(kpis?.receitas || 0),
       icon: TrendingUp,
       color: "text-emerald-600",
       bgColor: "bg-emerald-100",
     },
     {
-      title: "Despesas 2025",
+      title: `Despesas (${filterLabel})`,
       value: formatCurrency(kpis?.despesas || 0),
       icon: TrendingDown,
       color: "text-red-600",
