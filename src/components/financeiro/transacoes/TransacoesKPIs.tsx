@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useKPIsTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { TrendingUp, TrendingDown, DollarSign, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { TransacoesFilters } from "@/types/transacoes";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -10,8 +11,13 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function TransacoesKPIs() {
-  const { data: kpis, isLoading } = useKPIsTransacoes(2025);
+interface TransacoesKPIsProps {
+  filters?: TransacoesFilters;
+}
+
+export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
+  const effectiveFilters = filters || { ano: new Date().getFullYear() };
+  const { data: kpis, isLoading } = useKPIsTransacoes(effectiveFilters);
 
   if (isLoading) {
     return (

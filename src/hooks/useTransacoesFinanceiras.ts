@@ -93,14 +93,32 @@ export function useTransacoes(filters: TransacoesFilters = {}) {
   });
 }
 
-export function useKPIsTransacoes(ano: number = 2025) {
+export function useKPIsTransacoes(filters: TransacoesFilters = {}) {
   return useQuery({
-    queryKey: ["kpis-transacoes", ano],
+    queryKey: ["kpis-transacoes", filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("transacoes_financeiras")
-        .select("tipo_codigo, categoria_codigo, valor")
-        .eq("ano", ano);
+        .select("tipo_codigo, categoria_codigo, valor");
+
+      // Apply filters
+      if (filters.ano) {
+        query = query.eq("ano", filters.ano);
+      }
+      if (filters.mes) {
+        query = query.eq("mes", filters.mes);
+      }
+      if (filters.tipo_codigo) {
+        query = query.eq("tipo_codigo", filters.tipo_codigo);
+      }
+      if (filters.categoria_codigo) {
+        query = query.eq("categoria_codigo", filters.categoria_codigo);
+      }
+      if (filters.subcategoria_codigo) {
+        query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -134,14 +152,29 @@ export function useKPIsTransacoes(ano: number = 2025) {
   });
 }
 
-export function useResumoMensal(ano: number = 2025) {
+export function useResumoMensal(filters: TransacoesFilters = {}) {
+  const ano = filters.ano || new Date().getFullYear();
+  
   return useQuery({
-    queryKey: ["resumo-mensal-transacoes", ano],
+    queryKey: ["resumo-mensal-transacoes", filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("transacoes_financeiras")
         .select("mes, mes_nome, tipo_codigo, valor")
         .eq("ano", ano);
+
+      // Apply additional filters
+      if (filters.tipo_codigo) {
+        query = query.eq("tipo_codigo", filters.tipo_codigo);
+      }
+      if (filters.categoria_codigo) {
+        query = query.eq("categoria_codigo", filters.categoria_codigo);
+      }
+      if (filters.subcategoria_codigo) {
+        query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
