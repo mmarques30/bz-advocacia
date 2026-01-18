@@ -20,7 +20,6 @@ import VendasAnalises from "./pages/vendas/Analises";
 import Configuracoes from "./pages/configuracoes/index";
 import Perfil from "./pages/configuracoes/Perfil";
 import Usuarios from "./pages/configuracoes/Usuarios";
-import Templates from "./pages/configuracoes/Templates";
 import GuiaDeUso from "./pages/configuracoes/GuiaDeUso";
 import Automacoes from "./pages/configuracoes/Automacoes";
 
@@ -172,14 +171,6 @@ const App = () => (
         element={
           <ProtectedRoute>
             <Usuarios />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/configuracoes/templates" 
-        element={
-          <ProtectedRoute>
-            <Templates />
           </ProtectedRoute>
         } 
       />

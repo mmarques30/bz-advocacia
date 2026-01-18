@@ -106,8 +106,7 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Meu Perfil", url: "/dashboard/configuracoes/perfil" },
       { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
-      { title: "Templates", url: "/dashboard/configuracoes/templates" },
-      { title: "Templates WhatsApp", url: "/dashboard/configuracoes/whatsapp-templates" },
+      { title: "Modelos Chat", url: "/dashboard/configuracoes/whatsapp-templates" },
       { title: "Automações", url: "/dashboard/configuracoes/automacoes" },
       { title: "Guia de Uso", url: "/dashboard/configuracoes/guia" },
     ]
