@@ -10,7 +10,53 @@ export interface ConsultasConfig {
   updated_at: string;
 }
 
-export type TipoConsulta = 'veiculo' | 'pessoa' | 'imovel' | 'certidao';
+export type TipoConsulta = 'veiculo' | 'pessoa' | 'imovel' | 'certidao' | 'processo';
+
+// Consulta de Processo Judicial (Datajud CNJ)
+export interface ConsultaProcessoRequest {
+  numeroProcesso: string;
+  tribunal: string;
+  processo_id?: string;
+  motivo: string;
+  justificativa: string;
+}
+
+export interface ConsultaProcessoResponse {
+  processo: {
+    numeroProcesso: string;
+    classe: string;
+    classeCompleta: any;
+    tribunal: string;
+    tribunalSigla: string;
+    dataAjuizamento: string | null;
+    dataHoraUltimaAtualizacao: string | null;
+    grau: string;
+    nivelSigilo: number;
+    formato: string;
+    sistema: string | null;
+    orgaoJulgador: {
+      nome: string;
+      codigo: string | null;
+      codigoMunicipioIBGE: string | null;
+    } | null;
+    assuntos: Array<{
+      codigo: string | null;
+      nome: string;
+    }>;
+    movimentos: Array<{
+      codigo: string | null;
+      nome: string;
+      dataHora: string | null;
+      complementosTabelados: any[];
+    }>;
+  };
+  metadados: {
+    consultadoEm: string;
+    idConsulta: string;
+    tribunal: string;
+    tribunalNome: string;
+  };
+}
 export type StatusConsulta = 'sucesso' | 'erro' | 'sem_dados' | 'api_nao_configurada';
 
 export interface ConsultaRealizada {
