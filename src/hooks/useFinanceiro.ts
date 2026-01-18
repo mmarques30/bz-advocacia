@@ -14,46 +14,45 @@ import type {
   AcordosFilters
 } from "@/types/financeiro";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
-import { format, subMonths, differenceInDays, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 
 // Helper para calcular datas baseado nos filtros
 function getDateRangeFromFilters(filters?: FaturamentoFiltersState) {
   if (!filters) {
     const hoje = new Date();
     return {
-      inicio: startOfMonth(hoje),
-      fim: endOfMonth(hoje)
+      inicio: startOfYear(hoje),
+      fim: endOfYear(hoje)
     };
   }
 
-  const ano = filters.ano || new Date().getFullYear();
-  
-  // Se tiver período específico definido
-  if (filters.dataInicio && filters.dataFim) {
+  // Se tiver período específico definido via dateRange
+  if (filters.dateRange?.from && filters.dateRange?.to) {
     return { 
-      inicio: filters.dataInicio, 
-      fim: filters.dataFim 
+      inicio: filters.dateRange.from, 
+      fim: filters.dateRange.to 
     };
   }
   
-  if (filters.dataInicio) {
+  if (filters.dateRange?.from) {
     return { 
-      inicio: filters.dataInicio, 
-      fim: new Date(ano, 11, 31) 
+      inicio: filters.dateRange.from, 
+      fim: endOfYear(new Date()) 
     };
   }
   
-  if (filters.dataFim) {
+  if (filters.dateRange?.to) {
     return { 
-      inicio: new Date(ano, 0, 1), 
-      fim: filters.dataFim 
+      inicio: startOfYear(new Date()), 
+      fim: filters.dateRange.to 
     };
   }
 
-  // Se não tiver período específico, pegar o ano inteiro
+  // Se não tiver período específico, pegar o ano inteiro atual
+  const hoje = new Date();
   return {
-    inicio: new Date(ano, 0, 1),
-    fim: new Date(ano, 11, 31)
+    inicio: startOfYear(hoje),
+    fim: endOfYear(hoje)
   };
 }
 
@@ -522,12 +521,14 @@ export function useParcelasVencendo(dias: number = 7) {
       const dataLimite = new Date(hoje);
       dataLimite.setDate(dataLimite.getDate() + dias);
 
-      const { data: parcelas } = await supabase
+      const { data, error } = await supabase
         .from("parcelas_financeiras")
         .select(`
           *,
           acordo:acordos_financeiros!acordo_id(
-            cliente:contact_submissions!cliente_id(nome_completo)
+            id,
+            tipo_servico,
+            cliente:contact_submissions!cliente_id(id, nome_completo, telefone)
           )
         `)
         .eq("status", "pendente")
@@ -535,15 +536,21 @@ export function useParcelasVencendo(dias: number = 7) {
         .lte("data_vencimento", format(dataLimite, "yyyy-MM-dd"))
         .order("data_vencimento", { ascending: true });
 
-      return parcelas?.map((p: any) => ({
-        id: p.id,
-        acordo_id: p.acordo_id,
-        cliente_nome: p.acordo?.cliente?.[0]?.nome_completo || "Cliente",
-        numero_parcela: p.numero_parcela,
-        valor: p.valor,
-        data_vencimento: p.data_vencimento,
-        dias_restantes: differenceInDays(new Date(p.data_vencimento), hoje),
-      })) || [];
+      if (error) throw error;
+
+      return (data || []).map(p => {
+        const vencimento = new Date(p.data_vencimento);
+        const diasRestantes = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          id: p.id,
+          numero_parcela: p.numero_parcela,
+          valor: p.valor,
+          data_vencimento: p.data_vencimento,
+          dias_restantes: diasRestantes,
+          cliente_nome: (p.acordo as any)?.cliente?.[0]?.nome_completo || "Cliente não encontrado",
+          acordo_id: p.acordo_id,
+        };
+      });
     },
   });
 }
@@ -554,44 +561,51 @@ export function useClientesInadimplentes() {
     queryFn: async (): Promise<ClienteInadimplente[]> => {
       const hoje = new Date();
 
-      const { data: parcelas } = await supabase
+      const { data, error } = await supabase
         .from("parcelas_financeiras")
         .select(`
           *,
           acordo:acordos_financeiros!acordo_id(
-            cliente_id,
-            cliente:contact_submissions!cliente_id(id, nome_completo)
+            id,
+            cliente:contact_submissions!cliente_id(id, nome_completo, email, telefone)
           )
         `)
         .neq("status", "pago")
         .lt("data_vencimento", format(hoje, "yyyy-MM-dd"));
 
+      if (error) throw error;
+
+      // Agrupar por cliente
       const clientesMap: Record<string, ClienteInadimplente> = {};
 
-      parcelas?.forEach((p: any) => {
-        const clienteId = p.acordo?.cliente_id;
-        const clienteNome = p.acordo?.cliente?.[0]?.nome_completo || "Cliente";
-        const diasAtraso = differenceInDays(hoje, new Date(p.data_vencimento));
+      (data || []).forEach(p => {
+        const cliente = (p.acordo as any)?.cliente?.[0];
+        if (!cliente) return;
 
-        if (!clientesMap[clienteId]) {
-          clientesMap[clienteId] = {
-            cliente_id: clienteId,
-            cliente_nome: clienteNome,
+        if (!clientesMap[cliente.id]) {
+          clientesMap[cliente.id] = {
+            cliente_id: cliente.id,
+            cliente_nome: cliente.nome_completo,
             total_atrasado: 0,
             parcelas_atrasadas: 0,
             maior_atraso_dias: 0,
           };
         }
 
-        clientesMap[clienteId].total_atrasado += p.valor;
-        clientesMap[clienteId].parcelas_atrasadas += 1;
-        clientesMap[clienteId].maior_atraso_dias = Math.max(
-          clientesMap[clienteId].maior_atraso_dias,
-          diasAtraso
+        clientesMap[cliente.id].total_atrasado += p.valor;
+        clientesMap[cliente.id].parcelas_atrasadas += 1;
+
+        const diasAtraso = Math.floor(
+          (hoje.getTime() - new Date(p.data_vencimento).getTime()) / (1000 * 60 * 60 * 24)
         );
+        if (diasAtraso > clientesMap[cliente.id].maior_atraso_dias) {
+          clientesMap[cliente.id].maior_atraso_dias = diasAtraso;
+        }
       });
 
-      return Object.values(clientesMap);
+      return Object.values(clientesMap).sort(
+        (a, b) => b.total_atrasado - a.total_atrasado
+      );
     },
   });
 }
@@ -600,41 +614,45 @@ export function useMaioresPagadores(limite: number = 5) {
   return useQuery({
     queryKey: ["maiores-pagadores", limite],
     queryFn: async (): Promise<MaiorPagador[]> => {
-      const hoje = new Date();
-      const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-
-      const { data: parcelas } = await supabase
+      const { data, error } = await supabase
         .from("parcelas_financeiras")
         .select(`
           *,
           acordo:acordos_financeiros!acordo_id(
-            cliente_id,
+            id,
             cliente:contact_submissions!cliente_id(id, nome_completo)
           )
         `)
-        .eq("status", "pago")
-        .gte("data_pagamento", format(primeiroDiaMes, "yyyy-MM-dd"));
+        .eq("status", "pago");
 
-      const pagadoresMap: Record<string, MaiorPagador> = {};
+      if (error) throw error;
 
-      parcelas?.forEach((p: any) => {
-        const clienteId = p.acordo?.cliente_id;
-        const clienteNome = p.acordo?.cliente?.[0]?.nome_completo || "Cliente";
+      // Agrupar por cliente
+      const clientesMap: Record<string, { nome: string; total: number; quantidade: number }> = {};
 
-        if (!pagadoresMap[clienteId]) {
-          pagadoresMap[clienteId] = {
-            cliente_id: clienteId,
-            cliente_nome: clienteNome,
-            total_pago: 0,
-            quantidade_pagamentos: 0,
+      (data || []).forEach(p => {
+        const cliente = (p.acordo as any)?.cliente?.[0];
+        if (!cliente) return;
+
+        if (!clientesMap[cliente.id]) {
+          clientesMap[cliente.id] = {
+            nome: cliente.nome_completo,
+            total: 0,
+            quantidade: 0,
           };
         }
 
-        pagadoresMap[clienteId].total_pago += p.valor_pago || 0;
-        pagadoresMap[clienteId].quantidade_pagamentos += 1;
+        clientesMap[cliente.id].total += p.valor_pago || 0;
+        clientesMap[cliente.id].quantidade += 1;
       });
 
-      return Object.values(pagadoresMap)
+      return Object.entries(clientesMap)
+        .map(([id, dados]) => ({
+          cliente_id: id,
+          cliente_nome: dados.nome,
+          total_pago: dados.total,
+          quantidade_pagamentos: dados.quantidade,
+        }))
         .sort((a, b) => b.total_pago - a.total_pago)
         .slice(0, limite);
     },

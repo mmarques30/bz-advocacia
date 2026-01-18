@@ -18,12 +18,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { DateRange } from "react-day-picker";
 
 export interface DespesasGlobalFiltersState {
   tipoDespesa: string;
-  ano: number;
-  dataInicio: Date | null;
-  dataFim: Date | null;
+  dateRange: DateRange | undefined;
   categoria: string;
   status: string;
 }
@@ -40,9 +39,6 @@ const tipoDespesaOptions = [
 ];
 
 export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFiltersProps) {
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
-
   const handleChange = (key: keyof DespesasGlobalFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
   };
@@ -50,9 +46,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
   const clearFilters = () => {
     onChange({
       tipoDespesa: "todos",
-      ano: currentYear,
-      dataInicio: null,
-      dataFim: null,
+      dateRange: undefined,
       categoria: "todos",
       status: "todos",
     });
@@ -60,9 +54,8 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 
   const hasActiveFilters = 
     filters.tipoDespesa !== "todos" ||
-    filters.dataInicio !== null || 
-    filters.dataFim !== null ||
-    filters.ano !== currentYear ||
+    filters.dateRange?.from !== undefined || 
+    filters.dateRange?.to !== undefined ||
     filters.categoria !== "todos" || 
     filters.status !== "todos";
 
@@ -71,14 +64,12 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
     if (filters.tipoDespesa !== "todos") {
       labels.push(tipoDespesaOptions.find(t => t.value === filters.tipoDespesa)?.label || "");
     }
-    if (filters.dataInicio && filters.dataFim) {
-      labels.push(`${format(filters.dataInicio, "dd/MM")} - ${format(filters.dataFim, "dd/MM")}/${filters.ano}`);
-    } else if (filters.dataInicio) {
-      labels.push(`A partir de ${format(filters.dataInicio, "dd/MM/yyyy")}`);
-    } else if (filters.dataFim) {
-      labels.push(`Até ${format(filters.dataFim, "dd/MM/yyyy")}`);
-    } else if (filters.ano !== currentYear) {
-      labels.push(`Ano: ${filters.ano}`);
+    if (filters.dateRange?.from && filters.dateRange?.to) {
+      labels.push(`${format(filters.dateRange.from, "dd/MM/yyyy")} - ${format(filters.dateRange.to, "dd/MM/yyyy")}`);
+    } else if (filters.dateRange?.from) {
+      labels.push(`A partir de ${format(filters.dateRange.from, "dd/MM/yyyy")}`);
+    } else if (filters.dateRange?.to) {
+      labels.push(`Até ${format(filters.dateRange.to, "dd/MM/yyyy")}`);
     }
     if (filters.categoria !== "todos") {
       labels.push(CATEGORIA_DESPESA_LABELS[filters.categoria as keyof typeof CATEGORIA_DESPESA_LABELS] || filters.categoria);
@@ -108,73 +99,35 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           </SelectContent>
         </Select>
 
-        <Select
-          value={filters.ano.toString()}
-          onValueChange={(value) => handleChange("ano", parseInt(value))}
-        >
-          <SelectTrigger className="w-[100px]">
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            {years.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !filters.dataInicio && "text-muted-foreground"
+                "w-[280px] justify-start text-left font-normal",
+                !filters.dateRange?.from && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dataInicio ? (
-                format(filters.dataInicio, "dd/MM/yyyy")
+              {filters.dateRange?.from ? (
+                filters.dateRange.to ? (
+                  <>
+                    {format(filters.dateRange.from, "dd/MM/yyyy")} - {format(filters.dateRange.to, "dd/MM/yyyy")}
+                  </>
+                ) : (
+                  format(filters.dateRange.from, "dd/MM/yyyy")
+                )
               ) : (
-                <span>Data Início</span>
+                <span>Selecionar período</span>
               )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
-              mode="single"
-              selected={filters.dataInicio || undefined}
-              onSelect={(date) => handleChange("dataInicio", date || null)}
-              locale={ptBR}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !filters.dataFim && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dataFim ? (
-                format(filters.dataFim, "dd/MM/yyyy")
-              ) : (
-                <span>Data Fim</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={filters.dataFim || undefined}
-              onSelect={(date) => handleChange("dataFim", date || null)}
+              mode="range"
+              selected={filters.dateRange}
+              onSelect={(range) => handleChange("dateRange", range)}
+              numberOfMonths={2}
               locale={ptBR}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
@@ -240,9 +193,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 
 export const getDefaultDespesasGlobalFilters = (): DespesasGlobalFiltersState => ({
   tipoDespesa: "todos",
-  ano: new Date().getFullYear(),
-  dataInicio: null,
-  dataFim: null,
+  dateRange: undefined,
   categoria: "todos",
   status: "todos",
 });

@@ -18,12 +18,11 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useClientesReceitas } from "@/hooks/useClientesFinanceiros";
+import { DateRange } from "react-day-picker";
 
 export interface FaturamentoFiltersState {
   cliente: string;
-  ano: number;
-  dataInicio: Date | null;
-  dataFim: Date | null;
+  dateRange: DateRange | undefined;
   status: string;
   tipoServico: string;
 }
@@ -51,9 +50,6 @@ const tipoServicoOptions = [
 ];
 
 export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProps) {
-  const currentYear = new Date().getFullYear();
-  // Expandir para 10 anos para incluir dados históricos importados
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const { data: clientes = [] } = useClientesReceitas();
 
   const handleChange = (key: keyof FaturamentoFiltersState, value: any) => {
@@ -63,9 +59,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
   const clearFilters = () => {
     onChange({
       cliente: "todos",
-      ano: currentYear,
-      dataInicio: null,
-      dataFim: null,
+      dateRange: undefined,
       status: "todos",
       tipoServico: "todos",
     });
@@ -73,9 +67,8 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
 
   const hasActiveFilters = 
     filters.cliente !== "todos" ||
-    filters.dataInicio !== null || 
-    filters.dataFim !== null ||
-    filters.ano !== currentYear ||
+    filters.dateRange?.from !== undefined || 
+    filters.dateRange?.to !== undefined ||
     filters.status !== "todos" || 
     filters.tipoServico !== "todos";
 
@@ -84,14 +77,12 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
     if (filters.cliente !== "todos") {
       labels.push(`Cliente: ${filters.cliente}`);
     }
-    if (filters.dataInicio && filters.dataFim) {
-      labels.push(`${format(filters.dataInicio, "dd/MM")} - ${format(filters.dataFim, "dd/MM")}/${filters.ano}`);
-    } else if (filters.dataInicio) {
-      labels.push(`A partir de ${format(filters.dataInicio, "dd/MM/yyyy")}`);
-    } else if (filters.dataFim) {
-      labels.push(`Até ${format(filters.dataFim, "dd/MM/yyyy")}`);
-    } else if (filters.ano !== currentYear) {
-      labels.push(`Ano: ${filters.ano}`);
+    if (filters.dateRange?.from && filters.dateRange?.to) {
+      labels.push(`${format(filters.dateRange.from, "dd/MM/yyyy")} - ${format(filters.dateRange.to, "dd/MM/yyyy")}`);
+    } else if (filters.dateRange?.from) {
+      labels.push(`A partir de ${format(filters.dateRange.from, "dd/MM/yyyy")}`);
+    } else if (filters.dateRange?.to) {
+      labels.push(`Até ${format(filters.dateRange.to, "dd/MM/yyyy")}`);
     }
     if (filters.status !== "todos") {
       labels.push(statusOptions.find(s => s.value === filters.status)?.label || "");
@@ -122,73 +113,35 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
           </SelectContent>
         </Select>
 
-        <Select
-          value={filters.ano.toString()}
-          onValueChange={(value) => handleChange("ano", parseInt(value))}
-        >
-          <SelectTrigger className="w-[100px]">
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            {years.map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !filters.dataInicio && "text-muted-foreground"
+                "w-[280px] justify-start text-left font-normal",
+                !filters.dateRange?.from && "text-muted-foreground"
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dataInicio ? (
-                format(filters.dataInicio, "dd/MM/yyyy")
+              {filters.dateRange?.from ? (
+                filters.dateRange.to ? (
+                  <>
+                    {format(filters.dateRange.from, "dd/MM/yyyy")} - {format(filters.dateRange.to, "dd/MM/yyyy")}
+                  </>
+                ) : (
+                  format(filters.dateRange.from, "dd/MM/yyyy")
+                )
               ) : (
-                <span>Data Início</span>
+                <span>Selecionar período</span>
               )}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
-              mode="single"
-              selected={filters.dataInicio || undefined}
-              onSelect={(date) => handleChange("dataInicio", date || null)}
-              locale={ptBR}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[140px] justify-start text-left font-normal",
-                !filters.dataFim && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dataFim ? (
-                format(filters.dataFim, "dd/MM/yyyy")
-              ) : (
-                <span>Data Fim</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={filters.dataFim || undefined}
-              onSelect={(date) => handleChange("dataFim", date || null)}
+              mode="range"
+              selected={filters.dateRange}
+              onSelect={(range) => handleChange("dateRange", range)}
+              numberOfMonths={2}
               locale={ptBR}
               initialFocus
               className={cn("p-3 pointer-events-auto")}
@@ -252,9 +205,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
 
 export const getDefaultFaturamentoFilters = (): FaturamentoFiltersState => ({
   cliente: "todos",
-  ano: new Date().getFullYear(),
-  dataInicio: null,
-  dataFim: null,
+  dateRange: undefined,
   status: "todos",
   tipoServico: "todos",
 });

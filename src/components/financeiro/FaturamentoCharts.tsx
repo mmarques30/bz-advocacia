@@ -20,15 +20,29 @@ const COLORS = [
   'hsl(var(--secondary))',
 ];
 
+// Mapeamento de códigos para nomes de responsáveis
+const mapResponsavel = (codigo: string): string => {
+  const mapeamento: Record<string, string> = {
+    'pf': 'Liziane/Juliana',
+    'PF': 'Liziane/Juliana',
+    'pj': 'B&Z',
+    'PJ': 'B&Z',
+  };
+  return mapeamento[codigo] || codigo;
+};
+
 export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
   const { data: fluxoCaixa } = useFluxoCaixa(filters);
   const { data: distribuicao } = useDistribuicaoTipo(filters);
 
-  const getMesLabel = () => {
-    if (filters?.dataInicio && filters?.dataFim) {
-      return `${filters.dataInicio.toLocaleDateString('pt-BR')} - ${filters.dataFim.toLocaleDateString('pt-BR')}`;
+  const getPeriodoLabel = () => {
+    if (filters?.dateRange?.from && filters?.dateRange?.to) {
+      return `${format(filters.dateRange.from, "dd/MM/yyyy")} - ${format(filters.dateRange.to, "dd/MM/yyyy")}`;
     }
-    return `Ano ${filters?.ano || new Date().getFullYear()}`;
+    if (filters?.dateRange?.from) {
+      return `A partir de ${format(filters.dateRange.from, "dd/MM/yyyy")}`;
+    }
+    return "Período atual";
   };
 
   const formatCurrency = (value: number) => {
@@ -111,7 +125,7 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Fluxo de Caixa ({getMesLabel()})</span>
+            <span>Fluxo de Caixa ({getPeriodoLabel()})</span>
             <span className="text-xs font-normal text-muted-foreground">
               {fluxoGranularidade === 'mes' ? 'Agrupado por mês' : 'Diário'}
             </span>
@@ -169,7 +183,7 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Faturamento por Tipo de Serviço</span>
+            <span>Faturamento por Responsável</span>
             <span className="text-xs font-normal text-muted-foreground">
               Evolução mensal
             </span>
@@ -198,7 +212,7 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
                   className="text-muted-foreground"
                 />
                 <Tooltip 
-                  formatter={(value: number, name: string) => [formatCurrencyFull(value), name]}
+                  formatter={(value: number, name: string) => [formatCurrencyFull(value), mapResponsavel(name)]}
                   labelFormatter={formatDistribuicaoTooltipLabel}
                   contentStyle={{ 
                     backgroundColor: 'hsl(var(--background))', 
@@ -206,7 +220,7 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
                     borderRadius: '8px'
                   }}
                 />
-                <Legend />
+                <Legend formatter={(value) => mapResponsavel(value)} />
                 {tiposServico.map((tipo: string, index: number) => (
                   <Bar 
                     key={tipo}

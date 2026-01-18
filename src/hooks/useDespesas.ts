@@ -22,34 +22,33 @@ function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState) {
     };
   }
 
-  const ano = filters.ano || new Date().getFullYear();
-  
-  // Se tiver período específico definido
-  if (filters.dataInicio && filters.dataFim) {
+  // Se tiver período específico definido via dateRange
+  if (filters.dateRange?.from && filters.dateRange?.to) {
     return { 
-      inicio: filters.dataInicio, 
-      fim: filters.dataFim 
+      inicio: filters.dateRange.from, 
+      fim: filters.dateRange.to 
     };
   }
   
-  if (filters.dataInicio) {
+  if (filters.dateRange?.from) {
     return { 
-      inicio: filters.dataInicio, 
-      fim: new Date(ano, 11, 31) 
+      inicio: filters.dateRange.from, 
+      fim: new Date(new Date().getFullYear(), 11, 31) 
     };
   }
   
-  if (filters.dataFim) {
+  if (filters.dateRange?.to) {
     return { 
-      inicio: new Date(ano, 0, 1), 
-      fim: filters.dataFim 
+      inicio: new Date(new Date().getFullYear(), 0, 1), 
+      fim: filters.dateRange.to 
     };
   }
 
-  // Se não tiver período específico, pegar o ano inteiro
+  // Se não tiver período específico, pegar o ano inteiro atual
+  const hoje = new Date();
   return {
-    inicio: new Date(ano, 0, 1),
-    fim: new Date(ano, 11, 31)
+    inicio: new Date(hoje.getFullYear(), 0, 1),
+    fim: new Date(hoje.getFullYear(), 11, 31)
   };
 }
 
