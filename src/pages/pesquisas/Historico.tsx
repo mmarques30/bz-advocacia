@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { HistoricoTable } from "@/components/pesquisas/HistoricoTable";
+import { RepetidasTable } from "@/components/pesquisas/RepetidasTable";
 import { useHistoricoConsultas } from "@/hooks/useHistoricoConsultas";
 import { Label } from "@/components/ui/label";
 import {
@@ -12,18 +12,55 @@ import {
 } from "@/components/ui/select";
 import type { TipoConsulta, StatusConsulta, HistoricoFilters } from "@/types/pesquisas";
 
+interface ConsultaAgrupada {
+  parametro: string;
+  tipo: string;
+  quantidade: number;
+  ultimaConsulta: string;
+}
+
 export default function Historico() {
   const [filters, setFilters] = useState<HistoricoFilters>({});
   const { data: consultas, isLoading } = useHistoricoConsultas(filters);
 
-  const custoTotal = consultas?.reduce((acc, c) => acc + Number(c.custo), 0) || 0;
+  // Agrupar consultas por parâmetro e contar repetidas
+  const { consultasRepetidas, totalRepetidas } = useMemo(() => {
+    if (!consultas) return { consultasRepetidas: [], totalRepetidas: 0 };
+
+    const agrupadas = consultas.reduce((acc, consulta) => {
+      const key = consulta.parametro_busca;
+      if (!acc[key]) {
+        acc[key] = {
+          parametro: key,
+          tipo: consulta.tipo_consulta,
+          quantidade: 0,
+          ultimaConsulta: consulta.created_at,
+        };
+      }
+      acc[key].quantidade++;
+      // Atualizar última consulta se for mais recente
+      if (new Date(consulta.created_at) > new Date(acc[key].ultimaConsulta)) {
+        acc[key].ultimaConsulta = consulta.created_at;
+      }
+      return acc;
+    }, {} as Record<string, ConsultaAgrupada>);
+
+    const repetidas = Object.values(agrupadas)
+      .filter(item => item.quantidade > 1)
+      .sort((a, b) => b.quantidade - a.quantidade);
+
+    return {
+      consultasRepetidas: repetidas,
+      totalRepetidas: repetidas.length,
+    };
+  }, [consultas]);
 
   return (
     <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Histórico de Consultas</h1>
           <p className="text-muted-foreground mt-2">
-            Todas as consultas realizadas com filtros e estatísticas
+            Análise de consultas repetidas e estatísticas
           </p>
         </div>
         <Card>
@@ -105,17 +142,23 @@ export default function Historico() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Custo Total</CardTitle>
+              <CardTitle>Pesquisas Repetidas</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">R$ {custoTotal.toFixed(2)}</div>
+              <div className="text-3xl font-bold">{totalRepetidas}</div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Parâmetros pesquisados mais de uma vez
+              </p>
             </CardContent>
           </Card>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Consultas Realizadas</CardTitle>
+            <CardTitle>Parâmetros Repetidos</CardTitle>
+            <CardDescription>
+              Dados que foram pesquisados mais de uma vez
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -123,7 +166,7 @@ export default function Historico() {
                 Carregando...
               </div>
             ) : (
-              <HistoricoTable consultas={consultas || []} />
+              <RepetidasTable consultas={consultasRepetidas} />
             )}
           </CardContent>
         </Card>
