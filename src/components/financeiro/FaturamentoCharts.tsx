@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Area, AreaChart } from "recharts";
 import { useFluxoCaixa, useDistribuicaoTipo } from "@/hooks/useFinanceiro";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 import { format } from "date-fns";
@@ -120,6 +120,30 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
     }
   };
 
+  // Custom Tooltip para o gráfico de fluxo de caixa
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-background border border-border rounded-lg shadow-lg p-3">
+          <p className="text-sm font-medium text-foreground mb-1">
+            {formatTooltipLabel(label)}
+          </p>
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: 'hsl(var(--chart-2))' }}
+            />
+            <span className="text-sm text-muted-foreground">Entradas:</span>
+            <span className="text-sm font-semibold text-foreground">
+              {formatCurrencyFull(payload[0].value)}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -134,8 +158,19 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
         <CardContent>
           {fluxoCaixa && fluxoCaixa.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={fluxoCaixa}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <AreaChart data={fluxoCaixa} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="entradasGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid 
+                  strokeDasharray="4 4" 
+                  horizontal={true} 
+                  vertical={false} 
+                  className="stroke-border" 
+                />
                 <XAxis 
                   dataKey="data" 
                   tickFormatter={formatXAxisDate}
@@ -145,32 +180,38 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
                   angle={fluxoGranularidade === 'mes' && fluxoCaixa.length > 6 ? -45 : 0}
                   textAnchor={fluxoGranularidade === 'mes' && fluxoCaixa.length > 6 ? 'end' : 'middle'}
                   height={fluxoGranularidade === 'mes' && fluxoCaixa.length > 6 ? 60 : 30}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis 
                   tickFormatter={formatCurrency}
                   tick={{ fontSize: 12 }}
                   className="text-muted-foreground"
+                  axisLine={false}
+                  tickLine={false}
+                  width={80}
                 />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrencyFull(value)}
-                  labelFormatter={formatTooltipLabel}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
+                <Tooltip content={<CustomTooltip />} />
+                <Area
+                  type="monotone"
+                  dataKey="entradas"
+                  fill="url(#entradasGradient)"
+                  stroke="hsl(var(--chart-2))"
+                  strokeWidth={2}
+                  dot={{
+                    fill: 'hsl(var(--background))',
+                    stroke: 'hsl(var(--chart-2))',
+                    strokeWidth: 2,
+                    r: 5,
+                  }}
+                  activeDot={{
+                    fill: 'hsl(var(--chart-2))',
+                    stroke: 'hsl(var(--background))',
+                    strokeWidth: 2,
+                    r: 7,
                   }}
                 />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="entradas" 
-                  stroke="hsl(var(--chart-2))" 
-                  name="Entradas"
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--chart-2))', strokeWidth: 0, r: 3 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-[300px] text-muted-foreground">
