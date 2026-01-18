@@ -52,7 +52,8 @@ const tipoServicoOptions = [
 
 export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProps) {
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  // Expandir para 10 anos para incluir dados históricos importados
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
   const { data: clientes = [] } = useClientesReceitas();
 
   const handleChange = (key: keyof FaturamentoFiltersState, value: any) => {

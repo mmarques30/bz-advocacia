@@ -69,11 +69,27 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
 
       if (error) throw error;
 
-      const receitaMes = parcelas
+      const receitaParcelas = parcelas
         ?.filter(p => p.status === 'pago' && p.data_pagamento && 
           new Date(p.data_pagamento) >= primeiroDiaMes && 
           new Date(p.data_pagamento) <= ultimoDiaMes)
         .reduce((sum, p) => sum + (p.valor_pago || 0), 0) || 0;
+
+      // Buscar transações importadas (tipo receita)
+      const { data: transacoes } = await supabase
+        .from("transacoes_financeiras")
+        .select("*");
+
+      const receitaImportada = transacoes
+        ?.filter(t => {
+          if (!t.data_transacao) return false;
+          const dataTransacao = new Date(t.data_transacao);
+          const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
+          return tipoReceita && dataTransacao >= primeiroDiaMes && dataTransacao <= ultimoDiaMes;
+        })
+        .reduce((sum, t) => sum + (t.valor || 0), 0) || 0;
+
+      const receitaMes = receitaParcelas + receitaImportada;
 
       const aReceberMes = parcelas
         ?.filter(p => p.status === 'pendente' && 
@@ -304,8 +320,16 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
 
       const { data: parcelas } = await query;
 
+      // Buscar transações importadas (receitas)
+      const { data: transacoes } = await supabase
+        .from("transacoes_financeiras")
+        .select("*")
+        .gte("data_transacao", format(inicio, "yyyy-MM-dd"))
+        .lte("data_transacao", format(fim, "yyyy-MM-dd"));
+
       const fluxo: Record<string, number> = {};
 
+      // Adicionar parcelas pagas
       parcelas?.forEach(p => {
         if (p.data_pagamento) {
           const data = format(new Date(p.data_pagamento), "yyyy-MM-dd");
@@ -313,10 +337,23 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
         }
       });
 
-      return Object.entries(fluxo).map(([data, entradas]) => ({
-        data,
-        entradas,
-      }));
+      // Adicionar transações importadas (receitas)
+      transacoes?.forEach(t => {
+        if (t.data_transacao) {
+          const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
+          if (tipoReceita) {
+            const data = t.data_transacao;
+            fluxo[data] = (fluxo[data] || 0) + (t.valor || 0);
+          }
+        }
+      });
+
+      return Object.entries(fluxo)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([data, entradas]) => ({
+          data,
+          entradas,
+        }));
     },
   });
 }
@@ -336,6 +373,11 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
 
       const { data: acordos } = await query;
 
+      // Buscar transações importadas
+      const { data: transacoes } = await supabase
+        .from("transacoes_financeiras")
+        .select("*");
+
       // Filtrar por período se especificado
       const { inicio, fim } = getDateRangeFromFilters(filters);
       const acordosFiltrados = acordos?.filter(a => {
@@ -343,9 +385,17 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
         return dataAcordo >= inicio && dataAcordo <= fim;
       }) || [];
 
+      const transacoesFiltradas = transacoes?.filter(t => {
+        if (!t.data_transacao) return false;
+        const dataTransacao = new Date(t.data_transacao);
+        const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
+        return tipoReceita && dataTransacao >= inicio && dataTransacao <= fim;
+      }) || [];
+
       const distribuicao: Record<string, { valor: number; quantidade: number }> = {};
       let totalValor = 0;
 
+      // Adicionar acordos
       acordosFiltrados.forEach(a => {
         if (!distribuicao[a.tipo_servico]) {
           distribuicao[a.tipo_servico] = { valor: 0, quantidade: 0 };
@@ -353,6 +403,17 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
         distribuicao[a.tipo_servico].valor += a.valor_total;
         distribuicao[a.tipo_servico].quantidade += 1;
         totalValor += a.valor_total;
+      });
+
+      // Adicionar transações importadas por categoria/subcategoria
+      transacoesFiltradas.forEach(t => {
+        const categoria = t.subcategoria_codigo || t.categoria_codigo || 'Importado';
+        if (!distribuicao[categoria]) {
+          distribuicao[categoria] = { valor: 0, quantidade: 0 };
+        }
+        distribuicao[categoria].valor += t.valor || 0;
+        distribuicao[categoria].quantidade += 1;
+        totalValor += t.valor || 0;
       });
 
       return Object.entries(distribuicao).map(([tipo, dados]) => ({
