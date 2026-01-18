@@ -28,7 +28,7 @@ import {
 import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import type { TransacoesFilters, TransacaoFinanceira } from "@/types/transacoes";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EditTransacaoDialog } from "./EditTransacaoDialog";
 
@@ -55,6 +55,11 @@ export function TransacoesTable({ filters }: Props) {
   
   const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const transacoesToShow = isExpanded 
+    ? transacoes 
+    : transacoes?.slice(0, 3);
 
   const handleDelete = async () => {
     if (!deletingId) return;
@@ -111,14 +116,14 @@ export function TransacoesTable({ filters }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transacoes?.length === 0 ? (
+            {transacoesToShow?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Nenhuma transação encontrada
                 </TableCell>
               </TableRow>
             ) : (
-              transacoes?.map((transacao) => (
+              transacoesToShow?.map((transacao) => (
                 <TableRow key={transacao.id}>
                   <TableCell className="font-medium">
                     {formatDate(transacao.data_transacao)}
@@ -180,6 +185,28 @@ export function TransacoesTable({ filters }: Props) {
           </TableBody>
         </Table>
       </div>
+
+      {transacoes && transacoes.length > 3 && (
+        <div className="flex justify-center">
+          <Button 
+            variant="ghost" 
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-4 w-4 mr-2" />
+                Recolher
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4 mr-2" />
+                Ver todas as {transacoes.length} transações
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
       <EditTransacaoDialog
         open={!!editingTransacao}
