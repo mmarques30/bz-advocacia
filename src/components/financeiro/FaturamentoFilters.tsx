@@ -1,5 +1,4 @@
-import { Search, X, Calendar } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,11 +8,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { useClientesReceitas } from "@/hooks/useClientesFinanceiros";
 
 export interface FaturamentoFiltersState {
-  search: string;
-  mes: number | null;
+  cliente: string;
   ano: number;
+  dataInicio: Date | null;
+  dataFim: Date | null;
   status: string;
   tipoServico: string;
 }
@@ -22,21 +32,6 @@ interface FaturamentoFiltersProps {
   filters: FaturamentoFiltersState;
   onChange: (filters: FaturamentoFiltersState) => void;
 }
-
-const meses = [
-  { value: 1, label: "Janeiro" },
-  { value: 2, label: "Fevereiro" },
-  { value: 3, label: "Março" },
-  { value: 4, label: "Abril" },
-  { value: 5, label: "Maio" },
-  { value: 6, label: "Junho" },
-  { value: 7, label: "Julho" },
-  { value: 8, label: "Agosto" },
-  { value: 9, label: "Setembro" },
-  { value: 10, label: "Outubro" },
-  { value: 11, label: "Novembro" },
-  { value: 12, label: "Dezembro" },
-];
 
 const statusOptions = [
   { value: "todos", label: "Todos os Status" },
@@ -58,6 +53,7 @@ const tipoServicoOptions = [
 export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProps) {
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const { data: clientes = [] } = useClientesReceitas();
 
   const handleChange = (key: keyof FaturamentoFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
@@ -65,26 +61,34 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
 
   const clearFilters = () => {
     onChange({
-      search: "",
-      mes: null,
+      cliente: "todos",
       ano: currentYear,
+      dataInicio: null,
+      dataFim: null,
       status: "todos",
       tipoServico: "todos",
     });
   };
 
   const hasActiveFilters = 
-    filters.search || 
-    filters.mes !== null || 
+    filters.cliente !== "todos" ||
+    filters.dataInicio !== null || 
+    filters.dataFim !== null ||
     filters.ano !== currentYear ||
     filters.status !== "todos" || 
     filters.tipoServico !== "todos";
 
   const getActiveFilterLabels = () => {
     const labels: string[] = [];
-    if (filters.mes !== null) {
-      const mesLabel = meses.find(m => m.value === filters.mes)?.label;
-      labels.push(`${mesLabel} ${filters.ano}`);
+    if (filters.cliente !== "todos") {
+      labels.push(`Cliente: ${filters.cliente}`);
+    }
+    if (filters.dataInicio && filters.dataFim) {
+      labels.push(`${format(filters.dataInicio, "dd/MM")} - ${format(filters.dataFim, "dd/MM")}/${filters.ano}`);
+    } else if (filters.dataInicio) {
+      labels.push(`A partir de ${format(filters.dataInicio, "dd/MM/yyyy")}`);
+    } else if (filters.dataFim) {
+      labels.push(`Até ${format(filters.dataFim, "dd/MM/yyyy")}`);
     } else if (filters.ano !== currentYear) {
       labels.push(`Ano: ${filters.ano}`);
     }
@@ -100,51 +104,96 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
   return (
     <div className="space-y-3 mb-6">
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por cliente..."
-            value={filters.search}
-            onChange={(e) => handleChange("search", e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <Select
+          value={filters.cliente}
+          onValueChange={(value) => handleChange("cliente", value)}
+        >
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Todos os Clientes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os Clientes</SelectItem>
+            {clientes.map((cliente) => (
+              <SelectItem key={cliente} value={cliente}>
+                {cliente}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Select
-            value={filters.mes?.toString() || "todos"}
-            onValueChange={(value) => handleChange("mes", value === "todos" ? null : parseInt(value))}
-          >
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os Meses</SelectItem>
-              {meses.map((mes) => (
-                <SelectItem key={mes.value} value={mes.value.toString()}>
-                  {mes.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select
+          value={filters.ano.toString()}
+          onValueChange={(value) => handleChange("ano", parseInt(value))}
+        >
+          <SelectTrigger className="w-[100px]">
+            <SelectValue placeholder="Ano" />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((year) => (
+              <SelectItem key={year} value={year.toString()}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select
-            value={filters.ano.toString()}
-            onValueChange={(value) => handleChange("ano", parseInt(value))}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[140px] justify-start text-left font-normal",
+                !filters.dataInicio && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filters.dataInicio ? (
+                format(filters.dataInicio, "dd/MM/yyyy")
+              ) : (
+                <span>Data Início</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={filters.dataInicio || undefined}
+              onSelect={(date) => handleChange("dataInicio", date || null)}
+              locale={ptBR}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[140px] justify-start text-left font-normal",
+                !filters.dataFim && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filters.dataFim ? (
+                format(filters.dataFim, "dd/MM/yyyy")
+              ) : (
+                <span>Data Fim</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={filters.dataFim || undefined}
+              onSelect={(date) => handleChange("dataFim", date || null)}
+              locale={ptBR}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
 
         <Select
           value={filters.status}
@@ -201,9 +250,10 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
 }
 
 export const getDefaultFaturamentoFilters = (): FaturamentoFiltersState => ({
-  search: "",
-  mes: null,
+  cliente: "todos",
   ano: new Date().getFullYear(),
+  dataInicio: null,
+  dataFim: null,
   status: "todos",
   tipoServico: "todos",
 });

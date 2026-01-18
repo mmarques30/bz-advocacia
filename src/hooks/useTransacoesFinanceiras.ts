@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 import type {
   CategoriaFinanceira,
   TipoTransacao,
@@ -66,10 +67,15 @@ export function useTransacoes(filters: TransacoesFilters = {}) {
         .select("*")
         .order("data_transacao", { ascending: false });
 
-      if (filters.mes) {
-        query = query.eq("mes", filters.mes);
+      // Filtrar por período de datas
+      if (filters.dataInicio) {
+        query = query.gte("data_transacao", format(filters.dataInicio, "yyyy-MM-dd"));
       }
-      if (filters.ano) {
+      if (filters.dataFim) {
+        query = query.lte("data_transacao", format(filters.dataFim, "yyyy-MM-dd"));
+      }
+      // Filtrar por ano se não tiver período específico
+      if (filters.ano && !filters.dataInicio && !filters.dataFim) {
         query = query.eq("ano", filters.ano);
       }
       if (filters.tipo_codigo) {
@@ -80,9 +86,6 @@ export function useTransacoes(filters: TransacoesFilters = {}) {
       }
       if (filters.subcategoria_codigo) {
         query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
-      }
-      if (filters.busca) {
-        query = query.ilike("descricao", `%${filters.busca}%`);
       }
 
       const { data, error } = await query;
@@ -102,11 +105,14 @@ export function useKPIsTransacoes(filters: TransacoesFilters = {}) {
         .select("tipo_codigo, categoria_codigo, valor");
 
       // Apply filters
-      if (filters.ano) {
-        query = query.eq("ano", filters.ano);
+      if (filters.dataInicio) {
+        query = query.gte("data_transacao", format(filters.dataInicio, "yyyy-MM-dd"));
       }
-      if (filters.mes) {
-        query = query.eq("mes", filters.mes);
+      if (filters.dataFim) {
+        query = query.lte("data_transacao", format(filters.dataFim, "yyyy-MM-dd"));
+      }
+      if (filters.ano && !filters.dataInicio && !filters.dataFim) {
+        query = query.eq("ano", filters.ano);
       }
       if (filters.tipo_codigo) {
         query = query.eq("tipo_codigo", filters.tipo_codigo);

@@ -45,10 +45,10 @@ export function HistoricoTable({ filters }: Props) {
 
   const { data: transacoes, isLoading } = useTransacoes({
     ano: filters.ano,
-    mes: filters.mes || undefined,
+    dataInicio: filters.dataInicio || undefined,
+    dataFim: filters.dataFim || undefined,
     tipo_codigo: filters.tipo || undefined,
     categoria_codigo: filters.categoria || undefined,
-    busca: filters.busca || undefined,
   });
 
   const deleteTransacao = useDeleteTransacao();
