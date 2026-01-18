@@ -2,7 +2,6 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Scale, Calendar, Building2, FileText, Activity, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
-import { DashboardLayout } from "@/components/DashboardLayout";
 import { ConsultaProcessoForm } from "@/components/pesquisas/ConsultaProcessoForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -194,60 +193,58 @@ export default function PesquisasProcessos() {
   const { data, reset } = useConsultaProcesso();
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Consulta de Processos Judiciais</h1>
-          <p className="text-muted-foreground">
-            Consulte informações públicas de processos via API oficial do CNJ (Datajud)
-          </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Consulta de Processos Judiciais</h1>
+        <p className="text-muted-foreground">
+          Consulte informações públicas de processos via API oficial do CNJ (Datajud)
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <ConsultaProcessoForm onSuccess={() => {}} />
+          
+          {data && <ResultadoConsulta data={data} />}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <ConsultaProcessoForm onSuccess={() => {}} />
-            
-            {data && <ResultadoConsulta data={data} />}
-          </div>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Sobre a API Datajud</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-3">
+              <p>
+                A API Pública do Datajud é mantida pelo CNJ e fornece acesso 
+                aos metadados de processos judiciais de todos os tribunais brasileiros.
+              </p>
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">Limitações:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>120 requisições por minuto</li>
+                  <li>Dados podem ter 1-7 dias de atraso</li>
+                  <li>Processos sigilosos não retornam dados</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Sobre a API Datajud</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground space-y-3">
-                <p>
-                  A API Pública do Datajud é mantida pelo CNJ e fornece acesso 
-                  aos metadados de processos judiciais de todos os tribunais brasileiros.
-                </p>
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">Limitações:</p>
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>120 requisições por minuto</li>
-                    <li>Dados podem ter 1-7 dias de atraso</li>
-                    <li>Processos sigilosos não retornam dados</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  Conformidade LGPD
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                <p>
-                  Todas as consultas são registradas com motivo e justificativa 
-                  para fins de auditoria e conformidade com a Lei Geral de Proteção de Dados.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Conformidade LGPD
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>
+                Todas as consultas são registradas com motivo e justificativa 
+                para fins de auditoria e conformidade com a Lei Geral de Proteção de Dados.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
