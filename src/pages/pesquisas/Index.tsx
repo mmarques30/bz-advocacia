@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditosWidget } from "@/components/pesquisas/CreditosWidget";
-import { Search, Users, Home, Car, FileText, History, Settings } from "lucide-react";
+import { Search, Users, Home, Car, FileText, History } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function PesquisasIndex() {
@@ -27,23 +27,23 @@ export default function PesquisasIndex() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Veículos</CardTitle>
-              <Car className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">28</div>
-              <p className="text-xs text-muted-foreground">R$ 42,00 gastos</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Pessoas</CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">15</div>
               <p className="text-xs text-muted-foreground">R$ 37,50 gastos</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Veículos</CardTitle>
+              <Car className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">28</div>
+              <p className="text-xs text-muted-foreground">R$ 42,00 gastos</p>
             </CardContent>
           </Card>
 
@@ -60,23 +60,7 @@ export default function PesquisasIndex() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Car className="h-5 w-5" />
-                <CardTitle>Consultar Veículo</CardTitle>
-              </div>
-              <CardDescription>
-                Busque por placa, RENAVAM ou chassi
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link to="/dashboard/pesquisas/veiculos">Acessar</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
+          {/* Localizar Pessoa - primeiro */}
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -94,6 +78,25 @@ export default function PesquisasIndex() {
             </CardContent>
           </Card>
 
+          {/* Consultar Veículo - segundo */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Car className="h-5 w-5" />
+                <CardTitle>Consultar Veículo</CardTitle>
+              </div>
+              <CardDescription>
+                Busque por placa, RENAVAM ou chassi
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild className="w-full">
+                <Link to="/dashboard/pesquisas/veiculos">Acessar</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Consultar Imóvel - terceiro */}
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -141,23 +144,6 @@ export default function PesquisasIndex() {
             <CardContent>
               <Button asChild className="w-full" variant="outline">
                 <Link to="/dashboard/pesquisas/historico">Ver histórico</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                <CardTitle>Configuração API</CardTitle>
-              </div>
-              <CardDescription>
-                Gerenciar credenciais
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full" variant="outline">
-                <Link to="/dashboard/pesquisas/configuracao">Configurar</Link>
               </Button>
             </CardContent>
           </Card>

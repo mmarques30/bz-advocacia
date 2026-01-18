@@ -85,11 +85,10 @@ const menuItems: MenuItem[] = [
     icon: Search,
     submenu: [
       { title: "Visão Geral", url: "/dashboard/pesquisas" },
-      { title: "Consultar Veículo", url: "/dashboard/pesquisas/veiculos" },
       { title: "Localizar Pessoa", url: "/dashboard/pesquisas/pessoas" },
+      { title: "Consultar Veículo", url: "/dashboard/pesquisas/veiculos" },
       { title: "Consultar Imóvel", url: "/dashboard/pesquisas/imoveis" },
       { title: "Histórico", url: "/dashboard/pesquisas/historico" },
-      { title: "Configuração API", url: "/dashboard/pesquisas/configuracao" },
     ]
   },
   {

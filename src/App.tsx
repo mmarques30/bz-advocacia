@@ -42,7 +42,7 @@ import PesquisasVeiculos from "./pages/pesquisas/Veiculos";
 import PesquisasPessoas from "./pages/pesquisas/Pessoas";
 import PesquisasImoveis from "./pages/pesquisas/Imoveis";
 import PesquisasHistorico from "./pages/pesquisas/Historico";
-import PesquisasConfiguracao from "./pages/pesquisas/Configuracao";
+
 
 // Comunicação
 import ComunicacaoIndex from "./pages/comunicacao/Index";
@@ -335,14 +335,6 @@ const App = () => (
         element={
           <ProtectedRoute>
             <PesquisasHistorico />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/pesquisas/configuracao" 
-        element={
-          <ProtectedRoute>
-            <PesquisasConfiguracao />
           </ProtectedRoute>
         } 
       />
