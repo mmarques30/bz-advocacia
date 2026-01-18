@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Users, Settings, FileText, Tag, FileClockIcon } from "lucide-react";
+import { User, Users, FileText, BookOpen, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Configuracoes() {
@@ -19,13 +19,6 @@ export default function Configuracoes() {
       color: "text-blue-600",
     },
     {
-      title: "Escritório",
-      description: "Configurações gerais do escritório",
-      icon: Settings,
-      href: "/dashboard/configuracoes/geral",
-      color: "text-purple-600",
-    },
-    {
       title: "Templates",
       description: "Gerencie templates de documentos e comunicações",
       icon: FileText,
@@ -33,18 +26,18 @@ export default function Configuracoes() {
       color: "text-green-600",
     },
     {
-      title: "Tags",
-      description: "Organize leads e processos com tags personalizadas",
-      icon: Tag,
-      href: "/dashboard/configuracoes/tags",
-      color: "text-orange-600",
+      title: "Templates WhatsApp",
+      description: "Configure templates de mensagens do WhatsApp",
+      icon: MessageSquare,
+      href: "/dashboard/configuracoes/whatsapp-templates",
+      color: "text-emerald-600",
     },
     {
-      title: "Logs do Sistema",
-      description: "Visualize o histórico de ações no sistema",
-      icon: FileClockIcon,
-      href: "/dashboard/configuracoes/logs",
-      color: "text-red-600",
+      title: "Guia de Uso",
+      description: "Aprenda a utilizar todas as funcionalidades do sistema",
+      icon: BookOpen,
+      href: "/dashboard/configuracoes/guia",
+      color: "text-purple-600",
     },
   ];
 
