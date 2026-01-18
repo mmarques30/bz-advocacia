@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { LeadsHeader } from "@/components/leads/LeadsHeader";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsTable } from "@/components/leads/LeadsTable";
@@ -8,8 +8,10 @@ import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { useLeads } from "@/hooks/useLeads";
 import { LeadsFilters as FiltersType, Lead } from "@/types/leads";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Leads() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tipoParam = searchParams.get('tipo');
   
@@ -29,26 +31,32 @@ export default function Leads() {
     responsavel: null,
   });
 
+  // Determinar a aba atual - padrão é 'leads'
+  const currentTab = tipoParam === 'clientes' ? 'clientes' : 'leads';
+
   // Aplicar filtros baseado no query parameter
   useEffect(() => {
-    if (tipoParam === 'leads') {
-      setFilters(prev => ({
-        ...prev,
-        status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada']
-      }));
-    } else if (tipoParam === 'clientes') {
+    if (tipoParam === 'clientes') {
       setFilters(prev => ({
         ...prev,
         status: ['fechado']
       }));
     } else {
-      // "Todos" - limpar filtro de status
+      // "leads" ou sem parâmetro = leads ativos
       setFilters(prev => ({
         ...prev,
-        status: []
+        status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada']
       }));
     }
   }, [tipoParam]);
+
+  const handleTabChange = (value: string) => {
+    if (value === 'clientes') {
+      navigate('/dashboard/leads?tipo=clientes');
+    } else {
+      navigate('/dashboard/leads?tipo=leads');
+    }
+  };
 
   const { data: leads, isLoading } = useLeads(filters);
 
@@ -85,6 +93,13 @@ export default function Leads() {
           Gerencie leads e clientes em um único lugar
         </p>
       </div>
+
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList>
+          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <LeadsHeader
         view={view}
