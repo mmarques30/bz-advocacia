@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Users, FileText, BookOpen, MessageSquare, Zap } from "lucide-react";
+import { User, Users, BookOpen, MessageSquare, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Configuracoes() {
@@ -19,15 +19,8 @@ export default function Configuracoes() {
       color: "text-blue-600",
     },
     {
-      title: "Templates",
-      description: "Gerencie templates de documentos e comunicações",
-      icon: FileText,
-      href: "/dashboard/configuracoes/templates",
-      color: "text-green-600",
-    },
-    {
-      title: "Templates WhatsApp",
-      description: "Configure templates de mensagens do WhatsApp",
+      title: "Modelos Chat",
+      description: "Configure modelos de mensagens do WhatsApp",
       icon: MessageSquare,
       href: "/dashboard/configuracoes/whatsapp-templates",
       color: "text-emerald-600",
