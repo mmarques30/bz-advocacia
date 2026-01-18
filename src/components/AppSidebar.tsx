@@ -85,6 +85,7 @@ const menuItems: MenuItem[] = [
     icon: Search,
     submenu: [
       { title: "Visão Geral", url: "/dashboard/pesquisas" },
+      { title: "Consultar Processo", url: "/dashboard/pesquisas/processos" },
       { title: "Localizar Pessoa", url: "/dashboard/pesquisas/pessoas" },
       { title: "Histórico", url: "/dashboard/pesquisas/historico" },
     ]

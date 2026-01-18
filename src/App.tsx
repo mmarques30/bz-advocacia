@@ -36,6 +36,7 @@ import FinanceiroHistorico from "./pages/financeiro/Historico";
 // Pesquisas
 import PesquisasIndex from "./pages/pesquisas/Index";
 import PesquisasPessoas from "./pages/pesquisas/Pessoas";
+import PesquisasProcessos from "./pages/pesquisas/Processos";
 import PesquisasHistorico from "./pages/pesquisas/Historico";
 
 
@@ -290,6 +291,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <PesquisasHistorico />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/pesquisas/processos" 
+        element={
+          <ProtectedRoute>
+            <PesquisasProcessos />
           </ProtectedRoute>
         } 
       />
