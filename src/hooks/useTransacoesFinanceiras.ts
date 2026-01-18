@@ -261,9 +261,10 @@ export function useResumoSubcategoria(ano?: number) {
   });
 }
 
-// Hook para receitas por responsável (baseado em categoria_codigo)
-// PF = Liziane ou Juliana (baseado na subcategoria ou descrição)
-// PJ = B&Z Advocacia
+// Hook para receitas por responsável (baseado em subcategoria_codigo)
+// subcategoria_codigo = "eliziane" → Eliziane
+// subcategoria_codigo = "juliana" → Juliana
+// categoria_codigo = "pj" → B&Z Advocacia
 export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
   return useQuery({
     queryKey: ["receitas-por-responsavel", filters],
@@ -293,20 +294,25 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
       for (const t of transacoes || []) {
         let responsavel = "B&Z Advocacia";
         
-        // Se for PJ, é B&Z
-        if (t.categoria_codigo === "pj") {
+        // Verificar subcategoria primeiro (dados importados com sócia identificada)
+        const subcatLower = (t.subcategoria_codigo || "").toLowerCase();
+        
+        if (subcatLower === "eliziane") {
+          responsavel = "Eliziane";
+        } else if (subcatLower === "juliana") {
+          responsavel = "Juliana";
+        } else if (t.categoria_codigo === "pj") {
+          // Se for PJ, é B&Z
           responsavel = "B&Z Advocacia";
         } else if (t.categoria_codigo === "pf") {
-          // Para PF, tentar identificar a sócia pela subcategoria ou descrição
+          // PF sem subcategoria identificada - tentar pela descrição como fallback
           const descLower = (t.descricao || "").toLowerCase();
-          const subcatLower = (t.subcategoria_codigo || "").toLowerCase();
           
-          if (descLower.includes("liziane") || subcatLower.includes("liziane")) {
-            responsavel = "Liziane";
-          } else if (descLower.includes("juliana") || subcatLower.includes("juliana")) {
+          if (descLower.includes("eliziane")) {
+            responsavel = "Eliziane";
+          } else if (descLower.includes("juliana")) {
             responsavel = "Juliana";
           } else {
-            // Se não conseguir identificar, distribuir entre as duas ou usar genérico
             responsavel = "PF (não identificado)";
           }
         }
