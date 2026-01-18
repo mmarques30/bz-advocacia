@@ -14,6 +14,7 @@ import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
 import MetaAds from "./pages/vendas/MetaAds";
 import MetaAdsCallback from "./pages/vendas/MetaAdsCallback";
+import VendasAnalises from "./pages/vendas/Analises";
 
 // Configurações
 import Configuracoes from "./pages/configuracoes/index";
@@ -111,6 +112,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <RelatoriosCliente />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/vendas/analises"
+        element={
+          <ProtectedRoute>
+            <VendasAnalises />
           </ProtectedRoute>
         } 
       />
