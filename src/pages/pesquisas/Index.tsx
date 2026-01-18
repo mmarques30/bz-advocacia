@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, History, Scale } from "lucide-react";
+import { Users, History, Scale, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function PesquisasIndex() {
@@ -35,6 +35,31 @@ export default function PesquisasIndex() {
             </p>
             <Button asChild className="w-full">
               <Link to="/dashboard/pesquisas/processos">Consultar</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Consultar Empresa */}
+        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Building2 className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <CardTitle>Consultar Empresa</CardTitle>
+                <CardDescription>
+                  Via BrasilAPI (CNPJ)
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Consulte situação cadastral, sócios, atividades e endereço de empresas brasileiras.
+            </p>
+            <Button asChild className="w-full">
+              <Link to="/dashboard/pesquisas/cnpj">Consultar</Link>
             </Button>
           </CardContent>
         </Card>

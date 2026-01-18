@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.meta-report]
 verify_jwt = true
+
+[functions.consultas-brasilapi]
+verify_jwt = false
