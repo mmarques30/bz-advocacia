@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Gavel, Target, MessageSquare, Search, LucideIcon } from "lucide-react";
+import { Gavel, Target, MessageSquare, Search, Globe, LucideIcon } from "lucide-react";
 
 export interface ApiIntegration {
   id: string;
@@ -51,7 +51,10 @@ export function useAutomacoes() {
       const pessoaConsultas = consultas.filter(c => c.tipo_consulta === "pessoa");
       const imovelConsultas = consultas.filter(c => c.tipo_consulta === "imovel");
       const veiculoConsultas = consultas.filter(c => c.tipo_consulta === "veiculo");
+      const cnpjConsultas = consultas.filter(c => c.tipo_consulta === "cnpj");
+      const cepConsultas = consultas.filter(c => c.tipo_consulta === "cep");
       const consultasApiTotal = [...pessoaConsultas, ...imovelConsultas, ...veiculoConsultas];
+      const brasilApiTotal = [...cnpjConsultas, ...cepConsultas];
 
       // Helper to get last activity
       const getLastActivity = (items: typeof consultas) => {
@@ -70,6 +73,7 @@ export function useAutomacoes() {
 
       const datajudStats = countByStatus(datajudConsultas);
       const consultasApiStats = countByStatus(consultasApiTotal);
+      const brasilApiStats = countByStatus(brasilApiTotal);
 
       const integrations: ApiIntegration[] = [
         {
@@ -143,6 +147,24 @@ export function useAutomacoes() {
           detalhes: {
             apiKeyMasked: consultasConfig?.api_token ? "••••••••••••" : undefined,
             ambiente: consultasConfig?.ambiente || "sandbox",
+          },
+        },
+        {
+          id: "brasilapi",
+          nome: "BrasilAPI",
+          descricao: "API pública para consulta de CNPJ, CEP e dados públicos brasileiros",
+          status: "ativo", // Always active (public API, no authentication required)
+          totalConsultas: brasilApiTotal.length,
+          consultasSucesso: brasilApiStats.sucesso,
+          consultasErro: brasilApiStats.erro,
+          ultimaAtividade: getLastActivity(brasilApiTotal),
+          edgeFunctionPath: "supabase/functions/consultas-brasilapi/index.ts",
+          endpoint: "https://brasilapi.com.br/api",
+          icone: Globe,
+          configurado: true, // No configuration required
+          detalhes: {
+            rateLimit: "Ilimitado (uso responsável)",
+            ambiente: "producao",
           },
         },
       ];
