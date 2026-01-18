@@ -20,11 +20,8 @@ import VendasAnalises from "./pages/vendas/Analises";
 import Configuracoes from "./pages/configuracoes/index";
 import Perfil from "./pages/configuracoes/Perfil";
 import Usuarios from "./pages/configuracoes/Usuarios";
-import Geral from "./pages/configuracoes/Geral";
 import Templates from "./pages/configuracoes/Templates";
-import Tags from "./pages/configuracoes/Tags";
-import Logs from "./pages/configuracoes/Logs";
-import Demandas from "./pages/configuracoes/Demandas";
+import GuiaDeUso from "./pages/configuracoes/GuiaDeUso";
 
 // Processos
 import ProcessosPrazos from "./pages/processos/Prazos";
@@ -177,14 +174,6 @@ const App = () => (
         } 
       />
       <Route 
-        path="/dashboard/configuracoes/geral" 
-        element={
-          <ProtectedRoute>
-            <Geral />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
         path="/dashboard/configuracoes/templates" 
         element={
           <ProtectedRoute>
@@ -193,26 +182,10 @@ const App = () => (
         } 
       />
       <Route 
-        path="/dashboard/configuracoes/tags" 
+        path="/dashboard/configuracoes/guia" 
         element={
           <ProtectedRoute>
-            <Tags />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/configuracoes/logs" 
-        element={
-          <ProtectedRoute>
-            <Logs />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/configuracoes/demandas" 
-        element={
-          <ProtectedRoute>
-            <Demandas />
+            <GuiaDeUso />
           </ProtectedRoute>
         } 
       />

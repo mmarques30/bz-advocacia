@@ -103,14 +103,11 @@ const menuItems: MenuItem[] = [
     label: "Administrativo",
     icon: Settings,
     submenu: [
-      { title: "Consultoria", url: "/dashboard/configuracoes/demandas" },
       { title: "Meu Perfil", url: "/dashboard/configuracoes/perfil" },
       { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
-      { title: "Escritório", url: "/dashboard/configuracoes/geral" },
       { title: "Templates", url: "/dashboard/configuracoes/templates" },
       { title: "Templates WhatsApp", url: "/dashboard/configuracoes/whatsapp-templates" },
-      { title: "Tags", url: "/dashboard/configuracoes/tags" },
-      { title: "Logs", url: "/dashboard/configuracoes/logs" },
+      { title: "Guia de Uso", url: "/dashboard/configuracoes/guia" },
     ]
   },
 ];
