@@ -108,6 +108,7 @@ const menuItems: MenuItem[] = [
       { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
       { title: "Templates", url: "/dashboard/configuracoes/templates" },
       { title: "Templates WhatsApp", url: "/dashboard/configuracoes/whatsapp-templates" },
+      { title: "Automações", url: "/dashboard/configuracoes/automacoes" },
       { title: "Guia de Uso", url: "/dashboard/configuracoes/guia" },
     ]
   },

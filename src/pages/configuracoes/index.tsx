@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Users, FileText, BookOpen, MessageSquare } from "lucide-react";
+import { User, Users, FileText, BookOpen, MessageSquare, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Configuracoes() {
@@ -31,6 +31,13 @@ export default function Configuracoes() {
       icon: MessageSquare,
       href: "/dashboard/configuracoes/whatsapp-templates",
       color: "text-emerald-600",
+    },
+    {
+      title: "Automações",
+      description: "Gerencie integrações e APIs conectadas ao sistema",
+      icon: Zap,
+      href: "/dashboard/configuracoes/automacoes",
+      color: "text-orange-600",
     },
     {
       title: "Guia de Uso",
