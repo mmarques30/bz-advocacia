@@ -264,22 +264,6 @@ const App = () => (
       
       {/* Comunicação - Subrotas */}
       <Route 
-        path="/dashboard/comunicacao" 
-        element={
-          <ProtectedRoute>
-            <ComunicacaoIndex />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/comunicacao/templates" 
-        element={
-          <ProtectedRoute>
-            <ComunicacaoTemplates />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
         path="/dashboard/comunicacao/historico" 
         element={
           <ProtectedRoute>
@@ -292,6 +276,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <ComunicacaoConfiguracao />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/configuracoes/whatsapp-templates" 
+        element={
+          <ProtectedRoute>
+            <ComunicacaoTemplates />
           </ProtectedRoute>
         } 
       />

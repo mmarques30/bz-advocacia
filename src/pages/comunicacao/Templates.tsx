@@ -2,22 +2,40 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
-import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { Plus, MoreHorizontal, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
+import { useWhatsAppTemplates, useDeleteWhatsAppTemplate, useToggleWhatsAppTemplateStatus } from "@/hooks/useWhatsAppTemplates";
 import { TemplateCategoria } from "@/types/whatsapp";
-import { WhatsAppTemplateCard } from "@/components/comunicacao/WhatsAppTemplateCard";
 import { WhatsAppTemplateDialog } from "@/components/comunicacao/WhatsAppTemplateDialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+
+const categoriasLabels: Record<TemplateCategoria, string> = {
+  andamento: "Andamento",
+  audiencia: "Audiência",
+  sentenca: "Sentença",
+  documento: "Documento",
+  prazo: "Prazo",
+  geral: "Geral",
+  cobranca: "Cobrança",
+};
 
 export default function Templates() {
   const [busca, setBusca] = useState("");
   const [categoria, setCategoria] = useState<TemplateCategoria | "todos">("todos");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
 
   const { data: templates = [], isLoading } = useWhatsAppTemplates({
     busca,
     categoria: categoria === "todos" ? undefined : categoria,
   });
+
+  const deleteTemplate = useDeleteWhatsAppTemplate();
+  const toggleStatus = useToggleWhatsAppTemplateStatus();
 
   const handleNew = () => {
     setEditingTemplate(null);
@@ -32,6 +50,23 @@ export default function Templates() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingTemplate(null);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setTemplateToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (templateToDelete) {
+      deleteTemplate.mutate(templateToDelete);
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+    }
+  };
+
+  const handleToggleStatus = (id: string, currentStatus: boolean) => {
+    toggleStatus.mutate({ id, ativo: !currentStatus });
   };
 
   const categoriaCount = (cat: TemplateCategoria | "todos") => {
@@ -88,14 +123,73 @@ export default function Templates() {
           Nenhum template encontrado
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {templates.map((template) => (
-            <WhatsAppTemplateCard
-              key={template.id}
-              template={template}
-              onEdit={handleEdit}
-            />
-          ))}
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Criado em</TableHead>
+                <TableHead className="w-[80px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {templates.map((template) => (
+                <TableRow key={template.id}>
+                  <TableCell className="font-medium">{template.nome}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {categoriasLabels[template.categoria] || template.categoria}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={template.ativo ? "default" : "secondary"}>
+                      {template.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {new Date(template.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem onClick={() => handleEdit(template)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleToggleStatus(template.id, template.ativo)}>
+                          {template.ativo ? (
+                            <>
+                              <ToggleLeft className="mr-2 h-4 w-4" />
+                              Desativar
+                            </>
+                          ) : (
+                            <>
+                              <ToggleRight className="mr-2 h-4 w-4" />
+                              Ativar
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteClick(template.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
 
@@ -104,6 +198,23 @@ export default function Templates() {
         onOpenChange={handleCloseDialog}
         template={editingTemplate}
       />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Template</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este template? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

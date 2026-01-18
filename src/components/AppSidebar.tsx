@@ -75,8 +75,6 @@ const menuItems: MenuItem[] = [
       { title: "Calendário", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
       { title: "Relatórios para Clientes", url: "/dashboard/leads/relatorios-cliente" },
-      { title: "Enviar Mensagem", url: "/dashboard/comunicacao" },
-      { title: "Templates WhatsApp", url: "/dashboard/comunicacao/templates" },
       { title: "Histórico Mensagens", url: "/dashboard/comunicacao/historico" },
       { title: "Config. WhatsApp", url: "/dashboard/comunicacao/configuracao" },
     ]
@@ -113,6 +111,7 @@ const menuItems: MenuItem[] = [
       { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
       { title: "Escritório", url: "/dashboard/configuracoes/geral" },
       { title: "Templates", url: "/dashboard/configuracoes/templates" },
+      { title: "Templates WhatsApp", url: "/dashboard/configuracoes/whatsapp-templates" },
       { title: "Tags", url: "/dashboard/configuracoes/tags" },
       { title: "Logs", url: "/dashboard/configuracoes/logs" },
     ]
