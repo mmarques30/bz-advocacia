@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useParcelasVencendo, useClientesInadimplentes, useMaioresPagadores } from "@/hooks/useFinanceiro";
-import { Calendar, AlertTriangle, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
@@ -19,9 +18,8 @@ export function FaturamentoWidgets({ onRegistrarPagamento, filters }: Faturament
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium">
             Parcelas Vencendo (7 dias)
           </CardTitle>
         </CardHeader>
@@ -52,9 +50,8 @@ export function FaturamentoWidgets({ onRegistrarPagamento, filters }: Faturament
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium">
             Clientes Inadimplentes
           </CardTitle>
         </CardHeader>
@@ -85,9 +82,8 @@ export function FaturamentoWidgets({ onRegistrarPagamento, filters }: Faturament
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium">
             Maiores Pagadores do Mês
           </CardTitle>
         </CardHeader>
