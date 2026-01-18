@@ -1,8 +1,19 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, History, ChevronDown } from "lucide-react";
+import { Plus, Upload, History, ChevronDown, Trash2, AlertTriangle } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useClearTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
 import { FaturamentoTable } from "@/components/financeiro/FaturamentoTable";
@@ -53,6 +64,10 @@ export default function Financeiro() {
   // Estados para Histórico
   const [historicoFilters, setHistoricoFilters] = useState<HistoricoFiltersState>(getDefaultHistoricoFilters());
 
+  // Estado para dialog de limpar dados
+  const [clearDataOpen, setClearDataOpen] = useState(false);
+  const clearTransacoes = useClearTransacoes();
+
   // Converter filtros globais para filtros de tabela
   const acordosFiltersFromGlobal: AcordosFilters = {
     search: faturamentoFilters.cliente !== "todos" ? faturamentoFilters.cliente : undefined,
@@ -60,14 +75,53 @@ export default function Financeiro() {
     tipo_servico: faturamentoFilters.tipoServico !== "todos" ? faturamentoFilters.tipoServico : undefined,
   };
 
+  const handleClearData = () => {
+    clearTransacoes.mutate();
+    setClearDataOpen(false);
+  };
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Gestão Financeira</h1>
-        <p className="text-muted-foreground">
-          Acompanhe receitas, acordos e pagamentos
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Gestão Financeira</h1>
+          <p className="text-muted-foreground">
+            Acompanhe receitas, acordos e pagamentos
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          onClick={() => setClearDataOpen(true)}
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Limpar Dados
+        </Button>
       </div>
+
+      <AlertDialog open={clearDataOpen} onOpenChange={setClearDataOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Limpar Todos os Dados Financeiros?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação irá excluir TODAS as transações financeiras (receitas e despesas).
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleClearData}
+            >
+              Sim, Limpar Tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Tabs defaultValue="geral" className="space-y-6">
         <TabsList>

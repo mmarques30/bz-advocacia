@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import type {
   CategoriaFinanceira,
   TipoTransacao,
@@ -369,6 +370,36 @@ export function useResumoAnual() {
           resultado: valores.receitas - valores.despesas,
         }))
         .sort((a, b) => a.ano - b.ano);
+    },
+  });
+}
+
+// === MUTATIONS ===
+
+export function useClearTransacoes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("transacoes_financeiras")
+        .delete()
+        .neq("id", "00000000-0000-0000-0000-000000000000");
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transacoes-financeiras"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-mensal-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-subcategoria-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-anual-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["receitas-por-responsavel"] });
+      toast.success("Todos os dados financeiros foram removidos!");
+    },
+    onError: (error) => {
+      console.error("Erro ao limpar dados:", error);
+      toast.error("Erro ao limpar dados financeiros");
     },
   });
 }
