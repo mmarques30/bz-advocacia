@@ -12,15 +12,40 @@ import type {
   MaiorPagador,
   AcordosFilters
 } from "@/types/financeiro";
-import { format, subMonths, differenceInDays } from "date-fns";
+import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
+import { format, subMonths, differenceInDays, startOfMonth, endOfMonth } from "date-fns";
 
-export function useKPIsFinanceiros() {
+// Helper para calcular datas baseado nos filtros
+function getDateRangeFromFilters(filters?: FaturamentoFiltersState) {
+  if (!filters) {
+    const hoje = new Date();
+    return {
+      inicio: startOfMonth(hoje),
+      fim: endOfMonth(hoje)
+    };
+  }
+
+  const ano = filters.ano || new Date().getFullYear();
+  
+  if (filters.mes !== null && filters.mes !== undefined) {
+    const inicio = new Date(ano, filters.mes - 1, 1);
+    const fim = endOfMonth(inicio);
+    return { inicio, fim };
+  }
+
+  // Se não tiver mês selecionado, pegar o ano inteiro
+  return {
+    inicio: new Date(ano, 0, 1),
+    fim: new Date(ano, 11, 31)
+  };
+}
+
+export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
   return useQuery({
-    queryKey: ["kpis-financeiros"],
+    queryKey: ["kpis-financeiros", filters],
     queryFn: async (): Promise<KPIsFinanceiros> => {
       const hoje = new Date();
-      const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-      const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+      const { inicio: primeiroDiaMes, fim: ultimoDiaMes } = getDateRangeFromFilters(filters);
 
       const { data: parcelas, error } = await supabase
         .from("parcelas_financeiras")
@@ -53,9 +78,17 @@ export function useKPIsFinanceiros() {
         ? (parcelasAtrasadas / totalParcelas) * 100 
         : 0;
 
-      const { data: acordos } = await supabase
-        .from("acordos_financeiros")
-        .select("*");
+      let acordosQuery = supabase.from("acordos_financeiros").select("*");
+      
+      // Aplicar filtros de status e tipo se existirem
+      if (filters?.status && filters.status !== "todos") {
+        acordosQuery = acordosQuery.eq("status", filters.status);
+      }
+      if (filters?.tipoServico && filters.tipoServico !== "todos") {
+        acordosQuery = acordosQuery.eq("tipo_servico", filters.tipoServico);
+      }
+
+      const { data: acordos } = await acordosQuery;
 
       const ticketMedio = acordos && acordos.length > 0
         ? acordos.reduce((sum, a) => sum + a.valor_total, 0) / acordos.length
@@ -239,15 +272,21 @@ export function useReceitaMensal(meses: number = 12) {
   });
 }
 
-export function useFluxoCaixa(dias: number = 30) {
+export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
   return useQuery({
-    queryKey: ["fluxo-caixa", dias],
+    queryKey: ["fluxo-caixa", filters],
     queryFn: async (): Promise<FluxoCaixa[]> => {
-      const { data: parcelas } = await supabase
+      const { inicio, fim } = getDateRangeFromFilters(filters);
+      
+      let query = supabase
         .from("parcelas_financeiras")
         .select("*")
         .eq("status", "pago")
+        .gte("data_pagamento", format(inicio, "yyyy-MM-dd"))
+        .lte("data_pagamento", format(fim, "yyyy-MM-dd"))
         .order("data_pagamento", { ascending: true });
+
+      const { data: parcelas } = await query;
 
       const fluxo: Record<string, number> = {};
 
@@ -266,18 +305,32 @@ export function useFluxoCaixa(dias: number = 30) {
   });
 }
 
-export function useDistribuicaoTipo() {
+export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
   return useQuery({
-    queryKey: ["distribuicao-tipo"],
+    queryKey: ["distribuicao-tipo", filters],
     queryFn: async (): Promise<DistribuicaoTipo[]> => {
-      const { data: acordos } = await supabase
+      let query = supabase
         .from("acordos_financeiros")
-        .select("tipo_servico, valor_total");
+        .select("tipo_servico, valor_total, created_at");
+
+      // Filtrar por status se especificado
+      if (filters?.status && filters.status !== "todos") {
+        query = query.eq("status", filters.status);
+      }
+
+      const { data: acordos } = await query;
+
+      // Filtrar por período se especificado
+      const { inicio, fim } = getDateRangeFromFilters(filters);
+      const acordosFiltrados = acordos?.filter(a => {
+        const dataAcordo = new Date(a.created_at);
+        return dataAcordo >= inicio && dataAcordo <= fim;
+      }) || [];
 
       const distribuicao: Record<string, { valor: number; quantidade: number }> = {};
       let totalValor = 0;
 
-      acordos?.forEach(a => {
+      acordosFiltrados.forEach(a => {
         if (!distribuicao[a.tipo_servico]) {
           distribuicao[a.tipo_servico] = { valor: 0, quantidade: 0 };
         }

@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { chartColors } from "@/lib/chartConfig";
 
 export function RelatorioFluxoCaixa() {
-  const { data: fluxo, isLoading } = useFluxoCaixa(30);
+  const { data: fluxo, isLoading } = useFluxoCaixa();
 
   if (isLoading) {
     return (

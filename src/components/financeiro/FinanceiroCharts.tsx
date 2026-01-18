@@ -6,7 +6,7 @@ import { CATEGORIA_DESPESA_LABELS } from "@/types/financeiro";
 
 export function FinanceiroCharts() {
   const { data: receitaMensal } = useReceitaMensal(12);
-  const { data: fluxoCaixa } = useFluxoCaixa(30);
+  const { data: fluxoCaixa } = useFluxoCaixa();
   const { data: distribuicao } = useDistribuicaoTipo();
   const { data: despesasPorCategoria } = useDespesasPorCategoria();
 

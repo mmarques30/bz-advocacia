@@ -21,9 +21,11 @@ import { ImportTransacoesDialog } from "@/components/financeiro/transacoes/Impor
 import { FaturamentoKPIs } from "@/components/financeiro/FaturamentoKPIs";
 import { FaturamentoCharts } from "@/components/financeiro/FaturamentoCharts";
 import { FaturamentoWidgets } from "@/components/financeiro/FaturamentoWidgets";
+import { FaturamentoFilters, getDefaultFaturamentoFilters, type FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
 import { DespesasCharts } from "@/components/financeiro/DespesasCharts";
 import { DespesasWidgets } from "@/components/financeiro/DespesasWidgets";
+import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
 import type { AcordosFilters, DespesasFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
@@ -42,6 +44,10 @@ export default function Financeiro() {
   const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
   const [newTransacaoOpen, setNewTransacaoOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+
+  // Estados para filtros globais
+  const [faturamentoFilters, setFaturamentoFilters] = useState<FaturamentoFiltersState>(getDefaultFaturamentoFilters());
+  const [despesasGlobalFilters, setDespesasGlobalFilters] = useState<DespesasGlobalFiltersState>(getDefaultDespesasGlobalFilters());
 
   return (
     <div className="space-y-6">
@@ -96,9 +102,10 @@ export default function Financeiro() {
             </Button>
           </div>
           
-          <FaturamentoKPIs />
-          <FaturamentoCharts />
-          <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} />
+          <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
+          <FaturamentoKPIs filters={faturamentoFilters} />
+          <FaturamentoCharts filters={faturamentoFilters} />
+          <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
           
           <AcordosHeader 
             onNewAcordo={() => setNewAcordoOpen(true)}
@@ -127,11 +134,12 @@ export default function Financeiro() {
             </Button>
           </div>
           
-          <DespesasKPIs />
+          <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
+          <DespesasKPIs filters={despesasGlobalFilters} />
           
           <div className="grid gap-6 md:grid-cols-2">
-            <DespesasCharts />
-            <DespesasWidgets />
+            <DespesasCharts filters={despesasGlobalFilters} />
+            <DespesasWidgets filters={despesasGlobalFilters} />
           </div>
           
           <DespesasHeader 
