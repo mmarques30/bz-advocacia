@@ -140,16 +140,7 @@ export function ConsultaProcessoForm({ onSuccess }: ConsultaProcessoFormProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Scale className="h-5 w-5 text-primary" />
-          <CardTitle>Consultar Processo Judicial</CardTitle>
-        </div>
-        <CardDescription>
-          Consulte dados públicos de processos via API oficial do CNJ (Datajud)
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

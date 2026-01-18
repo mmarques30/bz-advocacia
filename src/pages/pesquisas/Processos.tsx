@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Scale, Calendar, Building2, FileText, Activity, ChevronDown, ChevronUp, AlertCircle } from "lucide-react";
+import { Scale, Calendar, Building2, FileText, Activity, ChevronDown, ChevronUp, Info, ShieldCheck } from "lucide-react";
 import { ConsultaProcessoForm } from "@/components/pesquisas/ConsultaProcessoForm";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConsultaProcesso } from "@/hooks/useConsultaProcesso";
 import type { ConsultaProcessoResponse } from "@/types/pesquisas";
 
@@ -195,55 +196,50 @@ export default function PesquisasProcessos() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Consulta de Processos Judiciais</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold tracking-tight">Consulta de Processos Judiciais</h1>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[280px]">
+                <p className="font-medium mb-1">API Datajud (CNJ)</p>
+                <ul className="text-xs space-y-0.5">
+                  <li>• 120 requisições por minuto</li>
+                  <li>• Dados podem ter 1-7 dias de atraso</li>
+                  <li>• Processos sigilosos não retornam dados</li>
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                  <ShieldCheck className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px]">
+                <p className="font-medium mb-1">Conformidade LGPD</p>
+                <p className="text-xs">
+                  Todas as consultas são registradas com motivo e justificativa para fins de auditoria.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
         <p className="text-muted-foreground">
           Consulte informações públicas de processos via API oficial do CNJ (Datajud)
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <ConsultaProcessoForm onSuccess={() => {}} />
-          
-          {data && <ResultadoConsulta data={data} />}
-        </div>
-
-        <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Sobre a API Datajud</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-3">
-              <p>
-                A API Pública do Datajud é mantida pelo CNJ e fornece acesso 
-                aos metadados de processos judiciais de todos os tribunais brasileiros.
-              </p>
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">Limitações:</p>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>120 requisições por minuto</li>
-                  <li>Dados podem ter 1-7 dias de atraso</li>
-                  <li>Processos sigilosos não retornam dados</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                Conformidade LGPD
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              <p>
-                Todas as consultas são registradas com motivo e justificativa 
-                para fins de auditoria e conformidade com a Lei Geral de Proteção de Dados.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="max-w-4xl">
+        <ConsultaProcessoForm onSuccess={() => {}} />
+        
+        {data && <ResultadoConsulta data={data} />}
       </div>
     </div>
   );
