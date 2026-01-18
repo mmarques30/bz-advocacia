@@ -2,9 +2,6 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload } from "lucide-react";
-import { FinanceiroKPIs } from "@/components/financeiro/FinanceiroKPIs";
-import { FinanceiroCharts } from "@/components/financeiro/FinanceiroCharts";
-import { FinanceiroWidgets } from "@/components/financeiro/FinanceiroWidgets";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { AcordosHeader } from "@/components/financeiro/AcordosHeader";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
@@ -21,6 +18,12 @@ import { TransacoesFilters } from "@/components/financeiro/transacoes/Transacoes
 import { TransacoesTable } from "@/components/financeiro/transacoes/TransacoesTable";
 import { NewTransacaoDialog } from "@/components/financeiro/transacoes/NewTransacaoDialog";
 import { ImportTransacoesDialog } from "@/components/financeiro/transacoes/ImportTransacoesDialog";
+import { FaturamentoKPIs } from "@/components/financeiro/FaturamentoKPIs";
+import { FaturamentoCharts } from "@/components/financeiro/FaturamentoCharts";
+import { FaturamentoWidgets } from "@/components/financeiro/FaturamentoWidgets";
+import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
+import { DespesasCharts } from "@/components/financeiro/DespesasCharts";
+import { DespesasWidgets } from "@/components/financeiro/DespesasWidgets";
 import type { AcordosFilters, DespesasFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
@@ -49,15 +52,15 @@ export default function Financeiro() {
         </p>
       </div>
 
-      <Tabs defaultValue="controle" className="space-y-6">
+      <Tabs defaultValue="geral" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="controle">Controle Financeiro</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="acordos">Acordos</TabsTrigger>
+          <TabsTrigger value="geral">Visão Geral</TabsTrigger>
+          <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="controle" className="space-y-6">
+        {/* Aba Visão Geral - antiga Controle Financeiro */}
+        <TabsContent value="geral" className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-semibold">Transações Financeiras</h2>
@@ -80,16 +83,23 @@ export default function Financeiro() {
           <TransacoesTable filters={transacoesFilters} />
         </TabsContent>
 
-        <TabsContent value="dashboard" className="space-y-6">
-          <DespesasAlerts />
-          <FinanceiroKPIs />
-          <FinanceiroCharts />
-          <FinanceiroWidgets 
-            onRegistrarPagamento={setPagamentoParcelaId}
-          />
-        </TabsContent>
-
-        <TabsContent value="acordos" className="space-y-6">
+        {/* Aba Faturamento - Acordos e Receitas */}
+        <TabsContent value="faturamento" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">Faturamento</h2>
+              <p className="text-sm text-muted-foreground">Gerencie acordos e receitas</p>
+            </div>
+            <Button onClick={() => setNewAcordoOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Acordo
+            </Button>
+          </div>
+          
+          <FaturamentoKPIs />
+          <FaturamentoCharts />
+          <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} />
+          
           <AcordosHeader 
             onNewAcordo={() => setNewAcordoOpen(true)}
             filters={filters}
@@ -102,7 +112,28 @@ export default function Financeiro() {
           />
         </TabsContent>
 
+        {/* Aba Despesas */}
         <TabsContent value="despesas" className="space-y-6">
+          <DespesasAlerts />
+          
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-semibold">Despesas</h2>
+              <p className="text-sm text-muted-foreground">Gerencie todas as despesas</p>
+            </div>
+            <Button onClick={() => setNewDespesaOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Despesa
+            </Button>
+          </div>
+          
+          <DespesasKPIs />
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            <DespesasCharts />
+            <DespesasWidgets />
+          </div>
+          
           <DespesasHeader 
             onNewDespesa={() => setNewDespesaOpen(true)}
             filters={despesasFilters}
