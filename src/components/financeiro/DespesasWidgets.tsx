@@ -5,9 +5,14 @@ import { Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import type { DespesasGlobalFiltersState } from "./DespesasGlobalFilters";
 
-export function DespesasWidgets() {
-  const { data: despesasRecentes } = useDespesasRecentes();
+interface DespesasWidgetsProps {
+  filters?: DespesasGlobalFiltersState;
+}
+
+export function DespesasWidgets({ filters }: DespesasWidgetsProps) {
+  const { data: despesasRecentes } = useDespesasRecentes(filters);
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {

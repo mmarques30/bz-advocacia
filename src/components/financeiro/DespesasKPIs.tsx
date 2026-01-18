@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt, Clock, AlertTriangle, CheckCircle } from "lucide-react";
 import { useKPIsDespesas } from "@/hooks/useDespesas";
+import type { DespesasGlobalFiltersState } from "./DespesasGlobalFilters";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -10,8 +11,12 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function DespesasKPIs() {
-  const { data: kpis, isLoading } = useKPIsDespesas();
+interface DespesasKPIsProps {
+  filters?: DespesasGlobalFiltersState;
+}
+
+export function DespesasKPIs({ filters }: DespesasKPIsProps) {
+  const { data: kpis, isLoading } = useKPIsDespesas(filters);
 
   if (isLoading) {
     return (
