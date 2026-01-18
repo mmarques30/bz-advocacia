@@ -190,6 +190,10 @@ export default function Financeiro() {
       <ImportFaturamentoDialog
         open={importFaturamentoOpen}
         onClose={() => setImportFaturamentoOpen(false)}
+        onSuccess={(ano) => {
+          setTransacoesFilters(prev => ({ ...prev, ano, dataInicio: undefined, dataFim: undefined }));
+          setHistoricoFilters(prev => ({ ...prev, ano }));
+        }}
       />
 
       {/* Dialogs de Despesas */}
@@ -207,6 +211,10 @@ export default function Financeiro() {
       <ImportDespesasDialog
         open={importDespesasOpen}
         onClose={() => setImportDespesasOpen(false)}
+        onSuccess={(ano) => {
+          setTransacoesFilters(prev => ({ ...prev, ano, dataInicio: undefined, dataFim: undefined }));
+          setHistoricoFilters(prev => ({ ...prev, ano }));
+        }}
       />
     </div>
   );
