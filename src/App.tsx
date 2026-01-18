@@ -22,6 +22,7 @@ import Perfil from "./pages/configuracoes/Perfil";
 import Usuarios from "./pages/configuracoes/Usuarios";
 import Templates from "./pages/configuracoes/Templates";
 import GuiaDeUso from "./pages/configuracoes/GuiaDeUso";
+import Automacoes from "./pages/configuracoes/Automacoes";
 
 // Processos
 import ProcessosPrazos from "./pages/processos/Prazos";
@@ -187,6 +188,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <GuiaDeUso />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/configuracoes/automacoes" 
+        element={
+          <ProtectedRoute>
+            <Automacoes />
           </ProtectedRoute>
         } 
       />
