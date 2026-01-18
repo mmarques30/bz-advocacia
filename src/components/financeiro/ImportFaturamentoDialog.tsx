@@ -97,37 +97,92 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
   const parseDate = (dateStr: string, fallbackMes: number, fallbackAno: number): string => {
     if (!dateStr) return `${fallbackAno}-${String(fallbackMes).padStart(2, '0')}-01`;
     
-    // Handle Excel serial date numbers
-    const numValue = parseFloat(dateStr);
+    const str = dateStr.trim();
+    
+    // Handle Excel serial date numbers (e.g., 45000)
+    const numValue = parseFloat(str);
     if (!isNaN(numValue) && numValue > 40000 && numValue < 50000) {
       const excelEpoch = new Date(1899, 11, 30);
       const date = new Date(excelEpoch.getTime() + numValue * 24 * 60 * 60 * 1000);
       return date.toISOString().split('T')[0];
     }
     
-    // Format: DD/MM/YYYY or DD-MM-YYYY
-    const ddmmyyyy = dateStr.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
-    if (ddmmyyyy) {
-      const [, dd, mm, yyyy] = ddmmyyyy;
-      return `${yyyy}-${mm}-${dd}`;
+    // Handle text month formats: "13-mar.", "25-abr.", "31-mar."
+    const textMonthMatch = str.match(/^(\d{1,2})[\/\-](\w+)\.?$/i);
+    if (textMonthMatch) {
+      const [, dayPart, monthPart] = textMonthMatch;
+      const monthLower = monthPart.toLowerCase();
+      
+      const monthMap: Record<string, number> = {
+        jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6,
+        jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12
+      };
+      
+      const month = monthMap[monthLower.substring(0, 3)] || fallbackMes;
+      const day = Math.min(parseInt(dayPart), 31);
+      
+      return `${fallbackAno}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
     
-    // Format: YYYY-MM-DD (normal) or YYYY-DD-MM (inverted)
-    const yyyymmdd = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (yyyymmdd) {
-      const [, yyyy, part2, part3] = yyyymmdd;
+    // Handle M/D/YYYY or D/M/YYYY format (with / separator)
+    const slashMatch = str.match(/^(\d{1,2})[\/](\d{1,2})[\/](\d{4})$/);
+    if (slashMatch) {
+      const [, part1, part2, yyyy] = slashMatch;
+      const p1 = parseInt(part1);
+      const p2 = parseInt(part2);
+      
+      let month: number, day: number;
+      
+      // If first part > 12, it MUST be day (D/M/YYYY format)
+      if (p1 > 12) {
+        day = p1;
+        month = p2;
+      } 
+      // If second part > 12, it MUST be day (M/D/YYYY format - American)
+      else if (p2 > 12) {
+        month = p1;
+        day = p2;
+      }
+      // Both ≤ 12: assume American format (M/D/YYYY) based on Excel behavior
+      else {
+        month = p1;
+        day = p2;
+      }
+      
+      // Validate
+      month = Math.min(Math.max(month, 1), 12);
+      day = Math.min(Math.max(day, 1), 31);
+      
+      return `${yyyy}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+    
+    // Handle YYYY-MM-DD or YYYY-DD-MM format (ISO-like with - separator)
+    const dashMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (dashMatch) {
+      const [, yyyy, part2, part3] = dashMatch;
       const p2 = parseInt(part2);
       const p3 = parseInt(part3);
       
-      // If middle part > 12, it's day (inverted format YYYY-DD-MM)
+      let month: number, day: number;
+      
+      // If middle part > 12, it's the day (inverted: YYYY-DD-MM)
       if (p2 > 12 && p3 <= 12) {
-        return `${yyyy}-${part3}-${part2}`; // Swap to YYYY-MM-DD
+        day = p2;
+        month = p3;
+      } else {
+        // Normal format: YYYY-MM-DD
+        month = p2;
+        day = p3;
       }
-      // Normal format
-      return dateStr;
+      
+      // Validate
+      month = Math.min(Math.max(month, 1), 12);
+      day = Math.min(Math.max(day, 1), 31);
+      
+      return `${yyyy}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }
     
-    // Fallback: first day of month
+    // Fallback: first day of the fallback month
     return `${fallbackAno}-${String(fallbackMes).padStart(2, '0')}-01`;
   };
 
