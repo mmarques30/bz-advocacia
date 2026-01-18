@@ -14,7 +14,7 @@ import {
   Line,
   Legend,
 } from "recharts";
-import { useResumoMensal, useResumoSubcategoria, useKPIsTransacoes, useResumoAnual } from "@/hooks/useTransacoesFinanceiras";
+import { useResumoMensal, useKPIsTransacoes, useResumoAnual, useReceitasPorResponsavel } from "@/hooks/useTransacoesFinanceiras";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
@@ -44,16 +44,17 @@ interface TransacoesChartsProps {
 export function TransacoesCharts({ filters }: TransacoesChartsProps) {
   // Determinar se temos um ano específico ou se é "tudo"
   const hasYearFilter = filters?.ano !== undefined;
+  const hasDateRange = filters?.dataInicio && filters?.dataFim;
   const anoSelecionado = filters?.ano || new Date().getFullYear();
   
   const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(
     hasYearFilter ? { ...filters, ano: anoSelecionado } : { ano: new Date().getFullYear() }
   );
   const { data: resumoAnual, isLoading: loadingAnual } = useResumoAnual();
-  const { data: resumoSubcat, isLoading: loadingSubcat } = useResumoSubcategoria(anoSelecionado);
+  const { data: receitasResponsavel, isLoading: loadingResponsavel } = useReceitasPorResponsavel(filters);
   const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(filters || {});
 
-  const isLoading = loadingMensal || loadingSubcat || loadingKpis || loadingAnual;
+  const isLoading = loadingMensal || loadingKpis || loadingAnual || loadingResponsavel;
 
   if (isLoading) {
     return (
@@ -89,8 +90,8 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
     return `${base} - Todos os anos`;
   };
 
-  // Se não há filtro de ano específico, mostrar gráfico por ano
-  const showYearlyChart = !hasYearFilter && !filters?.dataInicio && !filters?.dataFim;
+  // Se não há filtro de ano específico nem range de datas, mostrar gráfico por ano
+  const showYearlyChart = !hasYearFilter && !hasDateRange;
 
   // Dados acumulados para linha (quando há ano específico)
   let acumulado = 0;
@@ -181,28 +182,28 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
         </CardContent>
       </Card>
 
-      {/* Por Subcategoria */}
+      {/* Receitas por Responsável */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Receitas por Sócia</CardTitle>
+          <CardTitle className="text-lg">Receitas por Responsável</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
             <PieChart>
               <Pie
-                data={resumoSubcat || []}
+                data={receitasResponsavel || []}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
                 outerRadius={80}
                 paddingAngle={5}
                 dataKey="total"
-                nameKey="subcategoria_nome"
-                label={({ subcategoria_nome, percentual }) =>
-                  `${subcategoria_nome}: ${percentual.toFixed(0)}%`
+                nameKey="responsavel"
+                label={({ responsavel, percentual }) =>
+                  `${responsavel}: ${percentual.toFixed(0)}%`
                 }
               >
-                {(resumoSubcat || []).map((_, index) => (
+                {(receitasResponsavel || []).map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

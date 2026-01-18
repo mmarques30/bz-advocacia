@@ -1,10 +1,3 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -12,12 +5,20 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CalendarIcon, X } from "lucide-react";
 import { useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 interface Props {
   filters: TFilters;
@@ -29,103 +30,61 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   const { data: tipos } = useTipos();
   const { data: subcategorias } = useSubcategorias(filters.categoria_codigo);
 
-  const currentYear = new Date().getFullYear();
-  // Anos de 2020 até o ano atual
-  const years = Array.from({ length: currentYear - 2020 + 1 }, (_, i) => currentYear - i);
+  const dateRange: DateRange | undefined = filters.dataInicio || filters.dataFim
+    ? { from: filters.dataInicio, to: filters.dataFim }
+    : undefined;
+
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    onFiltersChange({
+      ...filters,
+      dataInicio: range?.from,
+      dataFim: range?.to,
+      ano: undefined, // Limpar ano quando seleciona range
+    });
+  };
 
   const handleClear = () => {
     onFiltersChange({});
   };
 
   const hasFilters =
-    filters.ano !== undefined ||
     filters.dataInicio ||
     filters.dataFim ||
     filters.tipo_codigo ||
     filters.categoria_codigo ||
     filters.subcategoria_codigo;
 
+  const formatDateRange = () => {
+    if (dateRange?.from) {
+      if (dateRange.to) {
+        return `${format(dateRange.from, "dd/MM/yy")} - ${format(dateRange.to, "dd/MM/yy")}`;
+      }
+      return format(dateRange.from, "dd/MM/yyyy");
+    }
+    return "Selecionar período";
+  };
+
   return (
     <div className="flex flex-wrap gap-3 items-end">
-      <Select
-        value={filters.ano?.toString() || "all"}
-        onValueChange={(value) =>
-          onFiltersChange({
-            ...filters,
-            ano: value === "all" ? undefined : parseInt(value),
-            dataInicio: undefined,
-            dataFim: undefined,
-          })
-        }
-      >
-        <SelectTrigger className="w-[120px]">
-          <SelectValue placeholder="Todos Anos" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos Anos</SelectItem>
-          {years.map((year) => (
-            <SelectItem key={year} value={year.toString()}>
-              {year}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "w-[140px] justify-start text-left font-normal",
-              !filters.dataInicio && "text-muted-foreground"
+              "w-[220px] justify-start text-left font-normal",
+              !dateRange && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {filters.dataInicio ? (
-              format(filters.dataInicio, "dd/MM/yyyy")
-            ) : (
-              <span>Data Início</span>
-            )}
+            {formatDateRange()}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
           <Calendar
-            mode="single"
-            selected={filters.dataInicio}
-            onSelect={(date) =>
-              onFiltersChange({ ...filters, dataInicio: date || undefined })
-            }
-            locale={ptBR}
-            initialFocus
-            className={cn("p-3 pointer-events-auto")}
-          />
-        </PopoverContent>
-      </Popover>
-
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "w-[140px] justify-start text-left font-normal",
-              !filters.dataFim && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {filters.dataFim ? (
-              format(filters.dataFim, "dd/MM/yyyy")
-            ) : (
-              <span>Data Fim</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            mode="single"
-            selected={filters.dataFim}
-            onSelect={(date) =>
-              onFiltersChange({ ...filters, dataFim: date || undefined })
-            }
+            mode="range"
+            selected={dateRange}
+            onSelect={handleDateRangeChange}
+            numberOfMonths={2}
             locale={ptBR}
             initialFocus
             className={cn("p-3 pointer-events-auto")}

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useKPIsTransacoes } from "@/hooks/useTransacoesFinanceiras";
-import { TrendingUp, TrendingDown, DollarSign, Users } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TransacoesFilters } from "@/types/transacoes";
 
@@ -16,7 +16,6 @@ interface TransacoesKPIsProps {
 }
 
 export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
-  // Passa os filtros diretamente, sem fallback para ano atual
   const { data: kpis, isLoading, error } = useKPIsTransacoes(filters || {});
 
   // Gera título dinâmico baseado nos filtros
@@ -32,16 +31,21 @@ export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
 
   const filterLabel = getFilterLabel();
 
+  // Calcular margem
+  const margem = kpis?.receitas && kpis.receitas > 0 
+    ? ((kpis.resultado || 0) / kpis.receitas) * 100 
+    : 0;
+
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
           <Card key={i}>
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-1 pt-3">
               <Skeleton className="h-4 w-24" />
             </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-32" />
+            <CardContent className="pt-0 pb-3">
+              <Skeleton className="h-6 w-32" />
             </CardContent>
           </Card>
         ))}
@@ -73,38 +77,38 @@ export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
       bgColor: "bg-red-100",
     },
     {
-      title: "Resultado",
+      title: "Lucro",
       value: formatCurrency(kpis?.resultado || 0),
       icon: DollarSign,
       color: (kpis?.resultado || 0) >= 0 ? "text-emerald-600" : "text-red-600",
       bgColor: (kpis?.resultado || 0) >= 0 ? "bg-emerald-100" : "bg-red-100",
     },
     {
-      title: "PF vs PJ",
-      value: `${formatCurrency(kpis?.receitasPF || 0)} / ${formatCurrency(kpis?.receitasPJ || 0)}`,
-      subtitle: "Pessoa Física / Jurídica",
-      icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      title: "Margem",
+      value: `${margem.toFixed(1)}%`,
+      subtitle: "Lucro / Receita Total",
+      icon: Percent,
+      color: margem >= 0 ? "text-blue-600" : "text-red-600",
+      bgColor: margem >= 0 ? "bg-blue-100" : "bg-red-100",
     },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       {kpiData.map((kpi) => (
         <Card key={kpi.title}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-1 pt-3">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
               {kpi.title}
             </CardTitle>
-            <div className={`p-2 rounded-full ${kpi.bgColor}`}>
-              <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
+            <div className={`p-1.5 rounded-full ${kpi.bgColor}`}>
+              <kpi.icon className={`h-3.5 w-3.5 ${kpi.color}`} />
             </div>
           </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${kpi.color}`}>{kpi.value}</div>
+          <CardContent className="pt-0 pb-3">
+            <div className={`text-xl font-bold ${kpi.color}`}>{kpi.value}</div>
             {kpi.subtitle && (
-              <p className="text-xs text-muted-foreground mt-1">{kpi.subtitle}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{kpi.subtitle}</p>
             )}
           </CardContent>
         </Card>
