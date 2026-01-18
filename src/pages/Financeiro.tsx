@@ -3,12 +3,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Plus, Upload } from "lucide-react";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
-import { AcordosHeader } from "@/components/financeiro/AcordosHeader";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
 import { NewAcordoDialog } from "@/components/financeiro/NewAcordoDialog";
 import { AcordoDetailsDialog } from "@/components/financeiro/AcordoDetailsDialog";
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
-import { DespesasHeader } from "@/components/financeiro/despesas/DespesasHeader";
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
@@ -16,38 +14,44 @@ import { TransacoesKPIs } from "@/components/financeiro/transacoes/TransacoesKPI
 import { TransacoesCharts } from "@/components/financeiro/transacoes/TransacoesCharts";
 import { TransacoesFilters } from "@/components/financeiro/transacoes/TransacoesFilters";
 import { TransacoesTable } from "@/components/financeiro/transacoes/TransacoesTable";
-import { NewTransacaoDialog } from "@/components/financeiro/transacoes/NewTransacaoDialog";
-import { ImportTransacoesDialog } from "@/components/financeiro/transacoes/ImportTransacoesDialog";
 import { FaturamentoKPIs } from "@/components/financeiro/FaturamentoKPIs";
 import { FaturamentoCharts } from "@/components/financeiro/FaturamentoCharts";
 import { FaturamentoWidgets } from "@/components/financeiro/FaturamentoWidgets";
 import { FaturamentoFilters, getDefaultFaturamentoFilters, type FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
+import { ImportFaturamentoDialog } from "@/components/financeiro/ImportFaturamentoDialog";
 import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
 import { DespesasCharts } from "@/components/financeiro/DespesasCharts";
 import { DespesasWidgets } from "@/components/financeiro/DespesasWidgets";
 import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
-import type { AcordosFilters, DespesasFilters } from "@/types/financeiro";
+import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
+import type { AcordosFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
 export default function Financeiro() {
-  const [filters, setFilters] = useState<AcordosFilters>({});
   const [newAcordoOpen, setNewAcordoOpen] = useState(false);
   const [selectedAcordoId, setSelectedAcordoId] = useState<string | null>(null);
   const [pagamentoParcelaId, setPagamentoParcelaId] = useState<string | null>(null);
   
   // Estados para despesas
-  const [despesasFilters, setDespesasFilters] = useState<DespesasFilters>({});
   const [newDespesaOpen, setNewDespesaOpen] = useState(false);
   const [selectedDespesaId, setSelectedDespesaId] = useState<string | null>(null);
 
-  // Estados para transações
-  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
-  const [newTransacaoOpen, setNewTransacaoOpen] = useState(false);
-  const [importOpen, setImportOpen] = useState(false);
+  // Estados para transações (Visão Geral)
+  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({ ano: new Date().getFullYear() });
 
-  // Estados para filtros globais
+  // Estados para filtros globais e dialogs de importação
   const [faturamentoFilters, setFaturamentoFilters] = useState<FaturamentoFiltersState>(getDefaultFaturamentoFilters());
+  const [importFaturamentoOpen, setImportFaturamentoOpen] = useState(false);
+  
   const [despesasGlobalFilters, setDespesasGlobalFilters] = useState<DespesasGlobalFiltersState>(getDefaultDespesasGlobalFilters());
+  const [importDespesasOpen, setImportDespesasOpen] = useState(false);
+
+  // Converter filtros globais para filtros de tabela
+  const acordosFiltersFromGlobal: AcordosFilters = {
+    search: faturamentoFilters.search,
+    status: faturamentoFilters.status ? [faturamentoFilters.status as any] : undefined,
+    tipo_servico: faturamentoFilters.tipoServico,
+  };
 
   return (
     <div className="space-y-6">
@@ -65,27 +69,21 @@ export default function Financeiro() {
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
         </TabsList>
 
-        {/* Aba Visão Geral - antiga Controle Financeiro */}
+        {/* Aba Visão Geral */}
         <TabsContent value="geral" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold">Transações Financeiras</h2>
-              <p className="text-sm text-muted-foreground">Gerencie receitas e despesas</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Importar
-              </Button>
-              <Button onClick={() => setNewTransacaoOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Transação
-              </Button>
-            </div>
+          <div>
+            <h2 className="text-xl font-semibold">Transações Financeiras</h2>
+            <p className="text-sm text-muted-foreground">Visão consolidada de receitas e despesas</p>
           </div>
-          <TransacoesKPIs />
-          <TransacoesCharts />
+          
+          {/* Filtros no topo */}
           <TransacoesFilters filters={transacoesFilters} onFiltersChange={setTransacoesFilters} />
+          
+          {/* KPIs e Charts filtrados */}
+          <TransacoesKPIs filters={transacoesFilters} />
+          <TransacoesCharts filters={transacoesFilters} />
+          
+          {/* Tabela filtrada */}
           <TransacoesTable filters={transacoesFilters} />
         </TabsContent>
 
@@ -96,24 +94,29 @@ export default function Financeiro() {
               <h2 className="text-xl font-semibold">Faturamento</h2>
               <p className="text-sm text-muted-foreground">Gerencie acordos e receitas</p>
             </div>
-            <Button onClick={() => setNewAcordoOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Acordo
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportFaturamentoOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+              <Button onClick={() => setNewAcordoOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Acordo
+              </Button>
+            </div>
           </div>
           
+          {/* Filtros globais no topo */}
           <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
+          
+          {/* Componentes filtrados */}
           <FaturamentoKPIs filters={faturamentoFilters} />
           <FaturamentoCharts filters={faturamentoFilters} />
           <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
           
-          <AcordosHeader 
-            onNewAcordo={() => setNewAcordoOpen(true)}
-            filters={filters}
-            onFiltersChange={setFilters}
-          />
+          {/* Tabela de Acordos usando filtros globais */}
           <AcordosTable 
-            filters={filters}
+            filters={acordosFiltersFromGlobal}
             onSelectAcordo={setSelectedAcordoId}
             onRegistrarPagamento={setPagamentoParcelaId}
           />
@@ -128,13 +131,22 @@ export default function Financeiro() {
               <h2 className="text-xl font-semibold">Despesas</h2>
               <p className="text-sm text-muted-foreground">Gerencie todas as despesas</p>
             </div>
-            <Button onClick={() => setNewDespesaOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Despesa
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportDespesasOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+              <Button onClick={() => setNewDespesaOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Despesa
+              </Button>
+            </div>
           </div>
           
+          {/* Filtros globais no topo */}
           <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
+          
+          {/* Componentes filtrados */}
           <DespesasKPIs filters={despesasGlobalFilters} />
           
           <div className="grid gap-6 md:grid-cols-2">
@@ -142,18 +154,19 @@ export default function Financeiro() {
             <DespesasWidgets filters={despesasGlobalFilters} />
           </div>
           
-          <DespesasHeader 
-            onNewDespesa={() => setNewDespesaOpen(true)}
-            filters={despesasFilters}
-            onFiltersChange={setDespesasFilters}
-          />
+          {/* Tabela usando filtros globais convertidos */}
           <DespesasTable 
-            filters={despesasFilters}
+            filters={{
+              search: despesasGlobalFilters.search,
+              categoria: despesasGlobalFilters.categoria ? [despesasGlobalFilters.categoria as any] : undefined,
+              status: despesasGlobalFilters.status ? [despesasGlobalFilters.status as any] : undefined,
+            }}
             onSelectDespesa={setSelectedDespesaId}
           />
         </TabsContent>
       </Tabs>
 
+      {/* Dialogs de Faturamento */}
       <NewAcordoDialog 
         open={newAcordoOpen}
         onClose={() => setNewAcordoOpen(false)}
@@ -172,6 +185,12 @@ export default function Financeiro() {
         onClose={() => setPagamentoParcelaId(null)}
       />
 
+      <ImportFaturamentoDialog
+        open={importFaturamentoOpen}
+        onClose={() => setImportFaturamentoOpen(false)}
+      />
+
+      {/* Dialogs de Despesas */}
       <NewDespesaDialog 
         open={newDespesaOpen}
         onClose={() => setNewDespesaOpen(false)}
@@ -183,14 +202,9 @@ export default function Financeiro() {
         onClose={() => setSelectedDespesaId(null)}
       />
 
-      <NewTransacaoDialog
-        open={newTransacaoOpen}
-        onClose={() => setNewTransacaoOpen(false)}
-      />
-
-      <ImportTransacoesDialog
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
+      <ImportDespesasDialog
+        open={importDespesasOpen}
+        onClose={() => setImportDespesasOpen(false)}
       />
     </div>
   );

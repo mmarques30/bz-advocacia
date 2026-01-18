@@ -35,10 +35,17 @@ const formatCurrencyFull = (value: number) => {
   }).format(value);
 };
 
-export function TransacoesCharts() {
-  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(2025);
-  const { data: resumoSubcat, isLoading: loadingSubcat } = useResumoSubcategoria(2025);
-  const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(2025);
+import type { TransacoesFilters } from "@/types/transacoes";
+
+interface TransacoesChartsProps {
+  filters?: TransacoesFilters;
+}
+
+export function TransacoesCharts({ filters }: TransacoesChartsProps) {
+  const effectiveFilters = filters || { ano: new Date().getFullYear() };
+  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(effectiveFilters);
+  const { data: resumoSubcat, isLoading: loadingSubcat } = useResumoSubcategoria(effectiveFilters.ano || new Date().getFullYear());
+  const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(effectiveFilters);
 
   if (loadingMensal || loadingSubcat || loadingKpis) {
     return (
