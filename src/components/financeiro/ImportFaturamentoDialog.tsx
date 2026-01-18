@@ -85,7 +85,7 @@ export function ImportFaturamentoDialog({ open, onClose }: Props) {
   const queryClient = useQueryClient();
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  const years = Array.from({ length: currentYear - 2020 + 2 }, (_, i) => 2020 + i);
 
   const parseMes = (mesStr: string): number => {
     if (!mesStr) return 0;
