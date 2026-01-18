@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, History, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
 import { NewEntradaFaturamentoDialog } from "@/components/financeiro/NewEntradaFaturamentoDialog";
@@ -151,7 +152,19 @@ export default function Financeiro() {
         {/* Aba Histórico - Todas as transações importadas */}
         <TabsContent value="historico" className="space-y-6">
           <HistoricoFilters filters={historicoFilters} onChange={setHistoricoFilters} />
-          <HistoricoTable filters={historicoFilters} />
+          
+          <Collapsible defaultOpen className="border rounded-lg">
+            <CollapsibleTrigger className="flex items-center justify-between w-full p-4 hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5" />
+                <span className="font-medium">Transações Recentes</span>
+              </div>
+              <ChevronDown className="h-4 w-4 transition-transform data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="p-4 pt-0">
+              <HistoricoTable filters={historicoFilters} mode="preview" />
+            </CollapsibleContent>
+          </Collapsible>
         </TabsContent>
       </Tabs>
 

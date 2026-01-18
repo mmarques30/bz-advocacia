@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Table,
   TableBody,
@@ -25,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Trash2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { MoreHorizontal, Trash2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -35,11 +36,14 @@ import { ptBR } from "date-fns/locale";
 
 interface Props {
   filters: HistoricoFiltersState;
+  mode?: "preview" | "full";
 }
 
 const ITEMS_PER_PAGE = 20;
+const PREVIEW_LIMIT = 3;
 
-export function HistoricoTable({ filters }: Props) {
+export function HistoricoTable({ filters, mode = "full" }: Props) {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -81,6 +85,11 @@ export function HistoricoTable({ filters }: Props) {
   const totalPages = Math.ceil(filteredTransacoes.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedTransacoes = filteredTransacoes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  
+  // For preview mode, show only first 3 items
+  const displayedTransacoes = mode === "preview" 
+    ? filteredTransacoes.slice(0, PREVIEW_LIMIT)
+    : paginatedTransacoes;
 
   const totalReceitas = filteredTransacoes
     .filter(t => t.tipo_codigo === "receita")
@@ -122,14 +131,14 @@ export function HistoricoTable({ filters }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedTransacoes.length === 0 ? (
+            {displayedTransacoes.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   Nenhuma transação encontrada
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedTransacoes.map((transacao) => (
+              displayedTransacoes.map((transacao) => (
                 <TableRow key={transacao.id}>
                   <TableCell>
                     {transacao.data_transacao
@@ -185,8 +194,20 @@ export function HistoricoTable({ filters }: Props) {
         </Table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+      {/* Preview mode: Show "Ver todas" button */}
+      {mode === "preview" && filteredTransacoes.length > PREVIEW_LIMIT && (
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={() => navigate("/dashboard/financeiro/historico")}
+        >
+          Ver todas as {filteredTransacoes.length} transações
+          <ExternalLink className="h-4 w-4 ml-2" />
+        </Button>
+      )}
+
+      {/* Pagination - only in full mode */}
+      {mode === "full" && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="text-sm text-muted-foreground">
             Página {currentPage} de {totalPages}
