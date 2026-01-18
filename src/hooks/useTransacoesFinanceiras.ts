@@ -261,6 +261,73 @@ export function useResumoSubcategoria(ano?: number) {
   });
 }
 
+// Hook para receitas por responsável (baseado em categoria_codigo)
+// PF = Liziane ou Juliana (baseado na subcategoria ou descrição)
+// PJ = B&Z Advocacia
+export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
+  return useQuery({
+    queryKey: ["receitas-por-responsavel", filters],
+    queryFn: async () => {
+      let query = supabase
+        .from("transacoes_financeiras")
+        .select("categoria_codigo, subcategoria_codigo, descricao, valor")
+        .eq("tipo_codigo", "receita");
+
+      // Apply filters
+      if (filters?.dataInicio) {
+        query = query.gte("data_transacao", format(filters.dataInicio, "yyyy-MM-dd"));
+      }
+      if (filters?.dataFim) {
+        query = query.lte("data_transacao", format(filters.dataFim, "yyyy-MM-dd"));
+      }
+      if (filters?.ano && !filters?.dataInicio && !filters?.dataFim) {
+        query = query.eq("ano", filters.ano);
+      }
+
+      const { data: transacoes, error } = await query;
+
+      if (error) throw error;
+
+      const totais = new Map<string, number>();
+      
+      for (const t of transacoes || []) {
+        let responsavel = "B&Z Advocacia";
+        
+        // Se for PJ, é B&Z
+        if (t.categoria_codigo === "pj") {
+          responsavel = "B&Z Advocacia";
+        } else if (t.categoria_codigo === "pf") {
+          // Para PF, tentar identificar a sócia pela subcategoria ou descrição
+          const descLower = (t.descricao || "").toLowerCase();
+          const subcatLower = (t.subcategoria_codigo || "").toLowerCase();
+          
+          if (descLower.includes("liziane") || subcatLower.includes("liziane")) {
+            responsavel = "Liziane";
+          } else if (descLower.includes("juliana") || subcatLower.includes("juliana")) {
+            responsavel = "Juliana";
+          } else {
+            // Se não conseguir identificar, distribuir entre as duas ou usar genérico
+            responsavel = "PF (não identificado)";
+          }
+        }
+        
+        const atual = totais.get(responsavel) || 0;
+        totais.set(responsavel, atual + Number(t.valor));
+      }
+
+      const total = Array.from(totais.values()).reduce((a, b) => a + b, 0);
+
+      return Array.from(totais.entries())
+        .map(([responsavel, valor]) => ({
+          responsavel,
+          total: valor,
+          percentual: total > 0 ? (valor / total) * 100 : 0,
+        }))
+        .sort((a, b) => b.total - a.total);
+    },
+  });
+}
+
 // Novo hook para resumo por ano (quando não há filtro de ano específico)
 export function useResumoAnual() {
   return useQuery({
