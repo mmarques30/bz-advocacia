@@ -8,7 +8,33 @@ import type {
   DespesaPorCategoria,
   StatusDespesa 
 } from "@/types/financeiro";
-import { startOfMonth, endOfMonth, isPast } from "date-fns";
+import type { DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
+import { startOfMonth, endOfMonth, isPast, format } from "date-fns";
+
+// Helper para calcular datas baseado nos filtros
+function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState) {
+  if (!filters) {
+    const hoje = new Date();
+    return {
+      inicio: startOfMonth(hoje),
+      fim: endOfMonth(hoje)
+    };
+  }
+
+  const ano = filters.ano || new Date().getFullYear();
+  
+  if (filters.mes !== null && filters.mes !== undefined) {
+    const inicio = new Date(ano, filters.mes - 1, 1);
+    const fim = endOfMonth(inicio);
+    return { inicio, fim };
+  }
+
+  // Se não tiver mês selecionado, pegar o ano inteiro
+  return {
+    inicio: new Date(ano, 0, 1),
+    fim: new Date(ano, 11, 31)
+  };
+}
 
 // Listar despesas com filtros
 export function useDespesas(filters?: DespesasFilters) {
@@ -178,23 +204,35 @@ export function useDeleteDespesa() {
 }
 
 // KPIs de Despesas
-export function useKPIsDespesas() {
+export function useKPIsDespesas(filters?: DespesasGlobalFiltersState) {
   return useQuery({
-    queryKey: ['kpis-despesas'],
+    queryKey: ['kpis-despesas', filters],
     queryFn: async () => {
-      const inicio = startOfMonth(new Date()).toISOString().split('T')[0];
-      const fim = endOfMonth(new Date()).toISOString().split('T')[0];
+      const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
+      const inicioStr = format(inicio, 'yyyy-MM-dd');
+      const fimStr = format(fim, 'yyyy-MM-dd');
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('despesas')
-        .select('valor, status, data')
-        .gte('data', inicio)
-        .lte('data', fim);
+        .select('valor, status, data, categoria')
+        .gte('data', inicioStr)
+        .lte('data', fimStr);
+
+      // Filtrar por categoria se especificado
+      if (filters?.categoria && filters.categoria !== 'todos') {
+        query = query.eq('categoria', filters.categoria);
+      }
+
+      // Filtrar por status se especificado
+      if (filters?.status && filters.status !== 'todos') {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
       const despesas = data || [];
-      const hoje = new Date();
 
       const total_mes = despesas.reduce((sum, d) => sum + Number(d.valor), 0);
       const total_pendente = despesas
@@ -220,18 +258,26 @@ export function useKPIsDespesas() {
 }
 
 // Despesas por categoria
-export function useDespesasPorCategoria() {
+export function useDespesasPorCategoria(filters?: DespesasGlobalFiltersState) {
   return useQuery({
-    queryKey: ['despesas-por-categoria'],
+    queryKey: ['despesas-por-categoria', filters],
     queryFn: async () => {
-      const inicio = startOfMonth(new Date()).toISOString().split('T')[0];
-      const fim = endOfMonth(new Date()).toISOString().split('T')[0];
+      const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
+      const inicioStr = format(inicio, 'yyyy-MM-dd');
+      const fimStr = format(fim, 'yyyy-MM-dd');
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('despesas')
-        .select('categoria, valor')
-        .gte('data', inicio)
-        .lte('data', fim);
+        .select('categoria, valor, status')
+        .gte('data', inicioStr)
+        .lte('data', fimStr);
+
+      // Filtrar por status se especificado
+      if (filters?.status && filters.status !== 'todos') {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -261,15 +307,31 @@ export function useDespesasPorCategoria() {
 }
 
 // Despesas recentes (últimas 5)
-export function useDespesasRecentes() {
+export function useDespesasRecentes(filters?: DespesasGlobalFiltersState) {
   return useQuery({
-    queryKey: ['despesas-recentes'],
+    queryKey: ['despesas-recentes', filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
+      const inicioStr = format(inicio, 'yyyy-MM-dd');
+      const fimStr = format(fim, 'yyyy-MM-dd');
+
+      let query = supabase
         .from('despesas')
         .select('*')
+        .gte('data', inicioStr)
+        .lte('data', fimStr)
         .order('data', { ascending: false })
         .limit(5);
+
+      if (filters?.categoria && filters.categoria !== 'todos') {
+        query = query.eq('categoria', filters.categoria);
+      }
+
+      if (filters?.status && filters.status !== 'todos') {
+        query = query.eq('status', filters.status);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 

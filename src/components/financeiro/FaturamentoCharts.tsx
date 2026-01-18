@@ -1,18 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useFluxoCaixa, useDistribuicaoTipo } from "@/hooks/useFinanceiro";
+import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 
-export function FaturamentoCharts() {
-  const { data: fluxoCaixa } = useFluxoCaixa(30);
-  const { data: distribuicao } = useDistribuicaoTipo();
+interface FaturamentoChartsProps {
+  filters?: FaturamentoFiltersState;
+}
+
+export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
+  const { data: fluxoCaixa } = useFluxoCaixa(filters);
+  const { data: distribuicao } = useDistribuicaoTipo(filters);
 
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+  const getMesLabel = () => {
+    if (!filters?.mes) return "período selecionado";
+    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
+                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    return `${meses[filters.mes - 1]}/${filters.ano}`;
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Fluxo de Caixa (30 dias)</CardTitle>
+          <CardTitle>Fluxo de Caixa ({getMesLabel()})</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
