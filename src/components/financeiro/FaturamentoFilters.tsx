@@ -49,11 +49,40 @@ const tipoServicoOptions = [
   { value: "divorcio", label: "Divórcio" },
 ];
 
+const anoAtual = new Date().getFullYear();
+const anosDisponiveis = [anoAtual, anoAtual - 1, anoAtual - 2, anoAtual - 3];
+
+const getAnoFromRange = (range: DateRange | undefined): string => {
+  if (!range?.from || !range?.to) return "todos";
+  const fromYear = range.from.getFullYear();
+  const toYear = range.to.getFullYear();
+  if (
+    fromYear === toYear &&
+    range.from.getMonth() === 0 && range.from.getDate() === 1 &&
+    range.to.getMonth() === 11 && range.to.getDate() === 31
+  ) {
+    return fromYear.toString();
+  }
+  return "personalizado";
+};
+
 export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProps) {
   const { data: clientes = [] } = useClientesReceitas();
 
   const handleChange = (key: keyof FaturamentoFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
+  };
+
+  const handleAnoChange = (value: string) => {
+    if (value === "todos") {
+      handleChange("dateRange", undefined);
+    } else if (value !== "personalizado") {
+      const ano = parseInt(value);
+      handleChange("dateRange", {
+        from: new Date(ano, 0, 1),
+        to: new Date(ano, 11, 31),
+      });
+    }
   };
 
   const clearFilters = () => {
@@ -64,6 +93,8 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
       tipoServico: "todos",
     });
   };
+
+  const selectedAno = getAnoFromRange(filters.dateRange);
 
   const hasActiveFilters = 
     filters.cliente !== "todos" ||
@@ -96,6 +127,25 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
   return (
     <div className="space-y-3 mb-6">
       <div className="flex flex-wrap gap-3 items-center">
+        <Select value={selectedAno} onValueChange={handleAnoChange}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Ano" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            {anosDisponiveis.map((ano) => (
+              <SelectItem key={ano} value={ano.toString()}>
+                {ano}
+              </SelectItem>
+            ))}
+            {selectedAno === "personalizado" && (
+              <SelectItem value="personalizado" disabled>
+                Personalizado
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+
         <Select
           value={filters.cliente}
           onValueChange={(value) => handleChange("cliente", value)}

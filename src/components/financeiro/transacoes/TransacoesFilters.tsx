@@ -25,6 +25,23 @@ interface Props {
   onFiltersChange: (filters: TFilters) => void;
 }
 
+const anoAtual = new Date().getFullYear();
+const anosDisponiveis = [anoAtual, anoAtual - 1, anoAtual - 2, anoAtual - 3];
+
+const getAnoFromRange = (dataInicio?: Date, dataFim?: Date): string => {
+  if (!dataInicio || !dataFim) return "todos";
+  const fromYear = dataInicio.getFullYear();
+  const toYear = dataFim.getFullYear();
+  if (
+    fromYear === toYear &&
+    dataInicio.getMonth() === 0 && dataInicio.getDate() === 1 &&
+    dataFim.getMonth() === 11 && dataFim.getDate() === 31
+  ) {
+    return fromYear.toString();
+  }
+  return "personalizado";
+};
+
 export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
@@ -34,12 +51,33 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
     ? { from: filters.dataInicio, to: filters.dataFim }
     : undefined;
 
+  const selectedAno = getAnoFromRange(filters.dataInicio, filters.dataFim);
+
+  const handleAnoChange = (value: string) => {
+    if (value === "todos") {
+      onFiltersChange({
+        ...filters,
+        dataInicio: undefined,
+        dataFim: undefined,
+        ano: undefined,
+      });
+    } else if (value !== "personalizado") {
+      const ano = parseInt(value);
+      onFiltersChange({
+        ...filters,
+        dataInicio: new Date(ano, 0, 1),
+        dataFim: new Date(ano, 11, 31),
+        ano: undefined,
+      });
+    }
+  };
+
   const handleDateRangeChange = (range: DateRange | undefined) => {
     onFiltersChange({
       ...filters,
       dataInicio: range?.from,
       dataFim: range?.to,
-      ano: undefined, // Limpar ano quando seleciona range
+      ano: undefined,
     });
   };
 
@@ -66,6 +104,25 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
 
   return (
     <div className="flex flex-wrap gap-3 items-end">
+      <Select value={selectedAno} onValueChange={handleAnoChange}>
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="Ano" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todos</SelectItem>
+          {anosDisponiveis.map((ano) => (
+            <SelectItem key={ano} value={ano.toString()}>
+              {ano}
+            </SelectItem>
+          ))}
+          {selectedAno === "personalizado" && (
+            <SelectItem value="personalizado" disabled>
+              Personalizado
+            </SelectItem>
+          )}
+        </SelectContent>
+      </Select>
+
       <Popover>
         <PopoverTrigger asChild>
           <Button
