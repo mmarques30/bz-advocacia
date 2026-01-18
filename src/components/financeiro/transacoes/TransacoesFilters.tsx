@@ -30,7 +30,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   const { data: subcategorias } = useSubcategorias(filters.categoria_codigo);
 
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const years = Array.from({ length: currentYear - 2020 + 1 }, (_, i) => currentYear - i);
 
   const handleClear = () => {
     onFiltersChange({
@@ -54,6 +54,8 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           onFiltersChange({
             ...filters,
             ano: parseInt(value),
+            dataInicio: undefined,
+            dataFim: undefined,
           })
         }
       >

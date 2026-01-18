@@ -36,6 +36,7 @@ import * as XLSX from "xlsx";
 interface Props {
   open: boolean;
   onClose: () => void;
+  onSuccess?: (ano: number) => void;
 }
 
 interface ParsedRow {
@@ -73,7 +74,7 @@ const MESES_MAP: Record<string, number> = {
   dezembro: 12, dez: 12,
 };
 
-export function ImportDespesasDialog({ open, onClose }: Props) {
+export function ImportDespesasDialog({ open, onClose, onSuccess }: Props) {
   const [step, setStep] = useState<"upload" | "preview" | "importing" | "done">("upload");
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ProcessedRow[]>([]);
@@ -93,8 +94,8 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
     return MESES_MAP[mesLower] || 0;
   };
 
-  const parseDate = (dateStr: string): string | null => {
-    if (!dateStr) return null;
+  const parseDate = (dateStr: string, fallbackMes: number, fallbackAno: number): string => {
+    if (!dateStr) return `${fallbackAno}-${String(fallbackMes).padStart(2, '0')}-01`;
     
     // Handle Excel serial date numbers
     const numValue = parseFloat(dateStr);
@@ -104,22 +105,30 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
       return date.toISOString().split('T')[0];
     }
     
-    const formats = [
-      /^(\d{2})\/(\d{2})\/(\d{4})$/,
-      /^(\d{2})-(\d{2})-(\d{4})$/,
-      /^(\d{4})-(\d{2})-(\d{2})$/,
-    ];
-
-    for (const format of formats) {
-      const match = dateStr.match(format);
-      if (match) {
-        if (format === formats[2]) {
-          return `${match[1]}-${match[2]}-${match[3]}`;
-        }
-        return `${match[3]}-${match[2]}-${match[1]}`;
-      }
+    // Format: DD/MM/YYYY or DD-MM-YYYY
+    const ddmmyyyy = dateStr.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+    if (ddmmyyyy) {
+      const [, dd, mm, yyyy] = ddmmyyyy;
+      return `${yyyy}-${mm}-${dd}`;
     }
-    return null;
+    
+    // Format: YYYY-MM-DD (normal) or YYYY-DD-MM (inverted)
+    const yyyymmdd = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (yyyymmdd) {
+      const [, yyyy, part2, part3] = yyyymmdd;
+      const p2 = parseInt(part2);
+      const p3 = parseInt(part3);
+      
+      // If middle part > 12, it's day (inverted format YYYY-DD-MM)
+      if (p2 > 12 && p3 <= 12) {
+        return `${yyyy}-${part3}-${part2}`; // Swap to YYYY-MM-DD
+      }
+      // Normal format
+      return dateStr;
+    }
+    
+    // Fallback: first day of month
+    return `${fallbackAno}-${String(fallbackMes).padStart(2, '0')}-01`;
   };
 
   const parseValor = (valorStr: string): number => {
@@ -240,7 +249,7 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
         subcategoria_codigo: null,
         descricao: row.descricao.trim(),
         valor: row.valorNumerico,
-        data_transacao: parseDate(row.data) || `${ano}-${String(row.mesNumero).padStart(2, '0')}-01`,
+        data_transacao: parseDate(row.data, row.mesNumero, ano),
       }));
 
       // Import in batches of 50
@@ -257,6 +266,7 @@ export function ImportDespesasDialog({ open, onClose }: Props) {
       setResult({ success: successCount, errors: 0 });
       setStep("done");
       toast.success(`${successCount} despesas importadas com sucesso`);
+      onSuccess?.(ano);
     } catch (error) {
       console.error("Import error:", error);
       setResult({ success: 0, errors: validRows.length });
