@@ -53,9 +53,9 @@ export default function Financeiro() {
 
   // Converter filtros globais para filtros de tabela
   const acordosFiltersFromGlobal: AcordosFilters = {
-    search: faturamentoFilters.search,
-    status: faturamentoFilters.status ? [faturamentoFilters.status as any] : undefined,
-    tipo_servico: faturamentoFilters.tipoServico,
+    search: faturamentoFilters.cliente !== "todos" ? faturamentoFilters.cliente : undefined,
+    status: faturamentoFilters.status !== "todos" ? [faturamentoFilters.status as any] : undefined,
+    tipo_servico: faturamentoFilters.tipoServico !== "todos" ? faturamentoFilters.tipoServico : undefined,
   };
 
   return (
@@ -141,9 +141,8 @@ export default function Financeiro() {
           
           <DespesasTable 
             filters={{
-              search: despesasGlobalFilters.search,
-              categoria: despesasGlobalFilters.categoria ? [despesasGlobalFilters.categoria as any] : undefined,
-              status: despesasGlobalFilters.status ? [despesasGlobalFilters.status as any] : undefined,
+              categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
+              status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
             }}
             onSelectDespesa={setSelectedDespesaId}
           />

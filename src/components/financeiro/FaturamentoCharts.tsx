@@ -14,10 +14,10 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
   const getMesLabel = () => {
-    if (!filters?.mes) return "período selecionado";
-    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
-                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    return `${meses[filters.mes - 1]}/${filters.ano}`;
+    if (filters?.dataInicio && filters?.dataFim) {
+      return `${filters.dataInicio.toLocaleDateString('pt-BR')} - ${filters.dataFim.toLocaleDateString('pt-BR')}`;
+    }
+    return `Ano ${filters?.ano || new Date().getFullYear()}`;
   };
 
   return (

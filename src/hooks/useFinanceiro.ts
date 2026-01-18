@@ -27,13 +27,29 @@ function getDateRangeFromFilters(filters?: FaturamentoFiltersState) {
 
   const ano = filters.ano || new Date().getFullYear();
   
-  if (filters.mes !== null && filters.mes !== undefined) {
-    const inicio = new Date(ano, filters.mes - 1, 1);
-    const fim = endOfMonth(inicio);
-    return { inicio, fim };
+  // Se tiver período específico definido
+  if (filters.dataInicio && filters.dataFim) {
+    return { 
+      inicio: filters.dataInicio, 
+      fim: filters.dataFim 
+    };
+  }
+  
+  if (filters.dataInicio) {
+    return { 
+      inicio: filters.dataInicio, 
+      fim: new Date(ano, 11, 31) 
+    };
+  }
+  
+  if (filters.dataFim) {
+    return { 
+      inicio: new Date(ano, 0, 1), 
+      fim: filters.dataFim 
+    };
   }
 
-  // Se não tiver mês selecionado, pegar o ano inteiro
+  // Se não tiver período específico, pegar o ano inteiro
   return {
     inicio: new Date(ano, 0, 1),
     fim: new Date(ano, 11, 31)

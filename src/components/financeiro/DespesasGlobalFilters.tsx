@@ -1,5 +1,4 @@
-import { Search, X, Calendar } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { X, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -9,12 +8,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
 
 export interface DespesasGlobalFiltersState {
-  search: string;
-  mes: number | null;
+  tipoDespesa: string;
   ano: number;
+  dataInicio: Date | null;
+  dataFim: Date | null;
   categoria: string;
   status: string;
 }
@@ -24,19 +33,10 @@ interface DespesasGlobalFiltersProps {
   onChange: (filters: DespesasGlobalFiltersState) => void;
 }
 
-const meses = [
-  { value: 1, label: "Janeiro" },
-  { value: 2, label: "Fevereiro" },
-  { value: 3, label: "Março" },
-  { value: 4, label: "Abril" },
-  { value: 5, label: "Maio" },
-  { value: 6, label: "Junho" },
-  { value: 7, label: "Julho" },
-  { value: 8, label: "Agosto" },
-  { value: 9, label: "Setembro" },
-  { value: 10, label: "Outubro" },
-  { value: 11, label: "Novembro" },
-  { value: 12, label: "Dezembro" },
+const tipoDespesaOptions = [
+  { value: "todos", label: "Todos os Tipos" },
+  { value: "fixa", label: "Fixa" },
+  { value: "variavel", label: "Variável" },
 ];
 
 export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFiltersProps) {
@@ -49,26 +49,34 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 
   const clearFilters = () => {
     onChange({
-      search: "",
-      mes: null,
+      tipoDespesa: "todos",
       ano: currentYear,
+      dataInicio: null,
+      dataFim: null,
       categoria: "todos",
       status: "todos",
     });
   };
 
   const hasActiveFilters = 
-    filters.search || 
-    filters.mes !== null || 
+    filters.tipoDespesa !== "todos" ||
+    filters.dataInicio !== null || 
+    filters.dataFim !== null ||
     filters.ano !== currentYear ||
     filters.categoria !== "todos" || 
     filters.status !== "todos";
 
   const getActiveFilterLabels = () => {
     const labels: string[] = [];
-    if (filters.mes !== null) {
-      const mesLabel = meses.find(m => m.value === filters.mes)?.label;
-      labels.push(`${mesLabel} ${filters.ano}`);
+    if (filters.tipoDespesa !== "todos") {
+      labels.push(tipoDespesaOptions.find(t => t.value === filters.tipoDespesa)?.label || "");
+    }
+    if (filters.dataInicio && filters.dataFim) {
+      labels.push(`${format(filters.dataInicio, "dd/MM")} - ${format(filters.dataFim, "dd/MM")}/${filters.ano}`);
+    } else if (filters.dataInicio) {
+      labels.push(`A partir de ${format(filters.dataInicio, "dd/MM/yyyy")}`);
+    } else if (filters.dataFim) {
+      labels.push(`Até ${format(filters.dataFim, "dd/MM/yyyy")}`);
     } else if (filters.ano !== currentYear) {
       labels.push(`Ano: ${filters.ano}`);
     }
@@ -84,51 +92,95 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
   return (
     <div className="space-y-3 mb-6">
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por descrição..."
-            value={filters.search}
-            onChange={(e) => handleChange("search", e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <Select
+          value={filters.tipoDespesa}
+          onValueChange={(value) => handleChange("tipoDespesa", value)}
+        >
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Tipo" />
+          </SelectTrigger>
+          <SelectContent>
+            {tipoDespesaOptions.map((tipo) => (
+              <SelectItem key={tipo.value} value={tipo.value}>
+                {tipo.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <Select
-            value={filters.mes?.toString() || "todos"}
-            onValueChange={(value) => handleChange("mes", value === "todos" ? null : parseInt(value))}
-          >
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os Meses</SelectItem>
-              {meses.map((mes) => (
-                <SelectItem key={mes.value} value={mes.value.toString()}>
-                  {mes.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <Select
+          value={filters.ano.toString()}
+          onValueChange={(value) => handleChange("ano", parseInt(value))}
+        >
+          <SelectTrigger className="w-[100px]">
+            <SelectValue placeholder="Ano" />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((year) => (
+              <SelectItem key={year} value={year.toString()}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-          <Select
-            value={filters.ano.toString()}
-            onValueChange={(value) => handleChange("ano", parseInt(value))}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[140px] justify-start text-left font-normal",
+                !filters.dataInicio && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filters.dataInicio ? (
+                format(filters.dataInicio, "dd/MM/yyyy")
+              ) : (
+                <span>Data Início</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={filters.dataInicio || undefined}
+              onSelect={(date) => handleChange("dataInicio", date || null)}
+              locale={ptBR}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-[140px] justify-start text-left font-normal",
+                !filters.dataFim && "text-muted-foreground"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filters.dataFim ? (
+                format(filters.dataFim, "dd/MM/yyyy")
+              ) : (
+                <span>Data Fim</span>
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={filters.dataFim || undefined}
+              onSelect={(date) => handleChange("dataFim", date || null)}
+              locale={ptBR}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
 
         <Select
           value={filters.categoria}
@@ -187,9 +239,10 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 }
 
 export const getDefaultDespesasGlobalFilters = (): DespesasGlobalFiltersState => ({
-  search: "",
-  mes: null,
+  tipoDespesa: "todos",
   ano: new Date().getFullYear(),
+  dataInicio: null,
+  dataFim: null,
   categoria: "todos",
   status: "todos",
 });

@@ -38,12 +38,12 @@ export interface TransacaoFinanceira {
 }
 
 export interface TransacoesFilters {
-  mes?: number;
   ano?: number;
+  dataInicio?: Date;
+  dataFim?: Date;
   tipo_codigo?: string;
   categoria_codigo?: string;
   subcategoria_codigo?: string;
-  busca?: string;
 }
 
 export interface ResumoMensal {

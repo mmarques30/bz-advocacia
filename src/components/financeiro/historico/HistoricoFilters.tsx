@@ -1,4 +1,3 @@
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -7,14 +6,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, X } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CalendarIcon, X } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 export interface HistoricoFiltersState {
   ano: number;
-  mes: number | null;
+  dataInicio: Date | null;
+  dataFim: Date | null;
   tipo: string | null;
   categoria: string | null;
-  busca: string;
 }
 
 interface Props {
@@ -22,28 +30,13 @@ interface Props {
   onChange: (filters: HistoricoFiltersState) => void;
 }
 
-const MESES = [
-  { value: "1", label: "Janeiro" },
-  { value: "2", label: "Fevereiro" },
-  { value: "3", label: "Março" },
-  { value: "4", label: "Abril" },
-  { value: "5", label: "Maio" },
-  { value: "6", label: "Junho" },
-  { value: "7", label: "Julho" },
-  { value: "8", label: "Agosto" },
-  { value: "9", label: "Setembro" },
-  { value: "10", label: "Outubro" },
-  { value: "11", label: "Novembro" },
-  { value: "12", label: "Dezembro" },
-];
-
 export function getDefaultHistoricoFilters(): HistoricoFiltersState {
   return {
     ano: new Date().getFullYear(),
-    mes: null,
+    dataInicio: null,
+    dataFim: null,
     tipo: null,
     categoria: null,
-    busca: "",
   };
 }
 
@@ -56,28 +49,19 @@ export function HistoricoFilters({ filters, onChange }: Props) {
   };
 
   const hasActiveFilters =
-    filters.mes !== null ||
+    filters.dataInicio !== null ||
+    filters.dataFim !== null ||
     filters.tipo !== null ||
     filters.categoria !== null ||
-    filters.busca !== "";
+    filters.ano !== currentYear;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <div className="relative flex-1 min-w-[200px] max-w-[300px]">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por descrição..."
-          value={filters.busca}
-          onChange={(e) => onChange({ ...filters, busca: e.target.value })}
-          className="pl-10"
-        />
-      </div>
-
       <Select
         value={filters.ano.toString()}
         onValueChange={(value) => onChange({ ...filters, ano: parseInt(value) })}
       >
-        <SelectTrigger className="w-[120px]">
+        <SelectTrigger className="w-[100px]">
           <SelectValue placeholder="Ano" />
         </SelectTrigger>
         <SelectContent>
@@ -89,24 +73,63 @@ export function HistoricoFilters({ filters, onChange }: Props) {
         </SelectContent>
       </Select>
 
-      <Select
-        value={filters.mes?.toString() || "all"}
-        onValueChange={(value) =>
-          onChange({ ...filters, mes: value === "all" ? null : parseInt(value) })
-        }
-      >
-        <SelectTrigger className="w-[140px]">
-          <SelectValue placeholder="Mês" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os meses</SelectItem>
-          {MESES.map((mes) => (
-            <SelectItem key={mes.value} value={mes.value}>
-              {mes.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[140px] justify-start text-left font-normal",
+              !filters.dataInicio && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {filters.dataInicio ? (
+              format(filters.dataInicio, "dd/MM/yyyy")
+            ) : (
+              <span>Data Início</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={filters.dataInicio || undefined}
+            onSelect={(date) => onChange({ ...filters, dataInicio: date || null })}
+            locale={ptBR}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[140px] justify-start text-left font-normal",
+              !filters.dataFim && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {filters.dataFim ? (
+              format(filters.dataFim, "dd/MM/yyyy")
+            ) : (
+              <span>Data Fim</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={filters.dataFim || undefined}
+            onSelect={(date) => onChange({ ...filters, dataFim: date || null })}
+            locale={ptBR}
+            initialFocus
+            className={cn("p-3 pointer-events-auto")}
+          />
+        </PopoverContent>
+      </Popover>
 
       <Select
         value={filters.tipo || "all"}
