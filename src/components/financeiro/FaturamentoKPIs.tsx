@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, TrendingUp, FileText, AlertTriangle } from "lucide-react";
 import { useKPIsFinanceiros } from "@/hooks/useFinanceiro";
+import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -10,8 +11,12 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function FaturamentoKPIs() {
-  const { data: kpis, isLoading } = useKPIsFinanceiros();
+interface FaturamentoKPIsProps {
+  filters?: FaturamentoFiltersState;
+}
+
+export function FaturamentoKPIs({ filters }: FaturamentoKPIsProps) {
+  const { data: kpis, isLoading } = useKPIsFinanceiros(filters);
 
   if (isLoading) {
     return (

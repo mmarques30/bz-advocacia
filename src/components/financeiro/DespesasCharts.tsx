@@ -2,9 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useDespesasPorCategoria } from "@/hooks/useDespesas";
 import { CATEGORIA_DESPESA_LABELS } from "@/types/financeiro";
+import type { DespesasGlobalFiltersState } from "./DespesasGlobalFilters";
 
-export function DespesasCharts() {
-  const { data: despesasPorCategoria } = useDespesasPorCategoria();
+interface DespesasChartsProps {
+  filters?: DespesasGlobalFiltersState;
+}
+
+export function DespesasCharts({ filters }: DespesasChartsProps) {
+  const { data: despesasPorCategoria } = useDespesasPorCategoria(filters);
 
   const despesasChartData = despesasPorCategoria?.map(item => ({
     name: CATEGORIA_DESPESA_LABELS[item.categoria],

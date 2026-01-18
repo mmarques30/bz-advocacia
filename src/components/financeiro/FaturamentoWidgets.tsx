@@ -4,12 +4,14 @@ import { useParcelasVencendo, useClientesInadimplentes, useMaioresPagadores } fr
 import { Calendar, AlertTriangle, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 
 interface FaturamentoWidgetsProps {
   onRegistrarPagamento?: (parcelaId: string) => void;
+  filters?: FaturamentoFiltersState;
 }
 
-export function FaturamentoWidgets({ onRegistrarPagamento }: FaturamentoWidgetsProps) {
+export function FaturamentoWidgets({ onRegistrarPagamento, filters }: FaturamentoWidgetsProps) {
   const { data: parcelasVencendo } = useParcelasVencendo(7);
   const { data: inadimplentes } = useClientesInadimplentes();
   const { data: maioresPagadores } = useMaioresPagadores(5);
