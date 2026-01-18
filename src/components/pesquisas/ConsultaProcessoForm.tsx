@@ -115,7 +115,7 @@ export function ConsultaProcessoForm({ onSuccess }: ConsultaProcessoFormProps) {
     const request: ConsultaProcessoRequest = {
       numeroProcesso: data.numeroProcesso,
       tribunal: data.tribunal,
-      processo_id: data.processo_id || undefined,
+      processo_id: data.processo_id === "none" ? undefined : data.processo_id,
       motivo: data.motivo,
       justificativa: data.justificativa,
     };
@@ -218,7 +218,7 @@ export function ConsultaProcessoForm({ onSuccess }: ConsultaProcessoFormProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {processos?.map((p) => (
                           <SelectItem key={p.id} value={p.id}>
                             {p.numero_processo || p.tipo} - {p.cliente?.nome_completo || "Sem cliente"}
