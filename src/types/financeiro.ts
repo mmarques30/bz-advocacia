@@ -1,5 +1,13 @@
 export type StatusAcordo = 'ativo' | 'concluido' | 'cancelado';
 export type FormaPagamento = 'a_vista' | 'parcelado';
+export type TipoEntradaFaturamento = 'acordo' | 'receita_avulsa' | 'adiantamento' | 'reembolso';
+
+export const TIPO_ENTRADA_FATURAMENTO_LABELS: Record<TipoEntradaFaturamento, string> = {
+  acordo: 'Novo Acordo',
+  receita_avulsa: 'Receita Avulsa',
+  adiantamento: 'Adiantamento',
+  reembolso: 'Reembolso',
+};
 export type StatusParcela = 'pendente' | 'pago' | 'atrasado' | 'cancelado';
 export type FormaPagamentoRecebido = 'pix' | 'boleto' | 'cartao' | 'dinheiro' | 'transferencia';
 

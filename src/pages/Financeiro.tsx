@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Upload } from "lucide-react";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
-import { NewAcordoDialog } from "@/components/financeiro/NewAcordoDialog";
+import { NewEntradaFaturamentoDialog } from "@/components/financeiro/NewEntradaFaturamentoDialog";
 import { AcordoDetailsDialog } from "@/components/financeiro/AcordoDetailsDialog";
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
@@ -28,7 +28,7 @@ import type { AcordosFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
 export default function Financeiro() {
-  const [newAcordoOpen, setNewAcordoOpen] = useState(false);
+  const [newEntradaOpen, setNewEntradaOpen] = useState(false);
   const [selectedAcordoId, setSelectedAcordoId] = useState<string | null>(null);
   const [pagamentoParcelaId, setPagamentoParcelaId] = useState<string | null>(null);
   
@@ -99,9 +99,9 @@ export default function Financeiro() {
                 <Upload className="h-4 w-4 mr-2" />
                 Importar
               </Button>
-              <Button onClick={() => setNewAcordoOpen(true)}>
+              <Button onClick={() => setNewEntradaOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Novo Acordo
+                Nova Entrada
               </Button>
             </div>
           </div>
@@ -167,9 +167,9 @@ export default function Financeiro() {
       </Tabs>
 
       {/* Dialogs de Faturamento */}
-      <NewAcordoDialog 
-        open={newAcordoOpen}
-        onClose={() => setNewAcordoOpen(false)}
+      <NewEntradaFaturamentoDialog 
+        open={newEntradaOpen}
+        onClose={() => setNewEntradaOpen(false)}
       />
 
       <AcordoDetailsDialog 
