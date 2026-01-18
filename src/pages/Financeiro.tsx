@@ -71,30 +71,19 @@ export default function Financeiro() {
 
         {/* Aba Visão Geral */}
         <TabsContent value="geral" className="space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold">Transações Financeiras</h2>
-            <p className="text-sm text-muted-foreground">Visão consolidada de receitas e despesas</p>
-          </div>
-          
-          {/* Filtros no topo */}
           <TransacoesFilters filters={transacoesFilters} onFiltersChange={setTransacoesFilters} />
-          
-          {/* KPIs e Charts filtrados */}
           <TransacoesKPIs filters={transacoesFilters} />
           <TransacoesCharts filters={transacoesFilters} />
-          
-          {/* Tabela filtrada */}
           <TransacoesTable filters={transacoesFilters} />
         </TabsContent>
 
         {/* Aba Faturamento - Acordos e Receitas */}
         <TabsContent value="faturamento" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold">Faturamento</h2>
-              <p className="text-sm text-muted-foreground">Gerencie acordos e receitas</p>
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button variant="outline" onClick={() => setImportFaturamentoOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
                 Importar
@@ -106,15 +95,10 @@ export default function Financeiro() {
             </div>
           </div>
           
-          {/* Filtros globais no topo */}
-          <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
-          
-          {/* Componentes filtrados */}
           <FaturamentoKPIs filters={faturamentoFilters} />
           <FaturamentoCharts filters={faturamentoFilters} />
           <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
           
-          {/* Tabela de Acordos usando filtros globais */}
           <AcordosTable 
             filters={acordosFiltersFromGlobal}
             onSelectAcordo={setSelectedAcordoId}
@@ -126,12 +110,11 @@ export default function Financeiro() {
         <TabsContent value="despesas" className="space-y-6">
           <DespesasAlerts />
           
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-semibold">Despesas</h2>
-              <p className="text-sm text-muted-foreground">Gerencie todas as despesas</p>
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <Button variant="outline" onClick={() => setImportDespesasOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
                 Importar
@@ -143,10 +126,6 @@ export default function Financeiro() {
             </div>
           </div>
           
-          {/* Filtros globais no topo */}
-          <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
-          
-          {/* Componentes filtrados */}
           <DespesasKPIs filters={despesasGlobalFilters} />
           
           <div className="grid gap-6 md:grid-cols-2">
@@ -154,7 +133,6 @@ export default function Financeiro() {
             <DespesasWidgets filters={despesasGlobalFilters} />
           </div>
           
-          {/* Tabela usando filtros globais convertidos */}
           <DespesasTable 
             filters={{
               search: despesasGlobalFilters.search,
