@@ -241,3 +241,75 @@ export function useCreateTransacao() {
     },
   });
 }
+
+export function useUpdateTransacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      ...transacao
+    }: Partial<TransacaoFinanceira> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .update(transacao)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transacoes-financeiras"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-mensal-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-subcategoria-transacoes"] });
+    },
+  });
+}
+
+export function useDeleteTransacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("transacoes_financeiras")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transacoes-financeiras"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-mensal-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-subcategoria-transacoes"] });
+    },
+  });
+}
+
+export function useBulkCreateTransacoes() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (
+      transacoes: Omit<TransacaoFinanceira, "id" | "created_at">[]
+    ) => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .insert(transacoes)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transacoes-financeiras"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-mensal-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["resumo-subcategoria-transacoes"] });
+    },
+  });
+}

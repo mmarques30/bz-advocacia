@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { FinanceiroKPIs } from "@/components/financeiro/FinanceiroKPIs";
 import { FinanceiroCharts } from "@/components/financeiro/FinanceiroCharts";
 import { FinanceiroWidgets } from "@/components/financeiro/FinanceiroWidgets";
@@ -20,6 +20,7 @@ import { TransacoesCharts } from "@/components/financeiro/transacoes/TransacoesC
 import { TransacoesFilters } from "@/components/financeiro/transacoes/TransacoesFilters";
 import { TransacoesTable } from "@/components/financeiro/transacoes/TransacoesTable";
 import { NewTransacaoDialog } from "@/components/financeiro/transacoes/NewTransacaoDialog";
+import { ImportTransacoesDialog } from "@/components/financeiro/transacoes/ImportTransacoesDialog";
 import type { AcordosFilters, DespesasFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
@@ -37,6 +38,7 @@ export default function Financeiro() {
   // Estados para transações
   const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
   const [newTransacaoOpen, setNewTransacaoOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -58,13 +60,19 @@ export default function Financeiro() {
         <TabsContent value="controle" className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-semibold">Transações 2025</h2>
-              <p className="text-sm text-muted-foreground">411 transações importadas</p>
+              <h2 className="text-xl font-semibold">Transações Financeiras</h2>
+              <p className="text-sm text-muted-foreground">Gerencie receitas e despesas</p>
             </div>
-            <Button onClick={() => setNewTransacaoOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Transação
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImportOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+              <Button onClick={() => setNewTransacaoOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Transação
+              </Button>
+            </div>
           </div>
           <TransacoesKPIs />
           <TransacoesCharts />
@@ -139,6 +147,11 @@ export default function Financeiro() {
       <NewTransacaoDialog
         open={newTransacaoOpen}
         onClose={() => setNewTransacaoOpen(false)}
+      />
+
+      <ImportTransacoesDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
       />
     </div>
   );

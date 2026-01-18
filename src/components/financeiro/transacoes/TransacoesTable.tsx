@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -7,9 +8,29 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useTransacoes } from "@/hooks/useTransacoesFinanceiras";
-import type { TransacoesFilters } from "@/types/transacoes";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
+import type { TransacoesFilters, TransacaoFinanceira } from "@/types/transacoes";
 import { Skeleton } from "@/components/ui/skeleton";
+import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { EditTransacaoDialog } from "./EditTransacaoDialog";
 
 interface Props {
   filters: TransacoesFilters;
@@ -30,6 +51,22 @@ const formatDate = (dateStr: string | null) => {
 
 export function TransacoesTable({ filters }: Props) {
   const { data: transacoes, isLoading } = useTransacoes(filters);
+  const deleteTransacao = useDeleteTransacao();
+  
+  const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (!deletingId) return;
+
+    try {
+      await deleteTransacao.mutateAsync(deletingId);
+      toast.success("Transação excluída com sucesso");
+      setDeletingId(null);
+    } catch (error) {
+      toast.error("Erro ao excluir transação");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -70,12 +107,13 @@ export function TransacoesTable({ filters }: Props) {
               <TableHead>Categoria</TableHead>
               <TableHead>Subcategoria</TableHead>
               <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="w-[60px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {transacoes?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Nenhuma transação encontrada
                 </TableCell>
               </TableRow>
@@ -114,12 +152,60 @@ export function TransacoesTable({ filters }: Props) {
                     {transacao.tipo_codigo === "receita" ? "+" : "-"}
                     {formatCurrency(Number(transacao.valor))}
                   </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditingTransacao(transacao)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDeletingId(transacao.id)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+
+      <EditTransacaoDialog
+        open={!!editingTransacao}
+        onClose={() => setEditingTransacao(null)}
+        transacao={editingTransacao}
+      />
+
+      <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Transação</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
