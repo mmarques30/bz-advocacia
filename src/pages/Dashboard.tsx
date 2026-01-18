@@ -6,9 +6,6 @@ import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import { RecentActivities } from "@/components/dashboard/RecentActivities";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DashboardConversao } from "@/components/dashboard/analises/DashboardConversao";
-import { DashboardPerformanceCanal } from "@/components/dashboard/analises/DashboardPerformanceCanal";
 import { useDateFilter } from "@/hooks/useDateFilter";
 import {
   useKPIs,
@@ -37,86 +34,68 @@ export default function Dashboard() {
         onClearFilters={clearFilters}
       />
 
-      <Tabs defaultValue="visao-geral" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-          <TabsTrigger value="conversao">Análise de Conversão</TabsTrigger>
-          <TabsTrigger value="canais">Performance por Canal</TabsTrigger>
-        </TabsList>
+      {/* KPIs Grid */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <KPICard
+          title="Total de Leads"
+          value={kpis?.totalLeads || 0}
+          icon={Users}
+          trend={12.5}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Taxa de Conversão"
+          value={kpis?.taxaConversao || 0}
+          icon={TrendingUp}
+          format="percentage"
+          trend={5.2}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Novos Clientes"
+          value={kpis?.novosClientes || 0}
+          icon={UserPlus}
+          trend={8.3}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Processos Ativos"
+          value={kpis?.processosAtivos || 0}
+          icon={Briefcase}
+          trend={-2.1}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Receita do Mês"
+          value={kpis?.receitaMes || 0}
+          icon={DollarSign}
+          format="currency"
+          trend={15.7}
+          loading={kpisLoading}
+        />
+        <KPICard
+          title="Taxa de Inadimplência"
+          value={kpis?.taxaInadimplencia || 0}
+          icon={AlertTriangle}
+          format="percentage"
+          trend={-1.2}
+          loading={kpisLoading}
+        />
+      </div>
 
-        <TabsContent value="visao-geral" className="space-y-6">
-          {/* KPIs Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <KPICard
-              title="Total de Leads"
-              value={kpis?.totalLeads || 0}
-              icon={Users}
-              trend={12.5}
-              loading={kpisLoading}
-            />
-            <KPICard
-              title="Taxa de Conversão"
-              value={kpis?.taxaConversao || 0}
-              icon={TrendingUp}
-              format="percentage"
-              trend={5.2}
-              loading={kpisLoading}
-            />
-            <KPICard
-              title="Novos Clientes"
-              value={kpis?.novosClientes || 0}
-              icon={UserPlus}
-              trend={8.3}
-              loading={kpisLoading}
-            />
-            <KPICard
-              title="Processos Ativos"
-              value={kpis?.processosAtivos || 0}
-              icon={Briefcase}
-              trend={-2.1}
-              loading={kpisLoading}
-            />
-            <KPICard
-              title="Receita do Mês"
-              value={kpis?.receitaMes || 0}
-              icon={DollarSign}
-              format="currency"
-              trend={15.7}
-              loading={kpisLoading}
-            />
-            <KPICard
-              title="Taxa de Inadimplência"
-              value={kpis?.taxaInadimplencia || 0}
-              icon={AlertTriangle}
-              format="percentage"
-              trend={-1.2}
-              loading={kpisLoading}
-            />
-          </div>
+      {/* Charts Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ConversionFunnel data={funnelData || []} loading={funnelLoading} />
+        <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
+      </div>
 
-          {/* Charts Grid */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ConversionFunnel data={funnelData || []} loading={funnelLoading} />
-            <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
-          </div>
+      <RevenueChart data={revenueData || []} loading={revenueLoading} />
 
-          <RevenueChart data={revenueData || []} loading={revenueLoading} />
-
-          {/* Widgets Grid */}
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AlertsWidget data={alerts || []} loading={alertsLoading} />
-            <RecentActivities data={activities || []} loading={activitiesLoading} />
-          </div>
-        </TabsContent>
-
-        <TabsContent value="conversao">
-          <DashboardConversao filters={filters} />
-        </TabsContent>
-
-        <TabsContent value="canais">
-          <DashboardPerformanceCanal filters={filters} />
-        </TabsContent>
-      </Tabs>
+      {/* Widgets Grid */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AlertsWidget data={alerts || []} loading={alertsLoading} />
+        <RecentActivities data={activities || []} loading={activitiesLoading} />
+      </div>
     </div>
   );
 }

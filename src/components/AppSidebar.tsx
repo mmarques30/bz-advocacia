@@ -60,6 +60,7 @@ const menuItems: MenuItem[] = [
     label: "Gestão de Vendas",
     icon: Users,
     submenu: [
+      { title: "Análises", url: "/dashboard/vendas/analises" },
       { title: "Meta Ads", url: "/dashboard/vendas/meta-ads" },
       { title: "Leads", url: "/dashboard/leads?tipo=leads" },
       { title: "Clientes", url: "/dashboard/leads?tipo=clientes" },
