@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, FileText, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { useFaturamentoDetalhado } from "@/hooks/useFinanceiro";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 import { format } from "date-fns";
@@ -15,11 +15,11 @@ interface FaturamentoTableProps {
   filters?: FaturamentoFiltersState;
 }
 
-const ITEMS_PER_PAGE = 10;
+const INITIAL_ITEMS = 3;
 
 export function FaturamentoTable({ filters }: FaturamentoTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [isExpanded, setIsExpanded] = useState(false);
   
   const { data: faturamentos, isLoading } = useFaturamentoDetalhado(filters);
 
@@ -37,15 +37,18 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
     item.subcategoria?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  // Paginação
-  const totalPages = Math.ceil(filteredData.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedData = filteredData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  // Controle de exibição com expandir/ocultar
+  const displayedData = isExpanded 
+    ? filteredData 
+    : filteredData.slice(0, INITIAL_ITEMS);
 
-  // Reset página ao mudar busca
+  const temMaisItens = filteredData.length > INITIAL_ITEMS;
+  const itensRestantes = filteredData.length - INITIAL_ITEMS;
+
+  // Reset expansão ao mudar busca
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    setCurrentPage(1);
+    setIsExpanded(false);
   };
 
   if (isLoading) {
@@ -59,7 +62,7 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map((i) => (
+            {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-12 w-full" />
             ))}
           </div>
@@ -113,7 +116,7 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedData.map((item) => (
+                  {displayedData.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
                         {item.data ? format(new Date(item.data), "dd/MM/yyyy", { locale: ptBR }) : "-"}
@@ -140,34 +143,25 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
               </Table>
             </div>
 
-            {/* Paginação */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between mt-4">
-                <p className="text-sm text-muted-foreground">
-                  Mostrando {startIndex + 1} a {Math.min(startIndex + ITEMS_PER_PAGE, filteredData.length)} de {filteredData.length}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm">
-                    Página {currentPage} de {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+            {/* Botão Expandir/Ocultar */}
+            {temMaisItens && (
+              <Button
+                variant="ghost"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full mt-4"
+              >
+                {isExpanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-2" />
+                    Ocultar
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-2" />
+                    Ver mais ({itensRestantes} restantes)
+                  </>
+                )}
+              </Button>
             )}
           </>
         )}
