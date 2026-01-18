@@ -14,10 +14,10 @@ import {
   Line,
   Legend,
 } from "recharts";
-import { useResumoMensal, useResumoSubcategoria, useKPIsTransacoes } from "@/hooks/useTransacoesFinanceiras";
+import { useResumoMensal, useResumoSubcategoria, useKPIsTransacoes, useResumoAnual } from "@/hooks/useTransacoesFinanceiras";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
+const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -42,12 +42,20 @@ interface TransacoesChartsProps {
 }
 
 export function TransacoesCharts({ filters }: TransacoesChartsProps) {
-  const effectiveFilters = filters || { ano: new Date().getFullYear() };
-  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(effectiveFilters);
-  const { data: resumoSubcat, isLoading: loadingSubcat } = useResumoSubcategoria(effectiveFilters.ano || new Date().getFullYear());
-  const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(effectiveFilters);
+  // Determinar se temos um ano específico ou se é "tudo"
+  const hasYearFilter = filters?.ano !== undefined;
+  const anoSelecionado = filters?.ano || new Date().getFullYear();
+  
+  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(
+    hasYearFilter ? { ...filters, ano: anoSelecionado } : { ano: new Date().getFullYear() }
+  );
+  const { data: resumoAnual, isLoading: loadingAnual } = useResumoAnual();
+  const { data: resumoSubcat, isLoading: loadingSubcat } = useResumoSubcategoria(anoSelecionado);
+  const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(filters || {});
 
-  if (loadingMensal || loadingSubcat || loadingKpis) {
+  const isLoading = loadingMensal || loadingSubcat || loadingKpis || loadingAnual;
+
+  if (isLoading) {
     return (
       <div className="grid gap-4 md:grid-cols-2">
         {[...Array(4)].map((_, i) => (
@@ -70,7 +78,21 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
     { name: "Pessoa Jurídica", value: kpis?.receitasPJ || 0 },
   ];
 
-  // Dados acumulados para linha
+  // Gerar título dinâmico
+  const getChartTitle = (base: string) => {
+    if (filters?.dataInicio && filters?.dataFim) {
+      return `${base} - ${filters.dataInicio.toLocaleDateString('pt-BR')} a ${filters.dataFim.toLocaleDateString('pt-BR')}`;
+    }
+    if (filters?.ano) {
+      return `${base} - ${filters.ano}`;
+    }
+    return `${base} - Todos os anos`;
+  };
+
+  // Se não há filtro de ano específico, mostrar gráfico por ano
+  const showYearlyChart = !hasYearFilter && !filters?.dataInicio && !filters?.dataFim;
+
+  // Dados acumulados para linha (quando há ano específico)
   let acumulado = 0;
   const dadosAcumulados = (resumoMensal || []).map((m) => {
     acumulado += m.resultado;
@@ -82,29 +104,49 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {/* Evolução Mensal */}
+      {/* Gráfico principal: Por Ano (quando sem filtro) ou Por Mês (quando com ano) */}
       <Card className="col-span-2">
         <CardHeader>
-          <CardTitle className="text-lg">Receitas vs Despesas - 2025</CardTitle>
+          <CardTitle className="text-lg">
+            {showYearlyChart 
+              ? "Receitas vs Despesas por Ano" 
+              : getChartTitle("Receitas vs Despesas")
+            }
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={resumoMensal || []}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis
-                dataKey="mes_nome"
-                tickFormatter={(v) => v.substring(0, 3)}
-                className="text-xs"
-              />
-              <YAxis tickFormatter={formatCurrency} className="text-xs" />
-              <Tooltip
-                formatter={(value: number) => formatCurrencyFull(value)}
-                labelFormatter={(label) => `Mês: ${label}`}
-              />
-              <Legend />
-              <Bar dataKey="receitas" name="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
-            </BarChart>
+            {showYearlyChart ? (
+              <BarChart data={resumoAnual || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="ano" className="text-xs" />
+                <YAxis tickFormatter={formatCurrency} className="text-xs" />
+                <Tooltip
+                  formatter={(value: number) => formatCurrencyFull(value)}
+                  labelFormatter={(label) => `Ano: ${label}`}
+                />
+                <Legend />
+                <Bar dataKey="receitas" name="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            ) : (
+              <BarChart data={resumoMensal || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="mes_nome"
+                  tickFormatter={(v) => v.substring(0, 3)}
+                  className="text-xs"
+                />
+                <YAxis tickFormatter={formatCurrency} className="text-xs" />
+                <Tooltip
+                  formatter={(value: number) => formatCurrencyFull(value)}
+                  labelFormatter={(label) => `Mês: ${label}`}
+                />
+                <Legend />
+                <Bar dataKey="receitas" name="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -170,30 +212,32 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
         </CardContent>
       </Card>
 
-      {/* Resultado Acumulado */}
-      <Card className="col-span-2">
-        <CardHeader>
-          <CardTitle className="text-lg">Resultado Acumulado - 2025</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={dadosAcumulados}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="mes" className="text-xs" />
-              <YAxis tickFormatter={formatCurrency} className="text-xs" />
-              <Tooltip formatter={(value: number) => formatCurrencyFull(value)} />
-              <Line
-                type="monotone"
-                dataKey="acumulado"
-                name="Acumulado"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={{ fill: "#3b82f6" }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Resultado Acumulado - só mostrar quando tem ano específico */}
+      {hasYearFilter && (
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle className="text-lg">Resultado Acumulado - {anoSelecionado}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={dadosAcumulados}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" />
+                <YAxis tickFormatter={formatCurrency} className="text-xs" />
+                <Tooltip formatter={(value: number) => formatCurrencyFull(value)} />
+                <Line
+                  type="monotone"
+                  dataKey="acumulado"
+                  name="Acumulado"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={{ fill: "#3b82f6" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

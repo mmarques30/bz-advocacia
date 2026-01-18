@@ -18,7 +18,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export interface HistoricoFiltersState {
-  ano: number;
+  ano: number | null;
   dataInicio: Date | null;
   dataFim: Date | null;
   tipo: string | null;
@@ -32,7 +32,7 @@ interface Props {
 
 export function getDefaultHistoricoFilters(): HistoricoFiltersState {
   return {
-    ano: new Date().getFullYear(),
+    ano: null, // Sem filtro por padrão
     dataInicio: null,
     dataFim: null,
     tipo: null,
@@ -42,7 +42,8 @@ export function getDefaultHistoricoFilters(): HistoricoFiltersState {
 
 export function HistoricoFilters({ filters, onChange }: Props) {
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  // Anos de 2020 até o ano atual
+  const years = Array.from({ length: currentYear - 2020 + 1 }, (_, i) => currentYear - i);
 
   const handleClear = () => {
     onChange(getDefaultHistoricoFilters());
@@ -53,18 +54,24 @@ export function HistoricoFilters({ filters, onChange }: Props) {
     filters.dataFim !== null ||
     filters.tipo !== null ||
     filters.categoria !== null ||
-    filters.ano !== currentYear;
+    filters.ano !== null;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Select
-        value={filters.ano.toString()}
-        onValueChange={(value) => onChange({ ...filters, ano: parseInt(value) })}
+        value={filters.ano?.toString() || "all"}
+        onValueChange={(value) => onChange({ 
+          ...filters, 
+          ano: value === "all" ? null : parseInt(value),
+          dataInicio: null,
+          dataFim: null,
+        })}
       >
-        <SelectTrigger className="w-[100px]">
-          <SelectValue placeholder="Ano" />
+        <SelectTrigger className="w-[120px]">
+          <SelectValue placeholder="Todos Anos" />
         </SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">Todos Anos</SelectItem>
           {years.map((year) => (
             <SelectItem key={year} value={year.toString()}>
               {year}

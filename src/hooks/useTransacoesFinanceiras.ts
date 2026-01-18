@@ -217,15 +217,20 @@ export function useResumoMensal(filters: TransacoesFilters = {}) {
   });
 }
 
-export function useResumoSubcategoria(ano: number = 2025) {
+export function useResumoSubcategoria(ano?: number) {
   return useQuery({
     queryKey: ["resumo-subcategoria-transacoes", ano],
     queryFn: async () => {
-      const { data: transacoes, error } = await supabase
+      let query = supabase
         .from("transacoes_financeiras")
         .select("subcategoria_codigo, tipo_codigo, valor")
-        .eq("ano", ano)
         .eq("tipo_codigo", "receita");
+
+      if (ano) {
+        query = query.eq("ano", ano);
+      }
+
+      const { data: transacoes, error } = await query;
 
       if (error) throw error;
 
@@ -252,6 +257,45 @@ export function useResumoSubcategoria(ano: number = 2025) {
         total: valor,
         percentual: total > 0 ? (valor / total) * 100 : 0,
       }));
+    },
+  });
+}
+
+// Novo hook para resumo por ano (quando não há filtro de ano específico)
+export function useResumoAnual() {
+  return useQuery({
+    queryKey: ["resumo-anual-transacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("ano, tipo_codigo, valor");
+
+      if (error) throw error;
+
+      const transacoes = data as TransacaoFinanceira[];
+
+      // Agrupar por ano
+      const anosMap = new Map<number, { receitas: number; despesas: number }>();
+
+      for (const t of transacoes) {
+        const atual = anosMap.get(t.ano) || { receitas: 0, despesas: 0 };
+        if (t.tipo_codigo === "receita") {
+          atual.receitas += Number(t.valor);
+        } else if (t.tipo_codigo === "despesa") {
+          atual.despesas += Number(t.valor);
+        }
+        anosMap.set(t.ano, atual);
+      }
+
+      // Converter para array e ordenar por ano
+      return Array.from(anosMap.entries())
+        .map(([ano, valores]) => ({
+          ano,
+          receitas: valores.receitas,
+          despesas: valores.despesas,
+          resultado: valores.receitas - valores.despesas,
+        }))
+        .sort((a, b) => a.ano - b.ano);
     },
   });
 }

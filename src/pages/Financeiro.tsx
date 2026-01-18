@@ -39,8 +39,8 @@ export default function Financeiro() {
   const [newDespesaOpen, setNewDespesaOpen] = useState(false);
   const [selectedDespesaId, setSelectedDespesaId] = useState<string | null>(null);
 
-  // Estados para transações (Visão Geral)
-  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({ ano: new Date().getFullYear() });
+  // Estados para transações (Visão Geral) - SEM FILTRO PADRÃO
+  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
 
   // Estados para filtros globais e dialogs de importação
   const [faturamentoFilters, setFaturamentoFilters] = useState<FaturamentoFiltersState>(getDefaultFaturamentoFilters());
