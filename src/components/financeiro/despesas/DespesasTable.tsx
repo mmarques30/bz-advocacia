@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
@@ -32,11 +32,21 @@ interface DespesasTableProps {
   onSelectDespesa: (id: string) => void;
 }
 
+const INITIAL_ITEMS = 3;
+
 export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) {
   const { data: despesas, isLoading } = useDespesas(filters);
   const deleteDespesa = useDeleteDespesa();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const despesasExibidas = isExpanded 
+    ? despesas 
+    : despesas?.slice(0, INITIAL_ITEMS);
+  
+  const temMaisItens = (despesas?.length || 0) > INITIAL_ITEMS;
+  const itensRestantes = (despesas?.length || 0) - INITIAL_ITEMS;
 
   const handleDelete = () => {
     if (despesaToDelete) {
@@ -94,7 +104,7 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {despesas.map((despesa) => (
+            {despesasExibidas?.map((despesa) => (
               <TableRow key={despesa.id}>
                 <TableCell className="font-medium">
                   {format(new Date(despesa.data), "dd/MM/yyyy", { locale: ptBR })}
@@ -151,6 +161,26 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
           </TableBody>
         </Table>
       </div>
+
+      {temMaisItens && (
+        <Button
+          variant="ghost"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full mt-4"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUp className="h-4 w-4 mr-2" />
+              Ocultar
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-4 w-4 mr-2" />
+              Ver mais ({itensRestantes} restantes)
+            </>
+          )}
+        </Button>
+      )}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
