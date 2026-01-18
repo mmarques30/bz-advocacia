@@ -38,9 +38,7 @@ import FinanceiroHistorico from "./pages/financeiro/Historico";
 
 // Pesquisas
 import PesquisasIndex from "./pages/pesquisas/Index";
-import PesquisasVeiculos from "./pages/pesquisas/Veiculos";
 import PesquisasPessoas from "./pages/pesquisas/Pessoas";
-import PesquisasImoveis from "./pages/pesquisas/Imoveis";
 import PesquisasHistorico from "./pages/pesquisas/Historico";
 
 
@@ -307,26 +305,10 @@ const App = () => (
         } 
       />
       <Route 
-        path="/dashboard/pesquisas/veiculos" 
-        element={
-          <ProtectedRoute>
-            <PesquisasVeiculos />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
         path="/dashboard/pesquisas/pessoas" 
         element={
           <ProtectedRoute>
             <PesquisasPessoas />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/pesquisas/imoveis" 
-        element={
-          <ProtectedRoute>
-            <PesquisasImoveis />
           </ProtectedRoute>
         } 
       />
