@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, History } from "lucide-react";
+import { Users, History } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function PesquisasIndex() {
@@ -13,7 +13,7 @@ export default function PesquisasIndex() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2">
         {/* Localizar Pessoa */}
         <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
           <CardHeader>
@@ -35,31 +35,6 @@ export default function PesquisasIndex() {
             </p>
             <Button asChild className="w-full">
               <Link to="/dashboard/pesquisas/pessoas">Realizar Consulta</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Certidões */}
-        <Card className="hover:shadow-lg transition-shadow opacity-60">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <FileText className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-muted-foreground">Certidões</CardTitle>
-                <CardDescription>
-                  Em desenvolvimento
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Emissão de certidões diversas para instrução processual.
-            </p>
-            <Button className="w-full" variant="secondary" disabled>
-              Em breve
             </Button>
           </CardContent>
         </Card>
