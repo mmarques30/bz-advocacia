@@ -89,13 +89,22 @@ export interface ReceitaMensal {
 export interface FluxoCaixa {
   data: string;
   entradas: number;
+  granularidade?: 'dia' | 'mes';
 }
 
-export interface DistribuicaoTipo {
+// Tipo para distribuição agregada (antigo)
+export interface DistribuicaoTipoAgregado {
   tipo: string;
   valor: number;
   quantidade: number;
   percentual: number;
+}
+
+// Tipo para série temporal por mês
+export interface DistribuicaoTipo {
+  mes: string;
+  _tipos?: string[];
+  [key: string]: string | number | string[] | undefined;
 }
 
 export interface ParcelaVencendo {

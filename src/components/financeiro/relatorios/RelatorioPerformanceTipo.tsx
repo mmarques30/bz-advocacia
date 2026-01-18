@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useDistribuicaoTipo } from "@/hooks/useFinanceiro";
+import { useDistribuicaoTipoAgregado } from "@/hooks/useFinanceiro";
 import { Download, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from "recharts";
 import { exportToPDF, exportToCSV } from "@/lib/exportUtils";
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { chartColors } from "@/lib/chartConfig";
 
 export function RelatorioPerformanceTipo() {
-  const { data: distribuicao, isLoading } = useDistribuicaoTipo();
+  const { data: distribuicao, isLoading } = useDistribuicaoTipoAgregado();
 
   if (isLoading) {
     return (
