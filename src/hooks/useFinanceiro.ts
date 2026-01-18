@@ -658,3 +658,47 @@ export function useMaioresPagadores(limite: number = 5) {
     },
   });
 }
+
+// Hook para buscar faturamento detalhado (receitas de transacoes_financeiras)
+interface FaturamentoDetalhadoItem {
+  id: string;
+  data: string | null;
+  descricao: string | null;
+  categoria: string | null;
+  subcategoria: string | null;
+  valor: number;
+}
+
+export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
+  return useQuery({
+    queryKey: ["faturamento-detalhado", filters],
+    queryFn: async (): Promise<FaturamentoDetalhadoItem[]> => {
+      const { inicio, fim } = getDateRangeFromFilters(filters);
+
+      // Buscar transações de receita
+      const { data: transacoes, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("*")
+        .order("data_transacao", { ascending: false });
+
+      if (error) throw error;
+
+      // Filtrar por tipo receita e período
+      const transacoesFiltradas = (transacoes || []).filter(t => {
+        if (!t.data_transacao) return false;
+        const dataTransacao = new Date(t.data_transacao);
+        const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
+        return tipoReceita && dataTransacao >= inicio && dataTransacao <= fim;
+      });
+
+      return transacoesFiltradas.map(t => ({
+        id: t.id,
+        data: t.data_transacao,
+        descricao: t.descricao,
+        categoria: t.categoria_codigo,
+        subcategoria: t.subcategoria_codigo,
+        valor: t.valor || 0,
+      }));
+    },
+  });
+}

@@ -5,6 +5,7 @@ import { Plus, Upload, History, ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { AcordosTable } from "@/components/financeiro/AcordosTable";
+import { FaturamentoTable } from "@/components/financeiro/FaturamentoTable";
 import { NewEntradaFaturamentoDialog } from "@/components/financeiro/NewEntradaFaturamentoDialog";
 import { AcordoDetailsDialog } from "@/components/financeiro/AcordoDetailsDialog";
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
@@ -106,11 +107,7 @@ export default function Financeiro() {
           <FaturamentoCharts filters={faturamentoFilters} />
           <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
           
-          <AcordosTable 
-            filters={acordosFiltersFromGlobal}
-            onSelectAcordo={setSelectedAcordoId}
-            onRegistrarPagamento={setPagamentoParcelaId}
-          />
+          <FaturamentoTable filters={faturamentoFilters} />
         </TabsContent>
 
         {/* Aba Despesas */}
