@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { MetaAdsConnection } from "@/components/meta-ads/MetaAdsConnection";
 import { MetaAdsKPIs } from "@/components/meta-ads/MetaAdsKPIs";
 import { MetaAdsCampaigns } from "@/components/meta-ads/MetaAdsCampaigns";
 import { MetaAdsChart } from "@/components/meta-ads/MetaAdsChart";
@@ -26,9 +25,6 @@ export default function MetaAds() {
             Acompanhe a performance das suas campanhas de marketing
           </p>
         </div>
-
-        {/* Connection Status */}
-        <MetaAdsConnection />
 
         {/* Filters */}
         <div className="flex items-center justify-between">
