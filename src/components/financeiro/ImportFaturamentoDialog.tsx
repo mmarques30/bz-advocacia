@@ -240,17 +240,87 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
     ];
 
     try {
-      const transacoes = validRows.map(row => ({
-        ano,
-        mes: row.mesNumero,
-        mes_nome: mesesNomes[row.mesNumero],
-        tipo_codigo: "receita" as const,
-        categoria_codigo: row.tipo?.toLowerCase() === "pj" ? "pj" : "pf",
-        subcategoria_codigo: null,
-        descricao: row.descricao.trim(),
-        valor: row.valorNumerico,
-        data_transacao: parseDate(row.data, row.mesNumero, ano),
-      }));
+      // Processar cada linha criando transações separadas por sócia
+      const transacoes = validRows.flatMap(row => {
+        const transacoesLinha: Array<{
+          ano: number;
+          mes: number;
+          mes_nome: string;
+          tipo_codigo: "receita";
+          categoria_codigo: string;
+          subcategoria_codigo: string | null;
+          descricao: string;
+          valor: number;
+          data_transacao: string;
+        }> = [];
+        
+        const valorEliziane = parseValor(row.valor_eliziane);
+        const valorJuliana = parseValor(row.valor_juliana);
+        const valorPJ = parseValor(row.valor_pj);
+        const dataTransacao = parseDate(row.data, row.mesNumero, ano);
+        
+        // Transação para Eliziane
+        if (valorEliziane > 0) {
+          transacoesLinha.push({
+            ano,
+            mes: row.mesNumero,
+            mes_nome: mesesNomes[row.mesNumero],
+            tipo_codigo: "receita",
+            categoria_codigo: "pf",
+            subcategoria_codigo: "eliziane",
+            descricao: row.descricao.trim(),
+            valor: valorEliziane,
+            data_transacao: dataTransacao,
+          });
+        }
+        
+        // Transação para Juliana
+        if (valorJuliana > 0) {
+          transacoesLinha.push({
+            ano,
+            mes: row.mesNumero,
+            mes_nome: mesesNomes[row.mesNumero],
+            tipo_codigo: "receita",
+            categoria_codigo: "pf",
+            subcategoria_codigo: "juliana",
+            descricao: row.descricao.trim(),
+            valor: valorJuliana,
+            data_transacao: dataTransacao,
+          });
+        }
+        
+        // Transação PJ (se tiver valor_pj ou se tipo for PJ)
+        if (valorPJ > 0) {
+          transacoesLinha.push({
+            ano,
+            mes: row.mesNumero,
+            mes_nome: mesesNomes[row.mesNumero],
+            tipo_codigo: "receita",
+            categoria_codigo: "pj",
+            subcategoria_codigo: null,
+            descricao: row.descricao.trim(),
+            valor: valorPJ,
+            data_transacao: dataTransacao,
+          });
+        }
+        
+        // Se não tem valores individuais, usar valor_total com lógica original
+        if (valorEliziane === 0 && valorJuliana === 0 && valorPJ === 0 && row.valorNumerico > 0) {
+          transacoesLinha.push({
+            ano,
+            mes: row.mesNumero,
+            mes_nome: mesesNomes[row.mesNumero],
+            tipo_codigo: "receita",
+            categoria_codigo: row.tipo?.toLowerCase() === "pj" ? "pj" : "pf",
+            subcategoria_codigo: null,
+            descricao: row.descricao.trim(),
+            valor: row.valorNumerico,
+            data_transacao: dataTransacao,
+          });
+        }
+        
+        return transacoesLinha;
+      });
 
       // Import in batches of 50
       const batchSize = 50;
