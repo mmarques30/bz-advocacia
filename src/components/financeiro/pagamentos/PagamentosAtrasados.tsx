@@ -24,20 +24,20 @@ export function PagamentosAtrasados() {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {/* Despesas em Atraso */}
+      {/* Despesas Pendentes */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-destructive">
+              <CardTitle className="flex items-center gap-2 text-primary">
                 <AlertTriangle className="h-5 w-5" />
-                Despesas em Atraso
+                Despesas Pendentes
               </CardTitle>
               <CardDescription>
-                {despesas.length} {despesas.length === 1 ? 'despesa vencida' : 'despesas vencidas'}
+                {despesas.length} {despesas.length === 1 ? 'despesa' : 'despesas'} a pagar
               </CardDescription>
             </div>
-            <Badge variant="destructive">
+            <Badge className="bg-primary/10 text-primary hover:bg-primary/20">
               {formatCurrency(despesas.reduce((sum, d) => sum + d.valor, 0))}
             </Badge>
           </div>
@@ -51,7 +51,7 @@ export function PagamentosAtrasados() {
             </div>
           ) : despesas.length === 0 ? (
             <div className="text-center py-6">
-              <p className="text-sm text-muted-foreground">Nenhuma despesa em atraso 🎉</p>
+              <p className="text-sm text-muted-foreground">Nenhuma despesa pendente 🎉</p>
             </div>
           ) : (
             <ScrollArea className="h-[300px] pr-4">
@@ -59,19 +59,21 @@ export function PagamentosAtrasados() {
                 {despesas.map((despesa) => (
                   <div
                     key={despesa.id}
-                    className="flex items-center justify-between p-3 border rounded-lg border-l-4 border-l-destructive"
+                    className="flex items-center justify-between p-3 border rounded-lg border-l-4 border-l-primary"
                   >
                     <div className="space-y-1">
                       <p className="font-medium text-sm">{despesa.descricao}</p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         {format(new Date(despesa.data), "dd/MM/yyyy")}
-                        <Badge variant="outline" className="text-destructive border-destructive">
-                          {getDiasAtraso(despesa.data)} dias
-                        </Badge>
+                        {getDiasAtraso(despesa.data) > 0 && (
+                          <Badge variant="outline" className="text-primary border-primary">
+                            {getDiasAtraso(despesa.data)} dias
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                    <span className="font-bold text-destructive">
+                    <span className="font-bold text-primary">
                       {formatCurrency(despesa.valor)}
                     </span>
                   </div>
@@ -82,20 +84,20 @@ export function PagamentosAtrasados() {
         </CardContent>
       </Card>
 
-      {/* Receitas Pendentes */}
+      {/* Receitas a Receber */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-amber-600">
+              <CardTitle className="flex items-center gap-2 text-foreground">
                 <DollarSign className="h-5 w-5" />
-                Receitas Pendentes
+                Receitas a Receber
               </CardTitle>
               <CardDescription>
-                {receitas.length} {receitas.length === 1 ? 'parcela a receber' : 'parcelas a receber'}
+                {receitas.length} {receitas.length === 1 ? 'parcela' : 'parcelas'} pendentes
               </CardDescription>
             </div>
-            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200">
+            <Badge className="bg-chart-4/10 text-chart-4 hover:bg-chart-4/20">
               {formatCurrency(receitas.reduce((sum, r) => sum + r.valor, 0))}
             </Badge>
           </div>
@@ -122,7 +124,7 @@ export function PagamentosAtrasados() {
                     <div
                       key={parcela.id}
                       className={`flex items-center justify-between p-3 border rounded-lg border-l-4 ${
-                        isAtrasado ? 'border-l-red-500' : 'border-l-amber-400'
+                        isAtrasado ? 'border-l-primary' : 'border-l-chart-4'
                       }`}
                     >
                       <div className="space-y-1">
@@ -133,13 +135,13 @@ export function PagamentosAtrasados() {
                           <Calendar className="h-3 w-3" />
                           {format(new Date(parcela.data_vencimento), "dd/MM/yyyy")}
                           {isAtrasado && (
-                            <Badge variant="outline" className="text-destructive border-destructive">
+                            <Badge variant="outline" className="text-primary border-primary">
                               {diasAtraso} dias de atraso
                             </Badge>
                           )}
                         </div>
                       </div>
-                      <span className={`font-bold ${isAtrasado ? 'text-destructive' : 'text-amber-600'}`}>
+                      <span className={`font-bold ${isAtrasado ? 'text-primary' : 'text-chart-4'}`}>
                         {formatCurrency(parcela.valor)}
                       </span>
                     </div>

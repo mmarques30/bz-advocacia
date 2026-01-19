@@ -1,16 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, addDays, isBefore, isAfter } from "date-fns";
-
-export interface KPIsPagamentos {
-  despesas_atrasadas: number;
-  quantidade_despesas_atrasadas: number;
-  receitas_pendentes: number;
-  quantidade_receitas_pendentes: number;
-  vencendo_7_dias: number;
-  quantidade_vencendo_7_dias: number;
-  saldo: number;
-}
+import { format, addDays, startOfMonth } from "date-fns";
 
 export interface DespesaAtrasada {
   id: string;
@@ -18,6 +8,7 @@ export interface DespesaAtrasada {
   valor: number;
   data: string;
   categoria: string;
+  origem: "despesas" | "transacoes";
 }
 
 export interface ReceitaPendente {
@@ -26,6 +17,8 @@ export interface ReceitaPendente {
   data_vencimento: string;
   numero_parcela: number;
   cliente_nome?: string;
+  descricao?: string;
+  origem: "parcelas" | "transacoes";
 }
 
 export interface ItemVencimento {
@@ -36,88 +29,60 @@ export interface ItemVencimento {
   data_vencimento: string;
 }
 
-export function useKPIsPagamentos() {
-  return useQuery({
-    queryKey: ["kpis-pagamentos"],
-    queryFn: async (): Promise<KPIsPagamentos> => {
-      const hoje = new Date();
-      const hojeStr = format(hoje, "yyyy-MM-dd");
-      const seteDiasStr = format(addDays(hoje, 7), "yyyy-MM-dd");
-
-      // Buscar despesas pendentes/atrasadas
-      const { data: despesas } = await supabase
-        .from("despesas")
-        .select("*")
-        .in("status", ["pendente", "agendado"])
-        .lt("data", hojeStr);
-
-      const despesasAtrasadas = despesas?.reduce((sum, d) => sum + Number(d.valor), 0) || 0;
-      const qtdDespesasAtrasadas = despesas?.length || 0;
-
-      // Buscar parcelas pendentes
-      const { data: parcelas } = await supabase
-        .from("parcelas_financeiras")
-        .select("*")
-        .eq("status", "pendente");
-
-      const receitasPendentes = parcelas?.reduce((sum, p) => sum + p.valor, 0) || 0;
-      const qtdReceitasPendentes = parcelas?.length || 0;
-
-      // Buscar itens vencendo nos próximos 7 dias
-      const { data: despesasVencendo } = await supabase
-        .from("despesas")
-        .select("valor")
-        .in("status", ["pendente", "agendado"])
-        .gte("data", hojeStr)
-        .lte("data", seteDiasStr);
-
-      const { data: parcelasVencendo } = await supabase
-        .from("parcelas_financeiras")
-        .select("valor")
-        .eq("status", "pendente")
-        .gte("data_vencimento", hojeStr)
-        .lte("data_vencimento", seteDiasStr);
-
-      const totalVencendo7Dias = 
-        (despesasVencendo?.reduce((sum, d) => sum + Number(d.valor), 0) || 0) +
-        (parcelasVencendo?.reduce((sum, p) => sum + p.valor, 0) || 0);
-      const qtdVencendo7Dias = (despesasVencendo?.length || 0) + (parcelasVencendo?.length || 0);
-
-      // Saldo = Receitas pendentes - Despesas atrasadas
-      const saldo = receitasPendentes - despesasAtrasadas;
-
-      return {
-        despesas_atrasadas: despesasAtrasadas,
-        quantidade_despesas_atrasadas: qtdDespesasAtrasadas,
-        receitas_pendentes: receitasPendentes,
-        quantidade_receitas_pendentes: qtdReceitasPendentes,
-        vencendo_7_dias: totalVencendo7Dias,
-        quantidade_vencendo_7_dias: qtdVencendo7Dias,
-        saldo,
-      };
-    },
-  });
-}
-
 export function useDespesasAtrasadas() {
   return useQuery({
     queryKey: ["despesas-atrasadas"],
     queryFn: async (): Promise<DespesaAtrasada[]> => {
-      const hoje = format(new Date(), "yyyy-MM-dd");
+      const hoje = new Date();
+      const hojeStr = format(hoje, "yyyy-MM-dd");
+      const primeiroDiaMes = format(startOfMonth(hoje), "yyyy-MM-dd");
 
-      const { data, error } = await supabase
+      const resultado: DespesaAtrasada[] = [];
+
+      // 1. Buscar despesas da tabela despesas (operacionais)
+      const { data: despesasOperacionais, error: errDespesas } = await supabase
         .from("despesas")
         .select("id, descricao, valor, data, categoria")
         .in("status", ["pendente", "agendado"])
-        .lt("data", hoje)
+        .lt("data", hojeStr)
         .order("data", { ascending: true });
 
-      if (error) throw error;
+      if (!errDespesas && despesasOperacionais) {
+        despesasOperacionais.forEach((d) => {
+          resultado.push({
+            id: d.id,
+            descricao: d.descricao,
+            valor: Number(d.valor),
+            data: d.data,
+            categoria: d.categoria,
+            origem: "despesas",
+          });
+        });
+      }
 
-      return (data || []).map(d => ({
-        ...d,
-        valor: Number(d.valor),
-      }));
+      // 2. Buscar despesas do mês atual de transacoes_financeiras
+      const { data: transacoesDespesas, error: errTransacoes } = await supabase
+        .from("transacoes_financeiras")
+        .select("id, descricao, valor, data_transacao, categoria_codigo")
+        .eq("tipo_codigo", "DESP")
+        .gte("data_transacao", primeiroDiaMes)
+        .lte("data_transacao", hojeStr)
+        .order("data_transacao", { ascending: true });
+
+      if (!errTransacoes && transacoesDespesas) {
+        transacoesDespesas.forEach((t) => {
+          resultado.push({
+            id: t.id,
+            descricao: t.descricao || "Despesa importada",
+            valor: Number(t.valor),
+            data: t.data_transacao || hojeStr,
+            categoria: t.categoria_codigo || "outros",
+            origem: "transacoes",
+          });
+        });
+      }
+
+      return resultado;
     },
   });
 }
@@ -126,7 +91,14 @@ export function useReceitasPendentes() {
   return useQuery({
     queryKey: ["receitas-pendentes"],
     queryFn: async (): Promise<ReceitaPendente[]> => {
-      const { data, error } = await supabase
+      const hoje = new Date();
+      const hojeStr = format(hoje, "yyyy-MM-dd");
+      const primeiroDiaMes = format(startOfMonth(hoje), "yyyy-MM-dd");
+
+      const resultado: ReceitaPendente[] = [];
+
+      // 1. Buscar parcelas pendentes da tabela parcelas_financeiras
+      const { data: parcelas, error: errParcelas } = await supabase
         .from("parcelas_financeiras")
         .select(`
           id,
@@ -140,15 +112,41 @@ export function useReceitasPendentes() {
         .eq("status", "pendente")
         .order("data_vencimento", { ascending: true });
 
-      if (error) throw error;
+      if (!errParcelas && parcelas) {
+        (parcelas as any[]).forEach((p) => {
+          resultado.push({
+            id: p.id,
+            valor: p.valor,
+            data_vencimento: p.data_vencimento,
+            numero_parcela: p.numero_parcela,
+            cliente_nome: p.acordo?.cliente?.[0]?.nome_completo || undefined,
+            origem: "parcelas",
+          });
+        });
+      }
 
-      return (data || []).map((p: any) => ({
-        id: p.id,
-        valor: p.valor,
-        data_vencimento: p.data_vencimento,
-        numero_parcela: p.numero_parcela,
-        cliente_nome: p.acordo?.cliente?.[0]?.nome_completo || undefined,
-      }));
+      // 2. Buscar receitas do mês atual de transacoes_financeiras
+      const { data: transacoesReceitas, error: errTransacoes } = await supabase
+        .from("transacoes_financeiras")
+        .select("id, descricao, valor, data_transacao, subcategoria_codigo")
+        .eq("tipo_codigo", "REC")
+        .gte("data_transacao", primeiroDiaMes)
+        .order("data_transacao", { ascending: true });
+
+      if (!errTransacoes && transacoesReceitas) {
+        transacoesReceitas.forEach((t) => {
+          resultado.push({
+            id: t.id,
+            valor: Number(t.valor),
+            data_vencimento: t.data_transacao || hojeStr,
+            numero_parcela: 0,
+            descricao: t.descricao || t.subcategoria_codigo || "Receita importada",
+            origem: "transacoes",
+          });
+        });
+      }
+
+      return resultado;
     },
   });
 }
@@ -161,7 +159,9 @@ export function useProximosVencimentos(dias: number = 7) {
       const hojeStr = format(hoje, "yyyy-MM-dd");
       const limiteStr = format(addDays(hoje, dias), "yyyy-MM-dd");
 
-      // Buscar despesas vencendo
+      const itens: ItemVencimento[] = [];
+
+      // 1. Buscar despesas vencendo (tabela despesas)
       const { data: despesas } = await supabase
         .from("despesas")
         .select("id, descricao, valor, data")
@@ -170,7 +170,17 @@ export function useProximosVencimentos(dias: number = 7) {
         .lte("data", limiteStr)
         .order("data", { ascending: true });
 
-      // Buscar parcelas vencendo
+      despesas?.forEach((d) => {
+        itens.push({
+          id: d.id,
+          tipo: "despesa",
+          descricao: d.descricao,
+          valor: Number(d.valor),
+          data_vencimento: d.data,
+        });
+      });
+
+      // 2. Buscar parcelas vencendo (tabela parcelas_financeiras)
       const { data: parcelas } = await supabase
         .from("parcelas_financeiras")
         .select(`
@@ -187,21 +197,7 @@ export function useProximosVencimentos(dias: number = 7) {
         .lte("data_vencimento", limiteStr)
         .order("data_vencimento", { ascending: true });
 
-      const itens: ItemVencimento[] = [];
-
-      // Adicionar despesas
-      despesas?.forEach((d) => {
-        itens.push({
-          id: d.id,
-          tipo: "despesa",
-          descricao: d.descricao,
-          valor: Number(d.valor),
-          data_vencimento: d.data,
-        });
-      });
-
-      // Adicionar parcelas
-      parcelas?.forEach((p: any) => {
+      (parcelas as any[] || []).forEach((p) => {
         const clienteNome = p.acordo?.cliente?.[0]?.nome_completo;
         itens.push({
           id: p.id,
@@ -211,6 +207,44 @@ export function useProximosVencimentos(dias: number = 7) {
             : `Parcela ${p.numero_parcela}`,
           valor: p.valor,
           data_vencimento: p.data_vencimento,
+        });
+      });
+
+      // 3. Buscar transações do período (despesas futuras)
+      const { data: transacoesDespesas } = await supabase
+        .from("transacoes_financeiras")
+        .select("id, descricao, valor, data_transacao")
+        .eq("tipo_codigo", "DESP")
+        .gte("data_transacao", hojeStr)
+        .lte("data_transacao", limiteStr)
+        .order("data_transacao", { ascending: true });
+
+      transacoesDespesas?.forEach((t) => {
+        itens.push({
+          id: t.id,
+          tipo: "despesa",
+          descricao: t.descricao || "Despesa",
+          valor: Number(t.valor),
+          data_vencimento: t.data_transacao || hojeStr,
+        });
+      });
+
+      // 4. Buscar transações do período (receitas futuras)
+      const { data: transacoesReceitas } = await supabase
+        .from("transacoes_financeiras")
+        .select("id, descricao, valor, data_transacao, subcategoria_codigo")
+        .eq("tipo_codigo", "REC")
+        .gte("data_transacao", hojeStr)
+        .lte("data_transacao", limiteStr)
+        .order("data_transacao", { ascending: true });
+
+      transacoesReceitas?.forEach((t) => {
+        itens.push({
+          id: t.id,
+          tipo: "receita",
+          descricao: t.descricao || t.subcategoria_codigo || "Receita",
+          valor: Number(t.valor),
+          data_vencimento: t.data_transacao || hojeStr,
         });
       });
 
