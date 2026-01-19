@@ -61,7 +61,7 @@ const menuItems: MenuItem[] = [
     icon: Users,
     submenu: [
       { title: "Análises", url: "/dashboard/vendas/analises" },
-      { title: "Meta Ads", url: "/dashboard/vendas/meta-ads" },
+      { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Leads e Clientes", url: "/dashboard/leads" },
       { title: "Documentos", url: "/dashboard/documentos" },
       { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
