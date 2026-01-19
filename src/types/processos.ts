@@ -109,6 +109,7 @@ export interface ProcessosFilters {
   sem_atualizacao_dias?: number;
   data_inicio_start?: Date;
   data_inicio_end?: Date;
+  filtro_documentos?: 'com_docs' | 'sem_docs';
 }
 
 export const PROCESSO_STATUS_LABELS: Record<ProcessoStatus, string> = {
