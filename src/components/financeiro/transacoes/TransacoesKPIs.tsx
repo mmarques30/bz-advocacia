@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useKPIsTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { chartColors } from "@/lib/chartConfig";
 import type { TransacoesFilters } from "@/types/transacoes";
-
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -66,30 +66,30 @@ export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
       title: `Receita Total (${filterLabel})`,
       value: formatCurrency(kpis?.receitas || 0),
       icon: TrendingUp,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-100",
+      colorStyle: { color: chartColors.success },
+      bgStyle: { backgroundColor: `${chartColors.success}20` },
     },
     {
       title: `Despesas (${filterLabel})`,
       value: formatCurrency(kpis?.despesas || 0),
       icon: TrendingDown,
-      color: "text-red-600",
-      bgColor: "bg-red-100",
+      colorStyle: { color: chartColors.primary },
+      bgStyle: { backgroundColor: `${chartColors.primary}20` },
     },
     {
       title: "Lucro",
       value: formatCurrency(kpis?.resultado || 0),
       icon: DollarSign,
-      color: (kpis?.resultado || 0) >= 0 ? "text-emerald-600" : "text-red-600",
-      bgColor: (kpis?.resultado || 0) >= 0 ? "bg-emerald-100" : "bg-red-100",
+      colorStyle: { color: (kpis?.resultado || 0) >= 0 ? chartColors.success : chartColors.danger },
+      bgStyle: { backgroundColor: (kpis?.resultado || 0) >= 0 ? `${chartColors.success}20` : `${chartColors.danger}20` },
     },
     {
       title: "Margem",
       value: `${margem.toFixed(1)}%`,
       subtitle: "Lucro / Receita Total",
       icon: Percent,
-      color: margem >= 0 ? "text-blue-600" : "text-red-600",
-      bgColor: margem >= 0 ? "bg-blue-100" : "bg-red-100",
+      colorStyle: { color: margem >= 0 ? chartColors.secondary : chartColors.danger },
+      bgStyle: { backgroundColor: margem >= 0 ? `${chartColors.secondary}20` : `${chartColors.danger}20` },
     },
   ];
 
@@ -101,12 +101,12 @@ export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
             <CardTitle className="text-xs font-medium text-muted-foreground">
               {kpi.title}
             </CardTitle>
-            <div className={`p-1.5 rounded-full ${kpi.bgColor}`}>
-              <kpi.icon className={`h-3.5 w-3.5 ${kpi.color}`} />
+            <div className="p-1.5 rounded-full" style={kpi.bgStyle}>
+              <kpi.icon className="h-3.5 w-3.5" style={kpi.colorStyle} />
             </div>
           </CardHeader>
           <CardContent className="pt-0 pb-3">
-            <div className={`text-xl font-bold ${kpi.color}`}>{kpi.value}</div>
+            <div className="text-xl font-bold" style={kpi.colorStyle}>{kpi.value}</div>
             {kpi.subtitle && (
               <p className="text-xs text-muted-foreground mt-0.5">{kpi.subtitle}</p>
             )}
