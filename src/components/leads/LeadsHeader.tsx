@@ -12,6 +12,7 @@ interface LeadsHeaderProps {
   search: string;
   onSearchChange: (search: string) => void;
   activeFiltersCount: number;
+  isClienteTab?: boolean;
 }
 
 export function LeadsHeader({
@@ -22,13 +23,14 @@ export function LeadsHeader({
   search,
   onSearchChange,
   activeFiltersCount,
+  isClienteTab = false,
 }: LeadsHeaderProps) {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-center gap-3 flex-1 min-w-[300px]">
         <Button onClick={onNewLead}>
           <Plus className="h-4 w-4" />
-          Novo Lead
+          {isClienteTab ? "Novo Cliente" : "Novo Lead"}
         </Button>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

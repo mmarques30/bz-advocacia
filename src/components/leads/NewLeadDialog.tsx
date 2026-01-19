@@ -47,9 +47,10 @@ interface NewLeadDialogProps {
   open: boolean;
   onClose: () => void;
   lead?: Lead | null;
+  isCliente?: boolean;
 }
 
-export function NewLeadDialog({ open, onClose, lead }: NewLeadDialogProps) {
+export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLeadDialogProps) {
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const isEditing = !!lead;
@@ -62,7 +63,7 @@ export function NewLeadDialog({ open, onClose, lead }: NewLeadDialogProps) {
       telefone: "",
       tipo_processo: "",
       origem: "site",
-      estagio: "novo",
+      estagio: isCliente ? "fechado" : "novo",
       mensagem: "",
     },
   });
@@ -85,11 +86,11 @@ export function NewLeadDialog({ open, onClose, lead }: NewLeadDialogProps) {
         telefone: "",
         tipo_processo: "",
         origem: "site",
-        estagio: "novo",
+        estagio: isCliente ? "fechado" : "novo",
         mensagem: "",
       });
     }
-  }, [lead, form]);
+  }, [lead, form, isCliente]);
 
   const onSubmit = async (values: LeadFormValues) => {
     try {
@@ -128,11 +129,15 @@ export function NewLeadDialog({ open, onClose, lead }: NewLeadDialogProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Lead" : "Novo Lead"}</DialogTitle>
+          <DialogTitle>
+            {isEditing 
+              ? (isCliente ? "Editar Cliente" : "Editar Lead")
+              : (isCliente ? "Novo Cliente" : "Novo Lead")}
+          </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Atualize as informações do lead"
-              : "Cadastre um novo lead manualmente"}
+              ? (isCliente ? "Atualize as informações do cliente" : "Atualize as informações do lead")
+              : (isCliente ? "Cadastre um novo cliente" : "Cadastre um novo lead manualmente")}
           </DialogDescription>
         </DialogHeader>
 
@@ -231,30 +236,32 @@ export function NewLeadDialog({ open, onClose, lead }: NewLeadDialogProps) {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="estagio"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Estágio Inicial *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(LEAD_STATUS_LABELS).map(([key, label]) => (
-                          <SelectItem key={key} value={key}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!isCliente && (
+                <FormField
+                  control={form.control}
+                  name="estagio"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Estágio Inicial *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.entries(LEAD_STATUS_LABELS).map(([key, label]) => (
+                            <SelectItem key={key} value={key}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
@@ -280,7 +287,7 @@ export function NewLeadDialog({ open, onClose, lead }: NewLeadDialogProps) {
                 Cancelar
               </Button>
               <Button type="submit" disabled={createLead.isPending || updateLead.isPending}>
-                {isEditing ? "Atualizar" : "Salvar Lead"}
+                {isEditing ? "Atualizar" : (isCliente ? "Salvar Cliente" : "Salvar Lead")}
               </Button>
             </DialogFooter>
           </form>

@@ -112,6 +112,7 @@ export default function Leads() {
         search={filters.search}
         onSearchChange={(search) => setFilters({ ...filters, search })}
         activeFiltersCount={activeFiltersCount}
+        isClienteTab={currentTab === 'clientes'}
       />
 
       {view === 'table' ? (
@@ -140,6 +141,7 @@ export default function Leads() {
         open={showNewLead}
         onClose={handleCloseNewLead}
         lead={leadToEdit}
+        isCliente={currentTab === 'clientes'}
       />
 
       <LeadDetailsDialog
