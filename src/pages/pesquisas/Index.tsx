@@ -1,7 +1,50 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { History, Scale, Building2, User } from "lucide-react";
+import { History, Scale, Building2, User, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
+
+const consultas = [
+  {
+    icon: Scale,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    titulo: "Consultar Processo",
+    descricao: "Dados públicos de processos judiciais de todos os tribunais brasileiros",
+    api: "Datajud (CNJ)",
+    url: "/dashboard/pesquisas/processos",
+    buttonVariant: "default" as const,
+  },
+  {
+    icon: User,
+    iconBg: "bg-green-500/10",
+    iconColor: "text-green-500",
+    titulo: "Consultar Pessoa",
+    descricao: "Situação cadastral de CPF diretamente na Receita Federal",
+    api: "Apify (Receita Federal)",
+    url: "/dashboard/pesquisas/cpf",
+    buttonVariant: "default" as const,
+  },
+  {
+    icon: Building2,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+    titulo: "Consultar Empresa",
+    descricao: "Situação cadastral, sócios, atividades e endereço de empresas brasileiras",
+    api: "BrasilAPI",
+    url: "/dashboard/pesquisas/cnpj",
+    buttonVariant: "default" as const,
+  },
+  {
+    icon: History,
+    iconBg: "bg-muted",
+    iconColor: "text-muted-foreground",
+    titulo: "Histórico de Consultas",
+    descricao: "Visualize todas as consultas realizadas anteriormente com seus resultados",
+    api: "—",
+    url: "/dashboard/pesquisas/historico",
+    buttonVariant: "outline" as const,
+  },
+];
 
 export default function PesquisasIndex() {
   return (
@@ -13,107 +56,47 @@ export default function PesquisasIndex() {
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {/* Consultar Processo */}
-        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Scale className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Consultar Processo</CardTitle>
-                <CardDescription>
-                  Via API Datajud (CNJ)
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Consulte dados públicos de processos judiciais de todos os tribunais brasileiros.
-            </p>
-            <Button asChild className="w-full">
-              <Link to="/dashboard/pesquisas/processos">Consultar</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Consultas Disponíveis</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border">
+            {consultas.map((consulta) => (
+              <div
+                key={consulta.titulo}
+                className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
+              >
+                {/* Ícone */}
+                <div className={`p-3 rounded-lg ${consulta.iconBg} shrink-0`}>
+                  <consulta.icon className={`h-5 w-5 ${consulta.iconColor}`} />
+                </div>
 
-        {/* Consultar Pessoa */}
-        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <User className="h-6 w-6 text-green-500" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Consultar Pessoa</CardTitle>
-                <CardDescription>
-                  Via Apify (Receita Federal)
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Consulte situação cadastral de CPF diretamente na Receita Federal.
-            </p>
-            <Button asChild className="w-full bg-green-500 hover:bg-green-600">
-              <Link to="/dashboard/pesquisas/cpf">Consultar</Link>
-            </Button>
-          </CardContent>
-        </Card>
+                {/* Conteúdo */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-medium text-foreground">{consulta.titulo}</h3>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {consulta.descricao}
+                  </p>
+                </div>
 
-        {/* Consultar Empresa */}
-        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Building2 className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Consultar Empresa</CardTitle>
-                <CardDescription>
-                  Via BrasilAPI (CNPJ)
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Consulte situação cadastral, sócios, atividades e endereço de empresas brasileiras.
-            </p>
-            <Button asChild className="w-full">
-              <Link to="/dashboard/pesquisas/cnpj">Consultar</Link>
-            </Button>
-          </CardContent>
-        </Card>
+                {/* API/Fonte */}
+                <div className="hidden md:block text-sm text-muted-foreground shrink-0 w-40">
+                  {consulta.api}
+                </div>
 
-        {/* Histórico */}
-        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <History className="h-6 w-6 text-muted-foreground" />
+                {/* Botão */}
+                <Button asChild variant={consulta.buttonVariant} size="sm" className="shrink-0">
+                  <Link to={consulta.url} className="gap-2">
+                    {consulta.buttonVariant === "outline" ? "Ver" : "Consultar"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
-              <div>
-                <CardTitle className="text-base">Histórico</CardTitle>
-                <CardDescription>
-                  Consultas realizadas
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Visualize todas as consultas realizadas anteriormente com seus resultados.
-            </p>
-            <Button asChild className="w-full" variant="outline">
-              <Link to="/dashboard/pesquisas/historico">Ver Histórico</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

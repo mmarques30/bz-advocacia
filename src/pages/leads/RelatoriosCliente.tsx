@@ -103,7 +103,7 @@ export default function RelatoriosCliente() {
       <div>
         <DynamicBreadcrumb />
         <h1 className="text-3xl font-seasons font-bold text-foreground mt-4">
-          Relatórios para Clientes
+          Relatório Clientes
         </h1>
         <p className="text-muted-foreground mt-2">
           Gere relatórios personalizados para enviar aos seus clientes

@@ -20,10 +20,9 @@ interface HistoricoTableProps {
 }
 
 const tipoLabels: Record<string, string> = {
-  veiculo: "Veículo",
-  pessoa: "Pessoa",
-  imovel: "Imóvel",
-  certidao: "Certidão",
+  processo: "Processo",
+  cpf: "Pessoa (CPF)",
+  cnpj: "Empresa (CNPJ)",
 };
 
 const statusLabels: Record<string, { label: string; variant: "default" | "destructive" | "secondary" | "outline" }> = {

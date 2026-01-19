@@ -85,9 +85,9 @@ export default function Historico() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todas</SelectItem>
-                    <SelectItem value="veiculo">Veículo</SelectItem>
-                    <SelectItem value="pessoa">Pessoa</SelectItem>
-                    <SelectItem value="imovel">Imóvel</SelectItem>
+                    <SelectItem value="processo">Processo</SelectItem>
+                    <SelectItem value="cpf">Pessoa (CPF)</SelectItem>
+                    <SelectItem value="cnpj">Empresa (CNPJ)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

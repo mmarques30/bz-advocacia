@@ -75,7 +75,7 @@ const menuItems: MenuItem[] = [
       { title: "Prazos Próximos", url: "/dashboard/processos/prazos" },
       { title: "Calendário", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
-      { title: "Relatórios para Clientes", url: "/dashboard/leads/relatorios-cliente" },
+      { title: "Relatório Clientes", url: "/dashboard/leads/relatorios-cliente" },
     ]
   },
   {
@@ -96,7 +96,7 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     submenu: [
       { title: "Dashboard", url: "/dashboard/financeiro" },
-      { title: "Relatórios", url: "/dashboard/financeiro/relatorios" },
+      { title: "Relatórios Financeiros", url: "/dashboard/financeiro/relatorios" },
     ]
   },
   {

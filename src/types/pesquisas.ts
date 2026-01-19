@@ -10,7 +10,7 @@ export interface ConsultasConfig {
   updated_at: string;
 }
 
-export type TipoConsulta = 'veiculo' | 'imovel' | 'certidao' | 'processo' | 'cpf';
+export type TipoConsulta = 'processo' | 'cpf' | 'cnpj';
 
 // Consulta de Processo Judicial (Datajud CNJ)
 export interface ConsultaProcessoRequest {
