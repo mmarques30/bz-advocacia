@@ -130,8 +130,8 @@ export function useAutomacoes() {
         },
         {
           id: "meta-ads",
-          nome: "Meta Ads",
-          descricao: "Integração com Facebook/Instagram Ads",
+          nome: "Marketing",
+          descricao: "Gestão de campanhas de marketing digital",
           status: metaConnections.data?.status === "ativo" ? "ativo" : metaConnections.data ? "pendente" : "inativo",
           totalConsultas: 0,
           consultasSucesso: 0,

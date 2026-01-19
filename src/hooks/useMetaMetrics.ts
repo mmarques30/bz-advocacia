@@ -37,20 +37,20 @@ export function useMetaMetrics(periodo: PeriodoFiltro = "30d") {
 
   const calcularKPIs = (): MetaKPIs => {
     if (!metricas || metricas.length === 0) {
-      // Dados de demonstração
+      // Retornar zeros quando não há dados
       return {
-        gasto: 3450.00,
-        gastoVariacao: 8,
-        leads: 127,
-        leadsVariacao: 15,
-        custoLead: 27.17,
-        custoLeadVariacao: -6,
-        cliques: 3847,
-        cliquesVariacao: 10,
-        ctr: 2.65,
-        ctrVariacao: -0.2,
-        impressoes: 145320,
-        cpc: 0.89,
+        gasto: 0,
+        gastoVariacao: 0,
+        leads: 0,
+        leadsVariacao: 0,
+        custoLead: 0,
+        custoLeadVariacao: 0,
+        cliques: 0,
+        cliquesVariacao: 0,
+        ctr: 0,
+        ctrVariacao: 0,
+        impressoes: 0,
+        cpc: 0,
       };
     }
 
@@ -81,17 +81,8 @@ export function useMetaMetrics(periodo: PeriodoFiltro = "30d") {
 
   const getChartData = (): MetaChartData[] => {
     if (!metricas || metricas.length === 0) {
-      // Dados de demonstração para últimos 7 dias
-      const dados: MetaChartData[] = [];
-      for (let i = 6; i >= 0; i--) {
-        const data = format(subDays(new Date(), i), "dd/MM");
-        dados.push({
-          data,
-          gasto: Math.random() * 200 + 300,
-          leads: Math.floor(Math.random() * 10 + 15),
-        });
-      }
-      return dados;
+      // Retornar array vazio quando não há dados
+      return [];
     }
 
     return metricas.map((m) => ({

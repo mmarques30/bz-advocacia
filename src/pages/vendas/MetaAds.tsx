@@ -18,9 +18,9 @@ export default function MetaAds() {
     <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Meta Ads</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Marketing</h1>
           <p className="text-muted-foreground">
-            Acompanhe a performance das suas campanhas de marketing
+            Acompanhe a performance das suas campanhas de marketing digital
           </p>
         </div>
 

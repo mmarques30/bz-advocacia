@@ -11,7 +11,7 @@ const guias = [
       "Como cadastrar novos leads manualmente",
       "Entenda o funil de vendas e os estágios de cada lead",
       "Análises e métricas de conversão para otimizar resultados",
-      "Integração com Meta Ads para importar leads automaticamente",
+      "Integração com Marketing para acompanhar campanhas",
       "Como mover leads entre os estágios do funil"
     ]
   },
