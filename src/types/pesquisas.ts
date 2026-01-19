@@ -10,7 +10,7 @@ export interface ConsultasConfig {
   updated_at: string;
 }
 
-export type TipoConsulta = 'veiculo' | 'pessoa' | 'imovel' | 'certidao' | 'processo';
+export type TipoConsulta = 'veiculo' | 'imovel' | 'certidao' | 'processo';
 
 // Consulta de Processo Judicial (Datajud CNJ)
 export interface ConsultaProcessoRequest {
@@ -143,57 +143,6 @@ export interface ConsultaVeiculoResponse {
   };
 }
 
-// Consulta de Pessoa
-export interface ConsultaPessoaRequest {
-  tipo: 'cpf' | 'nome' | 'telefone';
-  valor: string;
-  incluirEnderecos: boolean;
-  incluirTelefones: boolean;
-  incluirEmails: boolean;
-  incluirScore: boolean;
-  processo_id?: string;
-  motivo: string;
-  justificativa: string;
-}
-
-export interface ConsultaPessoaResponse {
-  identificacao: {
-    nome: string;
-    cpf: string;
-    dataNascimento: string;
-    idade: number;
-    situacaoCPF: string;
-    naturalidade: string;
-  };
-  enderecos: Array<{
-    logradouro: string;
-    numero: string;
-    complemento?: string;
-    bairro: string;
-    cidade: string;
-    uf: string;
-    cep: string;
-    tipo: string;
-    ultimaAtualizacao: string;
-  }>;
-  telefones: Array<{
-    numero: string;
-    tipo: 'celular' | 'fixo';
-    operadora?: string;
-    status: string;
-  }>;
-  emails: string[];
-  situacaoFinanceira?: {
-    possuiRestricoes: boolean;
-    protestos: number;
-    valorTotal: number;
-  };
-  metadados: {
-    consultadoEm: string;
-    custo: number;
-    idConsulta: string;
-  };
-}
 
 // Consulta de Imóvel
 export interface ConsultaImovelRequest {

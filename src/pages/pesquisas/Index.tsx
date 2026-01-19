@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, History, Scale, Building2 } from "lucide-react";
+import { History, Scale, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function PesquisasIndex() {
@@ -60,31 +60,6 @@ export default function PesquisasIndex() {
             </p>
             <Button asChild className="w-full">
               <Link to="/dashboard/pesquisas/cnpj">Consultar</Link>
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Localizar Pessoa */}
-        <Card className="hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Users className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Localizar Pessoa</CardTitle>
-                <CardDescription>
-                  Consulta por CPF ou CNPJ
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Encontre endereços, telefones, e-mails e informações cadastrais de pessoas físicas e jurídicas.
-            </p>
-            <Button asChild className="w-full">
-              <Link to="/dashboard/pesquisas/pessoas">Realizar Consulta</Link>
             </Button>
           </CardContent>
         </Card>

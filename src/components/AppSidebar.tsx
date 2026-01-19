@@ -87,7 +87,6 @@ const menuItems: MenuItem[] = [
       { title: "Visão Geral", url: "/dashboard/pesquisas" },
       { title: "Consultar Processo", url: "/dashboard/pesquisas/processos" },
       { title: "Consultar Empresa", url: "/dashboard/pesquisas/cnpj" },
-      { title: "Localizar Pessoa", url: "/dashboard/pesquisas/pessoas" },
       { title: "Histórico", url: "/dashboard/pesquisas/historico" },
     ]
   },
