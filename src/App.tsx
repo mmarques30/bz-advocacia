@@ -40,10 +40,7 @@ import PesquisasHistorico from "./pages/pesquisas/Historico";
 import PesquisasCNPJ from "./pages/pesquisas/CNPJ";
 
 // Comunicação
-import ComunicacaoIndex from "./pages/comunicacao/Index";
 import ComunicacaoTemplates from "./pages/comunicacao/Templates";
-import ComunicacaoHistorico from "./pages/comunicacao/Historico";
-import ComunicacaoConfiguracao from "./pages/comunicacao/Configuracao";
 
 // Root Redirect Component - Redirects based on auth status
 function RootRedirect() {
@@ -243,22 +240,6 @@ const App = () => (
       />
       
       {/* Comunicação - Subrotas */}
-      <Route 
-        path="/dashboard/comunicacao/historico" 
-        element={
-          <ProtectedRoute>
-            <ComunicacaoHistorico />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/comunicacao/configuracao" 
-        element={
-          <ProtectedRoute>
-            <ComunicacaoConfiguracao />
-          </ProtectedRoute>
-        } 
-      />
       <Route 
         path="/dashboard/configuracoes/whatsapp-templates" 
         element={

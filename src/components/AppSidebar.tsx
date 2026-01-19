@@ -75,8 +75,6 @@ const menuItems: MenuItem[] = [
       { title: "Calendário", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
       { title: "Relatórios para Clientes", url: "/dashboard/leads/relatorios-cliente" },
-      { title: "Histórico Mensagens", url: "/dashboard/comunicacao/historico" },
-      { title: "Config. WhatsApp", url: "/dashboard/comunicacao/configuracao" },
     ]
   },
   {
