@@ -72,9 +72,9 @@ const menuItems: MenuItem[] = [
       label: "Gestão de Rotinas",
       icon: Scale,
       submenu: [
-        { title: "Todos os Processos", url: "/dashboard/processos" },
-        { title: "Demandas", url: "/dashboard/processos/demandas" },
-        { title: "Calendário e Prazos", url: "/dashboard/processos/calendario" },
+        { title: "Tarefas", url: "/dashboard/processos/demandas" },
+        { title: "Processos", url: "/dashboard/processos" },
+        { title: "Prazos", url: "/dashboard/processos/calendario" },
         { title: "Relatório Clientes", url: "/dashboard/leads/relatorios-cliente" },
     ]
   },
