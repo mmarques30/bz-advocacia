@@ -69,7 +69,7 @@ const menuItems: MenuItem[] = [
   },
     {
       title: "Processos",
-      label: "Processos",
+      label: "Gestão de Rotinas",
       icon: Scale,
       submenu: [
         { title: "Todos os Processos", url: "/dashboard/processos" },
