@@ -31,6 +31,7 @@ import ProcessosCalendario from "./pages/processos/Calendario";
 import FinanceiroAcordos from "./pages/financeiro/Acordos";
 import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
 import FinanceiroHistorico from "./pages/financeiro/Historico";
+import FinanceiroPagamentos from "./pages/financeiro/Pagamentos";
 
 // Pesquisas
 import PesquisasIndex from "./pages/pesquisas/Index";
@@ -227,6 +228,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <FinanceiroHistorico />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/financeiro/pagamentos" 
+        element={
+          <ProtectedRoute>
+            <FinanceiroPagamentos />
           </ProtectedRoute>
         } 
       />
