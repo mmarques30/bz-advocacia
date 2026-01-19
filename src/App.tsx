@@ -25,7 +25,6 @@ import GuiaDeUso from "./pages/configuracoes/GuiaDeUso";
 import Automacoes from "./pages/configuracoes/Automacoes";
 
 // Processos
-import ProcessosPrazos from "./pages/processos/Prazos";
 import ProcessosCalendario from "./pages/processos/Calendario";
 import ProcessosDocumentos from "./pages/processos/Documentos";
 
@@ -198,14 +197,6 @@ const App = () => (
       />
       
       {/* Processos - Subrotas */}
-      <Route 
-        path="/dashboard/processos/prazos" 
-        element={
-          <ProtectedRoute>
-            <ProcessosPrazos />
-          </ProtectedRoute>
-        } 
-      />
       <Route 
         path="/dashboard/processos/calendario" 
         element={
