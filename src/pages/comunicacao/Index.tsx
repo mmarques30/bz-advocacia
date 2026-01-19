@@ -91,23 +91,16 @@ export default function ComunicacaoIndex() {
               </p>
             </div>
             
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">1. Configure</h4>
-                <p className="text-xs text-muted-foreground">
-                  Conecte sua conta WhatsApp Business API (Meta, Twilio ou Zenvia)
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">2. Personalize</h4>
+                <h4 className="font-medium text-sm">1. Personalize</h4>
                 <p className="text-xs text-muted-foreground">
                   Crie templates de mensagens e regras de envio automático
                 </p>
               </div>
               
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">3. Automatize</h4>
+                <h4 className="font-medium text-sm">2. Automatize</h4>
                 <p className="text-xs text-muted-foreground">
                   O sistema envia notificações automaticamente quando há novidades
                 </p>
