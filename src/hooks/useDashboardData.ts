@@ -41,15 +41,20 @@ export function useKPIs(filters: DashboardFilters) {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'ativo');
 
-      // Receita do mês (parcelas pagas)
-      const { data: parcelasPagas } = await supabase
-        .from('parcelas_financeiras')
-        .select('valor_pago')
-        .eq('status', 'pago')
-        .gte('data_pagamento', startDate)
-        .lte('data_pagamento', endDate);
+      // Determinar mês/ano do período selecionado para buscar receitas
+      const filterDate = filters.startDate || new Date();
+      const mesNum = filterDate.getMonth() + 1;
+      const anoNum = filterDate.getFullYear();
 
-      const receitaMes = parcelasPagas?.reduce((acc, p) => acc + (p.valor_pago || 0), 0) || 0;
+      // Receita do mês de transacoes_financeiras
+      const { data: transacoesReceita } = await supabase
+        .from('transacoes_financeiras')
+        .select('valor')
+        .eq('tipo_codigo', 'receita')
+        .eq('mes', mesNum)
+        .eq('ano', anoNum);
+
+      const receitaMes = transacoesReceita?.reduce((acc, t) => acc + (Number(t.valor) || 0), 0) || 0;
 
       // Taxa de inadimplência
       const { count: totalParcelas } = await supabase
