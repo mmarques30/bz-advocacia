@@ -80,10 +80,11 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Revenue Chart - Full Width */}
+      <RevenueChart data={revenueData || []} loading={revenueLoading} />
+
       {/* Leads Evolution Chart - Full Width */}
       <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
-
-      <RevenueChart data={revenueData || []} loading={revenueLoading} />
 
       {/* Widgets Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
