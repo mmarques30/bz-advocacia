@@ -1311,6 +1311,33 @@ export type Database = {
           },
         ]
       }
+      metas_mensais: {
+        Row: {
+          ano: number
+          created_at: string | null
+          id: string
+          mes: number
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          ano: number
+          created_at?: string | null
+          id?: string
+          mes: number
+          updated_at?: string | null
+          valor?: number
+        }
+        Update: {
+          ano?: number
+          created_at?: string | null
+          id?: string
+          mes?: number
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       notificacoes: {
         Row: {
           created_at: string | null
