@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useParcelasVencendo, useClientesInadimplentes, useMaioresPagadores } from "@/hooks/useFinanceiro";
+import { useReceitasRecentes, useTopSubcategorias, useReceitasMesAtual } from "@/hooks/useFinanceiro";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
+import { TrendingUp, BarChart3, Calendar } from "lucide-react";
 
 interface FaturamentoWidgetsProps {
   onRegistrarPagamento?: (parcelaId: string) => void;
@@ -11,36 +12,43 @@ interface FaturamentoWidgetsProps {
 }
 
 export function FaturamentoWidgets({ onRegistrarPagamento, filters }: FaturamentoWidgetsProps) {
-  const { data: parcelasVencendo } = useParcelasVencendo(7);
-  const { data: inadimplentes } = useClientesInadimplentes();
-  const { data: maioresPagadores } = useMaioresPagadores(5);
+  const { data: receitasRecentes } = useReceitasRecentes(5);
+  const { data: topSubcategorias } = useTopSubcategorias(5);
+  const { data: receitasMes } = useReceitasMesAtual();
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const formatSubcategoria = (subcategoria: string) => {
+    // Capitalizar primeira letra
+    return subcategoria.charAt(0).toUpperCase() + subcategoria.slice(1).toLowerCase();
+  };
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium">
-            Parcelas Vencendo (7 dias)
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            Receitas Recentes
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {parcelasVencendo?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma parcela vencendo</p>
+            {receitasRecentes?.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma receita registrada</p>
             ) : (
-              parcelasVencendo?.slice(0, 5).map((parcela) => (
-                <div key={parcela.id} className="flex items-center justify-between border-b pb-2">
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{parcela.cliente_nome}</p>
+              receitasRecentes?.map((receita) => (
+                <div key={receita.id} className="flex items-center justify-between border-b pb-2 last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{formatSubcategoria(receita.descricao)}</p>
                     <p className="text-xs text-muted-foreground">
-                      Parcela {parcela.numero_parcela} - {format(new Date(parcela.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
-                    </p>
-                    <p className="text-sm font-semibold">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parcela.valor)}
+                      {receita.data ? format(new Date(receita.data), "dd/MM/yyyy", { locale: ptBR }) : "-"}
                     </p>
                   </div>
-                  <Badge variant={parcela.dias_restantes <= 3 ? "destructive" : "secondary"}>
-                    {parcela.dias_restantes}d
+                  <Badge variant="outline" className="shrink-0 ml-2">
+                    {formatCurrency(receita.valor)}
                   </Badge>
                 </div>
               ))
@@ -51,65 +59,71 @@ export function FaturamentoWidgets({ onRegistrarPagamento, filters }: Faturament
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium">
-            Clientes Inadimplentes
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            Top Categorias
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {inadimplentes?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum cliente inadimplente</p>
+            {topSubcategorias?.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada</p>
             ) : (
-              inadimplentes?.slice(0, 5).map((cliente) => (
-                <div key={cliente.cliente_id} className="border-b pb-2">
-                  <p className="text-sm font-medium">{cliente.cliente_nome}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className="text-xs text-muted-foreground">
-                      {cliente.parcelas_atrasadas} parcela(s) atrasada(s)
-                    </p>
-                    <Badge variant="destructive">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cliente.total_atrasado)}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-destructive mt-1">
-                    Maior atraso: {cliente.maior_atraso_dias} dias
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-medium">
-            Maiores Pagadores do Mês
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {maioresPagadores?.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum pagamento no mês</p>
-            ) : (
-              maioresPagadores?.map((pagador, index) => (
-                <div key={pagador.cliente_id} className="flex items-center justify-between border-b pb-2">
+              topSubcategorias?.map((cat, index) => (
+                <div key={cat.subcategoria} className="flex items-center justify-between border-b pb-2 last:border-0">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">
                       {index + 1}
                     </div>
                     <div>
-                      <p className="text-sm font-medium">{pagador.cliente_nome}</p>
+                      <p className="text-sm font-medium">{formatSubcategoria(cat.subcategoria)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {pagador.quantidade_pagamentos} pagamento(s)
+                        {cat.quantidade} transação(ões)
                       </p>
                     </div>
                   </div>
-                  <Badge variant="outline">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(pagador.total_pago)}
+                  <Badge variant="secondary" className="shrink-0">
+                    {formatCurrency(cat.total)}
                   </Badge>
                 </div>
               ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            Receitas do Mês
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {!receitasMes || receitasMes.quantidadeTotal === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma receita no mês atual</p>
+            ) : (
+              <>
+                <div className="p-3 bg-muted/50 rounded-lg mb-3">
+                  <p className="text-xs text-muted-foreground">Total do Mês</p>
+                  <p className="text-lg font-bold text-primary">{formatCurrency(receitasMes.totalGeral)}</p>
+                  <p className="text-xs text-muted-foreground">{receitasMes.quantidadeTotal} transação(ões)</p>
+                </div>
+                {receitasMes.porResponsavel.slice(0, 3).map((resp) => (
+                  <div key={resp.responsavel} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{formatSubcategoria(resp.responsavel)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {resp.quantidade} receita(s)
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {formatCurrency(resp.total)}
+                    </Badge>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </CardContent>
