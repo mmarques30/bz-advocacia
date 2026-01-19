@@ -1,4 +1,4 @@
-import { Plus, Search, Filter, Table2, LayoutGrid } from "lucide-react";
+import { Plus, Search, Filter, Table2, LayoutGrid, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ interface LeadsHeaderProps {
   onViewChange: (view: 'table' | 'kanban') => void;
   onOpenFilters: () => void;
   onNewLead: () => void;
+  onImport: () => void;
   search: string;
   onSearchChange: (search: string) => void;
   activeFiltersCount: number;
@@ -20,6 +21,7 @@ export function LeadsHeader({
   onViewChange,
   onOpenFilters,
   onNewLead,
+  onImport,
   search,
   onSearchChange,
   activeFiltersCount,
@@ -31,6 +33,10 @@ export function LeadsHeader({
         <Button onClick={onNewLead}>
           <Plus className="h-4 w-4" />
           {isClienteTab ? "Novo Cliente" : "Novo Lead"}
+        </Button>
+        <Button variant="outline" onClick={onImport}>
+          <Upload className="h-4 w-4" />
+          Importar
         </Button>
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
