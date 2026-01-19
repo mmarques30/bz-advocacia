@@ -95,6 +95,7 @@ const menuItems: MenuItem[] = [
     icon: DollarSign,
     submenu: [
       { title: "Dashboard", url: "/dashboard/financeiro" },
+      { title: "Pagamentos", url: "/dashboard/financeiro/pagamentos" },
       { title: "Relatórios Financeiros", url: "/dashboard/financeiro/relatorios" },
     ]
   },
