@@ -236,7 +236,7 @@ export default function PesquisasProcessos() {
         </p>
       </div>
 
-      <div className="max-w-4xl">
+      <div>
         <ConsultaProcessoForm onSuccess={() => {}} />
         
         {data && <ResultadoConsulta data={data} />}
