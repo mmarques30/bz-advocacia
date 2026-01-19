@@ -75,21 +75,30 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Consultando CPF: ${cpfLimpo.substring(0, 3)}.***.***-${cpfLimpo.substring(9)}`);
+    // Formatar data de nascimento para DD/MM/YYYY se vier em outro formato
+    let dataFormatada = dataNascimento;
+    if (dataNascimento.includes('-')) {
+      // Converter de YYYY-MM-DD para DD/MM/YYYY
+      const partes = dataNascimento.split('-');
+      if (partes.length === 3) {
+        dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+    }
 
-    // Chamar Apify Actor
-    const apifyUrl = 'https://api.apify.com/v2/acts/codsec~consulta-receita-federal-api/run-sync-get-dataset-items';
+    console.log(`Consultando CPF: ${cpfLimpo.substring(0, 3)}.***.***-${cpfLimpo.substring(9)}`);
+    console.log(`Data de nascimento formatada: ${dataFormatada}`);
+
+    // Chamar Apify Actor com token como query parameter
+    const apifyUrl = `https://api.apify.com/v2/acts/codsec~consulta-receita-federal-api/run-sync-get-dataset-items?token=${apifyToken}`;
     
     const apifyResponse = await fetch(apifyUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apifyToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        tipo: 'CPF',
         cpf: cpfLimpo,
-        dataNascimento: dataNascimento,
+        dataNascimento: dataFormatada,
       }),
     });
 
