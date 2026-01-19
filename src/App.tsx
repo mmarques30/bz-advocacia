@@ -27,6 +27,7 @@ import Automacoes from "./pages/configuracoes/Automacoes";
 
 // Processos
 import ProcessosCalendario from "./pages/processos/Calendario";
+import ProcessosDemandas from "./pages/processos/Demandas";
 
 // Financeiro
 import FinanceiroAcordos from "./pages/financeiro/Acordos";
@@ -211,6 +212,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <ProcessosCalendario />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/processos/demandas" 
+        element={
+          <ProtectedRoute>
+            <ProcessosDemandas />
           </ProtectedRoute>
         } 
       />

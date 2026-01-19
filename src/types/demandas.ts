@@ -1,0 +1,64 @@
+export type DemandaTipo = 'melhoria' | 'bug' | 'sugestao' | 'tarefa';
+export type DemandaPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
+export type DemandaStatus = 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';
+export type DemandaCategoria = 'processos' | 'vendas' | 'pagamentos' | 'administrativo' | 'geral';
+
+export interface Demanda {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  tipo: DemandaTipo;
+  prioridade: DemandaPrioridade;
+  status: DemandaStatus;
+  categoria: DemandaCategoria;
+  criado_por: string | null;
+  responsavel_id: string | null;
+  processo_id: string | null;
+  lead_id: string | null;
+  data_limite: string | null;
+  data_conclusao: string | null;
+  created_at: string;
+  updated_at: string;
+  criador?: { nome_completo: string };
+  responsavel?: { nome_completo: string };
+  processo?: { numero_processo: string | null; tipo: string };
+  lead?: { nome_completo: string };
+}
+
+export interface DemandasFilters {
+  tipo?: string;
+  status?: string;
+  prioridade?: string;
+  categoria?: string;
+  atrasadas?: boolean;
+  search?: string;
+}
+
+export const TIPO_LABELS: Record<DemandaTipo, string> = {
+  melhoria: 'Melhoria',
+  bug: 'Bug',
+  sugestao: 'Sugestão',
+  tarefa: 'Tarefa',
+};
+
+export const STATUS_LABELS: Record<DemandaStatus, string> = {
+  pendente: 'Pendente',
+  em_andamento: 'Em Andamento',
+  concluido: 'Concluído',
+  cancelado: 'Cancelado',
+};
+
+export const PRIORIDADE_LABELS: Record<DemandaPrioridade, string> = {
+  baixa: 'Baixa',
+  media: 'Média',
+  alta: 'Alta',
+  urgente: 'Urgente',
+};
+
+export const CATEGORIA_LABELS: Record<DemandaCategoria, string> = {
+  processos: 'Processos',
+  vendas: 'Vendas',
+  pagamentos: 'Pagamentos',
+  administrativo: 'Administrativo',
+  geral: 'Geral',
+};

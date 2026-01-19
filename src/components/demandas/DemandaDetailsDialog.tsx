@@ -9,23 +9,12 @@ import { useForm } from "react-hook-form";
 import { useUpdateDemanda } from "@/hooks/useDemandas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
-
-interface Demanda {
-  id: string;
-  titulo: string;
-  descricao: string | null;
-  tipo: 'melhoria' | 'bug' | 'sugestao' | 'tarefa';
-  prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
-  status: 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';
-  responsavel_id: string | null;
-  data_conclusao: string | null;
-  created_at: string;
-  criador?: { nome_completo: string };
-  responsavel?: { nome_completo: string };
-}
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface DemandaDetailsDialogProps {
   demanda: Demanda | null;
@@ -54,6 +43,20 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     },
   });
 
+  const { data: processos } = useQuery({
+    queryKey: ['processos-demandas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('processos')
+        .select('id, numero_processo, tipo')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   useEffect(() => {
     if (demanda) {
       reset({
@@ -62,7 +65,10 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
         tipo: demanda.tipo,
         prioridade: demanda.prioridade,
         status: demanda.status,
+        categoria: demanda.categoria || 'geral',
         responsavel_id: demanda.responsavel_id || 'sem_responsavel',
+        processo_id: demanda.processo_id || 'sem_processo',
+        data_limite: demanda.data_limite || '',
       });
     }
   }, [demanda, reset]);
@@ -76,8 +82,15 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     
     updateDemanda.mutate({
       id: demanda.id,
-      ...data,
+      titulo: data.titulo,
+      descricao: data.descricao,
+      tipo: data.tipo,
+      prioridade: data.prioridade,
+      status: data.status,
+      categoria: data.categoria,
       responsavel_id: data.responsavel_id === 'sem_responsavel' ? null : data.responsavel_id || null,
+      processo_id: data.processo_id === 'sem_processo' ? null : data.processo_id || null,
+      data_limite: data.data_limite || null,
       data_conclusao: data.status === 'concluido' ? new Date().toISOString().split('T')[0] : null,
     }, {
       onSuccess: () => {
@@ -89,9 +102,13 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
 
   if (!demanda) return null;
 
+  const isAtrasada = demanda.data_limite && 
+    isPast(parseISO(demanda.data_limite)) && 
+    !['concluido', 'cancelado'].includes(demanda.status);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{localEditing ? 'Editar Demanda' : 'Detalhes da Demanda'}</DialogTitle>
         </DialogHeader>
@@ -99,11 +116,17 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
         {!localEditing ? (
           <div className="space-y-4">
             <div>
-              <h3 className="font-semibold text-lg mb-2">{demanda.titulo}</h3>
-              <div className="flex gap-2 mb-4">
-                <Badge>{demanda.tipo}</Badge>
-                <Badge>{demanda.status}</Badge>
-                <Badge>{demanda.prioridade}</Badge>
+              <div className="flex items-center gap-2 mb-2">
+                {isAtrasada && <AlertCircle className="h-5 w-5 text-destructive" />}
+                <h3 className="font-semibold text-lg">{demanda.titulo}</h3>
+              </div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                <Badge variant="outline">
+                  {CATEGORIA_LABELS[demanda.categoria as keyof typeof CATEGORIA_LABELS] || 'Geral'}
+                </Badge>
+                <Badge>{TIPO_LABELS[demanda.tipo]}</Badge>
+                <Badge>{STATUS_LABELS[demanda.status]}</Badge>
+                <Badge>{PRIORIDADE_LABELS[demanda.prioridade]}</Badge>
               </div>
             </div>
 
@@ -122,6 +145,25 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               <div>
                 <Label>Responsável</Label>
                 <p className="text-sm mt-1">{demanda.responsavel?.nome_completo || '-'}</p>
+              </div>
+              <div>
+                <Label>Processo Relacionado</Label>
+                <p className="text-sm mt-1">
+                  {demanda.processo 
+                    ? (demanda.processo.numero_processo || demanda.processo.tipo)
+                    : '-'
+                  }
+                </p>
+              </div>
+              <div>
+                <Label>Data Limite</Label>
+                <p className={cn("text-sm mt-1", isAtrasada && "text-destructive font-medium")}>
+                  {demanda.data_limite 
+                    ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
+                    : '-'
+                  }
+                  {isAtrasada && ' (Atrasada)'}
+                </p>
               </div>
               <div>
                 <Label>Criado em</Label>
@@ -148,10 +190,26 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
 
             <div className="space-y-2">
               <Label htmlFor="descricao">Descrição</Label>
-              <Textarea id="descricao" {...register('descricao')} rows={4} />
+              <Textarea id="descricao" {...register('descricao')} rows={3} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Categoria *</Label>
+                <Select onValueChange={(value) => setValue('categoria', value)} value={watch('categoria')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="processos">Processos</SelectItem>
+                    <SelectItem value="vendas">Vendas</SelectItem>
+                    <SelectItem value="pagamentos">Pagamentos</SelectItem>
+                    <SelectItem value="administrativo">Administrativo</SelectItem>
+                    <SelectItem value="geral">Geral</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Tipo *</Label>
                 <Select onValueChange={(value) => setValue('tipo', value)} value={watch('tipo')}>
@@ -159,10 +217,27 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="tarefa">Tarefa</SelectItem>
                     <SelectItem value="melhoria">Melhoria</SelectItem>
                     <SelectItem value="bug">Bug</SelectItem>
                     <SelectItem value="sugestao">Sugestão</SelectItem>
-                    <SelectItem value="tarefa">Tarefa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status *</Label>
+                <Select onValueChange={(value) => setValue('status', value)} value={watch('status')}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pendente">Pendente</SelectItem>
+                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -184,17 +259,24 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
             </div>
 
             <div className="space-y-2">
-              <Label>Status *</Label>
-              <Select onValueChange={(value) => setValue('status', value)} value={watch('status')}>
+              <Label htmlFor="data_limite">Data Limite</Label>
+              <Input id="data_limite" type="date" {...register('data_limite')} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Processo Relacionado</Label>
+              <Select onValueChange={(value) => setValue('processo_id', value)} value={watch('processo_id')}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione um processo" />
                 </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    <SelectItem value="concluido">Concluído</SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
-                  </SelectContent>
+                <SelectContent>
+                  <SelectItem value="sem_processo">Nenhum processo</SelectItem>
+                  {processos?.map((processo) => (
+                    <SelectItem key={processo.id} value={processo.id}>
+                      {processo.numero_processo || processo.tipo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
 

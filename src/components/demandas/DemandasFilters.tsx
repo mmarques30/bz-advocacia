@@ -1,20 +1,30 @@
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { DemandasFilters as FiltersType } from "@/types/demandas";
 
 interface DemandasFiltersProps {
-  filters: {
-    tipo?: string;
-    status?: string;
-    prioridade?: string;
-    search?: string;
-  };
+  filters: FiltersType;
   onFilterChange: (key: string, value: string) => void;
 }
 
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <Select value={filters.categoria || 'todos'} onValueChange={(value) => onFilterChange('categoria', value === 'todos' ? '' : value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Categoria" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todas as categorias</SelectItem>
+          <SelectItem value="processos">Processos</SelectItem>
+          <SelectItem value="vendas">Vendas</SelectItem>
+          <SelectItem value="pagamentos">Pagamentos</SelectItem>
+          <SelectItem value="administrativo">Administrativo</SelectItem>
+          <SelectItem value="geral">Geral</SelectItem>
+        </SelectContent>
+      </Select>
+
       <Select value={filters.tipo || 'todos'} onValueChange={(value) => onFilterChange('tipo', value === 'todos' ? '' : value)}>
         <SelectTrigger>
           <SelectValue placeholder="Tipo" />
