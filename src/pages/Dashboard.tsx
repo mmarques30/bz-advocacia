@@ -1,7 +1,6 @@
 import { Users, TrendingUp, UserPlus, Briefcase, DollarSign, AlertTriangle } from "lucide-react";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { KPICard } from "@/components/dashboard/KPICard";
-import { ConversionFunnel } from "@/components/dashboard/ConversionFunnel";
 import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
@@ -9,7 +8,6 @@ import { RecentActivities } from "@/components/dashboard/RecentActivities";
 import { useDateFilter } from "@/hooks/useDateFilter";
 import {
   useKPIs,
-  useConversionFunnel,
   useLeadsEvolution,
   useRevenue,
   useAlerts,
@@ -20,7 +18,6 @@ export default function Dashboard() {
   const { filters, setPreset, clearFilters } = useDateFilter();
 
   const { data: kpis, isLoading: kpisLoading } = useKPIs(filters);
-  const { data: funnelData, isLoading: funnelLoading } = useConversionFunnel(filters);
   const { data: leadsData, isLoading: leadsLoading } = useLeadsEvolution(filters);
   const { data: revenueData, isLoading: revenueLoading } = useRevenue(filters);
   const { data: alerts, isLoading: alertsLoading } = useAlerts(filters);
@@ -83,11 +80,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ConversionFunnel data={funnelData || []} loading={funnelLoading} />
-        <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
-      </div>
+      {/* Leads Evolution Chart - Full Width */}
+      <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
 
       <RevenueChart data={revenueData || []} loading={revenueLoading} />
 
