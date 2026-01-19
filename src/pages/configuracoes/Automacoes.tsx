@@ -4,20 +4,72 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Zap, RefreshCw } from "lucide-react";
-import { useAutomacoes, ApiIntegration } from "@/hooks/useAutomacoes";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Eye, Zap, RefreshCw, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useAutomacoes, useDeleteAutomacao, useUpdateAutomacao, ApiIntegration } from "@/hooks/useAutomacoes";
 import { ApiDetailsDialog } from "@/components/configuracoes/ApiDetailsDialog";
+import { EditAutomacaoDialog } from "@/components/configuracoes/EditAutomacaoDialog";
+import { DeleteAutomacaoDialog } from "@/components/configuracoes/DeleteAutomacaoDialog";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export default function Automacoes() {
   const { data: integrations, isLoading, refetch, isRefetching } = useAutomacoes();
+  const deleteAutomacao = useDeleteAutomacao();
+  const updateAutomacao = useUpdateAutomacao();
+
   const [selectedApi, setSelectedApi] = useState<ApiIntegration | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleViewDetails = (api: ApiIntegration) => {
     setSelectedApi(api);
-    setDialogOpen(true);
+    setDetailsDialogOpen(true);
+  };
+
+  const handleEdit = (api: ApiIntegration) => {
+    setSelectedApi(api);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (api: ApiIntegration) => {
+    setSelectedApi(api);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (selectedApi && selectedApi.tabelaOrigem) {
+      deleteAutomacao.mutate(
+        { id: selectedApi.id, tabelaOrigem: selectedApi.tabelaOrigem },
+        {
+          onSuccess: () => {
+            setDeleteDialogOpen(false);
+            setSelectedApi(null);
+          },
+        }
+      );
+    }
+  };
+
+  const handleSaveEdit = (data: Record<string, unknown>) => {
+    if (selectedApi && selectedApi.tabelaOrigem) {
+      updateAutomacao.mutate(
+        { tabelaOrigem: selectedApi.tabelaOrigem, data },
+        {
+          onSuccess: () => {
+            setEditDialogOpen(false);
+            setSelectedApi(null);
+          },
+        }
+      );
+    }
   };
 
   const getStatusBadge = (status: ApiIntegration["status"]) => {
@@ -65,8 +117,8 @@ export default function Automacoes() {
             Gerencie as integrações e APIs conectadas ao sistema
           </p>
         </div>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={() => refetch()}
           disabled={isRefetching}
         >
@@ -98,7 +150,7 @@ export default function Automacoes() {
                     <TableHead className="w-[120px]">Status</TableHead>
                     <TableHead className="text-center w-[100px]">Consultas</TableHead>
                     <TableHead className="w-[150px]">Última Atividade</TableHead>
-                    <TableHead className="text-right w-[120px]">Ações</TableHead>
+                    <TableHead className="text-right w-[80px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -117,9 +169,7 @@ export default function Automacoes() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {getStatusBadge(api.status)}
-                      </TableCell>
+                      <TableCell>{getStatusBadge(api.status)}</TableCell>
                       <TableCell className="text-center">
                         <span className="font-semibold">{api.totalConsultas}</span>
                       </TableCell>
@@ -136,14 +186,36 @@ export default function Automacoes() {
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetails(api)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Detalhes
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Ações</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(api)}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Ver Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEdit(api)}
+                              disabled={!api.podeEditar}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(api)}
+                              disabled={!api.podeExcluir}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -156,8 +228,24 @@ export default function Automacoes() {
 
       <ApiDetailsDialog
         api={selectedApi}
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
+
+      <EditAutomacaoDialog
+        api={selectedApi}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleSaveEdit}
+        isSaving={updateAutomacao.isPending}
+      />
+
+      <DeleteAutomacaoDialog
+        api={selectedApi}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        isDeleting={deleteAutomacao.isPending}
       />
     </div>
   );
