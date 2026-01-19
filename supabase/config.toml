@@ -20,3 +20,6 @@ verify_jwt = true
 
 [functions.consultas-brasilapi]
 verify_jwt = false
+
+[functions.consultas-cpf]
+verify_jwt = false

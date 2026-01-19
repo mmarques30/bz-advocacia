@@ -74,6 +74,39 @@ export type Database = {
           },
         ]
       }
+      apify_config: {
+        Row: {
+          actor_id: string | null
+          api_token_configured: boolean | null
+          ativo: boolean | null
+          created_at: string
+          creditos_usados: number | null
+          id: string
+          ultima_consulta: string | null
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string | null
+          api_token_configured?: boolean | null
+          ativo?: boolean | null
+          created_at?: string
+          creditos_usados?: number | null
+          id?: string
+          ultima_consulta?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string | null
+          api_token_configured?: boolean | null
+          ativo?: boolean | null
+          created_at?: string
+          creditos_usados?: number | null
+          id?: string
+          ultima_consulta?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       atividades: {
         Row: {
           created_at: string | null
