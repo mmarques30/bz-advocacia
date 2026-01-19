@@ -1,4 +1,5 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import logoBZ from "@/assets/logo-bz-contrato.jpg";
 
 const styles = StyleSheet.create({
   page: {
@@ -13,6 +14,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#D4A574',
+    alignItems: 'center',
+  },
+  logo: {
+    width: 180,
+    height: 'auto',
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 18,
@@ -147,10 +154,9 @@ export function ContratoPDF({ conteudo, titulo, escritorio }: ContratoPDFProps) 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
+        {/* Header com Logo */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>BORGES & ZEMBRUSKI</Text>
-          <Text style={styles.headerSubtitle}>ADVOCACIA</Text>
+          <Image src={logoBZ} style={styles.logo} />
         </View>
 
         {/* Conteúdo */}

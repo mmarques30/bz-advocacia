@@ -194,13 +194,13 @@ export function GerarContratoForm() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
       {/* Formulário */}
-      <Card>
+      <Card className="flex flex-col">
         <CardHeader>
           <CardTitle>Configurar Contrato</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="flex-1 space-y-6">
           {/* Modelo */}
           <div className="space-y-2">
             <Label>Modelo de Contrato</Label>

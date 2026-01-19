@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText } from "lucide-react";
+import logoBZ from "@/assets/logo-bz-contrato.jpg";
 
 interface ContratoPreviewProps {
   conteudo: string;
@@ -11,7 +12,7 @@ export function ContratoPreview({ conteudo, titulo }: ContratoPreviewProps) {
   const paragrafos = conteudo.split('\n\n').filter(Boolean);
 
   return (
-    <Card className="h-fit lg:sticky lg:top-6">
+    <Card className="flex flex-col h-full">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -19,21 +20,20 @@ export function ContratoPreview({ conteudo, titulo }: ContratoPreviewProps) {
           </div>
           <div>
             <CardTitle className="text-lg">{titulo || "Preview"}</CardTitle>
-            <p className="text-sm text-muted-foreground">Visualizacao do documento</p>
+            <p className="text-sm text-muted-foreground">Visualização do documento</p>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <ScrollArea className="h-[600px]">
+      <CardContent className="p-0 flex-1">
+        <ScrollArea className="h-full min-h-[500px]">
           <div className="p-8 bg-white">
-            {/* Header do documento */}
-            <div className="text-center mb-8 pb-6 border-b">
-              <h1 className="text-xl font-bold text-foreground tracking-wide">
-                BORGES & ZEMBRUSKI
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                ADVOCACIA
-              </p>
+            {/* Header com Logo */}
+            <div className="text-center mb-8 pb-6 border-b border-primary/30">
+              <img 
+                src={logoBZ} 
+                alt="Borges & Zembruski Advocacia" 
+                className="h-16 mx-auto"
+              />
             </div>
 
             {/* Conteúdo */}
