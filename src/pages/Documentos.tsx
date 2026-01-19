@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, History, FolderOpen } from "lucide-react";
+import { FileText, History, FolderOpen, FileSpreadsheet } from "lucide-react";
 import { GerarContratoForm } from "@/components/documentos/GerarContratoForm";
+import { GerarPropostaForm } from "@/components/documentos/GerarPropostaForm";
 import { ContratosHistorico } from "@/components/documentos/ContratosHistorico";
 import { ModelosContrato } from "@/components/documentos/ModelosContrato";
 
@@ -13,19 +14,23 @@ export default function Documentos() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Documentos</h1>
         <p className="text-muted-foreground">
-          Gere contratos e documentos automaticamente
+          Gere contratos e propostas comerciais automaticamente
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="gerar" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
-            Gerar Contrato
+            Contrato
+          </TabsTrigger>
+          <TabsTrigger value="proposta" className="flex items-center gap-2">
+            <FileSpreadsheet className="h-4 w-4" />
+            Proposta
           </TabsTrigger>
           <TabsTrigger value="historico" className="flex items-center gap-2">
             <History className="h-4 w-4" />
-            Historico
+            Histórico
           </TabsTrigger>
           <TabsTrigger value="modelos" className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4" />
@@ -35,6 +40,10 @@ export default function Documentos() {
 
         <TabsContent value="gerar">
           <GerarContratoForm />
+        </TabsContent>
+
+        <TabsContent value="proposta">
+          <GerarPropostaForm />
         </TabsContent>
 
         <TabsContent value="historico">
