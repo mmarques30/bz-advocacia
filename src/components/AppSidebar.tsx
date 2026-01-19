@@ -50,8 +50,8 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { 
-    title: "PainelGeral", 
-    label: "Painel Geral",
+    title: "Analises", 
+    label: "Análises",
     url: "/dashboard", 
     icon: LayoutDashboard 
   },
@@ -94,7 +94,7 @@ const menuItems: MenuItem[] = [
     label: "Financeiro",
     icon: DollarSign,
     submenu: [
-      { title: "Dashboard", url: "/dashboard/financeiro" },
+      { title: "Análises", url: "/dashboard/financeiro" },
       { title: "Pagamentos", url: "/dashboard/financeiro/pagamentos" },
       { title: "Relatórios Financeiros", url: "/dashboard/financeiro/relatorios" },
     ]
