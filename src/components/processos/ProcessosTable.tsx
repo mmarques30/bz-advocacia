@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
-import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2, FileX } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -30,6 +30,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Processo, PROCESSO_STATUS_LABELS } from "@/types/processos";
 import { useDocumentosDriveCount } from "@/hooks/useDocumentosDriveCount";
 import { useDeleteProcesso } from "@/hooks/useProcessos";
@@ -132,12 +137,29 @@ function ProcessoRow({
 
       <TableCell>
         {docsCount !== undefined && docsCount > 0 ? (
-          <Badge variant="secondary" className="gap-1">
-            <Link2 className="h-3 w-3" />
-            {docsCount}
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-default">
+                <Link2 className="h-3 w-3" />
+                {docsCount}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              {docsCount} documento(s) vinculado(s)
+            </TooltipContent>
+          </Tooltip>
         ) : (
-          <span className="text-muted-foreground text-sm">-</span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="gap-1 text-muted-foreground cursor-default">
+                <FileX className="h-3 w-3" />
+                0
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              Nenhum documento vinculado
+            </TooltipContent>
+          </Tooltip>
         )}
       </TableCell>
 

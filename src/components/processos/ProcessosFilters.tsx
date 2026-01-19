@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PROCESSO_STATUS_LABELS, TRIBUNAIS_OPCOES, ProcessosFilters as FiltersType, ProcessoStatus } from "@/types/processos";
 
 interface ProcessosFiltersProps {
@@ -65,6 +66,40 @@ export function ProcessosFilters({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Filtro por Documentos */}
+          <div>
+            <Label className="text-base font-semibold">Documentos Vinculados</Label>
+            <RadioGroup
+              className="mt-3 space-y-2"
+              value={localFilters.filtro_documentos || "todos"}
+              onValueChange={(value) =>
+                setLocalFilters({
+                  ...localFilters,
+                  filtro_documentos: value === "todos" ? undefined : value as "com_docs" | "sem_docs",
+                })
+              }
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="todos" id="docs-todos" />
+                <Label htmlFor="docs-todos" className="font-normal cursor-pointer">
+                  Todos
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="com_docs" id="docs-com" />
+                <Label htmlFor="docs-com" className="font-normal cursor-pointer">
+                  Com documentos
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="sem_docs" id="docs-sem" />
+                <Label htmlFor="docs-sem" className="font-normal cursor-pointer">
+                  Sem documentos
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {/* Tribunal */}

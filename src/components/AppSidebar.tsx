@@ -66,15 +66,14 @@ const menuItems: MenuItem[] = [
       { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
     ]
   },
-  {
-    title: "Processos",
-    label: "Processos",
-    icon: Scale,
-    submenu: [
-      { title: "Todos os Processos", url: "/dashboard/processos" },
-      { title: "Calendário e Prazos", url: "/dashboard/processos/calendario" },
-      { title: "Documentos", url: "/dashboard/processos/documentos" },
-      { title: "Relatório Clientes", url: "/dashboard/leads/relatorios-cliente" },
+    {
+      title: "Processos",
+      label: "Processos",
+      icon: Scale,
+      submenu: [
+        { title: "Todos os Processos", url: "/dashboard/processos" },
+        { title: "Calendário e Prazos", url: "/dashboard/processos/calendario" },
+        { title: "Relatório Clientes", url: "/dashboard/leads/relatorios-cliente" },
     ]
   },
   {
