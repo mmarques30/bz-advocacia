@@ -44,6 +44,13 @@ All colors MUST be HSL.
     --bz-dark: 72 6% 18%;
     --bz-light: 0 0% 95%;
     
+    /* Chart Colors - Consistent palette */
+    --chart-1: 30 33% 55%;      /* Terra cota / Bronze (primary) */
+    --chart-2: 220 4% 40%;      /* Cinza (secondary) */
+    --chart-3: 72 6% 18%;       /* Escuro (foreground) */
+    --chart-4: 142 76% 36%;     /* Verde (success) */
+    --chart-5: 38 92% 50%;      /* Amarelo (warning) */
+    
     /* Gradients */
     --gradient-overlay: linear-gradient(135deg, hsla(72, 6%, 18%, 0.85) 0%, hsla(220, 4%, 40%, 0.75) 100%);
     
@@ -98,6 +105,14 @@ All colors MUST be HSL.
     --border: 220 4% 30%;
     --input: 220 4% 30%;
     --ring: 30 33% 55%;
+    
+    /* Chart Colors - Dark mode */
+    --chart-1: 30 33% 60%;      /* Terra cota mais claro */
+    --chart-2: 220 4% 55%;      /* Cinza mais claro */
+    --chart-3: 0 0% 80%;        /* Claro */
+    --chart-4: 142 76% 45%;     /* Verde mais claro */
+    --chart-5: 38 92% 55%;      /* Amarelo mais claro */
+    
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;

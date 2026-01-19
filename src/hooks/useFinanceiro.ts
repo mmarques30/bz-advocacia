@@ -17,13 +17,11 @@ import type { FaturamentoFiltersState } from "@/components/financeiro/Faturament
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 
 // Helper para calcular datas baseado nos filtros
-function getDateRangeFromFilters(filters?: FaturamentoFiltersState) {
-  if (!filters) {
-    const hoje = new Date();
-    return {
-      inicio: startOfYear(hoje),
-      fim: endOfYear(hoje)
-    };
+// Retorna null para inicio/fim quando não há filtro específico (busca todos os dados)
+function getDateRangeFromFilters(filters?: FaturamentoFiltersState): { inicio: Date | null; fim: Date | null } {
+  // Se não houver filtros ou dateRange, retornar null para buscar todos os dados
+  if (!filters || (!filters.dateRange?.from && !filters.dateRange?.to)) {
+    return { inicio: null, fim: null };
   }
 
   // Se tiver período específico definido via dateRange
@@ -37,23 +35,18 @@ function getDateRangeFromFilters(filters?: FaturamentoFiltersState) {
   if (filters.dateRange?.from) {
     return { 
       inicio: filters.dateRange.from, 
-      fim: endOfYear(new Date()) 
+      fim: null 
     };
   }
   
   if (filters.dateRange?.to) {
     return { 
-      inicio: startOfYear(new Date()), 
+      inicio: null, 
       fim: filters.dateRange.to 
     };
   }
 
-  // Se não tiver período específico, pegar o ano inteiro atual
-  const hoje = new Date();
-  return {
-    inicio: startOfYear(hoje),
-    fim: endOfYear(hoje)
-  };
+  return { inicio: null, fim: null };
 }
 
 export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
@@ -69,10 +62,15 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
 
       if (error) throw error;
 
+      // Filtrar parcelas por período se definido
       const receitaParcelas = parcelas
-        ?.filter(p => p.status === 'pago' && p.data_pagamento && 
-          new Date(p.data_pagamento) >= primeiroDiaMes && 
-          new Date(p.data_pagamento) <= ultimoDiaMes)
+        ?.filter(p => {
+          if (p.status !== 'pago' || !p.data_pagamento) return false;
+          const dataPagamento = new Date(p.data_pagamento);
+          if (primeiroDiaMes && dataPagamento < primeiroDiaMes) return false;
+          if (ultimoDiaMes && dataPagamento > ultimoDiaMes) return false;
+          return true;
+        })
         .reduce((sum, p) => sum + (p.valor_pago || 0), 0) || 0;
 
       // Buscar transações importadas (tipo receita)
@@ -85,16 +83,23 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
           if (!t.data_transacao) return false;
           const dataTransacao = new Date(t.data_transacao);
           const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-          return tipoReceita && dataTransacao >= primeiroDiaMes && dataTransacao <= ultimoDiaMes;
+          if (!tipoReceita) return false;
+          if (primeiroDiaMes && dataTransacao < primeiroDiaMes) return false;
+          if (ultimoDiaMes && dataTransacao > ultimoDiaMes) return false;
+          return true;
         })
         .reduce((sum, t) => sum + (t.valor || 0), 0) || 0;
 
       const receitaMes = receitaParcelas + receitaImportada;
 
       const aReceberMes = parcelas
-        ?.filter(p => p.status === 'pendente' && 
-          new Date(p.data_vencimento) >= primeiroDiaMes && 
-          new Date(p.data_vencimento) <= ultimoDiaMes)
+        ?.filter(p => {
+          if (p.status !== 'pendente') return false;
+          const dataVencimento = new Date(p.data_vencimento);
+          if (primeiroDiaMes && dataVencimento < primeiroDiaMes) return false;
+          if (ultimoDiaMes && dataVencimento > ultimoDiaMes) return false;
+          return true;
+        })
         .reduce((sum, p) => sum + p.valor, 0) || 0;
 
       const valorAtrasado = parcelas
@@ -309,27 +314,40 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
     queryKey: ["fluxo-caixa", filters],
     queryFn: async (): Promise<FluxoCaixa[]> => {
       const { inicio, fim } = getDateRangeFromFilters(filters);
-      const diasPeriodo = differenceInDays(fim, inicio);
       
-      // Determinar granularidade baseado no período
+      // Determinar granularidade baseado no período (se não houver filtro, usar mês)
+      const diasPeriodo = inicio && fim ? differenceInDays(fim, inicio) : 365;
       const granularidade: 'dia' | 'mes' = diasPeriodo > 62 ? 'mes' : 'dia';
       
-      let query = supabase
+      let parcelasQuery = supabase
         .from("parcelas_financeiras")
         .select("*")
         .eq("status", "pago")
-        .gte("data_pagamento", format(inicio, "yyyy-MM-dd"))
-        .lte("data_pagamento", format(fim, "yyyy-MM-dd"))
         .order("data_pagamento", { ascending: true });
 
-      const { data: parcelas } = await query;
+      // Aplicar filtros de data apenas se definidos
+      if (inicio) {
+        parcelasQuery = parcelasQuery.gte("data_pagamento", format(inicio, "yyyy-MM-dd"));
+      }
+      if (fim) {
+        parcelasQuery = parcelasQuery.lte("data_pagamento", format(fim, "yyyy-MM-dd"));
+      }
+
+      const { data: parcelas } = await parcelasQuery;
 
       // Buscar transações importadas (receitas)
-      const { data: transacoes } = await supabase
+      let transacoesQuery = supabase
         .from("transacoes_financeiras")
-        .select("*")
-        .gte("data_transacao", format(inicio, "yyyy-MM-dd"))
-        .lte("data_transacao", format(fim, "yyyy-MM-dd"));
+        .select("*");
+
+      if (inicio) {
+        transacoesQuery = transacoesQuery.gte("data_transacao", format(inicio, "yyyy-MM-dd"));
+      }
+      if (fim) {
+        transacoesQuery = transacoesQuery.lte("data_transacao", format(fim, "yyyy-MM-dd"));
+      }
+
+      const { data: transacoes } = await transacoesQuery;
 
       const fluxo: Record<string, number> = {};
 
@@ -396,14 +414,19 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
       const { inicio, fim } = getDateRangeFromFilters(filters);
       const acordosFiltrados = acordos?.filter(a => {
         const dataAcordo = new Date(a.created_at);
-        return dataAcordo >= inicio && dataAcordo <= fim;
+        if (inicio && dataAcordo < inicio) return false;
+        if (fim && dataAcordo > fim) return false;
+        return true;
       }) || [];
 
       const transacoesFiltradas = transacoes?.filter(t => {
         if (!t.data_transacao) return false;
         const dataTransacao = new Date(t.data_transacao);
         const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-        return tipoReceita && dataTransacao >= inicio && dataTransacao <= fim;
+        if (!tipoReceita) return false;
+        if (inicio && dataTransacao < inicio) return false;
+        if (fim && dataTransacao > fim) return false;
+        return true;
       }) || [];
 
       // Agrupar por mês e tipo para série temporal
@@ -471,14 +494,19 @@ export function useDistribuicaoTipoAgregado(filters?: FaturamentoFiltersState) {
       const { inicio, fim } = getDateRangeFromFilters(filters);
       const acordosFiltrados = acordos?.filter(a => {
         const dataAcordo = new Date(a.created_at);
-        return dataAcordo >= inicio && dataAcordo <= fim;
+        if (inicio && dataAcordo < inicio) return false;
+        if (fim && dataAcordo > fim) return false;
+        return true;
       }) || [];
 
       const transacoesFiltradas = transacoes?.filter(t => {
         if (!t.data_transacao) return false;
         const dataTransacao = new Date(t.data_transacao);
         const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-        return tipoReceita && dataTransacao >= inicio && dataTransacao <= fim;
+        if (!tipoReceita) return false;
+        if (inicio && dataTransacao < inicio) return false;
+        if (fim && dataTransacao > fim) return false;
+        return true;
       }) || [];
 
       const distribuicao: Record<string, { valor: number; quantidade: number }> = {};

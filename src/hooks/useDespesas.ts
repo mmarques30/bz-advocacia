@@ -13,13 +13,11 @@ import type { DespesasGlobalFiltersState } from "@/components/financeiro/Despesa
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
 // Helper para calcular datas baseado nos filtros
-function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState) {
-  if (!filters) {
-    const hoje = new Date();
-    return {
-      inicio: startOfMonth(hoje),
-      fim: endOfMonth(hoje)
-    };
+// Retorna null para inicio/fim quando não há filtro específico (busca todos os dados)
+function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState): { inicio: Date | null; fim: Date | null } {
+  // Se não houver filtros ou dateRange, retornar null para buscar todos os dados
+  if (!filters || (!filters.dateRange?.from && !filters.dateRange?.to)) {
+    return { inicio: null, fim: null };
   }
 
   // Se tiver período específico definido via dateRange
@@ -33,23 +31,18 @@ function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState) {
   if (filters.dateRange?.from) {
     return { 
       inicio: filters.dateRange.from, 
-      fim: new Date(new Date().getFullYear(), 11, 31) 
+      fim: null 
     };
   }
   
   if (filters.dateRange?.to) {
     return { 
-      inicio: new Date(new Date().getFullYear(), 0, 1), 
+      inicio: null, 
       fim: filters.dateRange.to 
     };
   }
 
-  // Se não tiver período específico, pegar o ano inteiro atual
-  const hoje = new Date();
-  return {
-    inicio: new Date(hoje.getFullYear(), 0, 1),
-    fim: new Date(hoje.getFullYear(), 11, 31)
-  };
+  return { inicio: null, fim: null };
 }
 
 // Mapear categoria_codigo para CategoriaDespesa
@@ -272,15 +265,19 @@ export function useKPIsDespesas(filters?: DespesasGlobalFiltersState) {
     queryKey: ['kpis-despesas', filters],
     queryFn: async () => {
       const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
-      const inicioStr = format(inicio, 'yyyy-MM-dd');
-      const fimStr = format(fim, 'yyyy-MM-dd');
 
       let query = supabase
         .from('transacoes_financeiras')
         .select('valor, data_transacao, categoria_codigo, subcategoria_codigo')
-        .eq('tipo_codigo', 'despesa')
-        .gte('data_transacao', inicioStr)
-        .lte('data_transacao', fimStr);
+        .eq('tipo_codigo', 'despesa');
+
+      // Aplicar filtros de data apenas se definidos
+      if (inicio) {
+        query = query.gte('data_transacao', format(inicio, 'yyyy-MM-dd'));
+      }
+      if (fim) {
+        query = query.lte('data_transacao', format(fim, 'yyyy-MM-dd'));
+      }
 
       // Filtrar por categoria se especificado
       if (filters?.categoria && filters.categoria !== 'todos') {
@@ -315,15 +312,19 @@ export function useDespesasPorCategoria(filters?: DespesasGlobalFiltersState) {
     queryKey: ['despesas-por-categoria', filters],
     queryFn: async () => {
       const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
-      const inicioStr = format(inicio, 'yyyy-MM-dd');
-      const fimStr = format(fim, 'yyyy-MM-dd');
 
       let query = supabase
         .from('transacoes_financeiras')
         .select('categoria_codigo, subcategoria_codigo, valor')
-        .eq('tipo_codigo', 'despesa')
-        .gte('data_transacao', inicioStr)
-        .lte('data_transacao', fimStr);
+        .eq('tipo_codigo', 'despesa');
+
+      // Aplicar filtros de data apenas se definidos
+      if (inicio) {
+        query = query.gte('data_transacao', format(inicio, 'yyyy-MM-dd'));
+      }
+      if (fim) {
+        query = query.lte('data_transacao', format(fim, 'yyyy-MM-dd'));
+      }
 
       const { data, error } = await query;
 
@@ -360,17 +361,21 @@ export function useDespesasRecentes(filters?: DespesasGlobalFiltersState) {
     queryKey: ['despesas-recentes', filters],
     queryFn: async () => {
       const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
-      const inicioStr = format(inicio, 'yyyy-MM-dd');
-      const fimStr = format(fim, 'yyyy-MM-dd');
 
       let query = supabase
         .from('transacoes_financeiras')
         .select('*')
         .eq('tipo_codigo', 'despesa')
-        .gte('data_transacao', inicioStr)
-        .lte('data_transacao', fimStr)
         .order('data_transacao', { ascending: false })
         .limit(5);
+
+      // Aplicar filtros de data apenas se definidos
+      if (inicio) {
+        query = query.gte('data_transacao', format(inicio, 'yyyy-MM-dd'));
+      }
+      if (fim) {
+        query = query.lte('data_transacao', format(fim, 'yyyy-MM-dd'));
+      }
 
       if (filters?.categoria && filters.categoria !== 'todos') {
         query = query.eq('categoria_codigo', filters.categoria);
