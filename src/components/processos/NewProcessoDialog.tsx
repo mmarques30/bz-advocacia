@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
@@ -9,14 +8,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useCreateProcesso } from "@/hooks/useProcessos";
+import { useClientes } from "@/hooks/useRelatoriosCliente";
 import { TRIBUNAIS_OPCOES } from "@/types/processos";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, User } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const processoSchema = z.object({
+  lead_id: z.string().min(1, "Cliente é obrigatório"),
   numero_processo: z.string().optional(),
   tipo: z.string().min(1, "Tipo é obrigatório"),
   tribunal: z.string().optional(),
@@ -40,10 +41,12 @@ interface NewProcessoDialogProps {
 
 export function NewProcessoDialog({ open, onClose }: NewProcessoDialogProps) {
   const createProcesso = useCreateProcesso();
+  const { data: clientes, isLoading: clientesLoading } = useClientes();
 
   const form = useForm<ProcessoFormData>({
     resolver: zodResolver(processoSchema),
     defaultValues: {
+      lead_id: "",
       data_inicio: new Date(),
     },
   });
@@ -51,6 +54,7 @@ export function NewProcessoDialog({ open, onClose }: NewProcessoDialogProps) {
   const onSubmit = async (data: ProcessoFormData) => {
     await createProcesso.mutateAsync({
       ...data,
+      lead_id: data.lead_id,
       valor: data.valor ? parseFloat(data.valor) : null,
       data_inicio: format(data.data_inicio, "yyyy-MM-dd"),
       data_prevista_conclusao: data.data_prevista_conclusao 
@@ -64,6 +68,14 @@ export function NewProcessoDialog({ open, onClose }: NewProcessoDialogProps) {
     onClose();
   };
 
+  const handleClienteChange = (value: string) => {
+    form.setValue('lead_id', value);
+    const clienteSelecionado = clientes?.find(c => c.id === value);
+    if (clienteSelecionado) {
+      form.setValue('autor', clienteSelecionado.nome_completo);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -73,6 +85,41 @@ export function NewProcessoDialog({ open, onClose }: NewProcessoDialogProps) {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Seletor de Cliente - Campo obrigatório no topo */}
+            <FormField
+              control={form.control}
+              name="lead_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Cliente *
+                  </FormLabel>
+                  <Select onValueChange={handleClienteChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o cliente..." />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clientesLoading ? (
+                        <SelectItem value="loading" disabled>Carregando...</SelectItem>
+                      ) : !clientes?.length ? (
+                        <SelectItem value="empty" disabled>Nenhum cliente fechado encontrado</SelectItem>
+                      ) : (
+                        clientes.map((cliente) => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.nome_completo} - {cliente.email}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
