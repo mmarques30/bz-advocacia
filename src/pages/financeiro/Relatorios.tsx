@@ -150,7 +150,7 @@ export default function FinanceiroRelatorios() {
               <div
                 key={relatorio.tipo}
                 className={`flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors cursor-pointer ${
-                  tipoRelatorio === relatorio.tipo ? "bg-accent" : ""
+                  tipoRelatorio === relatorio.tipo ? "bg-gray-100 dark:bg-gray-800" : ""
                 }`}
                 onClick={() => handleSelecionarRelatorio(relatorio.tipo)}
               >
