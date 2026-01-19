@@ -199,13 +199,13 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
                   stroke="hsl(var(--chart-2))"
                   strokeWidth={2}
                   dot={{
-                    fill: 'hsl(var(--background))',
-                    stroke: 'hsl(var(--chart-2))',
+                    fill: 'hsl(var(--chart-1))',
+                    stroke: 'hsl(var(--chart-1))',
                     strokeWidth: 2,
                     r: 5,
                   }}
                   activeDot={{
-                    fill: 'hsl(var(--chart-2))',
+                    fill: 'hsl(var(--chart-1))',
                     stroke: 'hsl(var(--background))',
                     strokeWidth: 2,
                     r: 7,

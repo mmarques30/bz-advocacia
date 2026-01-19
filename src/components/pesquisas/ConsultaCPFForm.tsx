@@ -99,16 +99,7 @@ export const ConsultaCPFForm = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Consulta de CPF
-          </CardTitle>
-          <CardDescription>
-            Consulte dados cadastrais de pessoa física na Receita Federal via Apify
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">

@@ -110,7 +110,25 @@ export function RelatorioFluxoCaixa() {
                 labelFormatter={(value) => format(new Date(value), "dd 'de' MMMM", { locale: ptBR })}
               />
               <Legend />
-              <Line type="monotone" dataKey="entradas" name="Entradas Previstas" stroke={chartColors.success} strokeWidth={2} />
+              <Line 
+                type="monotone" 
+                dataKey="entradas" 
+                name="Entradas Previstas" 
+                stroke={chartColors.terracota} 
+                strokeWidth={2}
+                dot={{
+                  fill: chartColors.terracota,
+                  stroke: chartColors.terracota,
+                  strokeWidth: 2,
+                  r: 4,
+                }}
+                activeDot={{
+                  fill: chartColors.terracota,
+                  stroke: 'hsl(var(--background))',
+                  strokeWidth: 2,
+                  r: 6,
+                }}
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>

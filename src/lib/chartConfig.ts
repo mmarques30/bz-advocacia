@@ -1,11 +1,14 @@
 export const chartColors = {
-  primary: 'hsl(var(--primary))',
-  secondary: 'hsl(var(--secondary))',
-  accent: 'hsl(var(--accent))',
+  primary: 'hsl(var(--chart-1))',       // Terra cota
+  secondary: 'hsl(var(--chart-2))',     // Cinza
+  accent: 'hsl(var(--chart-1))',        // Terra cota
   muted: 'hsl(var(--muted))',
-  success: 'hsl(142, 76%, 36%)',
-  warning: 'hsl(38, 92%, 50%)',
-  danger: 'hsl(0, 84%, 60%)',
+  success: 'hsl(var(--chart-4))',       // Verde
+  warning: 'hsl(var(--chart-5))',       // Amarelo
+  danger: 'hsl(0, 84%, 60%)',           // Vermelho
+  terracota: 'hsl(var(--chart-1))',     // Terra cota explícito
+  dark: 'hsl(var(--chart-3))',          // Escuro
+  gray: 'hsl(var(--chart-2))',          // Cinza
 };
 
 export const chartTheme = {
