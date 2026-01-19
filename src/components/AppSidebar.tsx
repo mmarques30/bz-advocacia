@@ -72,8 +72,7 @@ const menuItems: MenuItem[] = [
     icon: Scale,
     submenu: [
       { title: "Todos os Processos", url: "/dashboard/processos" },
-      { title: "Prazos Próximos", url: "/dashboard/processos/prazos" },
-      { title: "Calendário", url: "/dashboard/processos/calendario" },
+      { title: "Calendário e Prazos", url: "/dashboard/processos/calendario" },
       { title: "Documentos", url: "/dashboard/processos/documentos" },
       { title: "Relatório Clientes", url: "/dashboard/leads/relatorios-cliente" },
     ]
