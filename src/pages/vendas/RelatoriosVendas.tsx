@@ -1,73 +1,127 @@
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RelatorioKPIs } from "@/components/relatorios-vendas/RelatorioKPIs";
-import { RelatorioComparativo } from "@/components/relatorios-vendas/RelatorioComparativo";
-import { RelatorioCampanhas } from "@/components/relatorios-vendas/RelatorioCampanhas";
-import { RelatorioFunil } from "@/components/relatorios-vendas/RelatorioFunil";
-import { RelatorioFilters } from "@/components/relatorios-vendas/RelatorioFilters";
-import { RelatorioExport } from "@/components/relatorios-vendas/RelatorioExport";
-import { useRelatoriosVendas, PeriodoRelatorio } from "@/hooks/useRelatoriosVendas";
-import { FileBarChart } from "lucide-react";
+import { subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { FileBarChart, TrendingUp, BarChart3, Filter, PieChart, Phone } from "lucide-react";
+import { TipoRelatorioVendas } from "@/types/relatorios-vendas";
+import { RelatorioVendasSelector } from "@/components/relatorios-vendas/RelatorioVendasSelector";
+import { RelatorioVendasCard } from "@/components/relatorios-vendas/RelatorioVendasCard";
+import { RelatorioComparativoConversao } from "@/components/relatorios-vendas/RelatorioComparativoConversao";
+import { RelatorioPerformanceCampanha } from "@/components/relatorios-vendas/RelatorioPerformanceCampanha";
+import { RelatorioFunilVendas } from "@/components/relatorios-vendas/RelatorioFunilVendas";
+import { RelatorioLeadsStatus } from "@/components/relatorios-vendas/RelatorioLeadsStatus";
+import { RelatorioPerformanceContato } from "@/components/relatorios-vendas/RelatorioPerformanceContato";
+
+const relatoriosDisponiveis = [
+  {
+    tipo: "comparativo_conversao" as TipoRelatorioVendas,
+    titulo: "Comparativo de Conversão",
+    descricao: "Leads gerados vs contatados vs convertidos",
+    icon: TrendingUp,
+  },
+  {
+    tipo: "performance_campanha" as TipoRelatorioVendas,
+    titulo: "Performance por Campanha",
+    descricao: "Análise detalhada por fonte/campanha",
+    icon: BarChart3,
+  },
+  {
+    tipo: "funil_vendas" as TipoRelatorioVendas,
+    titulo: "Funil de Vendas",
+    descricao: "Visualização completa do funil",
+    icon: Filter,
+  },
+  {
+    tipo: "leads_status" as TipoRelatorioVendas,
+    titulo: "Leads por Status",
+    descricao: "Distribuição por estágio atual",
+    icon: PieChart,
+  },
+  {
+    tipo: "performance_contato" as TipoRelatorioVendas,
+    titulo: "Performance de Contato",
+    descricao: "Taxa de resposta e tempo de contato",
+    icon: Phone,
+  },
+];
 
 export default function RelatoriosVendas() {
-  const [periodo, setPeriodo] = useState<PeriodoRelatorio>("mensal");
-  const { data, isLoading } = useRelatoriosVendas(periodo);
+  const [tipoRelatorio, setTipoRelatorio] = useState<TipoRelatorioVendas | null>(null);
+  const [dataInicio, setDataInicio] = useState<Date>(startOfMonth(subMonths(new Date(), 1)));
+  const [dataFim, setDataFim] = useState<Date>(endOfMonth(new Date()));
+  const [mostrarRelatorio, setMostrarRelatorio] = useState(false);
+
+  const handleSelecionarRelatorio = (tipo: TipoRelatorioVendas) => {
+    setTipoRelatorio(tipo);
+    setMostrarRelatorio(true);
+  };
+
+  const handleGerarRelatorio = () => {
+    if (tipoRelatorio) {
+      setMostrarRelatorio(true);
+    }
+  };
+
+  const renderRelatorio = () => {
+    if (!mostrarRelatorio || !tipoRelatorio) return null;
+
+    switch (tipoRelatorio) {
+      case "comparativo_conversao":
+        return <RelatorioComparativoConversao dataInicio={dataInicio} dataFim={dataFim} />;
+      case "performance_campanha":
+        return <RelatorioPerformanceCampanha dataInicio={dataInicio} dataFim={dataFim} />;
+      case "funil_vendas":
+        return <RelatorioFunilVendas dataInicio={dataInicio} dataFim={dataFim} />;
+      case "leads_status":
+        return <RelatorioLeadsStatus dataInicio={dataInicio} dataFim={dataFim} />;
+      case "performance_contato":
+        return <RelatorioPerformanceContato dataInicio={dataInicio} dataFim={dataFim} />;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <FileBarChart className="h-6 w-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Relatórios de Vendas</h1>
-            <p className="text-muted-foreground">
-              Relatórios para compartilhar com sua agência de marketing
-            </p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-primary/10">
+          <FileBarChart className="h-6 w-6 text-primary" />
         </div>
-        
-        <div className="flex items-center gap-4">
-          <RelatorioFilters periodo={periodo} onPeriodoChange={setPeriodo} />
-          <RelatorioExport periodo={periodo} />
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Relatórios de Vendas</h1>
+          <p className="text-muted-foreground">
+            Relatórios prontos para enviar à sua agência de marketing
+          </p>
         </div>
       </div>
 
-      {/* KPIs */}
-      <RelatorioKPIs kpis={data?.kpis} isLoading={isLoading} />
+      {/* Seletor de relatório */}
+      <RelatorioVendasSelector
+        tipoRelatorio={tipoRelatorio}
+        setTipoRelatorio={setTipoRelatorio}
+        dataInicio={dataInicio}
+        setDataInicio={setDataInicio}
+        dataFim={dataFim}
+        setDataFim={setDataFim}
+        onGerar={handleGerarRelatorio}
+      />
 
-      {/* Tabs de conteúdo */}
-      <Tabs defaultValue="comparativo" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
-          <TabsTrigger value="campanhas">Por Campanha</TabsTrigger>
-          <TabsTrigger value="funil">Funil</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="comparativo" className="space-y-4">
-          <RelatorioComparativo 
-            comparativo={data?.comparativo} 
-            periodo={periodo}
-            isLoading={isLoading} 
+      {/* Grid de cards de relatório */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {relatoriosDisponiveis.map((relatorio) => (
+          <RelatorioVendasCard
+            key={relatorio.tipo}
+            tipo={relatorio.tipo}
+            titulo={relatorio.titulo}
+            descricao={relatorio.descricao}
+            icon={relatorio.icon}
+            isSelected={tipoRelatorio === relatorio.tipo}
+            onClick={() => handleSelecionarRelatorio(relatorio.tipo)}
           />
-        </TabsContent>
+        ))}
+      </div>
 
-        <TabsContent value="campanhas" className="space-y-4">
-          <RelatorioCampanhas 
-            campanhas={data?.campanhas} 
-            isLoading={isLoading} 
-          />
-        </TabsContent>
-
-        <TabsContent value="funil" className="space-y-4">
-          <RelatorioFunil 
-            funil={data?.funil} 
-            isLoading={isLoading} 
-          />
-        </TabsContent>
-      </Tabs>
+      {/* Relatório selecionado */}
+      {renderRelatorio()}
     </div>
   );
 }
