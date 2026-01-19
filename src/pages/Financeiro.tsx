@@ -39,7 +39,6 @@ import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGl
 import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
 import { HistoricoFilters, getDefaultHistoricoFilters, type HistoricoFiltersState } from "@/components/financeiro/historico/HistoricoFilters";
 import { HistoricoTable } from "@/components/financeiro/historico/HistoricoTable";
-import { PagamentosKPIs } from "@/components/financeiro/pagamentos/PagamentosKPIs";
 import { PagamentosAtrasados } from "@/components/financeiro/pagamentos/PagamentosAtrasados";
 import { ProximosVencimentos } from "@/components/financeiro/pagamentos/ProximosVencimentos";
 import type { AcordosFilters } from "@/types/financeiro";
@@ -145,7 +144,6 @@ export default function Financeiro() {
 
         {/* Aba Pagamentos - Atrasos e Vencimentos */}
         <TabsContent value="pagamentos" className="space-y-6">
-          <PagamentosKPIs />
           <PagamentosAtrasados />
           <ProximosVencimentos dias={7} />
         </TabsContent>

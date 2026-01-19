@@ -1,5 +1,4 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { PagamentosKPIs } from "@/components/financeiro/pagamentos/PagamentosKPIs";
 import { PagamentosAtrasados } from "@/components/financeiro/pagamentos/PagamentosAtrasados";
 import { ProximosVencimentos } from "@/components/financeiro/pagamentos/ProximosVencimentos";
 
@@ -13,8 +12,6 @@ export default function FinanceiroPagamentos() {
             Acompanhe vencimentos, atrasos e pagamentos pendentes
           </p>
         </div>
-
-        <PagamentosKPIs />
 
         <PagamentosAtrasados />
 

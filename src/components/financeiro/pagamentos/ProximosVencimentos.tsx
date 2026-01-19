@@ -29,9 +29,9 @@ export function ProximosVencimentos({ dias = 7 }: ProximosVencimentosProps) {
 
   const getColorByDias = (dataVencimento: string) => {
     const diasRestantes = differenceInDays(new Date(dataVencimento), new Date());
-    if (diasRestantes <= 1) return "border-l-red-500 bg-red-50/50";
-    if (diasRestantes <= 3) return "border-l-orange-400 bg-orange-50/50";
-    return "border-l-blue-400 bg-blue-50/50";
+    if (diasRestantes <= 1) return "border-l-primary bg-primary/5";
+    if (diasRestantes <= 3) return "border-l-secondary bg-secondary/5";
+    return "border-l-muted bg-muted/30";
   };
 
   if (isLoading) {
@@ -74,14 +74,14 @@ export function ProximosVencimentos({ dias = 7 }: ProximosVencimentosProps) {
           </div>
           <div className="flex gap-4">
             <div className="flex items-center gap-2">
-              <ArrowUpCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-600">
+              <ArrowUpCircle className="h-4 w-4 text-chart-4" />
+              <span className="text-sm font-medium text-chart-4">
                 {formatCurrency(totalReceitas)}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <ArrowDownCircle className="h-4 w-4 text-red-600" />
-              <span className="text-sm font-medium text-red-600">
+              <ArrowDownCircle className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">
                 {formatCurrency(totalDespesas)}
               </span>
             </div>
@@ -104,8 +104,11 @@ export function ProximosVencimentos({ dias = 7 }: ProximosVencimentosProps) {
               >
                 <div className="flex items-start justify-between mb-2">
                   <Badge 
-                    variant={item.tipo === "receita" ? "default" : "destructive"}
-                    className={item.tipo === "receita" ? "bg-green-100 text-green-800" : ""}
+                    variant="outline"
+                    className={item.tipo === "receita" 
+                      ? "bg-chart-4/10 text-chart-4 border-chart-4/30" 
+                      : "bg-primary/10 text-primary border-primary/30"
+                    }
                   >
                     {item.tipo === "receita" ? "Receita" : "Despesa"}
                   </Badge>
@@ -123,7 +126,7 @@ export function ProximosVencimentos({ dias = 7 }: ProximosVencimentosProps) {
                     {format(new Date(item.data_vencimento), "dd MMM", { locale: ptBR })}
                   </span>
                   <span className={`font-bold ${
-                    item.tipo === "receita" ? "text-green-600" : "text-red-600"
+                    item.tipo === "receita" ? "text-chart-4" : "text-primary"
                   }`}>
                     {formatCurrency(item.valor)}
                   </span>
