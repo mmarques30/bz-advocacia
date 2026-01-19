@@ -2,7 +2,6 @@ import { useState } from "react";
 import { MetaAdsKPIs } from "@/components/meta-ads/MetaAdsKPIs";
 import { MetaAdsCampaigns } from "@/components/meta-ads/MetaAdsCampaigns";
 import { MetaAdsChart } from "@/components/meta-ads/MetaAdsChart";
-import { MetaAdsReportDialog } from "@/components/meta-ads/MetaAdsReportDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
@@ -42,7 +41,6 @@ export default function MetaAds() {
               </Select>
             </div>
           </div>
-          <MetaAdsReportDialog />
         </div>
 
         {/* KPIs */}
