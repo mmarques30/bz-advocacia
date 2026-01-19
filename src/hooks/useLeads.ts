@@ -243,3 +243,39 @@ export function useDeleteLead() {
     },
   });
 }
+
+export function useBulkCreateLeads() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (leads: Partial<Lead>[]) => {
+      const leadsToInsert = leads.map(lead => ({
+        nome_completo: lead.nome_completo || "",
+        email: lead.email || "",
+        telefone: lead.telefone || "",
+        tipo_processo: lead.tipo_processo || "",
+        origem: lead.origem || "site",
+        estagio: lead.estagio || "novo",
+        prioridade: lead.prioridade || "media",
+        mensagem: lead.mensagem || "",
+        como_conheceu: lead.origem || "site",
+        data_ultima_atividade: new Date().toISOString(),
+        lgpd_consent: true,
+      }));
+
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .insert(leadsToInsert as any)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+    onError: (error) => {
+      console.error("Bulk create error:", error);
+    },
+  });
+}
