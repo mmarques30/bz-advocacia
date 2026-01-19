@@ -376,18 +376,26 @@ export function ApiDetailsDialog({ api, open, onOpenChange }: ApiDetailsDialogPr
                     <span className="text-emerald-600 font-semibold">+{api.detalhes.leadsUltimas24h}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Endpoint:</span>
-                  <a 
-                    href={api.endpoint} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-1 text-xs"
-                  >
-                    {new URL(api.endpoint).hostname}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
+                {api.endpoint && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Endpoint:</span>
+                    <a 
+                      href={api.endpoint} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline flex items-center gap-1 text-xs"
+                    >
+                      {(() => {
+                        try {
+                          return new URL(api.endpoint).hostname;
+                        } catch {
+                          return api.endpoint;
+                        }
+                      })()}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
                 {api.ultimaAtividade && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Última atividade:</span>
