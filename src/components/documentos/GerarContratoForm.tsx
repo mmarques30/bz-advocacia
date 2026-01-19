@@ -194,7 +194,7 @@ export function GerarContratoForm() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Formulário */}
       <Card className="flex flex-col">
         <CardHeader>

@@ -12,7 +12,7 @@ export function ContratoPreview({ conteudo, titulo }: ContratoPreviewProps) {
   const paragrafos = conteudo.split('\n\n').filter(Boolean);
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="lg:sticky lg:top-6">
       <CardHeader className="border-b bg-muted/30">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -24,15 +24,15 @@ export function ContratoPreview({ conteudo, titulo }: ContratoPreviewProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0 flex-1">
-        <ScrollArea className="h-full min-h-[500px]">
+      <CardContent className="p-0">
+        <ScrollArea className="h-[600px]">
           <div className="p-8 bg-white">
             {/* Header com Logo */}
             <div className="text-center mb-8 pb-6 border-b border-primary/30">
               <img 
                 src={logoBZ} 
                 alt="Borges & Zembruski Advocacia" 
-                className="h-16 mx-auto"
+                className="h-24 mx-auto"
               />
             </div>
 
