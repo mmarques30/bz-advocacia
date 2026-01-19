@@ -173,22 +173,45 @@ export function useRevenue(filters: DashboardFilters) {
 
       for (let i = 5; i >= 0; i--) {
         const month = subMonths(now, i);
+        const mesNum = month.getMonth() + 1;
+        const anoNum = month.getFullYear();
+
+        // Buscar receitas de transacoes_financeiras
+        const { data: transacoesData } = await supabase
+          .from('transacoes_financeiras')
+          .select('valor')
+          .eq('tipo_codigo', 'receita')
+          .eq('mes', mesNum)
+          .eq('ano', anoNum);
+
+        // Buscar também de parcelas pagas como fallback
         const start = startOfMonth(month);
         const end = endOfMonth(month);
-
-        const { data } = await supabase
+        const { data: parcelasData } = await supabase
           .from('parcelas_financeiras')
           .select('valor_pago')
           .eq('status', 'pago')
           .gte('data_pagamento', start.toISOString())
           .lte('data_pagamento', end.toISOString());
 
-        const receita = data?.reduce((acc, p) => acc + (p.valor_pago || 0), 0) || 0;
+        // Buscar meta do mês
+        const { data: metaData } = await supabase
+          .from('metas_mensais')
+          .select('valor')
+          .eq('mes', mesNum)
+          .eq('ano', anoNum)
+          .single();
+
+        const receitaTransacoes = transacoesData?.reduce((acc, t) => acc + (Number(t.valor) || 0), 0) || 0;
+        const receitaParcelas = parcelasData?.reduce((acc, p) => acc + (Number(p.valor_pago) || 0), 0) || 0;
+        
+        // Usar o maior valor entre as duas fontes
+        const receita = Math.max(receitaTransacoes, receitaParcelas);
 
         months.push({
           mes: format(month, 'MMM', { locale: ptBR }),
           receita,
-          meta: 100000, // Meta fixa por enquanto
+          meta: metaData?.valor ? Number(metaData.valor) : 100000,
         });
       }
 

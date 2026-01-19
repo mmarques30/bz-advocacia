@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { RevenueData } from "@/types/dashboard";
 import { chartColors, chartTheme } from "@/lib/chartConfig";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfigurarMetaDialog } from "./ConfigurarMetaDialog";
 
 interface RevenueChartProps {
   data: RevenueData[];
@@ -25,8 +26,9 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="font-seasons">Receita Mensal</CardTitle>
+        <ConfigurarMetaDialog />
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
