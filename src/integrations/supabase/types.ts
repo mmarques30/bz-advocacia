@@ -584,12 +584,16 @@ export type Database = {
       }
       demandas_internas: {
         Row: {
+          categoria: string | null
           created_at: string
           criado_por: string | null
           data_conclusao: string | null
+          data_limite: string | null
           descricao: string | null
           id: string
+          lead_id: string | null
           prioridade: string
+          processo_id: string | null
           responsavel_id: string | null
           status: string
           tipo: string
@@ -597,12 +601,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          categoria?: string | null
           created_at?: string
           criado_por?: string | null
           data_conclusao?: string | null
+          data_limite?: string | null
           descricao?: string | null
           id?: string
+          lead_id?: string | null
           prioridade?: string
+          processo_id?: string | null
           responsavel_id?: string | null
           status?: string
           tipo: string
@@ -610,12 +618,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          categoria?: string | null
           created_at?: string
           criado_por?: string | null
           data_conclusao?: string | null
+          data_limite?: string | null
           descricao?: string | null
           id?: string
+          lead_id?: string | null
           prioridade?: string
+          processo_id?: string | null
           responsavel_id?: string | null
           status?: string
           tipo?: string
@@ -628,6 +640,20 @@ export type Database = {
             columns: ["criado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandas_internas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandas_internas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
             referencedColumns: ["id"]
           },
           {
