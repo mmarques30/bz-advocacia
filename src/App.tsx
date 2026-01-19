@@ -38,6 +38,7 @@ import PesquisasIndex from "./pages/pesquisas/Index";
 import PesquisasProcessos from "./pages/pesquisas/Processos";
 import PesquisasHistorico from "./pages/pesquisas/Historico";
 import PesquisasCNPJ from "./pages/pesquisas/CNPJ";
+import PesquisasCPF from "./pages/pesquisas/CPF";
 
 // Comunicação
 import ComunicacaoTemplates from "./pages/comunicacao/Templates";
@@ -263,6 +264,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <PesquisasCNPJ />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/pesquisas/cpf" 
+        element={
+          <ProtectedRoute>
+            <PesquisasCPF />
           </ProtectedRoute>
         } 
       />

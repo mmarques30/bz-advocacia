@@ -84,6 +84,7 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Visão Geral", url: "/dashboard/pesquisas" },
       { title: "Consultar Processo", url: "/dashboard/pesquisas/processos" },
+      { title: "Consultar Pessoa (CPF)", url: "/dashboard/pesquisas/cpf" },
       { title: "Consultar Empresa", url: "/dashboard/pesquisas/cnpj" },
       { title: "Histórico", url: "/dashboard/pesquisas/historico" },
     ]
