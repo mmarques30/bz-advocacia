@@ -711,12 +711,19 @@ export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
 
       if (error) throw error;
 
-      // Filtrar por tipo receita e período
+      // Filtrar por tipo receita e período (se houver filtros)
       const transacoesFiltradas = (transacoes || []).filter(t => {
         if (!t.data_transacao) return false;
         const dataTransacao = new Date(t.data_transacao);
         const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-        return tipoReceita && dataTransacao >= inicio && dataTransacao <= fim;
+        
+        if (!tipoReceita) return false;
+        
+        // Se não houver filtros de data, incluir todas as receitas
+        if (!inicio && !fim) return true;
+        if (inicio && dataTransacao < inicio) return false;
+        if (fim && dataTransacao > fim) return false;
+        return true;
       });
 
       return transacoesFiltradas.map(t => ({
@@ -727,6 +734,113 @@ export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
         subcategoria: t.subcategoria_codigo,
         valor: t.valor || 0,
       }));
+    },
+  });
+}
+
+// Hook para buscar receitas recentes
+export function useReceitasRecentes(limite: number = 5) {
+  return useQuery({
+    queryKey: ["receitas-recentes", limite],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("*")
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC")
+        .order("data_transacao", { ascending: false })
+        .limit(limite);
+
+      if (error) throw error;
+
+      return data?.map(t => ({
+        id: t.id,
+        data: t.data_transacao,
+        descricao: t.descricao || t.subcategoria_codigo || "Receita",
+        subcategoria: t.subcategoria_codigo,
+        valor: t.valor || 0,
+      })) || [];
+    },
+  });
+}
+
+// Hook para top subcategorias por receita
+export function useTopSubcategorias(limite: number = 5) {
+  return useQuery({
+    queryKey: ["top-subcategorias", limite],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("subcategoria_codigo, valor")
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC");
+
+      if (error) throw error;
+
+      // Agrupar por subcategoria
+      const agrupado: Record<string, { total: number; quantidade: number }> = {};
+      
+      (data || []).forEach(t => {
+        const key = t.subcategoria_codigo || "Outros";
+        if (!agrupado[key]) {
+          agrupado[key] = { total: 0, quantidade: 0 };
+        }
+        agrupado[key].total += t.valor || 0;
+        agrupado[key].quantidade += 1;
+      });
+
+      return Object.entries(agrupado)
+        .map(([subcategoria, dados]) => ({
+          subcategoria,
+          total: dados.total,
+          quantidade: dados.quantidade,
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, limite);
+    },
+  });
+}
+
+// Hook para receitas do mês atual por responsável
+export function useReceitasMesAtual() {
+  return useQuery({
+    queryKey: ["receitas-mes-atual"],
+    queryFn: async () => {
+      const inicio = startOfMonth(new Date());
+      const fim = endOfMonth(new Date());
+
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("subcategoria_codigo, valor, data_transacao")
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC")
+        .gte("data_transacao", format(inicio, "yyyy-MM-dd"))
+        .lte("data_transacao", format(fim, "yyyy-MM-dd"));
+
+      if (error) throw error;
+
+      // Agrupar por subcategoria (que representa o responsável)
+      const agrupado: Record<string, { total: number; quantidade: number }> = {};
+      let totalGeral = 0;
+      
+      (data || []).forEach(t => {
+        const key = t.subcategoria_codigo || "Outros";
+        if (!agrupado[key]) {
+          agrupado[key] = { total: 0, quantidade: 0 };
+        }
+        agrupado[key].total += t.valor || 0;
+        agrupado[key].quantidade += 1;
+        totalGeral += t.valor || 0;
+      });
+
+      return {
+        totalGeral,
+        quantidadeTotal: data?.length || 0,
+        porResponsavel: Object.entries(agrupado)
+          .map(([responsavel, dados]) => ({
+            responsavel,
+            total: dados.total,
+            quantidade: dados.quantidade,
+          }))
+          .sort((a, b) => b.total - a.total),
+      };
     },
   });
 }
