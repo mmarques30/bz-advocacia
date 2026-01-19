@@ -382,14 +382,19 @@ export type Database = {
           canal_especifico: string | null
           como_conheceu: string
           conversa_bot_completa: Json | null
+          cpf: string | null
           created_at: string
           data_ultima_atividade: string | null
           documentos: string[] | null
           email: string
+          endereco_cep: string | null
+          endereco_cidade: string | null
+          endereco_estado: string | null
           estagio: string | null
           id: string
           lgpd_consent: boolean
           mensagem: string
+          nacionalidade: string | null
           nome_completo: string
           notas_internas: string | null
           numero_herdeiros: number | null
@@ -399,8 +404,10 @@ export type Database = {
           perguntas_respondidas: number | null
           primeiro_contato_em: string | null
           prioridade: string | null
+          profissao: string | null
           regime_casamento: string | null
           responsavel_id: string | null
+          rg: string | null
           situacao_atual: string | null
           status: string
           tags: string[] | null
@@ -422,14 +429,19 @@ export type Database = {
           canal_especifico?: string | null
           como_conheceu: string
           conversa_bot_completa?: Json | null
+          cpf?: string | null
           created_at?: string
           data_ultima_atividade?: string | null
           documentos?: string[] | null
           email: string
+          endereco_cep?: string | null
+          endereco_cidade?: string | null
+          endereco_estado?: string | null
           estagio?: string | null
           id?: string
           lgpd_consent?: boolean
           mensagem: string
+          nacionalidade?: string | null
           nome_completo: string
           notas_internas?: string | null
           numero_herdeiros?: number | null
@@ -439,8 +451,10 @@ export type Database = {
           perguntas_respondidas?: number | null
           primeiro_contato_em?: string | null
           prioridade?: string | null
+          profissao?: string | null
           regime_casamento?: string | null
           responsavel_id?: string | null
+          rg?: string | null
           situacao_atual?: string | null
           status?: string
           tags?: string[] | null
@@ -462,14 +476,19 @@ export type Database = {
           canal_especifico?: string | null
           como_conheceu?: string
           conversa_bot_completa?: Json | null
+          cpf?: string | null
           created_at?: string
           data_ultima_atividade?: string | null
           documentos?: string[] | null
           email?: string
+          endereco_cep?: string | null
+          endereco_cidade?: string | null
+          endereco_estado?: string | null
           estagio?: string | null
           id?: string
           lgpd_consent?: boolean
           mensagem?: string
+          nacionalidade?: string | null
           nome_completo?: string
           notas_internas?: string | null
           numero_herdeiros?: number | null
@@ -479,8 +498,10 @@ export type Database = {
           perguntas_respondidas?: number | null
           primeiro_contato_em?: string | null
           prioridade?: string | null
+          profissao?: string | null
           regime_casamento?: string | null
           responsavel_id?: string | null
+          rg?: string | null
           situacao_atual?: string | null
           status?: string
           tags?: string[] | null
@@ -497,6 +518,69 @@ export type Database = {
           whatsapp_id?: string | null
         }
         Relationships: []
+      }
+      contratos_gerados: {
+        Row: {
+          cliente_id: string
+          conteudo_final: string
+          created_at: string
+          created_by: string | null
+          dados_contrato: Json | null
+          id: string
+          pdf_url: string | null
+          status: string
+          template_id: string | null
+          tipo_contrato: string
+          titulo: string
+          updated_at: string
+          valores: Json | null
+        }
+        Insert: {
+          cliente_id: string
+          conteudo_final: string
+          created_at?: string
+          created_by?: string | null
+          dados_contrato?: Json | null
+          id?: string
+          pdf_url?: string | null
+          status?: string
+          template_id?: string | null
+          tipo_contrato: string
+          titulo: string
+          updated_at?: string
+          valores?: Json | null
+        }
+        Update: {
+          cliente_id?: string
+          conteudo_final?: string
+          created_at?: string
+          created_by?: string | null
+          dados_contrato?: Json | null
+          id?: string
+          pdf_url?: string | null
+          status?: string
+          template_id?: string | null
+          tipo_contrato?: string
+          titulo?: string
+          updated_at?: string
+          valores?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_gerados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_gerados_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       demandas_internas: {
         Row: {
