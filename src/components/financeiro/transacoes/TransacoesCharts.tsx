@@ -16,8 +16,15 @@ import {
 } from "recharts";
 import { useResumoMensal, useKPIsTransacoes, useResumoAnual, useReceitasPorResponsavel } from "@/hooks/useTransacoesFinanceiras";
 import { Skeleton } from "@/components/ui/skeleton";
+import { chartColors } from "@/lib/chartConfig";
 
-const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6"];
+const COLORS = [
+  chartColors.primary,
+  chartColors.secondary,
+  chartColors.success,
+  chartColors.warning,
+  chartColors.dark,
+];
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -127,8 +134,8 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
                   labelFormatter={(label) => `Ano: ${label}`}
                 />
                 <Legend />
-                <Bar dataKey="receitas" name="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="receitas" name="Receitas" fill={chartColors.success} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" name="Despesas" fill={chartColors.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             ) : (
               <BarChart data={resumoMensal || []}>
@@ -144,8 +151,8 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
                   labelFormatter={(label) => `Mês: ${label}`}
                 />
                 <Legend />
-                <Bar dataKey="receitas" name="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="despesas" name="Despesas" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="receitas" name="Receitas" fill={chartColors.success} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" name="Despesas" fill={chartColors.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             )}
           </ResponsiveContainer>
@@ -230,9 +237,9 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
                   type="monotone"
                   dataKey="acumulado"
                   name="Acumulado"
-                  stroke="#3b82f6"
+                  stroke={chartColors.primary}
                   strokeWidth={2}
-                  dot={{ fill: "#3b82f6" }}
+                  dot={{ fill: chartColors.primary }}
                 />
               </LineChart>
             </ResponsiveContainer>

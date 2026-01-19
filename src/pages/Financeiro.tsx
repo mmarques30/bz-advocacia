@@ -39,8 +39,6 @@ import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGl
 import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
 import { HistoricoFilters, getDefaultHistoricoFilters, type HistoricoFiltersState } from "@/components/financeiro/historico/HistoricoFilters";
 import { HistoricoTable } from "@/components/financeiro/historico/HistoricoTable";
-import { PagamentosAtrasados } from "@/components/financeiro/pagamentos/PagamentosAtrasados";
-import { ProximosVencimentos } from "@/components/financeiro/pagamentos/ProximosVencimentos";
 import type { AcordosFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
@@ -128,7 +126,6 @@ export default function Financeiro() {
       <Tabs defaultValue="geral" className="space-y-6">
         <TabsList>
           <TabsTrigger value="geral">Visão Geral</TabsTrigger>
-          <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
           <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
@@ -140,12 +137,6 @@ export default function Financeiro() {
           <TransacoesKPIs filters={transacoesFilters} />
           <TransacoesCharts filters={transacoesFilters} />
           <TransacoesTable filters={transacoesFilters} />
-        </TabsContent>
-
-        {/* Aba Pagamentos - Atrasos e Vencimentos */}
-        <TabsContent value="pagamentos" className="space-y-6">
-          <PagamentosAtrasados />
-          <ProximosVencimentos dias={7} />
         </TabsContent>
 
         {/* Aba Faturamento - Acordos e Receitas */}
