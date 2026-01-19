@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Contrato, ContratoFilters } from "@/types/contratos";
+import { Json } from "@/integrations/supabase/types";
 
 export const useContratos = (filters?: ContratoFilters) => {
   return useQuery({
@@ -54,16 +55,16 @@ export const useCreateContrato = () => {
     mutationFn: async (data: CreateContratoData) => {
       const { data: contrato, error } = await supabase
         .from('contratos_gerados')
-        .insert({
+        .insert([{
           cliente_id: data.cliente_id,
           template_id: data.template_id,
           titulo: data.titulo,
           tipo_contrato: data.tipo_contrato,
           conteudo_final: data.conteudo_final,
-          valores: data.valores,
-          dados_contrato: data.dados_contrato,
+          valores: data.valores as Json,
+          dados_contrato: data.dados_contrato as Json,
           status: data.status || 'rascunho',
-        })
+        }])
         .select()
         .single();
 

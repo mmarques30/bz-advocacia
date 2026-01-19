@@ -10,11 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useLeads } from "@/hooks/useLeads";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { useCreateContrato } from "@/hooks/useContratos";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
-import { TIPOS_CONTRATO, ValoresContrato, DadosContrato, DadosCliente } from "@/types/contratos";
+import { ValoresContrato, DadosContrato, DadosCliente } from "@/types/contratos";
 import { substituirVariaveis, extrairVariaveisFaltantes } from "@/lib/contratoUtils";
 import { ContratoPreview } from "./ContratoPreview";
 import { ComplementarDadosDialog } from "./ComplementarDadosDialog";
@@ -23,8 +24,24 @@ import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
 import { ContratoPDF } from "./ContratoPDF";
 
+// Hook simples para buscar leads para o seletor
+const useLeadsSimple = () => {
+  return useQuery({
+    queryKey: ['leads-simple'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contact_submissions')
+        .select('*')
+        .order('nome_completo', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
 export function GerarContratoForm() {
-  const { data: leads, isLoading: loadingLeads } = useLeads({});
+  const { data: leads, isLoading: loadingLeads } = useLeadsSimple();
   const { configuracoes, isLoading: loadingConfig } = useConfiguracoesEscritorio();
   const createContrato = useCreateContrato();
 
@@ -122,8 +139,8 @@ export function GerarContratoForm() {
       titulo,
       tipo_contrato: modeloSelecionado.tipo,
       conteudo_final: conteudoPreview,
-      valores,
-      dados_contrato: dadosContrato,
+      valores: { ...valores },
+      dados_contrato: { ...dadosContrato },
       status: 'rascunho',
     });
   };
@@ -164,8 +181,8 @@ export function GerarContratoForm() {
         titulo,
         tipo_contrato: modeloSelecionado.tipo,
         conteudo_final: conteudoPreview,
-        valores,
-        dados_contrato: dadosContrato,
+        valores: { ...valores },
+        dados_contrato: { ...dadosContrato },
         status: 'finalizado',
       });
 
