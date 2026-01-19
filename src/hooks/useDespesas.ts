@@ -108,7 +108,7 @@ export function useDespesas(filters?: DespesasFilters) {
         query = query.lte('data_transacao', filters.data_fim.toISOString().split('T')[0]);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
 
@@ -284,7 +284,7 @@ export function useKPIsDespesas(filters?: DespesasGlobalFiltersState) {
         query = query.eq('categoria_codigo', filters.categoria);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
 
@@ -326,7 +326,7 @@ export function useDespesasPorCategoria(filters?: DespesasGlobalFiltersState) {
         query = query.lte('data_transacao', format(fim, 'yyyy-MM-dd'));
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
 

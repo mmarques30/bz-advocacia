@@ -58,7 +58,8 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
 
       const { data: parcelas, error } = await supabase
         .from("parcelas_financeiras")
-        .select("*");
+        .select("*")
+        .limit(10000);
 
       if (error) throw error;
 
@@ -76,7 +77,8 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
       // Buscar transações importadas (tipo receita)
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
-        .select("*");
+        .select("*")
+        .limit(10000);
 
       const receitaImportada = transacoes
         ?.filter(t => {
@@ -333,7 +335,7 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
         parcelasQuery = parcelasQuery.lte("data_pagamento", format(fim, "yyyy-MM-dd"));
       }
 
-      const { data: parcelas } = await parcelasQuery;
+      const { data: parcelas } = await parcelasQuery.limit(10000);
 
       // Buscar transações importadas (receitas)
       let transacoesQuery = supabase
@@ -347,7 +349,7 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
         transacoesQuery = transacoesQuery.lte("data_transacao", format(fim, "yyyy-MM-dd"));
       }
 
-      const { data: transacoes } = await transacoesQuery;
+      const { data: transacoes } = await transacoesQuery.limit(10000);
 
       const fluxo: Record<string, number> = {};
 
@@ -403,12 +405,13 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
         query = query.eq("status", filters.status);
       }
 
-      const { data: acordos } = await query;
+      const { data: acordos } = await query.limit(10000);
 
       // Buscar transações importadas
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
-        .select("*");
+        .select("*")
+        .limit(10000);
 
       // Filtrar por período se especificado
       const { inicio, fim } = getDateRangeFromFilters(filters);
@@ -485,11 +488,12 @@ export function useDistribuicaoTipoAgregado(filters?: FaturamentoFiltersState) {
         query = query.eq("status", filters.status);
       }
 
-      const { data: acordos } = await query;
+      const { data: acordos } = await query.limit(10000);
 
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
-        .select("*");
+        .select("*")
+        .limit(10000);
 
       const { inicio, fim } = getDateRangeFromFilters(filters);
       const acordosFiltrados = acordos?.filter(a => {
@@ -707,7 +711,8 @@ export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
       const { data: transacoes, error } = await supabase
         .from("transacoes_financeiras")
         .select("*")
-        .order("data_transacao", { ascending: false });
+        .order("data_transacao", { ascending: false })
+        .limit(10000);
 
       if (error) throw error;
 
@@ -771,7 +776,8 @@ export function useTopSubcategorias(limite: number = 5) {
       const { data, error } = await supabase
         .from("transacoes_financeiras")
         .select("subcategoria_codigo, valor")
-        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC");
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC")
+        .limit(10000);
 
       if (error) throw error;
 

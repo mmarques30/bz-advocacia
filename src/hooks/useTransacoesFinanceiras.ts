@@ -89,7 +89,7 @@ export function useTransacoes(filters: TransacoesFilters = {}) {
         query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
       return data as TransacaoFinanceira[];
@@ -125,7 +125,7 @@ export function useKPIsTransacoes(filters: TransacoesFilters = {}) {
         query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
 
@@ -181,7 +181,7 @@ export function useResumoMensal(filters: TransacoesFilters = {}) {
         query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
 
@@ -231,7 +231,7 @@ export function useResumoSubcategoria(ano?: number) {
         query = query.eq("ano", ano);
       }
 
-      const { data: transacoes, error } = await query;
+      const { data: transacoes, error } = await query.limit(10000);
 
       if (error) throw error;
 
@@ -286,7 +286,7 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
         query = query.eq("ano", filters.ano);
       }
 
-      const { data: transacoes, error } = await query;
+      const { data: transacoes, error } = await query.limit(10000);
 
       if (error) throw error;
 
@@ -342,7 +342,8 @@ export function useResumoAnual() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("transacoes_financeiras")
-        .select("ano, tipo_codigo, valor");
+        .select("ano, tipo_codigo, valor")
+        .limit(10000);
 
       if (error) throw error;
 
