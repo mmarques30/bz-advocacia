@@ -1,217 +1,314 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Gavel, Target, MessageSquare, Search, Globe, FileSpreadsheet, LucideIcon } from "lucide-react";
+import { FileSpreadsheet, Scale, Facebook, MessageCircle, Search, Globe, LucideIcon } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export interface ApiIntegration {
   id: string;
   nome: string;
   descricao: string;
-  status: 'ativo' | 'pendente' | 'inativo' | 'erro';
+  status: "ativo" | "pendente" | "erro" | "inativo";
   totalConsultas: number;
   consultasSucesso: number;
   consultasErro: number;
   ultimaAtividade: string | null;
-  edgeFunctionPath: string;
-  endpoint: string;
+  edgeFunctionPath: string | null;
+  endpoint: string | null;
   icone: LucideIcon;
   configurado: boolean;
+  podeEditar: boolean;
+  podeExcluir: boolean;
+  tabelaOrigem: "meta_connections" | "whatsapp_config" | "consultas_config" | null;
   detalhes: {
-    apiKeyMasked?: string;
+    provedor?: string;
     ambiente?: string;
+    creditos?: number;
     accountId?: string;
     accountName?: string;
-    rateLimit?: string;
+    ultimaSincronizacao?: string;
+    telefone?: string;
+    phoneNumberId?: string;
     webhookUrl?: string;
+    apiKeyMasked?: string;
+    rateLimit?: string;
     leadsImportados?: number;
     leadsUltimas24h?: number;
   };
 }
 
 export function useAutomacoes() {
-  return useQuery({
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: ["automacoes"],
-    queryFn: async (): Promise<ApiIntegration[]> => {
+    queryFn: async () => {
       // Fetch all configurations in parallel
-      const [
-        consultasConfigResult,
-        metaConnectionResult,
-        whatsappConfigResult,
-        consultasRealizadasResult,
-        googleSheetsLeadsResult,
-        googleSheetsLeads24hResult,
-      ] = await Promise.all([
-        supabase.from("consultas_config").select("*").single(),
-        supabase.from("meta_connections").select("*").order("created_at", { ascending: false }).limit(1).single(),
-        supabase.from("whatsapp_config").select("*").single(),
-        supabase.from("consultas_realizadas").select("id, tipo_consulta, status, created_at"),
-        // Count leads from Google Sheets
-        supabase
-          .from("contact_submissions")
-          .select("id, created_at", { count: "exact" })
-          .eq("origem", "google_sheets"),
-        // Count leads from Google Sheets in last 24h
-        supabase
-          .from("contact_submissions")
-          .select("id", { count: "exact" })
-          .eq("origem", "google_sheets")
-          .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+      const [consultasConfig, metaConnections, whatsappConfig, consultasRealizadas, leads] = await Promise.all([
+        supabase.from("consultas_config").select("*").maybeSingle(),
+        supabase.from("meta_connections").select("*").maybeSingle(),
+        supabase.from("whatsapp_config").select("*").maybeSingle(),
+        supabase.from("consultas_realizadas").select("id, status, created_at, tipo_consulta"),
+        supabase.from("contact_submissions").select("id, origem, created_at"),
       ]);
 
-      const consultasConfig = consultasConfigResult.data;
-      const metaConnection = metaConnectionResult.data;
-      const whatsappConfig = whatsappConfigResult.data;
-      const consultas = consultasRealizadasResult.data || [];
-      const googleSheetsLeads = googleSheetsLeadsResult.data || [];
-      const googleSheetsCount = googleSheetsLeadsResult.count || 0;
-      const googleSheets24hCount = googleSheetsLeads24hResult.count || 0;
+      // Calculate statistics
+      const consultasData = consultasRealizadas.data || [];
+      const leadsData = leads.data || [];
 
-      // Count consultations by type
-      const datajudConsultas = consultas.filter(c => c.tipo_consulta === "processo");
-      const pessoaConsultas = consultas.filter(c => c.tipo_consulta === "pessoa");
-      const imovelConsultas = consultas.filter(c => c.tipo_consulta === "imovel");
-      const veiculoConsultas = consultas.filter(c => c.tipo_consulta === "veiculo");
-      const cnpjConsultas = consultas.filter(c => c.tipo_consulta === "cnpj");
-      const cepConsultas = consultas.filter(c => c.tipo_consulta === "cep");
-      const consultasApiTotal = [...pessoaConsultas, ...imovelConsultas, ...veiculoConsultas];
-      const brasilApiTotal = [...cnpjConsultas, ...cepConsultas];
+      // Datajud stats
+      const datajudConsultas = consultasData.filter((c) => c.tipo_consulta === "processo");
+      const datajudSucesso = datajudConsultas.filter((c) => c.status === "sucesso").length;
+      const datajudErro = datajudConsultas.filter((c) => c.status === "erro").length;
+      const datajudUltima = datajudConsultas.length > 0 ? datajudConsultas[0].created_at : null;
 
-      // Helper to get last activity
-      const getLastActivity = (items: { created_at?: string | null }[]) => {
-        if (items.length === 0) return null;
-        const sorted = [...items].sort((a, b) => 
-          new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-        );
-        return sorted[0]?.created_at || null;
-      };
+      // API Consultas stats (veiculos, imoveis, etc - not processo or cnpj)
+      const apiConsultas = consultasData.filter(
+        (c) => !["processo", "cnpj"].includes(c.tipo_consulta)
+      );
+      const apiSucesso = apiConsultas.filter((c) => c.status === "sucesso").length;
+      const apiErro = apiConsultas.filter((c) => c.status === "erro").length;
+      const apiUltima = apiConsultas.length > 0 ? apiConsultas[0].created_at : null;
 
-      // Helper to count success/error
-      const countByStatus = (items: typeof consultas) => ({
-        sucesso: items.filter(c => c.status === "sucesso").length,
-        erro: items.filter(c => c.status === "erro").length,
-      });
+      // BrasilAPI stats (CNPJ)
+      const brasilApiConsultas = consultasData.filter((c) => c.tipo_consulta === "cnpj");
+      const brasilApiSucesso = brasilApiConsultas.filter((c) => c.status === "sucesso").length;
+      const brasilApiErro = brasilApiConsultas.filter((c) => c.status === "erro").length;
+      const brasilApiUltima = brasilApiConsultas.length > 0 ? brasilApiConsultas[0].created_at : null;
 
-      const datajudStats = countByStatus(datajudConsultas);
-      const consultasApiStats = countByStatus(consultasApiTotal);
-      const brasilApiStats = countByStatus(brasilApiTotal);
+      // Google Sheets stats (leads from sheets)
+      const sheetsLeads = leadsData.filter((l) => l.origem === "google-sheets" || l.origem === "planilha");
+      const sheetsUltima = sheetsLeads.length > 0 ? sheetsLeads[0].created_at : null;
 
-      // Get Google Sheets webhook URL
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-      const webhookUrl = `${supabaseUrl}/functions/v1/receive-sheet-lead`;
-
+      // Build integrations array
       const integrations: ApiIntegration[] = [
         {
           id: "google-sheets",
-          nome: "Google Sheets (Leads)",
-          descricao: "Importação automática de leads da planilha Google Sheets conectada ao Meta Ads",
-          status: googleSheetsCount > 0 ? "ativo" : "pendente",
-          totalConsultas: googleSheetsCount,
-          consultasSucesso: googleSheetsCount,
+          nome: "Google Sheets",
+          descricao: "Importação de leads via planilha Google",
+          status: sheetsLeads.length > 0 ? "ativo" : "pendente",
+          totalConsultas: sheetsLeads.length,
+          consultasSucesso: sheetsLeads.length,
           consultasErro: 0,
-          ultimaAtividade: getLastActivity(googleSheetsLeads),
-          edgeFunctionPath: "supabase/functions/receive-sheet-lead/index.ts",
-          endpoint: webhookUrl,
+          ultimaAtividade: sheetsUltima,
+          edgeFunctionPath: "receive-sheet-lead",
+          endpoint: null,
           icone: FileSpreadsheet,
-          configurado: googleSheetsCount > 0,
+          configurado: true,
+          podeEditar: false,
+          podeExcluir: false,
+          tabelaOrigem: null,
           detalhes: {
-            webhookUrl: webhookUrl,
-            leadsImportados: googleSheetsCount,
-            leadsUltimas24h: googleSheets24hCount,
+            webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receive-sheet-lead`,
+            leadsImportados: sheetsLeads.length,
+            leadsUltimas24h: sheetsLeads.filter(
+              (l) => new Date(l.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+            ).length,
           },
         },
         {
           id: "datajud",
           nome: "Datajud (CNJ)",
-          descricao: "API pública do Conselho Nacional de Justiça para consulta de processos judiciais",
-          status: "ativo",
+          descricao: "Consulta de processos judiciais via API do CNJ",
+          status: datajudConsultas.length > 0 ? "ativo" : "pendente",
           totalConsultas: datajudConsultas.length,
-          consultasSucesso: datajudStats.sucesso,
-          consultasErro: datajudStats.erro,
-          ultimaAtividade: getLastActivity(datajudConsultas),
-          edgeFunctionPath: "supabase/functions/consultas-datajud/index.ts",
+          consultasSucesso: datajudSucesso,
+          consultasErro: datajudErro,
+          ultimaAtividade: datajudUltima,
+          edgeFunctionPath: "consultas-datajud",
           endpoint: "https://api-publica.datajud.cnj.jus.br",
-          icone: Gavel,
+          icone: Scale,
           configurado: true,
+          podeEditar: false,
+          podeExcluir: false,
+          tabelaOrigem: null,
           detalhes: {
-            apiKeyMasked: "••••••••••••dw==",
-            rateLimit: "120 requisições/minuto",
+            provedor: "CNJ",
+            ambiente: "producao",
+            apiKeyMasked: "****-****-****-**** (configurada)",
+            rateLimit: "100 req/min",
           },
         },
         {
           id: "meta-ads",
           nome: "Meta Ads",
-          descricao: "Integração com Facebook/Instagram Ads para gestão de campanhas publicitárias",
-          status: metaConnection?.status === "connected" ? "ativo" : metaConnection ? "pendente" : "inativo",
+          descricao: "Integração com Facebook/Instagram Ads",
+          status: metaConnections.data?.status === "ativo" ? "ativo" : metaConnections.data ? "pendente" : "inativo",
           totalConsultas: 0,
           consultasSucesso: 0,
           consultasErro: 0,
-          ultimaAtividade: metaConnection?.ultima_sincronizacao || null,
-          edgeFunctionPath: "supabase/functions/meta-campaigns/index.ts",
-          endpoint: "https://graph.facebook.com/v18.0",
-          icone: Target,
-          configurado: !!metaConnection,
+          ultimaAtividade: metaConnections.data?.ultima_sincronizacao || null,
+          edgeFunctionPath: "meta-metrics",
+          endpoint: "https://graph.facebook.com",
+          icone: Facebook,
+          configurado: !!metaConnections.data,
+          podeEditar: !!metaConnections.data,
+          podeExcluir: !!metaConnections.data,
+          tabelaOrigem: "meta_connections",
           detalhes: {
-            accountId: metaConnection?.account_id,
-            accountName: metaConnection?.account_name || undefined,
+            accountId: metaConnections.data?.account_id,
+            accountName: metaConnections.data?.account_name,
+            ultimaSincronizacao: metaConnections.data?.ultima_sincronizacao,
           },
         },
         {
           id: "whatsapp",
           nome: "WhatsApp Business",
-          descricao: "API do WhatsApp Business para envio de mensagens e notificações",
-          status: whatsappConfig?.active ? "ativo" : whatsappConfig ? "pendente" : "inativo",
+          descricao: "Envio de mensagens e notificações via WhatsApp",
+          status: whatsappConfig.data?.active ? "ativo" : whatsappConfig.data ? "pendente" : "inativo",
           totalConsultas: 0,
           consultasSucesso: 0,
           consultasErro: 0,
-          ultimaAtividade: whatsappConfig?.updated_at || null,
-          edgeFunctionPath: "supabase/functions/whatsapp-send/index.ts",
-          endpoint: "https://graph.facebook.com/v18.0",
-          icone: MessageSquare,
-          configurado: !!whatsappConfig?.phone_number_id,
+          ultimaAtividade: whatsappConfig.data?.updated_at || null,
+          edgeFunctionPath: "whatsapp-send",
+          endpoint: null,
+          icone: MessageCircle,
+          configurado: !!whatsappConfig.data,
+          podeEditar: !!whatsappConfig.data,
+          podeExcluir: !!whatsappConfig.data,
+          tabelaOrigem: "whatsapp_config",
           detalhes: {
-            apiKeyMasked: whatsappConfig?.phone_number_id ? "••••••••••••" : undefined,
+            provedor: whatsappConfig.data?.provider,
+            telefone: whatsappConfig.data?.phone_number,
+            phoneNumberId: whatsappConfig.data?.phone_number_id,
           },
         },
         {
           id: "consultas-api",
           nome: "API de Consultas",
-          descricao: "Consultas de pessoas, veículos e imóveis via BigDataCorp ou similar",
-          status: consultasConfig?.ativo ? "ativo" : consultasConfig ? "pendente" : "inativo",
-          totalConsultas: consultasApiTotal.length,
-          consultasSucesso: consultasApiStats.sucesso,
-          consultasErro: consultasApiStats.erro,
-          ultimaAtividade: getLastActivity(consultasApiTotal),
-          edgeFunctionPath: "supabase/functions/consultas-api/index.ts",
-          endpoint: consultasConfig?.ambiente === "producao" 
-            ? "https://plataforma.bigdatacorp.com.br" 
-            : "https://sandbox.bigdatacorp.com.br",
+          descricao: "Consultas de veículos, imóveis e outros",
+          status: consultasConfig.data?.ativo ? "ativo" : consultasConfig.data ? "pendente" : "inativo",
+          totalConsultas: apiConsultas.length,
+          consultasSucesso: apiSucesso,
+          consultasErro: apiErro,
+          ultimaAtividade: apiUltima,
+          edgeFunctionPath: "consultas-api",
+          endpoint: null,
           icone: Search,
-          configurado: !!consultasConfig?.api_token,
+          configurado: !!consultasConfig.data?.api_token,
+          podeEditar: !!consultasConfig.data,
+          podeExcluir: !!consultasConfig.data,
+          tabelaOrigem: "consultas_config",
           detalhes: {
-            apiKeyMasked: consultasConfig?.api_token ? "••••••••••••" : undefined,
-            ambiente: consultasConfig?.ambiente || "sandbox",
+            provedor: consultasConfig.data?.provedor,
+            ambiente: consultasConfig.data?.ambiente,
+            creditos: consultasConfig.data?.creditos_disponiveis,
           },
         },
         {
-          id: "brasilapi",
+          id: "brasil-api",
           nome: "BrasilAPI",
-          descricao: "API pública para consulta de CNPJ, CEP e dados públicos brasileiros",
+          descricao: "Consulta de CNPJ, CEP e dados públicos",
           status: "ativo",
-          totalConsultas: brasilApiTotal.length,
-          consultasSucesso: brasilApiStats.sucesso,
-          consultasErro: brasilApiStats.erro,
-          ultimaAtividade: getLastActivity(brasilApiTotal),
-          edgeFunctionPath: "supabase/functions/consultas-brasilapi/index.ts",
-          endpoint: "https://brasilapi.com.br/api",
+          totalConsultas: brasilApiConsultas.length,
+          consultasSucesso: brasilApiSucesso,
+          consultasErro: brasilApiErro,
+          ultimaAtividade: brasilApiUltima,
+          edgeFunctionPath: "consultas-brasilapi",
+          endpoint: "https://brasilapi.com.br",
           icone: Globe,
           configurado: true,
+          podeEditar: false,
+          podeExcluir: false,
+          tabelaOrigem: null,
           detalhes: {
-            rateLimit: "Ilimitado (uso responsável)",
+            provedor: "BrasilAPI",
             ambiente: "producao",
           },
         },
       ];
 
       return integrations;
+    },
+  });
+
+  return query;
+}
+
+export function useDeleteAutomacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, tabelaOrigem }: { id: string; tabelaOrigem: string }) => {
+      let error = null;
+
+      if (tabelaOrigem === "meta_connections") {
+        const result = await supabase.from("meta_connections").delete().neq("id", "");
+        error = result.error;
+      } else if (tabelaOrigem === "whatsapp_config") {
+        const result = await supabase.from("whatsapp_config").delete().neq("id", "");
+        error = result.error;
+      } else if (tabelaOrigem === "consultas_config") {
+        const result = await supabase.from("consultas_config").delete().neq("id", "");
+        error = result.error;
+      }
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["automacoes"] });
+      toast({
+        title: "Integração excluída",
+        description: "A integração foi removida com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
+export function useUpdateAutomacao() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      tabelaOrigem,
+      data,
+    }: {
+      tabelaOrigem: string;
+      data: Record<string, unknown>;
+    }) => {
+      let error = null;
+
+      if (tabelaOrigem === "meta_connections") {
+        const result = await supabase
+          .from("meta_connections")
+          .update({ ...data, updated_at: new Date().toISOString() })
+          .neq("id", "");
+        error = result.error;
+      } else if (tabelaOrigem === "whatsapp_config") {
+        const result = await supabase
+          .from("whatsapp_config")
+          .update({ ...data, updated_at: new Date().toISOString() })
+          .neq("id", "");
+        error = result.error;
+      } else if (tabelaOrigem === "consultas_config") {
+        const result = await supabase
+          .from("consultas_config")
+          .update({ ...data, updated_at: new Date().toISOString() })
+          .neq("id", "");
+        error = result.error;
+      }
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["automacoes"] });
+      toast({
+        title: "Integração atualizada",
+        description: "As configurações foram salvas com sucesso.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
