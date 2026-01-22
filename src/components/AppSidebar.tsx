@@ -51,7 +51,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
   { 
     title: "Analises", 
-    label: "Análises",
+    label: "Painel B&Z",
     url: "/dashboard", 
     icon: LayoutDashboard 
   },
