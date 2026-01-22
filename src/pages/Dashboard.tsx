@@ -5,7 +5,9 @@ import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
 import { RecentActivities } from "@/components/dashboard/RecentActivities";
+import { UserPendenciasCards } from "@/components/dashboard/UserPendenciasCards";
 import { useDateFilter } from "@/hooks/useDateFilter";
+import { useUserPendencias } from "@/hooks/useUserPendencias";
 import {
   useKPIs,
   useLeadsEvolution,
@@ -17,6 +19,7 @@ import {
 export default function Dashboard() {
   const { filters, setPreset, clearFilters } = useDateFilter();
 
+  const { data: pendencias, isLoading: pendenciasLoading } = useUserPendencias();
   const { data: kpis, isLoading: kpisLoading } = useKPIs(filters);
   const { data: leadsData, isLoading: leadsLoading } = useLeadsEvolution(filters);
   const { data: revenueData, isLoading: revenueLoading } = useRevenue(filters);
@@ -30,6 +33,9 @@ export default function Dashboard() {
         onPeriodoChange={setPreset}
         onClearFilters={clearFilters}
       />
+
+      {/* Pendências do Usuário */}
+      <UserPendenciasCards data={pendencias} loading={pendenciasLoading} />
 
       {/* KPIs Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
