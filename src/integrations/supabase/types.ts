@@ -389,7 +389,9 @@ export type Database = {
           email: string
           endereco_cep: string | null
           endereco_cidade: string | null
+          endereco_completo: string | null
           endereco_estado: string | null
+          estado_civil: string | null
           estagio: string | null
           id: string
           lgpd_consent: boolean
@@ -401,6 +403,7 @@ export type Database = {
           origem: string | null
           outro_como_conheceu: string | null
           outro_tipo_processo: string | null
+          pasta_drive_url: string | null
           perguntas_respondidas: number | null
           primeiro_contato_em: string | null
           prioridade: string | null
@@ -410,6 +413,7 @@ export type Database = {
           rg: string | null
           situacao_atual: string | null
           status: string
+          status_cliente: string | null
           tags: string[] | null
           telefone: string
           tem_filhos: boolean | null
@@ -436,7 +440,9 @@ export type Database = {
           email: string
           endereco_cep?: string | null
           endereco_cidade?: string | null
+          endereco_completo?: string | null
           endereco_estado?: string | null
+          estado_civil?: string | null
           estagio?: string | null
           id?: string
           lgpd_consent?: boolean
@@ -448,6 +454,7 @@ export type Database = {
           origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
+          pasta_drive_url?: string | null
           perguntas_respondidas?: number | null
           primeiro_contato_em?: string | null
           prioridade?: string | null
@@ -457,6 +464,7 @@ export type Database = {
           rg?: string | null
           situacao_atual?: string | null
           status?: string
+          status_cliente?: string | null
           tags?: string[] | null
           telefone: string
           tem_filhos?: boolean | null
@@ -483,7 +491,9 @@ export type Database = {
           email?: string
           endereco_cep?: string | null
           endereco_cidade?: string | null
+          endereco_completo?: string | null
           endereco_estado?: string | null
+          estado_civil?: string | null
           estagio?: string | null
           id?: string
           lgpd_consent?: boolean
@@ -495,6 +505,7 @@ export type Database = {
           origem?: string | null
           outro_como_conheceu?: string | null
           outro_tipo_processo?: string | null
+          pasta_drive_url?: string | null
           perguntas_respondidas?: number | null
           primeiro_contato_em?: string | null
           prioridade?: string | null
@@ -504,6 +515,7 @@ export type Database = {
           rg?: string | null
           situacao_atual?: string | null
           status?: string
+          status_cliente?: string | null
           tags?: string[] | null
           telefone?: string
           tem_filhos?: boolean | null
@@ -1462,7 +1474,9 @@ export type Database = {
           data_inicio: string
           data_prevista_conclusao: string | null
           data_ultima_atualizacao: string | null
+          grau_tribunal: string | null
           id: string
+          instancia: string | null
           lead_id: string | null
           numero_processo: string | null
           observacoes: string | null
@@ -1483,7 +1497,9 @@ export type Database = {
           data_inicio: string
           data_prevista_conclusao?: string | null
           data_ultima_atualizacao?: string | null
+          grau_tribunal?: string | null
           id?: string
+          instancia?: string | null
           lead_id?: string | null
           numero_processo?: string | null
           observacoes?: string | null
@@ -1504,7 +1520,9 @@ export type Database = {
           data_inicio?: string
           data_prevista_conclusao?: string | null
           data_ultima_atualizacao?: string | null
+          grau_tribunal?: string | null
           id?: string
+          instancia?: string | null
           lead_id?: string | null
           numero_processo?: string | null
           observacoes?: string | null

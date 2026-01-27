@@ -1,8 +1,15 @@
-import { Plus, Search, Filter, Table2, LayoutGrid, Upload } from "lucide-react";
+import { Plus, Search, Filter, Table2, LayoutGrid, Upload, ChevronDown, FileSpreadsheet, Table } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface LeadsHeaderProps {
   view: 'table' | 'kanban';
@@ -10,6 +17,7 @@ interface LeadsHeaderProps {
   onOpenFilters: () => void;
   onNewLead: () => void;
   onImport: () => void;
+  onImportPlanilha: () => void;
   search: string;
   onSearchChange: (search: string) => void;
   activeFiltersCount: number;
@@ -22,6 +30,7 @@ export function LeadsHeader({
   onOpenFilters,
   onNewLead,
   onImport,
+  onImportPlanilha,
   search,
   onSearchChange,
   activeFiltersCount,
@@ -34,10 +43,28 @@ export function LeadsHeader({
           <Plus className="h-4 w-4" />
           {isClienteTab ? "Novo Cliente" : "Novo Lead"}
         </Button>
-        <Button variant="outline" onClick={onImport}>
-          <Upload className="h-4 w-4" />
-          Importar
-        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Upload className="h-4 w-4 mr-2" />
+              Importar
+              <ChevronDown className="h-4 w-4 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="bg-popover">
+            <DropdownMenuItem onClick={onImport}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Importar CSV/XLSX simples
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onImportPlanilha}>
+              <Table className="h-4 w-4 mr-2" />
+              Importar Planilha B&Z (com processos)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

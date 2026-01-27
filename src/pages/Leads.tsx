@@ -7,6 +7,7 @@ import { LeadsKanban } from "@/components/leads/LeadsKanban";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { ImportLeadsDialog } from "@/components/leads/ImportLeadsDialog";
+import { ImportClientesPlanilhaDialog } from "@/components/leads/ImportClientesPlanilhaDialog";
 import { useLeads } from "@/hooks/useLeads";
 import { LeadsFilters as FiltersType, Lead } from "@/types/leads";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,6 +21,7 @@ export default function Leads() {
   const [showFilters, setShowFilters] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showImportPlanilha, setShowImportPlanilha] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
 
@@ -112,6 +114,7 @@ export default function Leads() {
           setShowNewLead(true);
         }}
         onImport={() => setShowImport(true)}
+        onImportPlanilha={() => setShowImportPlanilha(true)}
         search={filters.search}
         onSearchChange={(search) => setFilters({ ...filters, search })}
         activeFiltersCount={activeFiltersCount}
@@ -151,6 +154,11 @@ export default function Leads() {
         open={showImport}
         onClose={() => setShowImport(false)}
         isCliente={currentTab === 'clientes'}
+      />
+
+      <ImportClientesPlanilhaDialog
+        open={showImportPlanilha}
+        onClose={() => setShowImportPlanilha(false)}
       />
 
       <LeadDetailsDialog
