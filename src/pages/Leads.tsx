@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { LeadsHeader } from "@/components/leads/LeadsHeader";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsTable } from "@/components/leads/LeadsTable";
+import { ClientesTable } from "@/components/leads/ClientesTable";
 import { LeadsKanban } from "@/components/leads/LeadsKanban";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
@@ -123,12 +124,21 @@ export default function Leads() {
       />
 
       {view === 'table' ? (
-        <LeadsTable
-          leads={leads}
-          isLoading={isLoading}
-          onViewDetails={handleViewDetails}
-          onEdit={handleEdit}
-        />
+        currentTab === 'clientes' ? (
+          <ClientesTable
+            leads={leads}
+            isLoading={isLoading}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+          />
+        ) : (
+          <LeadsTable
+            leads={leads}
+            isLoading={isLoading}
+            onViewDetails={handleViewDetails}
+            onEdit={handleEdit}
+          />
+        )
       ) : (
         <LeadsKanban
           leads={leads}
