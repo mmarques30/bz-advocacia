@@ -95,7 +95,11 @@ export function useConversionFunnel(filters: DashboardFilters) {
       const startDate = filters.startDate?.toISOString();
       const endDate = filters.endDate?.toISOString();
 
-      let query = supabase.from('contact_submissions').select('estagio');
+      // Filtrar apenas leads reais (excluir clientes importados)
+      let query = supabase
+        .from('contact_submissions')
+        .select('estagio')
+        .neq('como_conheceu', 'importacao');
       
       if (startDate) query = query.gte('created_at', startDate);
       if (endDate) query = query.lte('created_at', endDate);
@@ -145,15 +149,18 @@ export function useLeadsEvolution(filters: DashboardFilters) {
         const startPrevious = startOfMonth(previousMonth);
         const endPrevious = endOfMonth(previousMonth);
 
+        // Filtrar apenas leads reais (excluir clientes importados)
         const { count: atual } = await supabase
           .from('contact_submissions')
           .select('*', { count: 'exact', head: true })
+          .neq('como_conheceu', 'importacao')
           .gte('created_at', startCurrent.toISOString())
           .lte('created_at', endCurrent.toISOString());
 
         const { count: anterior } = await supabase
           .from('contact_submissions')
           .select('*', { count: 'exact', head: true })
+          .neq('como_conheceu', 'importacao')
           .gte('created_at', startPrevious.toISOString())
           .lte('created_at', endPrevious.toISOString());
 

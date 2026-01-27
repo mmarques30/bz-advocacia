@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ConversionFunnelStage } from "@/types/analytics";
 import { AlertTriangle } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, TooltipProps } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, Legend, TooltipProps, LabelList } from "recharts";
 import { chartColors } from "@/lib/chartConfig";
 
 interface ConversionFunnelDetailedProps {
@@ -75,7 +75,7 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
     );
   }
 
-  // Transformar dados para formato Recharts
+  // Transformar dados para formato Recharts - gráfico de colunas verticais
   const chartData = data.map(stage => ({
     estagio: stage.estagio,
     total: stage.count,
@@ -89,10 +89,10 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Funil de Conversão Detalhado</CardTitle>
+            <CardTitle>Funil de Conversão</CardTitle>
             <CardDescription>Visualização do fluxo de leads por estágio</CardDescription>
           </div>
-          {gargalo && (
+          {gargalo && gargalo.taxaPerdida > 0 && (
             <Badge variant="destructive" className="gap-2">
               <AlertTriangle className="h-3 w-3" />
               Gargalo: {gargalo.estagio} (-{gargalo.taxaPerdida.toFixed(1)}%)
@@ -104,20 +104,17 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
         <ResponsiveContainer width="100%" height={350}>
           <BarChart 
             data={chartData} 
-            layout="vertical" 
-            barSize={40}
-            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            barSize={50}
+            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <XAxis 
-              type="number" 
-              tickFormatter={(value) => `${value}`}
+              dataKey="estagio" 
               stroke="hsl(var(--muted-foreground))"
+              tick={{ fontSize: 12 }}
             />
             <YAxis 
-              dataKey="estagio" 
-              type="category" 
-              width={100}
               stroke="hsl(var(--muted-foreground))"
+              tick={{ fontSize: 12 }}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.2)' }} />
             <Legend content={<CustomLegend />} />
@@ -127,7 +124,7 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
               dataKey="avancaram" 
               stackId="stack" 
               name="Avançaram"
-              radius={[0, 4, 4, 0]}
+              radius={[4, 4, 0, 0]}
               animationBegin={0}
               animationDuration={800}
               animationEasing="ease-out"
@@ -141,6 +138,13 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
                   } 
                 />
               ))}
+              <LabelList 
+                dataKey="avancaram" 
+                position="top" 
+                fill="hsl(var(--foreground))"
+                fontSize={12}
+                fontWeight={600}
+              />
             </Bar>
             
             {/* Barra de leads perdidos */}
@@ -149,7 +153,7 @@ export function ConversionFunnelDetailed({ data, gargalo, loading }: ConversionF
               stackId="stack" 
               name="Perdidos"
               fill={chartColors.muted}
-              radius={[0, 4, 4, 0]}
+              radius={[4, 4, 0, 0]}
               animationBegin={0}
               animationDuration={800}
               animationEasing="ease-out"
