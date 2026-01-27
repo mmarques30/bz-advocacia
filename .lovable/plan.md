@@ -1,64 +1,58 @@
 
-# Plano: Corrigir Status dos Processos Baseado na Situação do Cliente
+# Plano: Sincronizar Link do Google Drive nos Processos
 
 ## Problema Identificado
 
-Após análise do banco de dados:
-- **89 clientes ativos** → 184 processos vinculados (todos com status `em_andamento`)
-- **92 clientes inativos** → 0 processos vinculados
+A consulta ao banco mostra claramente:
+- **Clientes** possuem `pasta_drive_url` preenchido (ex: `https://drive.google.com/drive/folders/13R9Bnb4ilIl...`)
+- **Processos** estão com `pasta_drive_url = NULL` (mesmo tendo a coluna disponível)
 
-Os clientes inativos não possuem processos no banco de dados. Isso indica que na planilha original, esses clientes não tinham números de processo válidos nas colunas de tribunais, ou os processos não foram importados.
+O hook de importação já está correto, mas os processos já importados não receberam o link.
 
-## Solução em Duas Partes
+## Solução
 
-### Parte 1: Script SQL para Corrigir Processos Existentes
+### 1. Script SQL para Atualizar Processos Existentes
 
-Criar migração para atualizar automaticamente o status dos processos com base no status do cliente vinculado:
+Executar uma migração para copiar o `pasta_drive_url` do cliente (`contact_submissions`) para os processos vinculados:
 
 ```sql
--- Atualiza processos para 'concluido' quando cliente é 'inativo'
 UPDATE processos p
-SET status = 'concluido'
+SET pasta_drive_url = cs.pasta_drive_url
 FROM contact_submissions cs
 WHERE p.lead_id = cs.id
-  AND cs.status_cliente = 'inativo'
-  AND p.status = 'em_andamento';
-
--- Atualiza processos para 'em_andamento' quando cliente é 'ativo'  
-UPDATE processos p
-SET status = 'em_andamento'
-FROM contact_submissions cs
-WHERE p.lead_id = cs.id
-  AND cs.status_cliente = 'ativo'
-  AND p.status = 'concluido';
+  AND cs.pasta_drive_url IS NOT NULL
+  AND (p.pasta_drive_url IS NULL OR p.pasta_drive_url = '');
 ```
 
-### Parte 2: Verificar Hook de Importação
+### 2. Verificação do Hook de Importação
 
-O hook `useImportClientesPlanilha.ts` já está corretamente implementado:
+O hook `useImportClientesPlanilha.ts` já está corretamente implementado para novas importações:
 
 ```typescript
-function getProcessoStatus(situacaoCliente: 'ativo' | 'inativo'): string {
-  return situacaoCliente === 'ativo' ? 'em_andamento' : 'concluido';
-}
+const { error: processoError } = await supabase
+  .from('processos')
+  .insert({
+    lead_id: clienteData.id,
+    numero_processo: processo.numero,
+    pasta_drive_url: cliente.pastaUrl, // ✅ Já está salvando
+    // ...
+  });
 ```
 
-O mapeamento está correto:
-- Cliente **ativo** → Processo **em_andamento**
-- Cliente **inativo** → Processo **concluido**
+### 3. Exibição na Tabela
 
-## Ação Necessária
+A tabela `ProcessosTable.tsx` já exibe corretamente a coluna "Pasta Drive" com ícone clicável.
 
-Como não há processos para clientes inativos no banco, o script SQL de correção não terá efeito no momento. Se você reimportar a planilha ou se houver processos que deveriam ter sido criados para clientes inativos, será necessário:
+## Resultado Esperado
 
-1. **Opção A**: Reimportar a planilha após limpar os dados existentes
-2. **Opção B**: Verificar se a planilha original realmente continha números de processo nas colunas de tribunais para os clientes inativos
+Após a migração:
+- Todos os 184 processos terão o link do Drive do seu cliente
+- Clique no ícone de pasta abrirá diretamente o Google Drive em nova aba
 
-## Resumo da Situação Atual
+## Resumo das Alterações
 
-| Status Cliente | Total Clientes | Processos Vinculados | Status Esperado Processo |
-|---------------|----------------|---------------------|-------------------------|
-| Ativo | 89 | 184 | em_andamento ✅ |
-| Inativo | 92 | 0 | concluido (sem dados) |
-
-O código de importação está correto. O problema parece ser que a planilha original não continha números de processo válidos para os clientes inativos.
+| Ação | Descrição |
+|------|-----------|
+| Migração SQL | Copia `pasta_drive_url` dos clientes para seus processos |
+| Hook | Já está correto (sem alteração) |
+| Interface | Já está pronta (sem alteração) |
