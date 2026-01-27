@@ -24,7 +24,7 @@ interface NewAcordoDialogProps {
 }
 
 export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
-  const { data: leads } = useLeads({ search: "", status: [], origem: [], tipoProcesso: [], dateRange: { start: null, end: null }, diasParado: { min: 0, max: null }, responsavel: null });
+  const { data: leads } = useLeads({ search: "", status: [], origem: [], tipoProcesso: [], dateRange: { start: null, end: null }, diasParado: { min: 0, max: null }, responsavel: null, statusCliente: [] });
   const createAcordo = useCreateAcordo();
 
   const [clienteId, setClienteId] = useState("");

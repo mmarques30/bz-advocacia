@@ -69,6 +69,8 @@ export interface LeadComunicacao {
   created_at: string;
 }
 
+export type StatusCliente = 'ativo' | 'inativo';
+
 export interface LeadsFilters {
   search: string;
   status: LeadStatus[];
@@ -77,7 +79,13 @@ export interface LeadsFilters {
   dateRange: { start: Date | null; end: Date | null };
   diasParado: { min: number; max: number | null };
   responsavel: string | null;
+  statusCliente: StatusCliente[];
 }
+
+export const STATUS_CLIENTE_LABELS: Record<StatusCliente, string> = {
+  ativo: 'Ativo',
+  inativo: 'Inativo',
+};
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   novo: 'Novo',

@@ -47,6 +47,11 @@ export function useLeads(filters: LeadsFilters) {
         query = query.eq("responsavel_id", filters.responsavel);
       }
 
+      // Apply status_cliente filter
+      if (filters.statusCliente && filters.statusCliente.length > 0) {
+        query = query.in("status_cliente", filters.statusCliente);
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;

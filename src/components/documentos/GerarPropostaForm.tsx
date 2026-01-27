@@ -32,6 +32,7 @@ export const GerarPropostaForm = () => {
     dateRange: { start: null, end: null },
     diasParado: { min: 0, max: null },
     responsavel: null,
+    statusCliente: [],
   });
 
   const clienteNome = useMemo(() => {
