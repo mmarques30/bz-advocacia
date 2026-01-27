@@ -1,58 +1,243 @@
 
-# Plano: Sincronizar Link do Google Drive nos Processos
+# Plano: Correção do Gráfico "Receitas vs Despesas" e Seleção Múltipla de Anos
 
-## Problema Identificado
+## Visão Geral do Problema
 
-A consulta ao banco mostra claramente:
-- **Clientes** possuem `pasta_drive_url` preenchido (ex: `https://drive.google.com/drive/folders/13R9Bnb4ilIl...`)
-- **Processos** estão com `pasta_drive_url = NULL` (mesmo tendo a coluna disponível)
+O gráfico "Receitas vs Despesas" não exibe dados quando um ano específico é selecionado, e o sistema atual só permite selecionar um único ano por vez. 
 
-O hook de importação já está correto, mas os processos já importados não receberam o link.
+### Problemas Identificados:
+1. **Bug no filtro de ano**: Quando um ano é selecionado no filtro, a lógica define `dataInicio` e `dataFim` mas deixa `ano: undefined` - porém o hook `useResumoMensal` usa `filters.ano` para buscar dados
+2. **Falta de flexibilidade**: O filtro só permite selecionar um ano ou "Todos" - não há opção de selecionar múltiplos anos
+3. **Lista de anos estática**: Atualmente usa apenas os últimos 4 anos fixos
 
-## Solução
+## Solução Proposta
 
-### 1. Script SQL para Atualizar Processos Existentes
+### Arquitetura da Mudança
 
-Executar uma migração para copiar o `pasta_drive_url` do cliente (`contact_submissions`) para os processos vinculados:
-
-```sql
-UPDATE processos p
-SET pasta_drive_url = cs.pasta_drive_url
-FROM contact_submissions cs
-WHERE p.lead_id = cs.id
-  AND cs.pasta_drive_url IS NOT NULL
-  AND (p.pasta_drive_url IS NULL OR p.pasta_drive_url = '');
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                    TransacoesFilters.tsx                            │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │ Multi-Select de Anos (usando Popover + Checkbox)            │   │
+│  │ - Carrega anos dinamicamente do banco de dados              │   │
+│  │ - Permite marcar/desmarcar múltiplos anos                   │   │
+│  │ - "Todos" desmarca todos e retorna dados completos          │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    TransacoesFilters (tipo)                         │
+│  ano: number | undefined  →  anos: number[] | undefined             │
+│  (mantém dataInicio/dataFim para calendário personalizado)          │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Hooks Afetados                                   │
+│  ┌────────────────────┐  ┌────────────────────────────────────┐    │
+│  │ useTransacoes      │  │ useKPIsTransacoes                  │    │
+│  │ useResumoMensal    │  │ useResumoAnual (novo param: anos)  │    │
+│  │ useReceitasPorResp │  │                                    │    │
+│  └────────────────────┘  └────────────────────────────────────┘    │
+│  Alteração: .in("ano", anos) em vez de .eq("ano", ano)              │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    TransacoesCharts.tsx                             │
+│  Lógica de visualização:                                            │
+│  - 0 anos ou "Todos" → Gráfico por ANO (resumo anual)               │
+│  - 1 ano selecionado → Gráfico por MÊS (12 meses do ano)            │
+│  - 2+ anos → Gráfico por ANO (comparando anos selecionados)         │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Verificação do Hook de Importação
+## Etapas de Implementação
 
-O hook `useImportClientesPlanilha.ts` já está corretamente implementado para novas importações:
+### 1. Atualizar Tipo `TransacoesFilters`
+**Arquivo**: `src/types/transacoes.ts`
+
+Alterar o campo `ano` de `number | undefined` para `anos: number[] | undefined` para suportar seleção múltipla.
+
+### 2. Criar Hook para Buscar Anos Disponíveis
+**Arquivo**: `src/hooks/useTransacoesFinanceiras.ts`
+
+Adicionar um novo hook `useAnosDisponiveis` que busca os anos únicos existentes na tabela `transacoes_financeiras`:
 
 ```typescript
-const { error: processoError } = await supabase
-  .from('processos')
-  .insert({
-    lead_id: clienteData.id,
-    numero_processo: processo.numero,
-    pasta_drive_url: cliente.pastaUrl, // ✅ Já está salvando
-    // ...
+export function useAnosDisponiveis() {
+  return useQuery({
+    queryKey: ["anos-disponiveis-transacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("ano")
+        .limit(10000);
+      
+      if (error) throw error;
+      
+      const anosUnicos = [...new Set((data || []).map(t => t.ano))];
+      return anosUnicos.sort((a, b) => b - a); // Ordenar decrescente
+    },
   });
+}
 ```
 
-### 3. Exibição na Tabela
+### 3. Atualizar Hooks de Dados para Suportar Múltiplos Anos
+**Arquivo**: `src/hooks/useTransacoesFinanceiras.ts`
 
-A tabela `ProcessosTable.tsx` já exibe corretamente a coluna "Pasta Drive" com ícone clicável.
+Modificar `useTransacoes`, `useKPIsTransacoes`, `useResumoMensal`, `useResumoAnual` e `useReceitasPorResponsavel` para usar `.in("ano", anos)` quando houver array de anos:
+
+```typescript
+// Exemplo em useTransacoes
+if (filters.anos && filters.anos.length > 0 && !filters.dataInicio && !filters.dataFim) {
+  query = query.in("ano", filters.anos);
+}
+```
+
+### 4. Criar Componente Multi-Select para Anos
+**Arquivo**: `src/components/financeiro/transacoes/TransacoesFilters.tsx`
+
+Substituir o `Select` simples por um Popover com Checkboxes para permitir seleção múltipla:
+
+- Usar `Popover` + `PopoverContent` para o dropdown
+- Listar anos disponíveis com `Checkbox` para cada um
+- Botão "Todos" que desmarca todos os anos (mostra visão anual completa)
+- Exibir no trigger quais anos estão selecionados (ex: "2024, 2025" ou "Todos")
+
+### 5. Corrigir Lógica do Gráfico
+**Arquivo**: `src/components/financeiro/transacoes/TransacoesCharts.tsx`
+
+Atualizar a lógica de exibição:
+
+```typescript
+// Determinar modo de visualização
+const anosLength = filters?.anos?.length || 0;
+
+// 0 anos OU nenhum filtro → mostrar gráfico anual completo
+// 1 ano → mostrar gráfico mensal daquele ano
+// 2+ anos → mostrar gráfico anual comparando os anos selecionados
+const showMonthlyChart = anosLength === 1;
+const anoParaMensal = showMonthlyChart ? filters.anos[0] : undefined;
+```
+
+### 6. Atualizar Hook `useResumoAnual` para Aceitar Filtro de Anos
+**Arquivo**: `src/hooks/useTransacoesFinanceiras.ts`
+
+Modificar para aceitar parâmetro opcional de anos:
+
+```typescript
+export function useResumoAnual(anos?: number[]) {
+  return useQuery({
+    queryKey: ["resumo-anual-transacoes", anos],
+    queryFn: async () => {
+      let query = supabase
+        .from("transacoes_financeiras")
+        .select("ano, tipo_codigo, valor");
+      
+      if (anos && anos.length > 0) {
+        query = query.in("ano", anos);
+      }
+      
+      const { data, error } = await query.limit(10000);
+      // ... restante da lógica
+    },
+  });
+}
+```
+
+### 7. Atualizar KPIs para Refletir Anos Selecionados
+**Arquivo**: `src/components/financeiro/transacoes/TransacoesKPIs.tsx`
+
+Ajustar o label dinâmico para mostrar os anos selecionados:
+
+```typescript
+const getFilterLabel = () => {
+  if (filters?.dataInicio && filters?.dataFim) {
+    return `${format(filters.dataInicio)} - ${format(filters.dataFim)}`;
+  }
+  if (filters?.anos && filters.anos.length > 0) {
+    if (filters.anos.length <= 2) {
+      return filters.anos.join(", ");
+    }
+    return `${filters.anos.length} anos`;
+  }
+  return "Tudo";
+};
+```
+
+### 8. Atualizar a Página Financeiro.tsx
+**Arquivo**: `src/pages/Financeiro.tsx`
+
+Ajustar o estado inicial dos filtros para usar o novo formato:
+
+```typescript
+const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({
+  anos: undefined, // undefined = todos os anos
+});
+```
+
+## Detalhes Técnicos
+
+### Mudança no Tipo TransacoesFilters
+
+```typescript
+// ANTES
+export interface TransacoesFilters {
+  ano?: number;
+  dataInicio?: Date;
+  dataFim?: Date;
+  tipo_codigo?: string;
+  categoria_codigo?: string;
+  subcategoria_codigo?: string;
+}
+
+// DEPOIS
+export interface TransacoesFilters {
+  anos?: number[];  // Array de anos selecionados
+  dataInicio?: Date;
+  dataFim?: Date;
+  tipo_codigo?: string;
+  categoria_codigo?: string;
+  subcategoria_codigo?: string;
+}
+```
+
+### Lógica de Query com Múltiplos Anos
+
+```typescript
+// Em todos os hooks que filtram por ano:
+if (filters.anos && filters.anos.length > 0 && !filters.dataInicio && !filters.dataFim) {
+  query = query.in("ano", filters.anos);
+}
+// Se dataInicio/dataFim estão definidos, usa período personalizado
+// Se anos está vazio ou undefined, retorna todos os dados
+```
+
+### Interface do Multi-Select
+
+O componente terá:
+- Botão trigger mostrando "2025, 2024" ou "Todos" ou "3 anos"
+- Popover com lista de checkboxes para cada ano
+- Opção "Limpar" para selecionar "Todos"
+- Anos carregados dinamicamente do banco
+
+## Arquivos a Serem Modificados
+
+| Arquivo | Modificação |
+|---------|-------------|
+| `src/types/transacoes.ts` | Alterar `ano` para `anos: number[]` |
+| `src/hooks/useTransacoesFinanceiras.ts` | Adicionar `useAnosDisponiveis`, atualizar todos os hooks de query |
+| `src/components/financeiro/transacoes/TransacoesFilters.tsx` | Substituir Select por Multi-Select com Popover |
+| `src/components/financeiro/transacoes/TransacoesCharts.tsx` | Corrigir lógica de visualização mensal/anual |
+| `src/components/financeiro/transacoes/TransacoesKPIs.tsx` | Atualizar labels para múltiplos anos |
+| `src/pages/Financeiro.tsx` | Atualizar estado inicial dos filtros |
 
 ## Resultado Esperado
 
-Após a migração:
-- Todos os 184 processos terão o link do Drive do seu cliente
-- Clique no ícone de pasta abrirá diretamente o Google Drive em nova aba
-
-## Resumo das Alterações
-
-| Ação | Descrição |
-|------|-----------|
-| Migração SQL | Copia `pasta_drive_url` dos clientes para seus processos |
-| Hook | Já está correto (sem alteração) |
-| Interface | Já está pronta (sem alteração) |
+1. **Ao selecionar "Todos"**: Gráfico mostra colunas por ano com todos os dados históricos
+2. **Ao selecionar 1 ano (ex: 2025)**: Gráfico mostra os 12 meses daquele ano com dados corretos
+3. **Ao selecionar 2+ anos**: Gráfico mostra colunas comparando os anos selecionados
+4. **KPIs e tabela**: Sempre refletem os anos selecionados
+5. **Anos no filtro**: Carregados automaticamente do banco de dados
