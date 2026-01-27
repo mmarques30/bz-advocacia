@@ -54,9 +54,11 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
   const hasDateRange = filters?.dataInicio && filters?.dataFim;
   const anoSelecionado = filters?.ano || new Date().getFullYear();
   
-  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(
-    hasYearFilter ? { ...filters, ano: anoSelecionado } : { ano: new Date().getFullYear() }
-  );
+  // Sempre buscar resumo mensal com o ano selecionado (usa ano atual como fallback)
+  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal({ 
+    ...filters, 
+    ano: anoSelecionado 
+  });
   const { data: resumoAnual, isLoading: loadingAnual } = useResumoAnual();
   const { data: receitasResponsavel, isLoading: loadingResponsavel } = useReceitasPorResponsavel(filters);
   const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(filters || {});
@@ -97,8 +99,9 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
     return `${base} - Todos os anos`;
   };
 
-  // Se não há filtro de ano específico nem range de datas, mostrar gráfico por ano
-  const showYearlyChart = !hasYearFilter && !hasDateRange;
+  // Sempre mostrar gráfico mensal quando há um ano específico (selecionado ou atual como fallback)
+  // Só mostra gráfico anual quando explicitamente não há filtro de ano E não há range de datas
+  const showYearlyChart = false; // Sempre mostrar mensal por padrão para melhor visualização
 
   // Dados acumulados para linha (quando há ano específico)
   let acumulado = 0;
