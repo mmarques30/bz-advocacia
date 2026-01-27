@@ -242,7 +242,7 @@ export default function Financeiro() {
         open={importFaturamentoOpen}
         onClose={() => setImportFaturamentoOpen(false)}
         onSuccess={(ano) => {
-          setTransacoesFilters(prev => ({ ...prev, ano, dataInicio: undefined, dataFim: undefined }));
+          setTransacoesFilters(prev => ({ ...prev, anos: [ano], dataInicio: undefined, dataFim: undefined }));
           setHistoricoFilters(prev => ({ ...prev, ano }));
         }}
       />
@@ -263,7 +263,7 @@ export default function Financeiro() {
         open={importDespesasOpen}
         onClose={() => setImportDespesasOpen(false)}
         onSuccess={(ano) => {
-          setTransacoesFilters(prev => ({ ...prev, ano, dataInicio: undefined, dataFim: undefined }));
+          setTransacoesFilters(prev => ({ ...prev, anos: [ano], dataInicio: undefined, dataFim: undefined }));
           setHistoricoFilters(prev => ({ ...prev, ano }));
         }}
       />

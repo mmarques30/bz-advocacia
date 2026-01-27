@@ -38,7 +38,7 @@ export interface TransacaoFinanceira {
 }
 
 export interface TransacoesFilters {
-  ano?: number;
+  anos?: number[];  // Array de anos selecionados (suporta multi-seleção)
   dataInicio?: Date;
   dataFim?: Date;
   tipo_codigo?: string;

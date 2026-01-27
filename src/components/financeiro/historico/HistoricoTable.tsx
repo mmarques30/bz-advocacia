@@ -48,7 +48,7 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: transacoes, isLoading, error } = useTransacoes({
-    ano: filters.ano ?? undefined, // Passa undefined se for null (mostra tudo)
+    anos: filters.ano ? [filters.ano] : undefined, // Converte ano único para array
     dataInicio: filters.dataInicio || undefined,
     dataFim: filters.dataFim || undefined,
     tipo_codigo: filters.tipo || undefined,

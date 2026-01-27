@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, DollarSign, Percent } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { chartColors } from "@/lib/chartConfig";
 import type { TransacoesFilters } from "@/types/transacoes";
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -23,8 +24,14 @@ export function TransacoesKPIs({ filters }: TransacoesKPIsProps) {
     if (filters?.dataInicio && filters?.dataFim) {
       return `${filters.dataInicio.toLocaleDateString('pt-BR')} - ${filters.dataFim.toLocaleDateString('pt-BR')}`;
     }
-    if (filters?.ano) {
-      return String(filters.ano);
+    if (filters?.anos && filters.anos.length > 0) {
+      if (filters.anos.length === 1) {
+        return String(filters.anos[0]);
+      }
+      if (filters.anos.length === 2) {
+        return filters.anos.sort((a, b) => b - a).join(", ");
+      }
+      return `${filters.anos.length} anos`;
     }
     return "Tudo";
   };

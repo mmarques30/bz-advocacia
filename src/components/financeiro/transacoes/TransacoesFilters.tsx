@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, X } from "lucide-react";
-import { useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CalendarIcon, X, ChevronDown } from "lucide-react";
+import { useCategorias, useTipos, useSubcategorias, useAnosDisponiveis } from "@/hooks/useTransacoesFinanceiras";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,51 +26,43 @@ interface Props {
   onFiltersChange: (filters: TFilters) => void;
 }
 
-const anoAtual = new Date().getFullYear();
-const anosDisponiveis = [anoAtual, anoAtual - 1, anoAtual - 2, anoAtual - 3];
-
-const getAnoFromRange = (dataInicio?: Date, dataFim?: Date): string => {
-  if (!dataInicio || !dataFim) return "todos";
-  const fromYear = dataInicio.getFullYear();
-  const toYear = dataFim.getFullYear();
-  if (
-    fromYear === toYear &&
-    dataInicio.getMonth() === 0 && dataInicio.getDate() === 1 &&
-    dataFim.getMonth() === 11 && dataFim.getDate() === 31
-  ) {
-    return fromYear.toString();
-  }
-  return "personalizado";
-};
-
 export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
   const { data: subcategorias } = useSubcategorias(filters.categoria_codigo);
+  const { data: anosDisponiveis, isLoading: loadingAnos } = useAnosDisponiveis();
 
   const dateRange: DateRange | undefined = filters.dataInicio || filters.dataFim
     ? { from: filters.dataInicio, to: filters.dataFim }
     : undefined;
 
-  const selectedAno = getAnoFromRange(filters.dataInicio, filters.dataFim);
-
-  const handleAnoChange = (value: string) => {
-    if (value === "todos") {
-      onFiltersChange({
-        ...filters,
-        dataInicio: undefined,
-        dataFim: undefined,
-        ano: undefined,
-      });
-    } else if (value !== "personalizado") {
-      const ano = parseInt(value);
-      onFiltersChange({
-        ...filters,
-        dataInicio: new Date(ano, 0, 1),
-        dataFim: new Date(ano, 11, 31),
-        ano: undefined,
-      });
+  // Função para toggle de ano no array
+  const handleAnoToggle = (ano: number, checked: boolean) => {
+    const currentAnos = filters.anos || [];
+    let newAnos: number[];
+    
+    if (checked) {
+      newAnos = [...currentAnos, ano].sort((a, b) => b - a);
+    } else {
+      newAnos = currentAnos.filter(a => a !== ano);
     }
+    
+    onFiltersChange({
+      ...filters,
+      anos: newAnos.length > 0 ? newAnos : undefined,
+      dataInicio: undefined,
+      dataFim: undefined,
+    });
+  };
+
+  // Limpar seleção de anos (mostrar todos)
+  const handleClearAnos = () => {
+    onFiltersChange({
+      ...filters,
+      anos: undefined,
+      dataInicio: undefined,
+      dataFim: undefined,
+    });
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
@@ -77,7 +70,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
       ...filters,
       dataInicio: range?.from,
       dataFim: range?.to,
-      ano: undefined,
+      anos: undefined, // Limpar seleção de anos quando usar período personalizado
     });
   };
 
@@ -86,6 +79,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   };
 
   const hasFilters =
+    (filters.anos && filters.anos.length > 0) ||
     filters.dataInicio ||
     filters.dataFim ||
     filters.tipo_codigo ||
@@ -102,27 +96,69 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
     return "Selecionar período";
   };
 
+  // Gera o texto do botão de anos
+  const getAnosLabel = () => {
+    if (!filters.anos || filters.anos.length === 0) {
+      return "Todos os anos";
+    }
+    if (filters.anos.length === 1) {
+      return String(filters.anos[0]);
+    }
+    if (filters.anos.length === 2) {
+      return filters.anos.sort((a, b) => b - a).join(", ");
+    }
+    return `${filters.anos.length} anos`;
+  };
+
   return (
     <div className="flex flex-wrap gap-3 items-end">
-      <Select value={selectedAno} onValueChange={handleAnoChange}>
-        <SelectTrigger className="w-[120px]">
-          <SelectValue placeholder="Ano" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todos">Todos</SelectItem>
-          {anosDisponiveis.map((ano) => (
-            <SelectItem key={ano} value={ano.toString()}>
-              {ano}
-            </SelectItem>
-          ))}
-          {selectedAno === "personalizado" && (
-            <SelectItem value="personalizado" disabled>
-              Personalizado
-            </SelectItem>
-          )}
-        </SelectContent>
-      </Select>
+      {/* Multi-select de anos */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[160px] justify-between text-left font-normal",
+              filters.anos && filters.anos.length > 0 && "border-primary"
+            )}
+          >
+            <span className="truncate">{getAnosLabel()}</span>
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[200px] p-0 z-50 bg-popover" align="start">
+          <div className="p-2 border-b">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground"
+              onClick={handleClearAnos}
+            >
+              Todos os anos
+            </Button>
+          </div>
+          <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto">
+            {loadingAnos ? (
+              <div className="text-sm text-muted-foreground p-2">Carregando...</div>
+            ) : (
+              (anosDisponiveis || []).map((ano) => (
+                <label
+                  key={ano}
+                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-md cursor-pointer"
+                >
+                  <Checkbox
+                    checked={(filters.anos || []).includes(ano)}
+                    onCheckedChange={(checked) => handleAnoToggle(ano, !!checked)}
+                  />
+                  <span className="text-sm">{ano}</span>
+                </label>
+              ))
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
 
+      {/* Período personalizado */}
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -136,7 +172,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
             {formatDateRange()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
           <Calendar
             mode="range"
             selected={dateRange}
@@ -161,7 +197,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
         <SelectTrigger className="w-[130px]">
           <SelectValue placeholder="Tipo" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-50 bg-popover">
           <SelectItem value="all">Todos</SelectItem>
           {tipos?.map((tipo) => (
             <SelectItem key={tipo.codigo} value={tipo.codigo}>
@@ -184,7 +220,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Categoria" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-50 bg-popover">
           <SelectItem value="all">Todas</SelectItem>
           {categorias?.map((cat) => (
             <SelectItem key={cat.codigo} value={cat.codigo}>
@@ -207,7 +243,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Subcategoria" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-50 bg-popover">
           <SelectItem value="all">Todas</SelectItem>
           {subcategorias?.map((sub) => (
             <SelectItem key={sub.codigo} value={sub.codigo}>
