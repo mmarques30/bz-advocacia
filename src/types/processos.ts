@@ -28,6 +28,7 @@ export interface Processo {
   // Novos campos
   grau_tribunal: string | null;
   instancia: string | null;
+  pasta_drive_url: string | null;
   
   // Relações
   cliente?: {
