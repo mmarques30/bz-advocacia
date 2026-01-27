@@ -16,6 +16,11 @@ export interface ClienteImportado {
   processos: ProcessoImportado[];
 }
 
+// Mapeia situação do cliente para status do processo
+function getProcessoStatus(situacaoCliente: 'ativo' | 'inativo'): string {
+  return situacaoCliente === 'ativo' ? 'em_andamento' : 'concluido';
+}
+
 export interface ImportResult {
   clientesCriados: number;
   processosCriados: number;
@@ -129,10 +134,11 @@ export function useImportClientesPlanilha() {
                 lead_id: clienteData.id,
                 numero_processo: processo.numero,
                 tipo: 'Importado',
-                status: cliente.situacao === 'ativo' ? 'em_andamento' : 'arquivado',
+                status: getProcessoStatus(cliente.situacao),
                 tribunal: processo.tribunal,
                 grau_tribunal: processo.grau,
                 data_inicio: new Date().toISOString().split('T')[0],
+                pasta_drive_url: cliente.pastaUrl,
               });
 
             if (!processoError) {

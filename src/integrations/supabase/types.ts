@@ -1480,6 +1480,7 @@ export type Database = {
           lead_id: string | null
           numero_processo: string | null
           observacoes: string | null
+          pasta_drive_url: string | null
           prazo_proximo: string | null
           responsavel_id: string | null
           reu: string | null
@@ -1503,6 +1504,7 @@ export type Database = {
           lead_id?: string | null
           numero_processo?: string | null
           observacoes?: string | null
+          pasta_drive_url?: string | null
           prazo_proximo?: string | null
           responsavel_id?: string | null
           reu?: string | null
@@ -1526,6 +1528,7 @@ export type Database = {
           lead_id?: string | null
           numero_processo?: string | null
           observacoes?: string | null
+          pasta_drive_url?: string | null
           prazo_proximo?: string | null
           responsavel_id?: string | null
           reu?: string | null
