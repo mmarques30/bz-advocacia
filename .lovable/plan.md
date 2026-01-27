@@ -1,54 +1,64 @@
 
-# Plano: Corrigir Importação - Remover Constraint de Telefone Único
+# Plano: Corrigir Status dos Processos Baseado na Situação do Cliente
 
 ## Problema Identificado
 
-Existe um índice único (`idx_contact_submissions_telefone`) na coluna `telefone` da tabela `contact_submissions`. Como a planilha de importação não contém telefones, todos os clientes são inseridos com `telefone: ''`, causando conflito de unicidade.
+Após análise do banco de dados:
+- **89 clientes ativos** → 184 processos vinculados (todos com status `em_andamento`)
+- **92 clientes inativos** → 0 processos vinculados
 
-## Solução
+Os clientes inativos não possuem processos no banco de dados. Isso indica que na planilha original, esses clientes não tinham números de processo válidos nas colunas de tribunais, ou os processos não foram importados.
 
-### 1. Migração SQL - Remover Índice Único do Telefone
+## Solução em Duas Partes
 
-O índice único no telefone não faz sentido para clientes importados sem dados de contato. A solução é:
+### Parte 1: Script SQL para Corrigir Processos Existentes
+
+Criar migração para atualizar automaticamente o status dos processos com base no status do cliente vinculado:
 
 ```sql
--- Remover o índice único do telefone
-DROP INDEX IF EXISTS idx_contact_submissions_telefone;
+-- Atualiza processos para 'concluido' quando cliente é 'inativo'
+UPDATE processos p
+SET status = 'concluido'
+FROM contact_submissions cs
+WHERE p.lead_id = cs.id
+  AND cs.status_cliente = 'inativo'
+  AND p.status = 'em_andamento';
 
--- Criar índice normal (não único) para performance de busca
-CREATE INDEX IF NOT EXISTS idx_contact_submissions_telefone ON contact_submissions(telefone);
+-- Atualiza processos para 'em_andamento' quando cliente é 'ativo'  
+UPDATE processos p
+SET status = 'em_andamento'
+FROM contact_submissions cs
+WHERE p.lead_id = cs.id
+  AND cs.status_cliente = 'ativo'
+  AND p.status = 'concluido';
 ```
 
-**Justificativa**: Clientes podem ter telefone vazio/desconhecido. A unicidade deve ser validada apenas quando o telefone for informado, não como constraint de banco.
+### Parte 2: Verificar Hook de Importação
 
----
+O hook `useImportClientesPlanilha.ts` já está corretamente implementado:
 
-### 2. Atualização do Hook de Importação
-
-Modificar `src/hooks/useImportClientesPlanilha.ts` para gerar um identificador temporário único quando o telefone estiver vazio (caso a constraint não possa ser removida):
-
-**Abordagem A (preferida)**: Remover constraint + deixar telefone vazio
-
-**Abordagem B (fallback)**: Gerar telefone placeholder único:
 ```typescript
-telefone: `IMPORTADO-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+function getProcessoStatus(situacaoCliente: 'ativo' | 'inativo'): string {
+  return situacaoCliente === 'ativo' ? 'em_andamento' : 'concluido';
+}
 ```
 
----
+O mapeamento está correto:
+- Cliente **ativo** → Processo **em_andamento**
+- Cliente **inativo** → Processo **concluido**
 
-## Resumo das Alterações
+## Ação Necessária
 
-| Arquivo/Recurso | Ação | Descrição |
-|-----------------|------|-----------|
-| **Migração SQL** | Executar | Remover índice único e criar índice normal |
-| `src/hooks/useImportClientesPlanilha.ts` | Manter | Código já está correto, problema era a constraint |
+Como não há processos para clientes inativos no banco, o script SQL de correção não terá efeito no momento. Se você reimportar a planilha ou se houver processos que deveriam ter sido criados para clientes inativos, será necessário:
 
----
+1. **Opção A**: Reimportar a planilha após limpar os dados existentes
+2. **Opção B**: Verificar se a planilha original realmente continha números de processo nas colunas de tribunais para os clientes inativos
 
-## Resultado Esperado
+## Resumo da Situação Atual
 
-Após a correção:
-- A importação funcionará sem erros de constraint
-- ~180 clientes serão criados com sucesso
-- ~347 processos serão vinculados aos clientes
-- Telefones vazios serão permitidos (para preenchimento posterior)
+| Status Cliente | Total Clientes | Processos Vinculados | Status Esperado Processo |
+|---------------|----------------|---------------------|-------------------------|
+| Ativo | 89 | 184 | em_andamento ✅ |
+| Inativo | 92 | 0 | concluido (sem dados) |
+
+O código de importação está correto. O problema parece ser que a planilha original não continha números de processo válidos para os clientes inativos.
