@@ -59,6 +59,24 @@ export function useSubcategorias(categoriaId?: string) {
   });
 }
 
+// Hook para buscar anos disponíveis dinamicamente do banco
+export function useAnosDisponiveis() {
+  return useQuery({
+    queryKey: ["anos-disponiveis-transacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transacoes_financeiras")
+        .select("ano")
+        .limit(10000);
+
+      if (error) throw error;
+
+      const anosUnicos = [...new Set((data || []).map((t) => t.ano))];
+      return anosUnicos.sort((a, b) => b - a); // Ordenar decrescente (mais recente primeiro)
+    },
+  });
+}
+
 export function useTransacoes(filters: TransacoesFilters = {}) {
   return useQuery({
     queryKey: ["transacoes-financeiras", filters],
@@ -75,9 +93,9 @@ export function useTransacoes(filters: TransacoesFilters = {}) {
       if (filters.dataFim) {
         query = query.lte("data_transacao", format(filters.dataFim, "yyyy-MM-dd"));
       }
-      // Filtrar por ano se não tiver período específico
-      if (filters.ano && !filters.dataInicio && !filters.dataFim) {
-        query = query.eq("ano", filters.ano);
+      // Filtrar por anos (múltiplos) se não tiver período específico
+      if (filters.anos && filters.anos.length > 0 && !filters.dataInicio && !filters.dataFim) {
+        query = query.in("ano", filters.anos);
       }
       if (filters.tipo_codigo) {
         query = query.eq("tipo_codigo", filters.tipo_codigo);
@@ -112,8 +130,9 @@ export function useKPIsTransacoes(filters: TransacoesFilters = {}) {
       if (filters.dataFim) {
         query = query.lte("data_transacao", format(filters.dataFim, "yyyy-MM-dd"));
       }
-      if (filters.ano && !filters.dataInicio && !filters.dataFim) {
-        query = query.eq("ano", filters.ano);
+      // Filtrar por anos (múltiplos)
+      if (filters.anos && filters.anos.length > 0 && !filters.dataInicio && !filters.dataFim) {
+        query = query.in("ano", filters.anos);
       }
       if (filters.tipo_codigo) {
         query = query.eq("tipo_codigo", filters.tipo_codigo);
@@ -159,29 +178,16 @@ export function useKPIsTransacoes(filters: TransacoesFilters = {}) {
   });
 }
 
-export function useResumoMensal(filters: TransacoesFilters = {}) {
-  const ano = filters.ano || new Date().getFullYear();
-  
+// Hook para resumo mensal - usado quando UM ano específico está selecionado
+export function useResumoMensal(ano: number) {
   return useQuery({
-    queryKey: ["resumo-mensal-transacoes", filters],
+    queryKey: ["resumo-mensal-transacoes", ano],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("transacoes_financeiras")
         .select("mes, mes_nome, tipo_codigo, valor")
-        .eq("ano", ano);
-
-      // Apply additional filters
-      if (filters.tipo_codigo) {
-        query = query.eq("tipo_codigo", filters.tipo_codigo);
-      }
-      if (filters.categoria_codigo) {
-        query = query.eq("categoria_codigo", filters.categoria_codigo);
-      }
-      if (filters.subcategoria_codigo) {
-        query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
-      }
-
-      const { data, error } = await query.limit(10000);
+        .eq("ano", ano)
+        .limit(10000);
 
       if (error) throw error;
 
@@ -282,8 +288,9 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
       if (filters?.dataFim) {
         query = query.lte("data_transacao", format(filters.dataFim, "yyyy-MM-dd"));
       }
-      if (filters?.ano && !filters?.dataInicio && !filters?.dataFim) {
-        query = query.eq("ano", filters.ano);
+      // Filtrar por anos (múltiplos)
+      if (filters?.anos && filters.anos.length > 0 && !filters?.dataInicio && !filters?.dataFim) {
+        query = query.in("ano", filters.anos);
       }
 
       const { data: transacoes, error } = await query.limit(10000);
@@ -335,15 +342,21 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
   });
 }
 
-// Novo hook para resumo por ano (quando não há filtro de ano específico)
-export function useResumoAnual() {
+// Hook para resumo por ano - aceita filtro opcional de anos para comparação
+export function useResumoAnual(anos?: number[]) {
   return useQuery({
-    queryKey: ["resumo-anual-transacoes"],
+    queryKey: ["resumo-anual-transacoes", anos],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("transacoes_financeiras")
-        .select("ano, tipo_codigo, valor")
-        .limit(10000);
+        .select("ano, tipo_codigo, valor");
+
+      // Filtrar por anos específicos se fornecidos
+      if (anos && anos.length > 0) {
+        query = query.in("ano", anos);
+      }
+
+      const { data, error } = await query.limit(10000);
 
       if (error) throw error;
 

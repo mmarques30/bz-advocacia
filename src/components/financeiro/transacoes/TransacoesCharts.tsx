@@ -49,15 +49,23 @@ interface TransacoesChartsProps {
 }
 
 export function TransacoesCharts({ filters }: TransacoesChartsProps) {
-  // Determinar se temos um ano específico ou se é "tudo"
-  const hasYearFilter = filters?.ano !== undefined;
+  // Determinar modo de visualização baseado nos filtros
+  const anosLength = filters?.anos?.length || 0;
   const hasDateRange = filters?.dataInicio && filters?.dataFim;
   
-  // Buscar resumo mensal apenas quando há um ano específico selecionado
-  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(
-    hasYearFilter ? { ...filters, ano: filters.ano } : { ano: new Date().getFullYear() }
+  // Lógica de visualização:
+  // - 0 anos (ou undefined) e sem date range → gráfico anual com TODOS os anos
+  // - 1 ano selecionado → gráfico MENSAL daquele ano
+  // - 2+ anos selecionados → gráfico anual COMPARANDO os anos selecionados
+  // - date range → gráfico mensal do período
+  const showMonthlyChart = anosLength === 1 || hasDateRange;
+  const anoParaMensal = anosLength === 1 ? filters!.anos![0] : new Date().getFullYear();
+  
+  // Buscar dados baseado no modo
+  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(anoParaMensal);
+  const { data: resumoAnual, isLoading: loadingAnual } = useResumoAnual(
+    anosLength > 1 ? filters?.anos : undefined
   );
-  const { data: resumoAnual, isLoading: loadingAnual } = useResumoAnual();
   const { data: receitasResponsavel, isLoading: loadingResponsavel } = useReceitasPorResponsavel(filters);
   const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(filters || {});
 
@@ -87,21 +95,20 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
   ];
 
   // Gerar título dinâmico
-  const getChartTitle = (base: string) => {
-    if (filters?.dataInicio && filters?.dataFim) {
-      return `${base} - ${filters.dataInicio.toLocaleDateString('pt-BR')} a ${filters.dataFim.toLocaleDateString('pt-BR')}`;
+  const getChartTitle = () => {
+    if (hasDateRange) {
+      return `Receitas vs Despesas - ${filters!.dataInicio!.toLocaleDateString('pt-BR')} a ${filters!.dataFim!.toLocaleDateString('pt-BR')}`;
     }
-    if (filters?.ano) {
-      return `${base} - ${filters.ano}`;
+    if (anosLength === 1) {
+      return `Receitas vs Despesas - ${filters!.anos![0]}`;
     }
-    return `${base} - Todos os anos`;
+    if (anosLength > 1) {
+      return `Receitas vs Despesas - Comparação por Ano`;
+    }
+    return "Receitas vs Despesas - Todos os Anos";
   };
 
-  // Se não há filtro de ano específico nem range de datas, mostrar gráfico por ano
-  // Caso contrário, mostrar gráfico mensal do ano selecionado
-  const showYearlyChart = !hasYearFilter && !hasDateRange;
-
-  // Dados acumulados para linha (quando há ano específico)
+  // Dados acumulados para linha (quando há um único ano específico)
   let acumulado = 0;
   const dadosAcumulados = (resumoMensal || []).map((m) => {
     acumulado += m.resultado;
@@ -113,32 +120,14 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      {/* Gráfico principal: Por Ano (quando sem filtro) ou Por Mês (quando com ano) */}
+      {/* Gráfico principal: Por Ano ou Por Mês */}
       <Card className="col-span-2">
         <CardHeader>
-          <CardTitle className="text-lg">
-            {showYearlyChart 
-              ? "Receitas vs Despesas por Ano" 
-              : getChartTitle("Receitas vs Despesas")
-            }
-          </CardTitle>
+          <CardTitle className="text-lg">{getChartTitle()}</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            {showYearlyChart ? (
-              <BarChart data={resumoAnual || []}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="ano" className="text-xs" />
-                <YAxis tickFormatter={formatCurrency} className="text-xs" />
-                <Tooltip
-                  formatter={(value: number) => formatCurrencyFull(value)}
-                  labelFormatter={(label) => `Ano: ${label}`}
-                />
-                <Legend />
-                <Bar dataKey="receitas" name="Receitas" fill={chartColors.success} radius={[4, 4, 0, 0]} />
-                <Bar dataKey="despesas" name="Despesas" fill={chartColors.primary} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            ) : (
+            {showMonthlyChart ? (
               <BarChart data={resumoMensal || []}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
@@ -150,6 +139,19 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
                 <Tooltip
                   formatter={(value: number) => formatCurrencyFull(value)}
                   labelFormatter={(label) => `Mês: ${label}`}
+                />
+                <Legend />
+                <Bar dataKey="receitas" name="Receitas" fill={chartColors.success} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="despesas" name="Despesas" fill={chartColors.primary} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            ) : (
+              <BarChart data={resumoAnual || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="ano" className="text-xs" />
+                <YAxis tickFormatter={formatCurrency} className="text-xs" />
+                <Tooltip
+                  formatter={(value: number) => formatCurrencyFull(value)}
+                  labelFormatter={(label) => `Ano: ${label}`}
                 />
                 <Legend />
                 <Bar dataKey="receitas" name="Receitas" fill={chartColors.success} radius={[4, 4, 0, 0]} />
@@ -221,11 +223,11 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
         </CardContent>
       </Card>
 
-      {/* Resultado Acumulado - só mostrar quando tem ano específico */}
-      {hasYearFilter && (
+      {/* Resultado Acumulado - só mostrar quando tem UM ano específico */}
+      {anosLength === 1 && (
         <Card className="col-span-2">
           <CardHeader>
-            <CardTitle className="text-lg">Resultado Acumulado - {filters?.ano}</CardTitle>
+            <CardTitle className="text-lg">Resultado Acumulado - {filters?.anos?.[0]}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
