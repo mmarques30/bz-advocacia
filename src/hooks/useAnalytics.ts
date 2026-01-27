@@ -152,9 +152,11 @@ export function useConversionAnalytics(filters: AnalyticsFilters) {
     queryFn: async () => {
       const { startDate, endDate } = filters;
       
+      // Filtrar apenas leads reais (excluir clientes importados)
       const { data: leads, error } = await supabase
         .from('contact_submissions')
-        .select('id, estagio, origem, created_at, data_ultima_atividade, valor_proposta')
+        .select('id, estagio, origem, created_at, data_ultima_atividade, valor_proposta, como_conheceu')
+        .neq('como_conheceu', 'importacao')
         .gte('created_at', startDate?.toISOString())
         .lte('created_at', endDate?.toISOString());
 
@@ -166,7 +168,8 @@ export function useConversionAnalytics(filters: AnalyticsFilters) {
       
       const { data: previousLeads } = await supabase
         .from('contact_submissions')
-        .select('id, estagio, origem, created_at, data_ultima_atividade, valor_proposta')
+        .select('id, estagio, origem, created_at, data_ultima_atividade, valor_proposta, como_conheceu')
+        .neq('como_conheceu', 'importacao')
         .gte('created_at', previousStart.toISOString())
         .lte('created_at', previousEnd.toISOString());
 
@@ -181,9 +184,11 @@ export function useChannelPerformance(filters: AnalyticsFilters) {
     queryFn: async () => {
       const { startDate, endDate } = filters;
       
+      // Filtrar apenas leads reais (excluir clientes importados)
       const { data: leads, error } = await supabase
         .from('contact_submissions')
-        .select('id, origem, estagio, valor_proposta, created_at, data_ultima_atividade')
+        .select('id, origem, estagio, valor_proposta, created_at, data_ultima_atividade, como_conheceu')
+        .neq('como_conheceu', 'importacao')
         .gte('created_at', startDate?.toISOString())
         .lte('created_at', endDate?.toISOString());
 
@@ -201,9 +206,11 @@ export function useChannelEvolution(filters: AnalyticsFilters) {
       const endDate = filters.endDate || new Date();
       const startDate = subMonths(endDate, 6);
       
+      // Filtrar apenas leads reais (excluir clientes importados)
       const { data: leads, error } = await supabase
         .from('contact_submissions')
-        .select('origem, created_at')
+        .select('origem, created_at, como_conheceu')
+        .neq('como_conheceu', 'importacao')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString());
 
