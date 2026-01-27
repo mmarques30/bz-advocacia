@@ -104,7 +104,8 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTab
             <TableHead>Nome</TableHead>
             <TableHead>Origem</TableHead>
             <TableHead>Tipo</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Estágio</TableHead>
+            <TableHead>Situação</TableHead>
             <TableHead>Data</TableHead>
             <TableHead>Dias Parado</TableHead>
             <TableHead className="w-[80px]">Ações</TableHead>
@@ -137,6 +138,21 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTab
                 <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
                   {LEAD_STATUS_LABELS[lead.estagio]}
                 </Badge>
+              </TableCell>
+              <TableCell>
+                {lead.status_cliente ? (
+                  <Badge 
+                    variant="outline" 
+                    className={lead.status_cliente === 'ativo' 
+                      ? "bg-green-100 text-green-800 border-green-200" 
+                      : "bg-gray-100 text-gray-800 border-gray-200"
+                    }
+                  >
+                    {lead.status_cliente === 'ativo' ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground text-sm">-</span>
+                )}
               </TableCell>
               <TableCell>
                 {format(new Date(lead.created_at), "dd/MM/yyyy")}

@@ -10,7 +10,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { LeadsFilters as FiltersType, LEAD_STATUS_LABELS, ORIGEM_LABELS, TIPO_PROCESSO_OPTIONS } from "@/types/leads";
+import { LeadsFilters as FiltersType, LEAD_STATUS_LABELS, ORIGEM_LABELS, TIPO_PROCESSO_OPTIONS, STATUS_CLIENTE_LABELS, StatusCliente } from "@/types/leads";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
@@ -36,7 +36,15 @@ export function LeadsFilters({
       dateRange: { start: null, end: null },
       diasParado: { min: 0, max: null },
       responsavel: null,
+      statusCliente: [],
     });
+  };
+
+  const handleStatusClienteToggle = (statusCliente: StatusCliente) => {
+    const newStatusCliente = filters.statusCliente.includes(statusCliente)
+      ? filters.statusCliente.filter((s) => s !== statusCliente)
+      : [...filters.statusCliente, statusCliente];
+    onFiltersChange({ ...filters, statusCliente: newStatusCliente });
   };
 
   const handleStatusToggle = (status: string) => {
@@ -145,6 +153,27 @@ export function LeadsFilters({
                     />
                     <Label htmlFor={`tipo-${tipo}`} className="cursor-pointer">
                       {tipo}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Situação do Cliente */}
+            <div className="space-y-3">
+              <h3 className="font-medium text-sm">Situação do Cliente</h3>
+              <div className="space-y-2">
+                {Object.entries(STATUS_CLIENTE_LABELS).map(([key, label]) => (
+                  <div key={key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`status-cliente-${key}`}
+                      checked={filters.statusCliente.includes(key as StatusCliente)}
+                      onCheckedChange={() => handleStatusClienteToggle(key as StatusCliente)}
+                    />
+                    <Label htmlFor={`status-cliente-${key}`} className="cursor-pointer">
+                      {label}
                     </Label>
                   </div>
                 ))}

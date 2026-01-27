@@ -33,6 +33,7 @@ export default function Leads() {
     dateRange: { start: null, end: null },
     diasParado: { min: 0, max: null },
     responsavel: null,
+    statusCliente: [],
   });
 
   // Determinar a aba atual - padrão é 'leads'

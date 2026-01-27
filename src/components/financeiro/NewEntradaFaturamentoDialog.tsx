@@ -155,7 +155,8 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
     tipoProcesso: [], 
     dateRange: { start: null, end: null }, 
     diasParado: { min: 0, max: null }, 
-    responsavel: null 
+    responsavel: null,
+    statusCliente: [],
   });
   const { data: processos } = useProcessos({ status: [] });
   const createAcordo = useCreateAcordo();
