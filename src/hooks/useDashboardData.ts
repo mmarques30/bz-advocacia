@@ -12,34 +12,37 @@ export function useKPIs(filters: DashboardFilters) {
       const startDate = filters.startDate?.toISOString() || startOfMonth(now).toISOString();
       const endDate = filters.endDate?.toISOString() || endOfMonth(now).toISOString();
 
-      // Total de leads no período
+      // Total de leads no período (excluir clientes importados)
       const { count: totalLeads } = await supabase
         .from('contact_submissions')
         .select('*', { count: 'exact', head: true })
+        .neq('como_conheceu', 'importacao')
+        .neq('estagio', 'fechado')
         .gte('created_at', startDate)
         .lte('created_at', endDate);
 
-      // Leads convertidos (status = cliente)
+      // Leads convertidos (estagio = fechado, excluir importados)
       const { count: convertedLeads } = await supabase
         .from('contact_submissions')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'cliente')
+        .eq('estagio', 'fechado')
+        .neq('como_conheceu', 'importacao')
         .gte('created_at', startDate)
         .lte('created_at', endDate);
 
-      // Novos clientes no período
+      // Novos clientes no período (estagio fechado OU importados no período)
       const { count: novosClientes } = await supabase
         .from('contact_submissions')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'cliente')
+        .eq('estagio', 'fechado')
         .gte('created_at', startDate)
         .lte('created_at', endDate);
 
-      // Processos ativos
+      // Processos ativos (status = em_andamento)
       const { count: processosAtivos } = await supabase
         .from('processos')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'ativo');
+        .eq('status', 'em_andamento');
 
       // Determinar mês/ano do período selecionado para buscar receitas
       const filterDate = filters.startDate || new Date();
