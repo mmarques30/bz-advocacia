@@ -1,136 +1,151 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Upload, Download, Trash2, FileText, FolderUp } from "lucide-react";
-import { useProcessoDocumentos, useUploadDocumento, useDeleteDocumento, useDownloadDocumento } from "@/hooks/useProcessoDocumentos";
-import { CATEGORIA_DOCUMENTO_LABELS, CategoriaDocumento } from "@/types/processos";
-import { format } from "date-fns";
-import { useRef } from "react";
+import { FolderOpen, ExternalLink, Link2, Check, Copy, Edit2 } from "lucide-react";
 import { ProcessoDriveDocumentosSection } from "../documentos/ProcessoDriveDocumentosSection";
+import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 
 interface ProcessoDocumentosTabProps {
   processoId: string;
+  pastaDriveUrl?: string | null;
 }
 
-export function ProcessoDocumentosTab({ processoId }: ProcessoDocumentosTabProps) {
-  const { data: documentos, isLoading } = useProcessoDocumentos(processoId);
-  const uploadDocumento = useUploadDocumento();
-  const deleteDocumento = useDeleteDocumento();
-  const downloadDocumento = useDownloadDocumento();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export function ProcessoDocumentosTab({ processoId, pastaDriveUrl }: ProcessoDocumentosTabProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [driveUrl, setDriveUrl] = useState(pastaDriveUrl || "");
+  const [copied, setCopied] = useState(false);
+  const queryClient = useQueryClient();
 
-  const handleFileUpload = async (files: FileList | null, categoria: CategoriaDocumento) => {
-    if (!files) return;
-    
-    for (let i = 0; i < files.length; i++) {
-      await uploadDocumento.mutateAsync({
-        file: files[i],
-        processoId,
-        categoria,
+  const updateDriveUrl = useMutation({
+    mutationFn: async (url: string) => {
+      const { error } = await supabase
+        .from("processos")
+        .update({ pasta_drive_url: url || null })
+        .eq("id", processoId);
+      
+      if (error) throw error;
+      return url;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["processo-detalhes", processoId] });
+      queryClient.invalidateQueries({ queryKey: ["processos"] });
+      setIsEditing(false);
+      toast({
+        title: "Link atualizado",
+        description: "O link da pasta do Google Drive foi atualizado com sucesso.",
       });
+    },
+    onError: (error) => {
+      toast({
+        title: "Erro ao atualizar",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSave = () => {
+    updateDriveUrl.mutate(driveUrl);
+  };
+
+  const handleCopy = () => {
+    if (pastaDriveUrl) {
+      navigator.clipboard.writeText(pastaDriveUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-  };
-
-  if (isLoading) {
-    return <div className="text-center py-8 text-muted-foreground">Carregando documentos...</div>;
-  }
-
   return (
-    <div className="space-y-8">
-      {/* Seção de Arquivos Locais */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <FolderUp className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-semibold">Arquivos Locais</h3>
-        </div>
-
-        <Tabs defaultValue="peticao">
-          <TabsList>
-            {Object.entries(CATEGORIA_DOCUMENTO_LABELS).map(([key, label]) => (
-              <TabsTrigger key={key} value={key}>
-                {label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {Object.entries(CATEGORIA_DOCUMENTO_LABELS).map(([categoria, label]) => (
-            <TabsContent key={categoria} value={categoria} className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium">{label}</h4>
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const input = document.createElement('input');
-                    input.type = 'file';
-                    input.multiple = true;
-                    input.onchange = (e) => {
-                      const target = e.target as HTMLInputElement;
-                      handleFileUpload(target.files, categoria as CategoriaDocumento);
-                    };
-                    input.click();
-                  }}
-                  disabled={uploadDocumento.isPending}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {uploadDocumento.isPending ? "Enviando..." : "Upload"}
-                </Button>
+    <div className="space-y-6">
+      {/* Seção da Pasta do Google Drive */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <FolderOpen className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Pasta do Google Drive</CardTitle>
+          </div>
+          <CardDescription>
+            Link da pasta do cliente no Google Drive para acesso rápido aos documentos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isEditing ? (
+            <div className="flex gap-2">
+              <Input
+                value={driveUrl}
+                onChange={(e) => setDriveUrl(e.target.value)}
+                placeholder="https://drive.google.com/drive/folders/..."
+                className="flex-1"
+              />
+              <Button
+                onClick={handleSave}
+                disabled={updateDriveUrl.isPending}
+              >
+                <Check className="h-4 w-4 mr-2" />
+                Salvar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setDriveUrl(pastaDriveUrl || "");
+                  setIsEditing(false);
+                }}
+              >
+                Cancelar
+              </Button>
+            </div>
+          ) : pastaDriveUrl ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 px-3 py-2 bg-muted rounded-md">
+                <Link2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm truncate">{pastaDriveUrl}</span>
               </div>
+              <Button
+                variant="default"
+                onClick={() => window.open(pastaDriveUrl, '_blank')}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Abrir
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCopy}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 px-3 py-2 bg-muted/50 rounded-md border-2 border-dashed">
+                <span className="text-sm text-muted-foreground">
+                  Nenhum link cadastrado
+                </span>
+              </div>
+              <Button onClick={() => setIsEditing(true)}>
+                <Link2 className="h-4 w-4 mr-2" />
+                Adicionar Link
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-              {!documentos || documentos.filter(d => d.categoria === categoria).length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-                  Nenhum documento nesta categoria
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {documentos
-                    .filter(d => d.categoria === categoria)
-                    .map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between border rounded-lg p-3">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                          <div>
-                            <p className="font-medium text-sm">{doc.nome_arquivo}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatBytes(doc.tamanho_bytes)} • {format(new Date(doc.created_at), "dd/MM/yyyy")}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => downloadDocumento.mutate(doc)}
-                            disabled={downloadDocumento.isPending}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => deleteDocumento.mutate(doc)}
-                            disabled={deleteDocumento.isPending}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
-
-      <Separator className="my-8" />
+      <Separator />
 
       {/* Seção de Documentos do Google Drive */}
       <ProcessoDriveDocumentosSection processoId={processoId} />
