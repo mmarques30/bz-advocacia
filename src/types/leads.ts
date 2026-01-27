@@ -32,6 +32,11 @@ export interface Lead {
   prioridade: LeadPrioridade;
   tags: string[] | null;
   dias_parado?: number;
+  // Novos campos
+  pasta_drive_url: string | null;
+  status_cliente: 'ativo' | 'inativo' | null;
+  estado_civil: string | null;
+  endereco_completo: string | null;
 }
 
 export interface LeadNota {

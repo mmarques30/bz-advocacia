@@ -25,6 +25,9 @@ export interface Processo {
   autor: string | null;
   reu: string | null;
   created_at: string;
+  // Novos campos
+  grau_tribunal: string | null;
+  instancia: string | null;
   
   // Relações
   cliente?: {
@@ -152,7 +155,17 @@ export const CATEGORIA_DOCUMENTO_LABELS: Record<CategoriaDocumento, string> = {
 };
 
 export const TRIBUNAIS_OPCOES = [
-  'TJ-SP', 'TJ-RJ', 'TJ-MG', 'TJ-RS', 'TJ-PR', 'TJ-SC', 'TJ-BA',
+  'TJRS', 'TJSP', 'TJRJ', 'TJMG', 'TJPR', 'TJSC', 'TJBA',
+  'TJDF', 'TJGO', 'TJPE', 'TJCE', 'TJPA',
+  'JFRS', 'JFSP', 'JFRJ',
+  'VT-POA', 'VT-SP',
   'TRF-1', 'TRF-2', 'TRF-3', 'TRF-4', 'TRF-5', 'TRF-6',
   'STJ', 'STF', 'TST', 'TSE',
+];
+
+export const GRAU_TRIBUNAL_OPCOES = [
+  '1º Grau',
+  '2º Grau',
+  'Instância Superior',
+  'Outros',
 ];
