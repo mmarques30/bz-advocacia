@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
-import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2, FileX, FolderOpen, ExternalLink } from "lucide-react";
+import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2, FileX } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -136,29 +136,6 @@ function ProcessoRow({
       </TableCell>
 
       <TableCell>
-        {processo.pasta_drive_url ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 text-blue-600 hover:text-blue-700 p-0 h-auto"
-                onClick={() => window.open(processo.pasta_drive_url!, '_blank')}
-              >
-                <FolderOpen className="h-4 w-4" />
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Abrir pasta do cliente no Google Drive
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <span className="text-muted-foreground">-</span>
-        )}
-      </TableCell>
-
-      <TableCell>
         {docsCount !== undefined && docsCount > 0 ? (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -276,8 +253,7 @@ export function ProcessosTable({
               <TableHead>Status</TableHead>
               <TableHead>Última Atualização</TableHead>
               <TableHead>Próximo Prazo</TableHead>
-              <TableHead>Pasta Drive</TableHead>
-              <TableHead>Docs Drive</TableHead>
+              <TableHead>Docs</TableHead>
               <TableHead className="w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>

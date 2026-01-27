@@ -84,7 +84,7 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
             </TabsContent>
 
             <TabsContent value="documentos" className="mt-6">
-              <ProcessoDocumentosTab processoId={processo.id} />
+              <ProcessoDocumentosTab processoId={processo.id} pastaDriveUrl={processo.pasta_drive_url} />
             </TabsContent>
 
             <TabsContent value="comunicacao" className="mt-6">
