@@ -52,13 +52,11 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
   // Determinar se temos um ano específico ou se é "tudo"
   const hasYearFilter = filters?.ano !== undefined;
   const hasDateRange = filters?.dataInicio && filters?.dataFim;
-  const anoSelecionado = filters?.ano || new Date().getFullYear();
   
-  // Sempre buscar resumo mensal com o ano selecionado (usa ano atual como fallback)
-  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal({ 
-    ...filters, 
-    ano: anoSelecionado 
-  });
+  // Buscar resumo mensal apenas quando há um ano específico selecionado
+  const { data: resumoMensal, isLoading: loadingMensal } = useResumoMensal(
+    hasYearFilter ? { ...filters, ano: filters.ano } : { ano: new Date().getFullYear() }
+  );
   const { data: resumoAnual, isLoading: loadingAnual } = useResumoAnual();
   const { data: receitasResponsavel, isLoading: loadingResponsavel } = useReceitasPorResponsavel(filters);
   const { data: kpis, isLoading: loadingKpis } = useKPIsTransacoes(filters || {});
@@ -99,9 +97,9 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
     return `${base} - Todos os anos`;
   };
 
-  // Sempre mostrar gráfico mensal quando há um ano específico (selecionado ou atual como fallback)
-  // Só mostra gráfico anual quando explicitamente não há filtro de ano E não há range de datas
-  const showYearlyChart = false; // Sempre mostrar mensal por padrão para melhor visualização
+  // Se não há filtro de ano específico nem range de datas, mostrar gráfico por ano
+  // Caso contrário, mostrar gráfico mensal do ano selecionado
+  const showYearlyChart = !hasYearFilter && !hasDateRange;
 
   // Dados acumulados para linha (quando há ano específico)
   let acumulado = 0;
@@ -227,7 +225,7 @@ export function TransacoesCharts({ filters }: TransacoesChartsProps) {
       {hasYearFilter && (
         <Card className="col-span-2">
           <CardHeader>
-            <CardTitle className="text-lg">Resultado Acumulado - {anoSelecionado}</CardTitle>
+            <CardTitle className="text-lg">Resultado Acumulado - {filters?.ano}</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
