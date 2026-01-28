@@ -43,6 +43,11 @@ export function useProcessos(filters: ProcessosFilters) {
         query = query.ilike("tipo", `%${filters.tipo}%`);
       }
 
+      // Filtro por cliente
+      if (filters.cliente_id) {
+        query = query.eq("lead_id", filters.cliente_id);
+      }
+
       // Filtro por responsável
       if (filters.responsavel_id) {
         query = query.eq("responsavel_id", filters.responsavel_id);
