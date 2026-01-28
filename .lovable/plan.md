@@ -1,226 +1,126 @@
 
-# Plano: Integrar CPF/CNPJ em Documentos e Criar Aba de Documentos no Cliente
 
-## Visão Geral
+# Plano: Visão Complementar de Performance na Aba Alertas
 
-O usuário solicitou dois ajustes importantes:
-1. Garantir que CPF/CNPJ seja incluído na geração de Contratos e Propostas
-2. Criar uma aba de documentos no detalhamento do cliente, listando todos os contratos e propostas emitidos para ele
+## Objetivo
+Adicionar uma seção complementar abaixo dos três cards existentes na aba "Alertas" que combina:
+1. **Distribuição por Responsável** - Volume de demandas por membro da equipe
+2. **Indicadores de Performance** - Taxa de conclusão, tempo médio e comparativo criação vs conclusão
 
-## Análise Atual
+## Estrutura Proposta
 
-### Contrato
-- O sistema de contratos **já utiliza CPF** nos templates através da variável `{cpf_cliente}`
-- A função `substituirVariaveis` em `contratoUtils.ts` já faz a substituição correta
-- O CPF é buscado do cliente selecionado em `GerarContratoForm.tsx` (linha 78)
-- **Status**: Funcional, porém se o cliente não tiver CPF cadastrado, o campo fica vazio no contrato
+A nova seção será adicionada abaixo da grade de 3 cards existentes:
 
-### Proposta
-- O componente `PropostaPDF.tsx` **NÃO inclui CPF/CNPJ** do cliente
-- O `GerarPropostaForm.tsx` não busca nem passa o CPF para o PDF
-- **Status**: Precisa de ajuste para incluir CPF/CNPJ
-
-### Histórico de Documentos por Cliente
-- A tabela `contratos_gerados` possui campo `cliente_id` que referencia o cliente
-- O componente `LeadDetailsDialog` tem 3 abas: Informações, Documentos (arquivos anexados), Notas
-- **Status**: Precisa criar aba para listar contratos/propostas do cliente
-
-## Implementação
-
-### 1. Atualizar PropostaPDF para incluir CPF/CNPJ
-
-**Arquivo**: `src/components/documentos/PropostaPDF.tsx`
-
-Adicionar prop `clienteCPF` e exibi-lo na página 2 (Proposta) abaixo do nome:
-
-```typescript
-interface PropostaPDFProps {
-  clienteNome: string;
-  clienteCPF?: string;  // Nova prop
-  // ... demais props
-}
-
-// Na página 2, após a saudação:
-<Text style={styles.greeting}>
-  Prezado(a) Sr(a). {clienteNome},
-</Text>
-{clienteCPF && (
-  <Text style={styles.clienteCPF}>
-    CPF/CNPJ: {clienteCPF}
-  </Text>
-)}
+```text
+┌──────────────────────────────────────────────────────────────────────────┐
+│  CARDS EXISTENTES (3 colunas)                                            │
+│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐              │
+│  │ Alertas        │  │ Minhas         │  │ Próximos       │              │
+│  │ Importantes    │  │ Demandas       │  │ 7 Dias         │              │
+│  └────────────────┘  └────────────────┘  └────────────────┘              │
+├──────────────────────────────────────────────────────────────────────────┤
+│  NOVA SEÇÃO: Performance e Distribuição (2 colunas)                      │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐        │
+│  │ Indicadores do Mês          │  │ Distribuição por            │        │
+│  │                             │  │ Responsável                 │        │
+│  │ • Taxa Conclusão: 85%      │  │                             │        │
+│  │ • Tempo Médio: 3.2 dias    │  │ [Gráfico barras horizontal] │        │
+│  │ • Criadas: 12 | Concluídas:│  │                             │        │
+│  │             10             │  │                             │        │
+│  └─────────────────────────────┘  └─────────────────────────────┘        │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 2. Atualizar GerarPropostaForm para buscar e passar CPF
+## Detalhamento Técnico
 
-**Arquivo**: `src/components/documentos/GerarPropostaForm.tsx`
+### 1. Novo Hook: `useDemandasPerformance`
 
-Buscar CPF do cliente selecionado e passar para o componente PropostaPDF e PropostaPreview:
-
-```typescript
-const clienteCPF = useMemo(() => {
-  const cliente = leads.find(l => l.id === clienteSelecionado);
-  return cliente?.cpf || '';
-}, [leads, clienteSelecionado]);
-
-// Passar para PropostaPDF
-<PropostaPDF
-  clienteNome={clienteNome}
-  clienteCPF={clienteCPF}
-  // ... demais props
-/>
-```
-
-### 3. Atualizar PropostaPreview para exibir CPF
-
-**Arquivo**: `src/components/documentos/PropostaPreview.tsx`
-
-Adicionar exibição do CPF/CNPJ no preview:
+Criação de um hook dedicado para buscar métricas de performance:
 
 ```typescript
-interface PropostaPreviewProps {
-  clienteNome: string;
-  clienteCPF?: string;
-  // ... demais props
+// Métricas retornadas:
+{
+  taxaConclusao: number;        // % de demandas concluídas no mês
+  tempoMedioConclusao: number;  // Dias entre criação e conclusão
+  criadasNoMes: number;         // Total criadas no mês atual
+  concluidasNoMes: number;      // Total concluídas no mês atual
+  distribuicaoPorResponsavel: Array<{
+    nome: string;
+    total: number;
+    atrasadas: number;
+    concluidas: number;
+  }>;
 }
 ```
 
-### 4. Criar hook para buscar contratos do cliente
+**Queries necessárias:**
+- Demandas criadas no mês atual
+- Demandas concluídas no mês atual (com `data_conclusao`)
+- Agrupamento por `responsavel_id` com JOIN em `profiles`
+- Cálculo de tempo médio usando `data_conclusao - created_at`
 
-**Arquivo**: `src/hooks/useClienteContratos.ts` (novo)
+### 2. Novo Componente: `PerformanceIndicators`
 
-```typescript
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+Card com indicadores rápidos do mês:
 
-export function useClienteContratos(clienteId: string) {
-  return useQuery({
-    queryKey: ['cliente-contratos', clienteId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contratos_gerados')
-        .select('*')
-        .eq('cliente_id', clienteId)
-        .order('created_at', { ascending: false });
+| Indicador | Descrição | Visualização |
+|-----------|-----------|--------------|
+| Taxa de Conclusão | % concluídas/total ativas | Número grande + barra de progresso |
+| Tempo Médio | Dias entre criação e conclusão | Número + label "dias" |
+| Criadas vs Concluídas | Comparativo mensal | Dois badges lado a lado |
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!clienteId,
-  });
-}
+**Estilo:**
+- Fundo do card: branco com borda sutil
+- Números: fonte grande (`text-3xl`), cor primary para destaque
+- Barra de progresso: cores da paleta B&Z (bronze/terra cota)
+
+### 3. Novo Componente: `DistribuicaoResponsavel`
+
+Gráfico de barras horizontais mostrando demandas por pessoa:
+
+- **Eixo Y**: Nome do responsável
+- **Eixo X**: Quantidade de demandas
+- **Cores**: 
+  - Barra principal: `chartColors.primary` (bronze)
+  - Segmento atrasadas: `chartColors.danger` (vermelho)
+- **Biblioteca**: Recharts (já utilizado no projeto)
+
+### 4. Integração no `AlertasUnificados.tsx`
+
+Adicionar a nova seção logo após a grade de cards:
+
+```tsx
+<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+  {/* Cards existentes */}
+</div>
+
+{/* Nova seção de Performance */}
+<div className="mt-6 grid gap-6 md:grid-cols-2">
+  <PerformanceIndicators data={performance} loading={loading} />
+  <DistribuicaoResponsavel data={distribuicao} loading={loading} />
+</div>
 ```
 
-### 5. Criar componente de aba de documentos do cliente
+## Arquivos a Criar/Modificar
 
-**Arquivo**: `src/components/leads/LeadContratosTab.tsx` (novo)
+| Arquivo | Ação |
+|---------|------|
+| `src/hooks/useDemandasPerformance.ts` | Criar |
+| `src/components/demandas/PerformanceIndicators.tsx` | Criar |
+| `src/components/demandas/DistribuicaoResponsavel.tsx` | Criar |
+| `src/components/demandas/AlertasUnificados.tsx` | Modificar |
 
-Componente que lista os contratos e propostas do cliente:
+## Consistência Visual
 
-```typescript
-import { useClienteContratos } from "@/hooks/useClienteContratos";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { FileDown, Eye, FileText } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+- Utilizará a paleta de cores definida em `chartConfig.ts`
+- Seguirá o padrão de Cards do projeto (shadcn/ui)
+- Gráficos com mesmo estilo visual do módulo Financeiro
+- Skeleton loaders durante carregamento
+- Estados vazios com ícones e mensagens amigáveis
 
-interface LeadContratosTabProps {
-  clienteId: string;
-}
+## Responsividade
 
-export function LeadContratosTab({ clienteId }: LeadContratosTabProps) {
-  const { data: contratos, isLoading } = useClienteContratos(clienteId);
-  
-  // Renderizar lista de contratos com ações de visualizar/baixar PDF
-}
-```
+- **Desktop (lg+)**: Seção original em 3 colunas, nova seção em 2 colunas
+- **Tablet (md)**: Seção original em 2 colunas, nova seção em 2 colunas
+- **Mobile**: Tudo empilhado em 1 coluna
 
-### 6. Atualizar LeadDetailsDialog para incluir nova aba
-
-**Arquivo**: `src/components/leads/LeadDetailsDialog.tsx`
-
-Adicionar aba "Contratos" para exibir documentos gerados:
-
-```typescript
-<Tabs defaultValue="info" className="mt-4">
-  <TabsList className="grid w-full grid-cols-4">  {/* De 3 para 4 colunas */}
-    <TabsTrigger value="info">Informações</TabsTrigger>
-    <TabsTrigger value="contratos">Contratos</TabsTrigger>  {/* Nova aba */}
-    <TabsTrigger value="documentos">Documentos</TabsTrigger>
-    <TabsTrigger value="notas">Notas Internas</TabsTrigger>
-  </TabsList>
-
-  <TabsContent value="contratos" className="mt-4">
-    <LeadContratosTab clienteId={lead.id} />
-  </TabsContent>
-  {/* ... demais abas */}
-</Tabs>
-```
-
-### 7. Garantir salvamento de propostas no histórico
-
-**Arquivo**: `src/components/documentos/GerarPropostaForm.tsx`
-
-Atualmente a proposta é apenas gerada como PDF e baixada, mas não é salva no banco. Precisamos salvar na tabela `contratos_gerados`:
-
-```typescript
-// Após gerar o PDF, salvar no banco
-await supabase.from('contratos_gerados').insert({
-  cliente_id: clienteSelecionado,
-  titulo: `Proposta - ${clienteNome}`,
-  tipo_contrato: 'proposta',  // Identificador para propostas
-  conteudo_final: descricaoServico,
-  valores: {
-    valor_entrada: valorEntrada,
-    desconto_avista: descontoAvista,
-    percentual_exito: percentualExito,
-  },
-  dados_contrato: {
-    condicoes_adicionais: condicoesAdicionais,
-  },
-  status: 'finalizado',
-});
-```
-
-## Arquivos a Modificar
-
-| Arquivo | Modificação |
-|---------|-------------|
-| `src/components/documentos/PropostaPDF.tsx` | Adicionar prop e exibição de CPF/CNPJ |
-| `src/components/documentos/PropostaPreview.tsx` | Adicionar prop e exibição de CPF/CNPJ |
-| `src/components/documentos/GerarPropostaForm.tsx` | Buscar CPF, passar para componentes, salvar no banco |
-| `src/hooks/useClienteContratos.ts` | **Novo** - Hook para buscar contratos do cliente |
-| `src/components/leads/LeadContratosTab.tsx` | **Novo** - Componente da aba de contratos |
-| `src/components/leads/LeadDetailsDialog.tsx` | Adicionar nova aba "Contratos" |
-| `src/types/contratos.ts` | Adicionar 'proposta' aos tipos de contrato |
-
-## Fluxo de Uso Esperado
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ 1. Usuário acessa Gestão de Clientes > Clientes                 │
-├─────────────────────────────────────────────────────────────────┤
-│ 2. Clica em um cliente para ver detalhes                        │
-├─────────────────────────────────────────────────────────────────┤
-│ 3. Nova aba "Contratos" lista todos os documentos gerados       │
-│    ┌───────────────────────────────────────────────────────┐    │
-│    │ Contratos e Propostas                                  │    │
-│    ├───────────────────────────────────────────────────────┤    │
-│    │ Proposta - João Silva      | Proposta | 28/01/2026    │    │
-│    │ Contrato Divórcio         | Divórcio | 15/01/2026    │    │
-│    └───────────────────────────────────────────────────────┘    │
-├─────────────────────────────────────────────────────────────────┤
-│ 4. Pode visualizar ou baixar PDF de cada documento              │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Resultado Esperado
-
-1. Propostas incluem CPF/CNPJ do cliente no documento
-2. Contratos continuam incluindo CPF/CNPJ (já funciona)
-3. Propostas são salvas no histórico junto com contratos
-4. Nova aba no detalhamento do cliente mostra todos os documentos gerados
-5. Links para download/visualização dos PDFs disponíveis
-6. Centralização de todos os documentos do cliente em um único lugar
