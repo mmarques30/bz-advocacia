@@ -9,7 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Search,
-  MessageSquare,
+  TrendingUp,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,13 +56,20 @@ const menuItems: MenuItem[] = [
     icon: LayoutDashboard 
   },
   {
-    title: "Vendas",
+    title: "GestaoVendas",
     label: "Gestão de Vendas",
+    icon: TrendingUp,
+    submenu: [
+      { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
+      { title: "Análises", url: "/dashboard/vendas/analises" },
+      { title: "Leads e Clientes", url: "/dashboard/leads" },
+    ]
+  },
+  {
+    title: "Clientes",
+    label: "Gestão de Clientes",
     icon: Users,
     submenu: [
-      { title: "Análises", url: "/dashboard/vendas/analises" },
-      { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
-      { title: "Leads e Clientes", url: "/dashboard/leads" },
       { title: "Documentos", url: "/dashboard/documentos" },
       { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
     ]
