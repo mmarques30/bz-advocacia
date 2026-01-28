@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { LeadsHeader } from "@/components/leads/LeadsHeader";
-import { LeadsFilters } from "@/components/leads/LeadsFilters";
+import { ClientesFilters, ClientesFiltersType } from "@/components/clientes/ClientesFilters";
 import { ClientesTable } from "@/components/leads/ClientesTable";
-import { LeadsKanban } from "@/components/leads/LeadsKanban";
+import { ClientesKanban } from "@/components/clientes/ClientesKanban";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { ImportLeadsDialog } from "@/components/leads/ImportLeadsDialog";
 import { ImportClientesPlanilhaDialog } from "@/components/leads/ImportClientesPlanilhaDialog";
 import { useLeads } from "@/hooks/useLeads";
-import { LeadsFilters as FiltersType, Lead } from "@/types/leads";
+import { LeadsFilters as LeadsFiltersType, Lead } from "@/types/leads";
 
 export default function Clientes() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
@@ -19,25 +19,34 @@ export default function Clientes() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
 
-  const [filters, setFilters] = useState<FiltersType>({
+  // Filtros específicos para clientes
+  const [clientesFilters, setClientesFilters] = useState<ClientesFiltersType>({
     search: "",
-    status: ['fechado'],
     origem: [],
     tipoProcesso: [],
+    statusCliente: [],
+    statusProcesso: [],
+  });
+
+  // Converter filtros de clientes para o formato esperado pelo hook useLeads
+  const leadsFilters: LeadsFiltersType = {
+    search: clientesFilters.search,
+    status: ['fechado'], // Sempre filtrar apenas clientes (fechados)
+    origem: clientesFilters.origem as any[],
+    tipoProcesso: clientesFilters.tipoProcesso,
     dateRange: { start: null, end: null },
     diasParado: { min: 0, max: null },
     responsavel: null,
-    statusCliente: [],
-  });
+    statusCliente: clientesFilters.statusCliente,
+  };
 
-  const { data: leads, isLoading } = useLeads(filters);
+  const { data: leads, isLoading } = useLeads(leadsFilters);
 
   const activeFiltersCount = [
-    filters.origem.length > 0,
-    filters.tipoProcesso.length > 0,
-    filters.dateRange.start !== null,
-    filters.dateRange.end !== null,
-    filters.responsavel !== null,
+    clientesFilters.origem.length > 0,
+    clientesFilters.tipoProcesso.length > 0,
+    clientesFilters.statusCliente.length > 0,
+    clientesFilters.statusProcesso.length > 0,
   ].filter(Boolean).length;
 
   const handleViewDetails = (lead: Lead) => {
@@ -60,7 +69,7 @@ export default function Clientes() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Gestão de Clientes</h1>
         <p className="text-muted-foreground">
-          Gerencie seus clientes ativos
+          Gerencie seus clientes ativos e acompanhe os processos
         </p>
       </div>
 
@@ -74,8 +83,8 @@ export default function Clientes() {
         }}
         onImport={() => setShowImport(true)}
         onImportPlanilha={() => setShowImportPlanilha(true)}
-        search={filters.search}
-        onSearchChange={(search) => setFilters({ ...filters, search })}
+        search={clientesFilters.search}
+        onSearchChange={(search) => setClientesFilters({ ...clientesFilters, search })}
         activeFiltersCount={activeFiltersCount}
         isClienteTab={true}
       />
@@ -88,18 +97,18 @@ export default function Clientes() {
           onEdit={handleEdit}
         />
       ) : (
-        <LeadsKanban
+        <ClientesKanban
           leads={leads}
           isLoading={isLoading}
           onViewDetails={handleViewDetails}
         />
       )}
 
-      <LeadsFilters
+      <ClientesFilters
         open={showFilters}
         onClose={() => setShowFilters(false)}
-        filters={filters}
-        onFiltersChange={setFilters}
+        filters={clientesFilters}
+        onFiltersChange={setClientesFilters}
       />
 
       <NewLeadDialog
