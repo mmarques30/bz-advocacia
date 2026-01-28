@@ -35,6 +35,7 @@ const leadFormSchema = z.object({
   nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   email: z.string().email("Email inválido"),
   telefone: z.string().min(10, "Telefone inválido"),
+  cpf: z.string().optional(),
   tipo_processo: z.string().optional(),
   origem: z.string().optional(),
   estagio: z.string().optional(),
@@ -61,6 +62,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
       nome_completo: "",
       email: "",
       telefone: "",
+      cpf: "",
       tipo_processo: "",
       origem: "site",
       estagio: isCliente ? "fechado" : "novo",
@@ -74,6 +76,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
         nome_completo: lead.nome_completo,
         email: lead.email,
         telefone: lead.telefone,
+        cpf: lead.cpf || "",
         tipo_processo: lead.tipo_processo,
         origem: lead.origem,
         estagio: lead.estagio,
@@ -84,6 +87,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
         nome_completo: "",
         email: "",
         telefone: "",
+        cpf: "",
         tipo_processo: "",
         origem: "site",
         estagio: isCliente ? "fechado" : "novo",
@@ -100,6 +104,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
           nome_completo: values.nome_completo,
           email: values.email,
           telefone: values.telefone,
+          cpf: values.cpf || null,
           tipo_processo: values.tipo_processo,
           origem: values.origem as any,
           estagio: values.estagio as any,
@@ -111,6 +116,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
           nome_completo: values.nome_completo,
           email: values.email,
           telefone: values.telefone,
+          cpf: values.cpf || null,
           tipo_processo: values.tipo_processo,
           origem: values.origem as any,
           estagio: values.estagio as any,
@@ -180,6 +186,20 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
                     <FormLabel>Telefone *</FormLabel>
                     <FormControl>
                       <Input placeholder="(00) 00000-0000" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="cpf"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CPF/CNPJ</FormLabel>
+                    <FormControl>
+                      <Input placeholder="000.000.000-00 ou 00.000.000/0000-00" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
