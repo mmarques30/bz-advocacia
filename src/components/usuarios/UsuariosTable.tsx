@@ -3,13 +3,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MoreVertical, UserCog, Power, Key } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical, UserCog, Power, Key, Pencil, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Usuario } from "@/hooks/useUsuarios";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EditUserRoleDialog } from "./EditUserRoleDialog";
+import { EditUserDialog } from "./EditUserDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
+import { DeleteUserDialog } from "./DeleteUserDialog";
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
@@ -47,6 +48,8 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [resetPasswordUser, setResetPasswordUser] = useState<Usuario | null>(null);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState<Usuario | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const getInitials = (name: string) => {
     return name
@@ -140,8 +143,8 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
                             setEditDialogOpen(true);
                           }}
                         >
-                          <UserCog className="h-4 w-4 mr-2" />
-                          Editar Permissões
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar Usuário
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
@@ -158,6 +161,17 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
                           <Power className="h-4 w-4 mr-2" />
                           {usuario.ativo ? "Desativar" : "Ativar"}
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setDeleteUser(usuario);
+                            setDeleteDialogOpen(true);
+                          }}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir Usuário
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -169,7 +183,7 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
       </div>
 
       {selectedUser && (
-        <EditUserRoleDialog
+        <EditUserDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           usuario={selectedUser}
@@ -182,6 +196,14 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
           onOpenChange={setResetPasswordOpen}
           userId={resetPasswordUser.id}
           userName={resetPasswordUser.nome_completo}
+        />
+      )}
+
+      {deleteUser && (
+        <DeleteUserDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          usuario={deleteUser}
         />
       )}
     </>
