@@ -72,17 +72,17 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Clientes", url: "/dashboard/clientes" },
       { title: "Documentos", url: "/dashboard/documentos" },
+      { title: "Processos", url: "/dashboard/processos" },
       { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
     ]
   },
-    {
-      title: "Processos",
-      label: "Gestão de Rotinas",
-      icon: Scale,
-      submenu: [
-        { title: "Tarefas", url: "/dashboard/processos/demandas" },
-        { title: "Processos", url: "/dashboard/processos" },
-        { title: "Prazos", url: "/dashboard/processos/calendario" },
+  {
+    title: "Rotinas",
+    label: "Gestão de Rotinas",
+    icon: Scale,
+    submenu: [
+      { title: "Tarefas", url: "/dashboard/processos/demandas" },
+      { title: "Prazos", url: "/dashboard/processos/calendario" },
     ]
   },
   {
