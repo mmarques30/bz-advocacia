@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
+import Clientes from "./pages/Clientes";
 import RelatoriosCliente from "./pages/leads/RelatoriosCliente";
 import Processos from "./pages/Processos";
 import Financeiro from "./pages/Financeiro";
@@ -102,6 +103,14 @@ const App = () => (
             <Leads />
           </ProtectedRoute>
         } 
+      />
+      <Route 
+        path="/dashboard/clientes" 
+        element={
+          <ProtectedRoute>
+            <Clientes />
+          </ProtectedRoute>
+        }
       />
       <Route 
         path="/dashboard/leads/relatorios-cliente" 

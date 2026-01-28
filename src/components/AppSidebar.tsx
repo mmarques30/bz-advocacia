@@ -62,7 +62,7 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Análises", url: "/dashboard/vendas/analises" },
-      { title: "Leads e Clientes", url: "/dashboard/leads" },
+      { title: "Leads", url: "/dashboard/leads" },
     ]
   },
   {
@@ -70,6 +70,7 @@ const menuItems: MenuItem[] = [
     label: "Gestão de Clientes",
     icon: Users,
     submenu: [
+      { title: "Clientes", url: "/dashboard/clientes" },
       { title: "Documentos", url: "/dashboard/documentos" },
       { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
     ]
