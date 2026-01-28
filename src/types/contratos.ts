@@ -70,6 +70,7 @@ export interface ContratoFilters {
 }
 
 export const TIPOS_CONTRATO = [
+  { value: 'proposta', label: 'Proposta' },
   { value: 'divorcio', label: 'Divórcio' },
   { value: 'indenizacao', label: 'Indenização' },
   { value: 'curatela', label: 'Curatela' },

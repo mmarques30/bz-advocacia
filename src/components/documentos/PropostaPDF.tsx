@@ -186,6 +186,7 @@ const styles = StyleSheet.create({
 
 interface PropostaPDFProps {
   clienteNome: string;
+  clienteCPF?: string;
   descricaoServico: string;
   valorEntrada: number;
   descontoAvista: number;
@@ -195,6 +196,7 @@ interface PropostaPDFProps {
 
 export const PropostaPDF = ({
   clienteNome,
+  clienteCPF,
   descricaoServico,
   valorEntrada,
   descontoAvista,
@@ -241,6 +243,11 @@ export const PropostaPDF = ({
           <Text style={styles.greeting}>
             Prezado(a) Sr(a). {clienteNome},
           </Text>
+          {clienteCPF && (
+            <Text style={{ fontSize: 10, color: '#666666', marginBottom: 15 }}>
+              CPF/CNPJ: {clienteCPF}
+            </Text>
+          )}
           
           <Text style={styles.propostaText}>
             Conforme solicitado, apresentamos nossa proposta para realização dos serviços requeridos.
