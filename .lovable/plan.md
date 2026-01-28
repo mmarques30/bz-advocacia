@@ -1,128 +1,226 @@
 
-# Plano: Adicionar Campo CPF/CNPJ no Cadastro de Leads e Clientes
+# Plano: Integrar CPF/CNPJ em Documentos e Criar Aba de Documentos no Cliente
 
 ## Visão Geral
 
-O usuário solicitou a inclusão do campo CPF ou CNPJ no formulário de cadastro de leads e clientes, pois essa informação é essencial para a geração de contratos.
+O usuário solicitou dois ajustes importantes:
+1. Garantir que CPF/CNPJ seja incluído na geração de Contratos e Propostas
+2. Criar uma aba de documentos no detalhamento do cliente, listando todos os contratos e propostas emitidos para ele
 
-## Análise da Situação Atual
+## Análise Atual
 
-### Banco de Dados
-A tabela `contact_submissions` **já possui** o campo `cpf` (tipo text), portanto não é necessária nenhuma migração de banco de dados.
+### Contrato
+- O sistema de contratos **já utiliza CPF** nos templates através da variável `{cpf_cliente}`
+- A função `substituirVariaveis` em `contratoUtils.ts` já faz a substituição correta
+- O CPF é buscado do cliente selecionado em `GerarContratoForm.tsx` (linha 78)
+- **Status**: Funcional, porém se o cliente não tiver CPF cadastrado, o campo fica vazio no contrato
 
-### Tipo Lead (TypeScript)
-O tipo `Lead` em `src/types/leads.ts` **não possui** o campo `cpf` declarado, mas ele existe no banco. Precisamos adicionar ao tipo.
+### Proposta
+- O componente `PropostaPDF.tsx` **NÃO inclui CPF/CNPJ** do cliente
+- O `GerarPropostaForm.tsx` não busca nem passa o CPF para o PDF
+- **Status**: Precisa de ajuste para incluir CPF/CNPJ
 
-### Formulário
-O formulário `NewLeadDialog.tsx` não inclui o campo CPF/CNPJ atualmente.
+### Histórico de Documentos por Cliente
+- A tabela `contratos_gerados` possui campo `cliente_id` que referencia o cliente
+- O componente `LeadDetailsDialog` tem 3 abas: Informações, Documentos (arquivos anexados), Notas
+- **Status**: Precisa criar aba para listar contratos/propostas do cliente
 
 ## Implementação
 
-### 1. Atualizar o Tipo Lead
-**Arquivo**: `src/types/leads.ts`
+### 1. Atualizar PropostaPDF para incluir CPF/CNPJ
 
-Adicionar os campos de documentação pessoal que já existem no banco:
+**Arquivo**: `src/components/documentos/PropostaPDF.tsx`
+
+Adicionar prop `clienteCPF` e exibi-lo na página 2 (Proposta) abaixo do nome:
 
 ```typescript
-export interface Lead {
-  // ... campos existentes
-  cpf: string | null;           // CPF ou CNPJ
-  rg: string | null;            // RG (já existe no banco)
-  nacionalidade: string | null; // (já existe no banco)
-  profissao: string | null;     // (já existe no banco)
-  // ... resto dos campos
+interface PropostaPDFProps {
+  clienteNome: string;
+  clienteCPF?: string;  // Nova prop
+  // ... demais props
 }
+
+// Na página 2, após a saudação:
+<Text style={styles.greeting}>
+  Prezado(a) Sr(a). {clienteNome},
+</Text>
+{clienteCPF && (
+  <Text style={styles.clienteCPF}>
+    CPF/CNPJ: {clienteCPF}
+  </Text>
+)}
 ```
 
-### 2. Atualizar o Schema do Formulário
-**Arquivo**: `src/components/leads/NewLeadDialog.tsx`
+### 2. Atualizar GerarPropostaForm para buscar e passar CPF
 
-Adicionar campo `cpf_cnpj` ao schema de validação:
+**Arquivo**: `src/components/documentos/GerarPropostaForm.tsx`
+
+Buscar CPF do cliente selecionado e passar para o componente PropostaPDF e PropostaPreview:
 
 ```typescript
-const leadFormSchema = z.object({
-  nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
-  email: z.string().email("Email inválido"),
-  telefone: z.string().min(10, "Telefone inválido"),
-  cpf: z.string().optional(),  // Opcional, mas importante para contratos
-  // ... demais campos
-});
-```
+const clienteCPF = useMemo(() => {
+  const cliente = leads.find(l => l.id === clienteSelecionado);
+  return cliente?.cpf || '';
+}, [leads, clienteSelecionado]);
 
-### 3. Adicionar Campo no Formulário Visual
-**Arquivo**: `src/components/leads/NewLeadDialog.tsx`
-
-Adicionar o campo de input para CPF/CNPJ após o telefone:
-
-```tsx
-<FormField
-  control={form.control}
-  name="cpf"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel>CPF/CNPJ</FormLabel>
-      <FormControl>
-        <Input placeholder="000.000.000-00 ou 00.000.000/0000-00" {...field} />
-      </FormControl>
-      <FormMessage />
-    </FormItem>
-  )}
+// Passar para PropostaPDF
+<PropostaPDF
+  clienteNome={clienteNome}
+  clienteCPF={clienteCPF}
+  // ... demais props
 />
 ```
 
-### 4. Atualizar Lógica de Submit
-**Arquivo**: `src/components/leads/NewLeadDialog.tsx`
+### 3. Atualizar PropostaPreview para exibir CPF
 
-Incluir o campo `cpf` no objeto enviado para criação/atualização:
+**Arquivo**: `src/components/documentos/PropostaPreview.tsx`
 
-```typescript
-await createLead.mutateAsync({
-  // ... outros campos
-  cpf: values.cpf || null,
-});
-```
-
-### 5. Atualizar useEffect para Edição
-**Arquivo**: `src/components/leads/NewLeadDialog.tsx`
-
-Carregar o valor do CPF quando estiver editando:
+Adicionar exibição do CPF/CNPJ no preview:
 
 ```typescript
-form.reset({
-  // ... outros campos
-  cpf: lead.cpf || "",
+interface PropostaPreviewProps {
+  clienteNome: string;
+  clienteCPF?: string;
+  // ... demais props
+}
+```
+
+### 4. Criar hook para buscar contratos do cliente
+
+**Arquivo**: `src/hooks/useClienteContratos.ts` (novo)
+
+```typescript
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export function useClienteContratos(clienteId: string) {
+  return useQuery({
+    queryKey: ['cliente-contratos', clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contratos_gerados')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clienteId,
+  });
+}
+```
+
+### 5. Criar componente de aba de documentos do cliente
+
+**Arquivo**: `src/components/leads/LeadContratosTab.tsx` (novo)
+
+Componente que lista os contratos e propostas do cliente:
+
+```typescript
+import { useClienteContratos } from "@/hooks/useClienteContratos";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { FileDown, Eye, FileText } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface LeadContratosTabProps {
+  clienteId: string;
+}
+
+export function LeadContratosTab({ clienteId }: LeadContratosTabProps) {
+  const { data: contratos, isLoading } = useClienteContratos(clienteId);
+  
+  // Renderizar lista de contratos com ações de visualizar/baixar PDF
+}
+```
+
+### 6. Atualizar LeadDetailsDialog para incluir nova aba
+
+**Arquivo**: `src/components/leads/LeadDetailsDialog.tsx`
+
+Adicionar aba "Contratos" para exibir documentos gerados:
+
+```typescript
+<Tabs defaultValue="info" className="mt-4">
+  <TabsList className="grid w-full grid-cols-4">  {/* De 3 para 4 colunas */}
+    <TabsTrigger value="info">Informações</TabsTrigger>
+    <TabsTrigger value="contratos">Contratos</TabsTrigger>  {/* Nova aba */}
+    <TabsTrigger value="documentos">Documentos</TabsTrigger>
+    <TabsTrigger value="notas">Notas Internas</TabsTrigger>
+  </TabsList>
+
+  <TabsContent value="contratos" className="mt-4">
+    <LeadContratosTab clienteId={lead.id} />
+  </TabsContent>
+  {/* ... demais abas */}
+</Tabs>
+```
+
+### 7. Garantir salvamento de propostas no histórico
+
+**Arquivo**: `src/components/documentos/GerarPropostaForm.tsx`
+
+Atualmente a proposta é apenas gerada como PDF e baixada, mas não é salva no banco. Precisamos salvar na tabela `contratos_gerados`:
+
+```typescript
+// Após gerar o PDF, salvar no banco
+await supabase.from('contratos_gerados').insert({
+  cliente_id: clienteSelecionado,
+  titulo: `Proposta - ${clienteNome}`,
+  tipo_contrato: 'proposta',  // Identificador para propostas
+  conteudo_final: descricaoServico,
+  valores: {
+    valor_entrada: valorEntrada,
+    desconto_avista: descontoAvista,
+    percentual_exito: percentualExito,
+  },
+  dados_contrato: {
+    condicoes_adicionais: condicoesAdicionais,
+  },
+  status: 'finalizado',
 });
-```
-
-## Detalhes Técnicos
-
-### Validação Flexível (CPF ou CNPJ)
-O campo aceita tanto CPF (11 dígitos) quanto CNPJ (14 dígitos) sem validação rígida de formato, permitindo:
-- CPF: 000.000.000-00
-- CNPJ: 00.000.000/0000-00
-- Ou formato livre (sem pontuação)
-
-### Layout do Formulário
-O campo CPF/CNPJ será posicionado na mesma linha do telefone, mantendo a organização visual em 2 colunas:
-
-```
-[Nome Completo                           ]
-[Email              ] [Telefone          ]
-[CPF/CNPJ           ] [Tipo de Processo  ]
-...
 ```
 
 ## Arquivos a Modificar
 
 | Arquivo | Modificação |
 |---------|-------------|
-| `src/types/leads.ts` | Adicionar campo `cpf` ao tipo `Lead` |
-| `src/components/leads/NewLeadDialog.tsx` | Adicionar campo CPF/CNPJ no schema, form e submit |
+| `src/components/documentos/PropostaPDF.tsx` | Adicionar prop e exibição de CPF/CNPJ |
+| `src/components/documentos/PropostaPreview.tsx` | Adicionar prop e exibição de CPF/CNPJ |
+| `src/components/documentos/GerarPropostaForm.tsx` | Buscar CPF, passar para componentes, salvar no banco |
+| `src/hooks/useClienteContratos.ts` | **Novo** - Hook para buscar contratos do cliente |
+| `src/components/leads/LeadContratosTab.tsx` | **Novo** - Componente da aba de contratos |
+| `src/components/leads/LeadDetailsDialog.tsx` | Adicionar nova aba "Contratos" |
+| `src/types/contratos.ts` | Adicionar 'proposta' aos tipos de contrato |
+
+## Fluxo de Uso Esperado
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Usuário acessa Gestão de Clientes > Clientes                 │
+├─────────────────────────────────────────────────────────────────┤
+│ 2. Clica em um cliente para ver detalhes                        │
+├─────────────────────────────────────────────────────────────────┤
+│ 3. Nova aba "Contratos" lista todos os documentos gerados       │
+│    ┌───────────────────────────────────────────────────────┐    │
+│    │ Contratos e Propostas                                  │    │
+│    ├───────────────────────────────────────────────────────┤    │
+│    │ Proposta - João Silva      | Proposta | 28/01/2026    │    │
+│    │ Contrato Divórcio         | Divórcio | 15/01/2026    │    │
+│    └───────────────────────────────────────────────────────┘    │
+├─────────────────────────────────────────────────────────────────┤
+│ 4. Pode visualizar ou baixar PDF de cada documento              │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Resultado Esperado
 
-1. Campo CPF/CNPJ visível no formulário de cadastro de leads e clientes
-2. Valor salvo na tabela `contact_submissions` no campo `cpf`
-3. Valor carregado corretamente ao editar um lead/cliente
-4. Campo opcional (não bloqueia cadastro se vazio)
-5. Pronto para uso na geração de contratos
+1. Propostas incluem CPF/CNPJ do cliente no documento
+2. Contratos continuam incluindo CPF/CNPJ (já funciona)
+3. Propostas são salvas no histórico junto com contratos
+4. Nova aba no detalhamento do cliente mostra todos os documentos gerados
+5. Links para download/visualização dos PDFs disponíveis
+6. Centralização de todos os documentos do cliente em um único lugar
