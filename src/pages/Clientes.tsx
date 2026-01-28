@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LeadsHeader } from "@/components/leads/LeadsHeader";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { ClientesTable } from "@/components/leads/ClientesTable";
+import { LeadsKanban } from "@/components/leads/LeadsKanban";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { ImportLeadsDialog } from "@/components/leads/ImportLeadsDialog";
@@ -77,15 +78,22 @@ export default function Clientes() {
         onSearchChange={(search) => setFilters({ ...filters, search })}
         activeFiltersCount={activeFiltersCount}
         isClienteTab={true}
-        hideViewToggle={true}
       />
 
-      <ClientesTable
-        leads={leads}
-        isLoading={isLoading}
-        onViewDetails={handleViewDetails}
-        onEdit={handleEdit}
-      />
+      {view === 'table' ? (
+        <ClientesTable
+          leads={leads}
+          isLoading={isLoading}
+          onViewDetails={handleViewDetails}
+          onEdit={handleEdit}
+        />
+      ) : (
+        <LeadsKanban
+          leads={leads}
+          isLoading={isLoading}
+          onViewDetails={handleViewDetails}
+        />
+      )}
 
       <LeadsFilters
         open={showFilters}
