@@ -9,10 +9,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { format, isBefore, isAfter, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PRIORIDADE_LABELS, STATUS_LABELS, TIPO_LABELS } from "@/types/demandas";
-import { Link } from "react-router-dom";
+import { useDemandasPerformance } from "@/hooks/useDemandasPerformance";
+import { PerformanceIndicators } from "./PerformanceIndicators";
+import { DistribuicaoResponsavel } from "./DistribuicaoResponsavel";
 
 export function AlertasUnificados() {
   const { user } = useAuth();
+  const { data: performance, isLoading: performanceLoading } = useDemandasPerformance();
 
   // Alertas importantes (vencidos e urgentes)
   const { data: alertas, isLoading: alertasLoading } = useQuery({
@@ -134,6 +137,7 @@ export function AlertasUnificados() {
   );
 
   return (
+  <>
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {/* Alertas Importantes */}
       <Card>
@@ -225,5 +229,18 @@ export function AlertasUnificados() {
         </CardContent>
       </Card>
     </div>
+
+    {/* Seção de Performance e Distribuição */}
+    <div className="mt-6 grid gap-6 md:grid-cols-2">
+      <PerformanceIndicators 
+        data={performance} 
+        loading={performanceLoading} 
+      />
+      <DistribuicaoResponsavel 
+        data={performance?.distribuicaoPorResponsavel} 
+        loading={performanceLoading} 
+      />
+    </div>
+  </>
   );
 }
