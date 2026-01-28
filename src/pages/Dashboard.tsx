@@ -1,4 +1,4 @@
-import { Users, TrendingUp, UserPlus, Briefcase, DollarSign, AlertTriangle } from "lucide-react";
+import { Users, TrendingUp, UserPlus, Briefcase, Calendar } from "lucide-react";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
@@ -28,13 +28,12 @@ export default function Dashboard() {
       {/* Pendências do Usuário */}
       <UserPendenciasCards data={pendencias} loading={pendenciasLoading} />
 
-      {/* KPIs Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* KPIs Grid - 5 colunas responsivo */}
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <KPICard
           title="Total de Leads"
           value={kpis?.totalLeads || 0}
           icon={Users}
-          trend={12.5}
           loading={kpisLoading}
         />
         <KPICard
@@ -42,41 +41,27 @@ export default function Dashboard() {
           value={kpis?.taxaConversao || 0}
           icon={TrendingUp}
           format="percentage"
-          trend={5.2}
           loading={kpisLoading}
         />
         <KPICard
           title="Novos Clientes"
           value={kpis?.novosClientes || 0}
           icon={UserPlus}
-          trend={8.3}
           loading={kpisLoading}
         />
         <KPICard
           title="Processos Ativos"
           value={kpis?.processosAtivos || 0}
           icon={Briefcase}
-          trend={-2.1}
           loading={kpisLoading}
         />
         <KPICard
-          title="Receita do Mês"
-          value={kpis?.receitaMes || 0}
-          icon={DollarSign}
-          format="currency"
-          trend={15.7}
-          loading={kpisLoading}
-        />
-        <KPICard
-          title="Taxa de Inadimplência"
-          value={kpis?.taxaInadimplencia || 0}
-          icon={AlertTriangle}
-          format="percentage"
-          trend={-1.2}
+          title="Prazos Próximos"
+          value={kpis?.prazosProximos || 0}
+          icon={Calendar}
           loading={kpisLoading}
         />
       </div>
-
 
       {/* Leads Evolution Chart - Full Width */}
       <LeadsEvolution data={leadsData || []} loading={leadsLoading} />

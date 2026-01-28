@@ -11,6 +11,7 @@ export function useKPIs(filters: DashboardFilters) {
       const now = new Date();
       const startDate = filters.startDate?.toISOString() || startOfMonth(now).toISOString();
       const endDate = filters.endDate?.toISOString() || endOfMonth(now).toISOString();
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
       // Total de leads no período (excluir clientes importados)
       const { count: totalLeads } = await supabase
@@ -44,36 +45,13 @@ export function useKPIs(filters: DashboardFilters) {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'em_andamento');
 
-      // Determinar mês/ano do período selecionado para buscar receitas
-      const filterDate = filters.startDate || new Date();
-      const mesNum = filterDate.getMonth() + 1;
-      const anoNum = filterDate.getFullYear();
-
-      // Receita do mês de transacoes_financeiras
-      const { data: transacoesReceita } = await supabase
-        .from('transacoes_financeiras')
-        .select('valor')
-        .eq('tipo_codigo', 'receita')
-        .eq('mes', mesNum)
-        .eq('ano', anoNum);
-
-      const receitaMes = transacoesReceita?.reduce((acc, t) => acc + (Number(t.valor) || 0), 0) || 0;
-
-      // Taxa de inadimplência
-      const { count: totalParcelas } = await supabase
-        .from('parcelas_financeiras')
-        .select('*', { count: 'exact', head: true })
-        .lte('data_vencimento', now.toISOString());
-
-      const { count: parcelasAtrasadas } = await supabase
-        .from('parcelas_financeiras')
+      // Prazos próximos (próximos 7 dias)
+      const { count: prazosProximos } = await supabase
+        .from('processos_prazos')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pendente')
-        .lt('data_vencimento', now.toISOString());
-
-      const taxaInadimplencia = totalParcelas && totalParcelas > 0 
-        ? ((parcelasAtrasadas || 0) / totalParcelas) * 100 
-        : 0;
+        .gte('data_prazo', now.toISOString().split('T')[0])
+        .lte('data_prazo', sevenDaysFromNow.toISOString().split('T')[0]);
 
       const taxaConversao = totalLeads && totalLeads > 0 
         ? ((convertedLeads || 0) / totalLeads) * 100 
@@ -84,8 +62,7 @@ export function useKPIs(filters: DashboardFilters) {
         taxaConversao: Math.round(taxaConversao * 10) / 10,
         novosClientes: novosClientes || 0,
         processosAtivos: processosAtivos || 0,
-        receitaMes,
-        taxaInadimplencia: Math.round(taxaInadimplencia * 10) / 10,
+        prazosProximos: prazosProximos || 0,
       };
     },
   });
