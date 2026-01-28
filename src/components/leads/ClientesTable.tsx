@@ -1,4 +1,4 @@
-import { Eye, Edit, MoreVertical, Trash2 } from "lucide-react";
+import { Eye, Edit, MoreVertical, Trash2, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import {
   Table,
@@ -55,6 +55,22 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
     return colors[origem] || colors.outro;
   };
 
+  const formatPhoneForWhatsApp = (phone: string) => {
+    // Remove all non-numeric characters
+    const cleaned = phone.replace(/\D/g, '');
+    // Add Brazil country code if not present
+    if (cleaned.startsWith('55')) {
+      return cleaned;
+    }
+    return `55${cleaned}`;
+  };
+
+  const openWhatsApp = (phone: string, name: string) => {
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    const message = encodeURIComponent(`Olá ${name}, tudo bem?`);
+    window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -79,6 +95,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
         <TableHeader>
           <TableRow>
             <TableHead>Nome</TableHead>
+            <TableHead className="w-[60px] text-center">WhatsApp</TableHead>
             <TableHead>Origem</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Situação</TableHead>
@@ -94,6 +111,21 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                 <span className="truncate max-w-[200px]">
                   {lead.nome_completo}
                 </span>
+              </TableCell>
+              <TableCell className="text-center">
+                {lead.telefone ? (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                    onClick={() => openWhatsApp(lead.telefone, lead.nome_completo)}
+                    title={`Enviar WhatsApp para ${lead.telefone}`}
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
+                ) : (
+                  <span className="text-muted-foreground text-sm">-</span>
+                )}
               </TableCell>
               <TableCell>
                 <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
