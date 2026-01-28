@@ -37,6 +37,11 @@ export interface Lead {
   status_cliente: 'ativo' | 'inativo' | null;
   estado_civil: string | null;
   endereco_completo: string | null;
+  // Campos de documentação pessoal
+  cpf: string | null;
+  rg: string | null;
+  nacionalidade: string | null;
+  profissao: string | null;
 }
 
 export interface LeadNota {
