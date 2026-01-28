@@ -2231,6 +2231,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_page_permissions: {
+        Row: {
+          can_access: boolean | null
+          created_at: string | null
+          id: string
+          page_key: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          can_access?: boolean | null
+          created_at?: string | null
+          id?: string
+          page_key: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          can_access?: boolean | null
+          created_at?: string | null
+          id?: string
+          page_key?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -2579,6 +2606,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_page_access: {
+        Args: { _page_key: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

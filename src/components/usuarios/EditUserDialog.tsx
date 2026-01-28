@@ -6,20 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useUpdateUser, Usuario } from "@/hooks/useUsuarios";
+import { useUserPagePermissions, useUpdateUserPagePermissions } from "@/hooks/usePagePermissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PagePermissionsEditor } from "./PagePermissionsEditor";
+import { Badge } from "@/components/ui/badge";
+import { Shield } from "lucide-react";
 
 interface EditUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   usuario: Usuario;
 }
-
-const availableRoles = [
-  { value: "admin", label: "Admin", description: "Acesso total ao sistema" },
-  { value: "advogado", label: "Advogado", description: "Processos, leads e financeiro" },
-  { value: "assistente", label: "Assistente", description: "Processos e leads" },
-  { value: "financeiro", label: "Financeiro", description: "Apenas módulo financeiro" },
-];
 
 const cargos = [
   "Advogado(a)",
@@ -37,26 +34,36 @@ export function EditUserDialog({ open, onOpenChange, usuario }: EditUserDialogPr
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [telefone, setTelefone] = useState("");
   const [cargo, setCargo] = useState("");
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pagePermissions, setPagePermissions] = useState<string[]>([]);
   
-  const { mutate: updateUser, isPending } = useUpdateUser();
+  const { mutate: updateUser, isPending: isUpdatingUser } = useUpdateUser();
+  const { mutate: updatePagePermissions, isPending: isUpdatingPermissions } = useUpdateUserPagePermissions();
+  const { data: existingPermissions, isLoading: isLoadingPermissions } = useUserPagePermissions(usuario.id);
+
+  const isPending = isUpdatingUser || isUpdatingPermissions;
 
   useEffect(() => {
     if (usuario) {
       setNomeCompleto(usuario.nome_completo);
       setTelefone(usuario.telefone || "");
       setCargo(usuario.cargo || "");
-      setSelectedRoles(usuario.roles);
+      setIsAdmin(usuario.roles.includes("admin"));
     }
   }, [usuario]);
 
-  const handleToggleRole = (role: string) => {
-    setSelectedRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
-    );
-  };
+  useEffect(() => {
+    if (existingPermissions) {
+      setPagePermissions(
+        existingPermissions
+          .filter(p => p.can_access)
+          .map(p => p.page_key)
+      );
+    }
+  }, [existingPermissions]);
 
   const handleSubmit = () => {
+    // Atualizar perfil e roles
     updateUser(
       { 
         userId: usuario.id, 
@@ -65,11 +72,26 @@ export function EditUserDialog({ open, onOpenChange, usuario }: EditUserDialogPr
           telefone: telefone || null,
           cargo: cargo || null,
         },
-        roles: selectedRoles 
+        roles: isAdmin ? ["admin"] : [] 
       },
       {
         onSuccess: () => {
-          onOpenChange(false);
+          // Se não for admin, atualizar permissões de página
+          if (!isAdmin) {
+            updatePagePermissions({
+              userId: usuario.id,
+              permissions: pagePermissions.map(key => ({
+                page_key: key,
+                can_access: true,
+              })),
+            }, {
+              onSuccess: () => {
+                onOpenChange(false);
+              }
+            });
+          } else {
+            onOpenChange(false);
+          }
         },
       }
     );
@@ -77,7 +99,7 @@ export function EditUserDialog({ open, onOpenChange, usuario }: EditUserDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Editar Usuário</DialogTitle>
           <DialogDescription>
@@ -85,13 +107,13 @@ export function EditUserDialog({ open, onOpenChange, usuario }: EditUserDialogPr
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="dados" className="w-full">
+        <Tabs defaultValue="dados" className="w-full flex-1 overflow-hidden flex flex-col">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="dados">Dados Pessoais</TabsTrigger>
             <TabsTrigger value="permissoes">Permissões</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="dados" className="space-y-4 py-4">
+          <TabsContent value="dados" className="space-y-4 py-4 flex-1 overflow-y-auto">
             <div className="space-y-2">
               <Label htmlFor="edit-nome">Nome Completo</Label>
               <Input
@@ -140,29 +162,61 @@ export function EditUserDialog({ open, onOpenChange, usuario }: EditUserDialogPr
             </div>
           </TabsContent>
           
-          <TabsContent value="permissoes" className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground mb-4">
-              Defina quais áreas do sistema este usuário pode acessar:
-            </p>
-            {availableRoles.map((role) => (
-              <div key={role.value} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
-                <Checkbox
-                  id={`edit-${role.value}`}
-                  checked={selectedRoles.includes(role.value)}
-                  onCheckedChange={() => handleToggleRole(role.value)}
-                />
-                <div className="space-y-1">
-                  <Label htmlFor={`edit-${role.value}`} className="cursor-pointer font-medium">
-                    {role.label}
+          <TabsContent value="permissoes" className="py-4 flex-1 overflow-hidden flex flex-col">
+            {/* Admin Toggle */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30 mb-4">
+              <Checkbox
+                id="edit-admin"
+                checked={isAdmin}
+                onCheckedChange={(checked) => setIsAdmin(checked === true)}
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-primary" />
+                  <Label htmlFor="edit-admin" className="cursor-pointer font-medium">
+                    Administrador
                   </Label>
-                  <p className="text-sm text-muted-foreground">{role.description}</p>
+                  <Badge variant="secondary" className="text-xs">Acesso Total</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Administradores têm acesso irrestrito a todas as páginas e funcionalidades
+                </p>
+              </div>
+            </div>
+
+            {isAdmin ? (
+              <div className="flex-1 flex items-center justify-center text-center p-8 border rounded-lg bg-muted/20">
+                <div>
+                  <Shield className="h-12 w-12 mx-auto text-primary mb-3" />
+                  <p className="font-medium">Acesso Administrativo Ativo</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Este usuário tem acesso a todas as páginas do sistema
+                  </p>
                 </div>
               </div>
-            ))}
+            ) : (
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <p className="text-sm text-muted-foreground mb-3">
+                  Selecione as páginas que este usuário pode acessar:
+                </p>
+                {isLoadingPermissions ? (
+                  <div className="flex-1 flex items-center justify-center">
+                    <p className="text-muted-foreground">Carregando permissões...</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto border rounded-lg p-2">
+                    <PagePermissionsEditor
+                      permissions={pagePermissions}
+                      onChange={setPagePermissions}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
 
-        <DialogFooter>
+        <DialogFooter className="mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
