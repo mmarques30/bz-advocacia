@@ -12,6 +12,7 @@ import { PropostaPreview } from "./PropostaPreview";
 import { PropostaPDF } from "./PropostaPDF";
 import { pdf } from '@react-pdf/renderer';
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export const GerarPropostaForm = () => {
   const [modeloSelecionado, setModeloSelecionado] = useState<string>("");
@@ -35,10 +36,16 @@ export const GerarPropostaForm = () => {
     statusCliente: [],
   });
 
-  const clienteNome = useMemo(() => {
+  const clienteData = useMemo(() => {
     const cliente = leads.find(l => l.id === clienteSelecionado);
-    return cliente?.nome_completo || '';
+    return {
+      nome: cliente?.nome_completo || '',
+      cpf: cliente?.cpf || '',
+    };
   }, [leads, clienteSelecionado]);
+
+  const clienteNome = clienteData.nome;
+  const clienteCPF = clienteData.cpf;
 
   const handleModeloChange = (modeloId: string) => {
     setModeloSelecionado(modeloId);
@@ -75,6 +82,7 @@ export const GerarPropostaForm = () => {
       const blob = await pdf(
         <PropostaPDF
           clienteNome={clienteNome}
+          clienteCPF={clienteCPF}
           descricaoServico={descricaoServico}
           valorEntrada={valorEntrada}
           descontoAvista={descontoAvista}
@@ -93,7 +101,29 @@ export const GerarPropostaForm = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      toast.success("Proposta gerada com sucesso!");
+      // Salvar proposta no banco de dados
+      const { error: saveError } = await supabase.from('contratos_gerados').insert({
+        cliente_id: clienteSelecionado,
+        titulo: `Proposta - ${clienteNome}`,
+        tipo_contrato: 'proposta',
+        conteudo_final: descricaoServico,
+        valores: {
+          valor_entrada: valorEntrada,
+          desconto_avista: descontoAvista,
+          percentual_exito: percentualExito,
+        },
+        dados_contrato: {
+          condicoes_adicionais: condicoesAdicionais,
+        },
+        status: 'finalizado',
+      });
+
+      if (saveError) {
+        console.error('Erro ao salvar proposta:', saveError);
+        toast.warning("Proposta gerada, mas houve erro ao salvar no histórico");
+      } else {
+        toast.success("Proposta gerada e salva com sucesso!");
+      }
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       toast.error("Erro ao gerar proposta");
@@ -231,6 +261,7 @@ export const GerarPropostaForm = () => {
       {/* Preview */}
       <PropostaPreview
         clienteNome={clienteNome}
+        clienteCPF={clienteCPF}
         descricaoServico={descricaoServico}
         valorEntrada={valorEntrada}
         descontoAvista={descontoAvista}

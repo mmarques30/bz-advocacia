@@ -7,6 +7,7 @@ import { TEXTO_INSTITUCIONAL, TEXTO_SERVICO_COMPLETO } from "@/lib/propostaTempl
 
 interface PropostaPreviewProps {
   clienteNome: string;
+  clienteCPF?: string;
   descricaoServico: string;
   valorEntrada: number;
   descontoAvista: number;
@@ -16,6 +17,7 @@ interface PropostaPreviewProps {
 
 export const PropostaPreview = ({
   clienteNome,
+  clienteCPF,
   descricaoServico,
   valorEntrada,
   descontoAvista,
@@ -90,9 +92,14 @@ export const PropostaPreview = ({
                     Proposta
                   </h3>
                 </div>
-                <p className="text-xs mb-2">
+                <p className="text-xs mb-1">
                   Prezado(a) Sr(a). <strong>{clienteNome || '[Nome do Cliente]'}</strong>,
                 </p>
+                {clienteCPF && (
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    CPF/CNPJ: {clienteCPF}
+                  </p>
+                )}
                 <p className="text-[10px] text-muted-foreground mb-2">
                   Conforme solicitado, apresentamos nossa proposta para realização dos serviços requeridos.
                 </p>
