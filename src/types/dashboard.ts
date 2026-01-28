@@ -3,8 +3,7 @@ export interface KPI {
   taxaConversao: number;
   novosClientes: number;
   processosAtivos: number;
-  receitaMes: number;
-  taxaInadimplencia: number;
+  prazosProximos: number;
 }
 
 export interface FunnelStage {
