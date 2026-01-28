@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, LayoutList, Kanban } from "lucide-react";
+import { Plus, LayoutList, Kanban, AlertTriangle, Clock } from "lucide-react";
 import { useDemandas, useDemandasStats, useDemandasByStatus, useDeleteDemanda } from "@/hooks/useDemandas";
 import { DemandasFilters } from "@/components/demandas/DemandasFilters";
 import { DemandasTable } from "@/components/demandas/DemandasTable";
@@ -9,6 +9,10 @@ import { DemandasKPIs } from "@/components/demandas/DemandasKPIs";
 import { DemandasKanban } from "@/components/demandas/DemandasKanban";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
 import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
+import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
+import { RecentActivities } from "@/components/dashboard/RecentActivities";
+import { useAlerts, useRecentActivities } from "@/hooks/useDashboardData";
+import { useDateFilter } from "@/hooks/useDateFilter";
 import { Demanda, DemandasFilters as FiltersType } from "@/types/demandas";
 import {
   AlertDialog,
@@ -24,6 +28,7 @@ import {
 export default function ProcessosDemandas() {
   const [filters, setFilters] = useState<FiltersType>({});
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
+  const [activeTab, setActiveTab] = useState<'demandas' | 'alertas' | 'atividades'>('demandas');
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -35,6 +40,11 @@ export default function ProcessosDemandas() {
   const { data: stats, isLoading: statsLoading } = useDemandasStats();
   const { data: demandasByStatus, isLoading: kanbanLoading } = useDemandasByStatus();
   const deleteDemanda = useDeleteDemanda();
+  
+  // Dados para alertas e atividades
+  const { filters: dateFilters } = useDateFilter();
+  const { data: alerts, isLoading: alertsLoading } = useAlerts(dateFilters);
+  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(20);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -81,42 +91,70 @@ export default function ProcessosDemandas() {
         </Button>
       </div>
 
-      {/* KPIs */}
-      <DemandasKPIs stats={stats} loading={statsLoading} />
+      {/* Tabs principais: Demandas, Alertas, Atividades */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'demandas' | 'alertas' | 'atividades')}>
+        <TabsList>
+          <TabsTrigger value="demandas" className="flex items-center gap-2">
+            <LayoutList className="h-4 w-4" />
+            Demandas
+          </TabsTrigger>
+          <TabsTrigger value="alertas" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Alertas Importantes
+          </TabsTrigger>
+          <TabsTrigger value="atividades" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Atividades Recentes
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Tabs para visualização */}
-      <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'kanban')}>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <TabsList>
-            <TabsTrigger value="table" className="flex items-center gap-2">
-              <LayoutList className="h-4 w-4" />
-              Tabela
-            </TabsTrigger>
-            <TabsTrigger value="kanban" className="flex items-center gap-2">
-              <Kanban className="h-4 w-4" />
-              Kanban
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        {/* Tab: Demandas */}
+        <TabsContent value="demandas" className="mt-6 space-y-6">
+          {/* KPIs */}
+          <DemandasKPIs stats={stats} loading={statsLoading} />
 
-        {/* Filtros - apenas na visualização de tabela */}
-        <TabsContent value="table" className="mt-6 space-y-4">
-          <DemandasFilters filters={filters} onFilterChange={handleFilterChange} />
-          <DemandasTable
-            demandas={demandas || []}
-            onView={handleView}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            isAdmin={true}
-          />
+          {/* Sub-tabs para visualização: Tabela/Kanban */}
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'table' | 'kanban')}>
+            <TabsList className="bg-muted/50">
+              <TabsTrigger value="table" className="flex items-center gap-2">
+                <LayoutList className="h-4 w-4" />
+                Tabela
+              </TabsTrigger>
+              <TabsTrigger value="kanban" className="flex items-center gap-2">
+                <Kanban className="h-4 w-4" />
+                Kanban
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="table" className="mt-4 space-y-4">
+              <DemandasFilters filters={filters} onFilterChange={handleFilterChange} />
+              <DemandasTable
+                demandas={demandas || []}
+                onView={handleView}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isAdmin={true}
+              />
+            </TabsContent>
+
+            <TabsContent value="kanban" className="mt-4">
+              <DemandasKanban
+                demandas={demandasByStatus}
+                loading={kanbanLoading}
+                onSelectDemanda={handleView}
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="kanban" className="mt-6">
-          <DemandasKanban
-            demandas={demandasByStatus}
-            loading={kanbanLoading}
-            onSelectDemanda={handleView}
-          />
+        {/* Tab: Alertas Importantes */}
+        <TabsContent value="alertas" className="mt-6">
+          <AlertsWidget data={alerts || []} loading={alertsLoading} />
+        </TabsContent>
+
+        {/* Tab: Atividades Recentes */}
+        <TabsContent value="atividades" className="mt-6">
+          <RecentActivities data={activities || []} loading={activitiesLoading} />
         </TabsContent>
       </Tabs>
 
