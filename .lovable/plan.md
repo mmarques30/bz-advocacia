@@ -1,126 +1,163 @@
 
-
-# Plano: Visão Complementar de Performance na Aba Alertas
+# Plano: Reestruturação do Painel B&Z
 
 ## Objetivo
-Adicionar uma seção complementar abaixo dos três cards existentes na aba "Alertas" que combina:
-1. **Distribuição por Responsável** - Volume de demandas por membro da equipe
-2. **Indicadores de Performance** - Taxa de conclusão, tempo médio e comparativo criação vs conclusão
+Remover o card "Receita do Mês" e reorganizar o dashboard para apresentar informações mais harmônicas e relevantes para iniciar o dia de trabalho.
 
-## Estrutura Proposta
+## Análise da Estrutura Atual
 
-A nova seção será adicionada abaixo da grade de 3 cards existentes:
+O dashboard atual possui:
+1. **Filtros de período** (7d, 30d, 90d)
+2. **Cards de Pendências do Usuário** (3 cards: Tarefas, Pagamentos, Processos em Atraso)
+3. **Grid de 6 KPIs**:
+   - Total de Leads
+   - Taxa de Conversão
+   - Novos Clientes
+   - Processos Ativos
+   - **Receita do Mês** (a ser removido)
+   - Taxa de Inadimplência
+4. **Gráfico de Evolução de Leads** (largura total)
+
+## Proposta de Nova Estrutura
+
+A nova estrutura foca em informações operacionais para o início do dia:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  CARDS EXISTENTES (3 colunas)                                            │
+│  FILTROS DE PERÍODO                                                       │
+├──────────────────────────────────────────────────────────────────────────┤
+│  SEÇÃO 1: Suas Pendências (3 cards interativos)                          │
 │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐              │
-│  │ Alertas        │  │ Minhas         │  │ Próximos       │              │
-│  │ Importantes    │  │ Demandas       │  │ 7 Dias         │              │
+│  │ Tarefas        │  │ Pagamentos     │  │ Processos      │              │
+│  │ Pendentes      │  │ Pendentes      │  │ em Atraso      │              │
 │  └────────────────┘  └────────────────┘  └────────────────┘              │
 ├──────────────────────────────────────────────────────────────────────────┤
-│  NOVA SEÇÃO: Performance e Distribuição (2 colunas)                      │
-│  ┌─────────────────────────────┐  ┌─────────────────────────────┐        │
-│  │ Indicadores do Mês          │  │ Distribuição por            │        │
-│  │                             │  │ Responsável                 │        │
-│  │ • Taxa Conclusão: 85%      │  │                             │        │
-│  │ • Tempo Médio: 3.2 dias    │  │ [Gráfico barras horizontal] │        │
-│  │ • Criadas: 12 | Concluídas:│  │                             │        │
-│  │             10             │  │                             │        │
-│  └─────────────────────────────┘  └─────────────────────────────┘        │
+│  SEÇÃO 2: Visão Rápida (5 KPIs em grid responsivo)                       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+│  │ Leads    │ │ Taxa     │ │ Novos    │ │Processos │ │ Prazos   │        │
+│  │ Ativos   │ │ Conversão│ │ Clientes │ │ Ativos   │ │ Próximos │        │
+│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
+├──────────────────────────────────────────────────────────────────────────┤
+│  SEÇÃO 3: Evolução de Leads (gráfico largura total)                      │
+│  ┌────────────────────────────────────────────────────────────────┐      │
+│  │  [Gráfico de área comparativo]                                 │      │
+│  └────────────────────────────────────────────────────────────────┘      │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
+## Mudanças Propostas
+
+### 1. Remover "Receita do Mês" e "Taxa de Inadimplência"
+- Esses indicadores financeiros já estão disponíveis no módulo Financeiro
+- O dashboard deve focar em métricas operacionais do dia
+
+### 2. Adicionar "Prazos Próximos"
+- Novo KPI mostrando quantidade de prazos judiciais vencendo nos próximos 7 dias
+- Usa dados da tabela `processos_prazos` com status "pendente"
+- Icone: `Calendar` (lucide-react)
+
+### 3. Reorganizar Grid de KPIs para 5 Colunas
+- Desktop (lg): 5 colunas
+- Tablet (md): 3 colunas (primeira linha com 3, segunda com 2)
+- Mobile: 2 colunas (com último item centralizado)
+
+### 4. Ordem dos KPIs (prioridade operacional)
+1. **Total de Leads** - Entrada do funil
+2. **Taxa de Conversão** - Eficiência comercial
+3. **Novos Clientes** - Resultado do período
+4. **Processos Ativos** - Carga de trabalho atual
+5. **Prazos Próximos** - Urgências da semana (NOVO)
+
 ## Detalhamento Técnico
 
-### 1. Novo Hook: `useDemandasPerformance`
-
-Criação de um hook dedicado para buscar métricas de performance:
+### Arquivo: `src/hooks/useDashboardData.ts`
+Adicionar nova query para prazos próximos:
 
 ```typescript
-// Métricas retornadas:
-{
-  taxaConclusao: number;        // % de demandas concluídas no mês
-  tempoMedioConclusao: number;  // Dias entre criação e conclusão
-  criadasNoMes: number;         // Total criadas no mês atual
-  concluidasNoMes: number;      // Total concluídas no mês atual
-  distribuicaoPorResponsavel: Array<{
-    nome: string;
-    total: number;
-    atrasadas: number;
-    concluidas: number;
-  }>;
+// Dentro de useKPIs
+const { count: prazosProximos } = await supabase
+  .from('processos_prazos')
+  .select('*', { count: 'exact', head: true })
+  .eq('status', 'pendente')
+  .gte('data_prazo', now.toISOString())
+  .lte('data_prazo', sevenDaysFromNow.toISOString());
+```
+
+### Arquivo: `src/types/dashboard.ts`
+Atualizar interface KPI:
+
+```typescript
+export interface KPI {
+  totalLeads: number;
+  taxaConversao: number;
+  novosClientes: number;
+  processosAtivos: number;
+  prazosProximos: number; // NOVO - substitui receitaMes
+  // receitaMes REMOVIDO
+  // taxaInadimplencia REMOVIDO
 }
 ```
 
-**Queries necessárias:**
-- Demandas criadas no mês atual
-- Demandas concluídas no mês atual (com `data_conclusao`)
-- Agrupamento por `responsavel_id` com JOIN em `profiles`
-- Cálculo de tempo médio usando `data_conclusao - created_at`
-
-### 2. Novo Componente: `PerformanceIndicators`
-
-Card com indicadores rápidos do mês:
-
-| Indicador | Descrição | Visualização |
-|-----------|-----------|--------------|
-| Taxa de Conclusão | % concluídas/total ativas | Número grande + barra de progresso |
-| Tempo Médio | Dias entre criação e conclusão | Número + label "dias" |
-| Criadas vs Concluídas | Comparativo mensal | Dois badges lado a lado |
-
-**Estilo:**
-- Fundo do card: branco com borda sutil
-- Números: fonte grande (`text-3xl`), cor primary para destaque
-- Barra de progresso: cores da paleta B&Z (bronze/terra cota)
-
-### 3. Novo Componente: `DistribuicaoResponsavel`
-
-Gráfico de barras horizontais mostrando demandas por pessoa:
-
-- **Eixo Y**: Nome do responsável
-- **Eixo X**: Quantidade de demandas
-- **Cores**: 
-  - Barra principal: `chartColors.primary` (bronze)
-  - Segmento atrasadas: `chartColors.danger` (vermelho)
-- **Biblioteca**: Recharts (já utilizado no projeto)
-
-### 4. Integração no `AlertasUnificados.tsx`
-
-Adicionar a nova seção logo após a grade de cards:
+### Arquivo: `src/pages/Dashboard.tsx`
+Atualizar grid de KPIs:
 
 ```tsx
-<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-  {/* Cards existentes */}
-</div>
-
-{/* Nova seção de Performance */}
-<div className="mt-6 grid gap-6 md:grid-cols-2">
-  <PerformanceIndicators data={performance} loading={loading} />
-  <DistribuicaoResponsavel data={distribuicao} loading={loading} />
+{/* Grid de 5 KPIs */}
+<div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+  <KPICard
+    title="Total de Leads"
+    value={kpis?.totalLeads || 0}
+    icon={Users}
+    loading={kpisLoading}
+  />
+  <KPICard
+    title="Taxa de Conversão"
+    value={kpis?.taxaConversao || 0}
+    icon={TrendingUp}
+    format="percentage"
+    loading={kpisLoading}
+  />
+  <KPICard
+    title="Novos Clientes"
+    value={kpis?.novosClientes || 0}
+    icon={UserPlus}
+    loading={kpisLoading}
+  />
+  <KPICard
+    title="Processos Ativos"
+    value={kpis?.processosAtivos || 0}
+    icon={Briefcase}
+    loading={kpisLoading}
+  />
+  <KPICard
+    title="Prazos Próximos"
+    value={kpis?.prazosProximos || 0}
+    icon={Calendar}
+    loading={kpisLoading}
+  />
 </div>
 ```
 
-## Arquivos a Criar/Modificar
+## Arquivos a Modificar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/hooks/useDemandasPerformance.ts` | Criar |
-| `src/components/demandas/PerformanceIndicators.tsx` | Criar |
-| `src/components/demandas/DistribuicaoResponsavel.tsx` | Criar |
-| `src/components/demandas/AlertasUnificados.tsx` | Modificar |
+| `src/types/dashboard.ts` | Atualizar interface KPI |
+| `src/hooks/useDashboardData.ts` | Remover receitaMes e inadimplência, adicionar prazosProximos |
+| `src/pages/Dashboard.tsx` | Atualizar grid e cards |
 
-## Consistência Visual
+## Benefícios da Nova Estrutura
 
-- Utilizará a paleta de cores definida em `chartConfig.ts`
-- Seguirá o padrão de Cards do projeto (shadcn/ui)
-- Gráficos com mesmo estilo visual do módulo Financeiro
-- Skeleton loaders durante carregamento
-- Estados vazios com ícones e mensagens amigáveis
+1. **Foco Operacional**: Dashboard orientado para ação imediata
+2. **Menos Sobrecarga Visual**: 5 KPIs ao invés de 6, mais limpo
+3. **Informações Complementares**: Prazos judiciais são críticos para escritórios de advocacia
+4. **Dados Financeiros Separados**: Módulo Financeiro já possui visão detalhada de receitas
+5. **Consistência**: Segue o padrão visual existente dos cards
 
 ## Responsividade
 
-- **Desktop (lg+)**: Seção original em 3 colunas, nova seção em 2 colunas
-- **Tablet (md)**: Seção original em 2 colunas, nova seção em 2 colunas
-- **Mobile**: Tudo empilhado em 1 coluna
-
+| Breakpoint | Layout KPIs |
+|------------|-------------|
+| Mobile (<640px) | 2 colunas |
+| Tablet (640-1024px) | 3 colunas |
+| Desktop (>1024px) | 5 colunas |
