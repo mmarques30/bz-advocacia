@@ -17,11 +17,12 @@ interface LeadsHeaderProps {
   onOpenFilters: () => void;
   onNewLead: () => void;
   onImport: () => void;
-  onImportPlanilha: () => void;
+  onImportPlanilha?: () => void;
   search: string;
   onSearchChange: (search: string) => void;
   activeFiltersCount: number;
   isClienteTab?: boolean;
+  hideViewToggle?: boolean;
 }
 
 export function LeadsHeader({
@@ -35,6 +36,7 @@ export function LeadsHeader({
   onSearchChange,
   activeFiltersCount,
   isClienteTab = false,
+  hideViewToggle = false,
 }: LeadsHeaderProps) {
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -57,11 +59,15 @@ export function LeadsHeader({
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Importar CSV/XLSX simples
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onImportPlanilha}>
-              <Table className="h-4 w-4 mr-2" />
-              Importar Planilha B&Z (com processos)
-            </DropdownMenuItem>
+            {onImportPlanilha && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onImportPlanilha}>
+                  <Table className="h-4 w-4 mr-2" />
+                  Importar Planilha B&Z (com processos)
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
 
@@ -85,14 +91,16 @@ export function LeadsHeader({
         </Button>
       </div>
 
-      <ToggleGroup type="single" value={view} onValueChange={(v) => v && onViewChange(v as 'table' | 'kanban')}>
-        <ToggleGroupItem value="table" aria-label="Visualização em tabela">
-          <Table2 className="h-4 w-4" />
-        </ToggleGroupItem>
-        <ToggleGroupItem value="kanban" aria-label="Visualização em kanban">
-          <LayoutGrid className="h-4 w-4" />
-        </ToggleGroupItem>
-      </ToggleGroup>
+      {!hideViewToggle && (
+        <ToggleGroup type="single" value={view} onValueChange={(v) => v && onViewChange(v as 'table' | 'kanban')}>
+          <ToggleGroupItem value="table" aria-label="Visualização em tabela">
+            <Table2 className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="kanban" aria-label="Visualização em kanban">
+            <LayoutGrid className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      )}
     </div>
   );
 }
