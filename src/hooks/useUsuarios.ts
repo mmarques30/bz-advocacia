@@ -118,6 +118,95 @@ export const useUpdateUserRole = () => {
   });
 };
 
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ 
+      userId, 
+      data,
+      roles 
+    }: { 
+      userId: string; 
+      data: {
+        nome_completo: string;
+        telefone: string | null;
+        cargo: string | null;
+      };
+      roles: string[];
+    }) => {
+      // Update profile data
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update(data)
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+
+      // Update roles - remove all existing roles
+      const { error: deleteError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+
+      if (deleteError) throw deleteError;
+
+      // Add new roles
+      if (roles.length > 0) {
+        const { error: insertError } = await supabase
+          .from("user_roles")
+          .insert(roles.map((role) => ({ 
+            user_id: userId, 
+            role: role as "admin" | "advogado" | "assistente" | "financeiro"
+          })));
+
+        if (insertError) throw insertError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      toast.success("Usuário atualizado com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao atualizar usuário: " + error.message);
+    },
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Não autenticado");
+
+      // First delete user roles
+      const { error: rolesError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+
+      if (rolesError) throw rolesError;
+
+      // Then delete profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["usuarios"] });
+      toast.success("Usuário excluído com sucesso");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir usuário: " + error.message);
+    },
+  });
+};
+
 export const useToggleUserStatus = () => {
   const queryClient = useQueryClient();
 
