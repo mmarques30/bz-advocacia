@@ -9,7 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Clientes from "./pages/Clientes";
-import RelatoriosCliente from "./pages/leads/RelatoriosCliente";
+
 import Processos from "./pages/Processos";
 import Financeiro from "./pages/Financeiro";
 import NotFound from "./pages/NotFound";
@@ -111,14 +111,6 @@ const App = () => (
             <Clientes />
           </ProtectedRoute>
         }
-      />
-      <Route 
-        path="/dashboard/leads/relatorios-cliente" 
-        element={
-          <ProtectedRoute>
-            <RelatoriosCliente />
-          </ProtectedRoute>
-        } 
       />
       <Route 
         path="/dashboard/vendas/analises"

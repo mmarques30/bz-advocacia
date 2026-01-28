@@ -83,7 +83,6 @@ const menuItems: MenuItem[] = [
         { title: "Tarefas", url: "/dashboard/processos/demandas" },
         { title: "Processos", url: "/dashboard/processos" },
         { title: "Prazos", url: "/dashboard/processos/calendario" },
-        { title: "Relatório Clientes", url: "/dashboard/leads/relatorios-cliente" },
     ]
   },
   {
