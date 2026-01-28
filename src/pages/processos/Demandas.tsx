@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, LayoutList, Kanban, AlertTriangle, Clock } from "lucide-react";
+import { Plus, LayoutList, Kanban, AlertTriangle } from "lucide-react";
 import { useDemandas, useDemandasStats, useDemandasByStatus, useDeleteDemanda } from "@/hooks/useDemandas";
 import { DemandasFilters } from "@/components/demandas/DemandasFilters";
 import { DemandasTable } from "@/components/demandas/DemandasTable";
@@ -9,10 +9,7 @@ import { DemandasKPIs } from "@/components/demandas/DemandasKPIs";
 import { DemandasKanban } from "@/components/demandas/DemandasKanban";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
 import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
-import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
-import { RecentActivities } from "@/components/dashboard/RecentActivities";
-import { useAlerts, useRecentActivities } from "@/hooks/useDashboardData";
-import { useDateFilter } from "@/hooks/useDateFilter";
+import { AlertasUnificados } from "@/components/demandas/AlertasUnificados";
 import { Demanda, DemandasFilters as FiltersType } from "@/types/demandas";
 import {
   AlertDialog,
@@ -28,7 +25,7 @@ import {
 export default function ProcessosDemandas() {
   const [filters, setFilters] = useState<FiltersType>({});
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
-  const [activeTab, setActiveTab] = useState<'demandas' | 'alertas' | 'atividades'>('demandas');
+  const [activeTab, setActiveTab] = useState<'demandas' | 'alertas'>('demandas');
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -40,11 +37,6 @@ export default function ProcessosDemandas() {
   const { data: stats, isLoading: statsLoading } = useDemandasStats();
   const { data: demandasByStatus, isLoading: kanbanLoading } = useDemandasByStatus();
   const deleteDemanda = useDeleteDemanda();
-  
-  // Dados para alertas e atividades
-  const { filters: dateFilters } = useDateFilter();
-  const { data: alerts, isLoading: alertsLoading } = useAlerts(dateFilters);
-  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(20);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -80,7 +72,7 @@ export default function ProcessosDemandas() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestão de Demandas</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Gestão de Tarefas</h1>
           <p className="text-muted-foreground">
             Gerencie todas as demandas relacionadas a processos, vendas e operações
           </p>
@@ -91,8 +83,8 @@ export default function ProcessosDemandas() {
         </Button>
       </div>
 
-      {/* Tabs principais: Demandas, Alertas, Atividades */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'demandas' | 'alertas' | 'atividades')}>
+      {/* Tabs principais: Demandas e Alertas */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'demandas' | 'alertas')}>
         <TabsList>
           <TabsTrigger value="demandas" className="flex items-center gap-2">
             <LayoutList className="h-4 w-4" />
@@ -100,11 +92,7 @@ export default function ProcessosDemandas() {
           </TabsTrigger>
           <TabsTrigger value="alertas" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
-            Alertas Importantes
-          </TabsTrigger>
-          <TabsTrigger value="atividades" className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Atividades Recentes
+            Alertas
           </TabsTrigger>
         </TabsList>
 
@@ -147,14 +135,9 @@ export default function ProcessosDemandas() {
           </Tabs>
         </TabsContent>
 
-        {/* Tab: Alertas Importantes */}
+        {/* Tab: Alertas Unificados */}
         <TabsContent value="alertas" className="mt-6">
-          <AlertsWidget data={alerts || []} loading={alertsLoading} />
-        </TabsContent>
-
-        {/* Tab: Atividades Recentes */}
-        <TabsContent value="atividades" className="mt-6">
-          <RecentActivities data={activities || []} loading={activitiesLoading} />
+          <AlertasUnificados />
         </TabsContent>
       </Tabs>
 
