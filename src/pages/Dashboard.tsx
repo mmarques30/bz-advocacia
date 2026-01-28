@@ -2,16 +2,12 @@ import { Users, TrendingUp, UserPlus, Briefcase, DollarSign, AlertTriangle } fro
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { KPICard } from "@/components/dashboard/KPICard";
 import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
-import { AlertsWidget } from "@/components/dashboard/AlertsWidget";
-import { RecentActivities } from "@/components/dashboard/RecentActivities";
 import { UserPendenciasCards } from "@/components/dashboard/UserPendenciasCards";
 import { useDateFilter } from "@/hooks/useDateFilter";
 import { useUserPendencias } from "@/hooks/useUserPendencias";
 import {
   useKPIs,
   useLeadsEvolution,
-  useAlerts,
-  useRecentActivities,
 } from "@/hooks/useDashboardData";
 
 export default function Dashboard() {
@@ -20,8 +16,6 @@ export default function Dashboard() {
   const { data: pendencias, isLoading: pendenciasLoading } = useUserPendencias();
   const { data: kpis, isLoading: kpisLoading } = useKPIs(filters);
   const { data: leadsData, isLoading: leadsLoading } = useLeadsEvolution(filters);
-  const { data: alerts, isLoading: alertsLoading } = useAlerts(filters);
-  const { data: activities, isLoading: activitiesLoading } = useRecentActivities(10);
 
   return (
     <div className="space-y-6">
@@ -86,12 +80,6 @@ export default function Dashboard() {
 
       {/* Leads Evolution Chart - Full Width */}
       <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
-
-      {/* Widgets Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <AlertsWidget data={alerts || []} loading={alertsLoading} />
-        <RecentActivities data={activities || []} loading={activitiesLoading} />
-      </div>
     </div>
   );
 }
