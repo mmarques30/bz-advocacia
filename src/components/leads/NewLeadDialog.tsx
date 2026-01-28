@@ -35,10 +35,10 @@ const leadFormSchema = z.object({
   nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
   email: z.string().email("Email inválido"),
   telefone: z.string().min(10, "Telefone inválido"),
-  tipo_processo: z.string().min(1, "Selecione um tipo de processo"),
-  origem: z.string().min(1, "Selecione uma origem"),
-  estagio: z.string().min(1, "Selecione um estágio"),
-  mensagem: z.string().min(10, "Mensagem deve ter no mínimo 10 caracteres"),
+  tipo_processo: z.string().optional(),
+  origem: z.string().optional(),
+  estagio: z.string().optional(),
+  mensagem: z.string().optional(),
 });
 
 type LeadFormValues = z.infer<typeof leadFormSchema>;
