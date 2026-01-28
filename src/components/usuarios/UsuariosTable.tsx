@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MoreVertical, UserCog, Power, Key, Pencil, Trash2 } from "lucide-react";
+import { MoreVertical, Power, Key, Pencil, Trash2, Shield, FileCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Usuario } from "@/hooks/useUsuarios";
 import { format } from "date-fns";
@@ -11,37 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EditUserDialog } from "./EditUserDialog";
 import { ResetPasswordDialog } from "./ResetPasswordDialog";
 import { DeleteUserDialog } from "./DeleteUserDialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface UsuariosTableProps {
   usuarios: Usuario[];
   isLoading: boolean;
   onToggleStatus: (userId: string, ativo: boolean) => void;
 }
-
-const getRoleBadgeVariant = (role: string) => {
-  switch (role) {
-    case "admin":
-      return "destructive";
-    case "advogado":
-      return "default";
-    case "assistente":
-      return "secondary";
-    case "financeiro":
-      return "outline";
-    default:
-      return "outline";
-  }
-};
-
-const getRoleLabel = (role: string) => {
-  const labels: Record<string, string> = {
-    admin: "Admin",
-    advogado: "Advogado",
-    assistente: "Assistente",
-    financeiro: "Financeiro",
-  };
-  return labels[role] || role;
-};
 
 export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosTableProps) {
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
@@ -107,17 +83,30 @@ export function UsuariosTable({ usuarios, isLoading, onToggleStatus }: UsuariosT
                   <TableCell className="text-muted-foreground">{usuario.email}</TableCell>
                   <TableCell>{usuario.cargo || "-"}</TableCell>
                   <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {usuario.roles.length === 0 ? (
-                        <Badge variant="outline">Sem permissões</Badge>
-                      ) : (
-                        usuario.roles.map((role) => (
-                          <Badge key={role} variant={getRoleBadgeVariant(role)}>
-                            {getRoleLabel(role)}
-                          </Badge>
-                        ))
-                      )}
-                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex gap-1 flex-wrap">
+                            {usuario.roles.includes("admin") ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <Shield className="h-3 w-3" />
+                                Admin
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="gap-1">
+                                <FileCheck className="h-3 w-3" />
+                                Permissões por Página
+                              </Badge>
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {usuario.roles.includes("admin") 
+                            ? "Acesso total a todas as páginas" 
+                            : "Clique em Editar para ver as permissões"}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {usuario.ultimo_acesso
