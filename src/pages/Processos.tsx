@@ -33,6 +33,7 @@ export default function Processos() {
   const calculateActiveFilters = (filters: FiltersType): number => {
     let count = 0;
     if (filters.status.length !== 1 || filters.status[0] !== "em_andamento") count++;
+    if (filters.cliente_id) count++;
     if (filters.tribunal) count++;
     if (filters.tipo) count++;
     if (filters.tem_prazo_proximo) count++;

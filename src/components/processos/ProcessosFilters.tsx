@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,7 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { PROCESSO_STATUS_LABELS, TRIBUNAIS_OPCOES, ProcessosFilters as FiltersType, ProcessoStatus } from "@/types/processos";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProcessosFiltersProps {
   open: boolean;
@@ -22,6 +25,21 @@ export function ProcessosFilters({
   onApply,
 }: ProcessosFiltersProps) {
   const [localFilters, setLocalFilters] = useState(filters);
+
+  // Buscar clientes (leads com estagio = fechado)
+  const { data: clientes } = useQuery({
+    queryKey: ["clientes-para-filtro"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .select("id, nome_completo")
+        .eq("estagio", "fechado")
+        .order("nome_completo");
+      
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handleApply = () => {
     onApply(localFilters);
@@ -100,6 +118,31 @@ export function ProcessosFilters({
                 </Label>
               </div>
             </RadioGroup>
+          </div>
+
+          {/* Cliente */}
+          <div>
+            <Label htmlFor="cliente">Cliente</Label>
+            <Select
+              value={localFilters.cliente_id || "all"}
+              onValueChange={(value) =>
+                setLocalFilters({ ...localFilters, cliente_id: value === "all" ? undefined : value })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Todos os clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                <ScrollArea className="h-[200px]">
+                  <SelectItem value="all">Todos os clientes</SelectItem>
+                  {clientes?.map((cliente) => (
+                    <SelectItem key={cliente.id} value={cliente.id}>
+                      {cliente.nome_completo}
+                    </SelectItem>
+                  ))}
+                </ScrollArea>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Tribunal */}
