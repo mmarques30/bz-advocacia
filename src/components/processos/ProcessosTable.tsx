@@ -136,16 +136,23 @@ function ProcessoRow({
       </TableCell>
 
       <TableCell>
-        {docsCount !== undefined && docsCount > 0 ? (
+        {processo.pasta_drive_url ? (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-default">
-                <Link2 className="h-3 w-3" />
-                {docsCount}
-              </Badge>
+              <a 
+                href={processo.pasta_drive_url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-pointer">
+                  <Link2 className="h-3 w-3" />
+                  {docsCount || 0}
+                </Badge>
+              </a>
             </TooltipTrigger>
             <TooltipContent>
-              {docsCount} documento(s) vinculado(s)
+              Abrir pasta do Google Drive ({docsCount || 0} doc(s))
             </TooltipContent>
           </Tooltip>
         ) : (
@@ -157,7 +164,7 @@ function ProcessoRow({
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              Nenhum documento vinculado
+              Nenhuma pasta vinculada
             </TooltipContent>
           </Tooltip>
         )}
