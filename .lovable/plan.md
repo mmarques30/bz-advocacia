@@ -1,163 +1,107 @@
 
-# Plano: Reestruturação do Painel B&Z
+
+# Plano: Ícone de Docs Clicável para Pasta do Cliente
 
 ## Objetivo
-Remover o card "Receita do Mês" e reorganizar o dashboard para apresentar informações mais harmônicas e relevantes para iniciar o dia de trabalho.
+Transformar o ícone da coluna "Docs" na tabela de processos em um link clicável que direciona para a pasta do Google Drive do cliente/processo.
 
-## Análise da Estrutura Atual
+## Situação Atual
 
-O dashboard atual possui:
-1. **Filtros de período** (7d, 30d, 90d)
-2. **Cards de Pendências do Usuário** (3 cards: Tarefas, Pagamentos, Processos em Atraso)
-3. **Grid de 6 KPIs**:
-   - Total de Leads
-   - Taxa de Conversão
-   - Novos Clientes
-   - Processos Ativos
-   - **Receita do Mês** (a ser removido)
-   - Taxa de Inadimplência
-4. **Gráfico de Evolução de Leads** (largura total)
+Na `ProcessosTable.tsx`, a coluna "Docs" exibe:
+- **Badge verde com Link2**: quando há documentos vinculados
+- **Badge outline com FileX**: quando não há documentos
 
-## Proposta de Nova Estrutura
+Atualmente, esses badges são apenas visuais (`cursor-default`) e não têm interação.
 
-A nova estrutura foca em informações operacionais para o início do dia:
+## Mudança Proposta
 
-```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│  FILTROS DE PERÍODO                                                       │
-├──────────────────────────────────────────────────────────────────────────┤
-│  SEÇÃO 1: Suas Pendências (3 cards interativos)                          │
-│  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐              │
-│  │ Tarefas        │  │ Pagamentos     │  │ Processos      │              │
-│  │ Pendentes      │  │ Pendentes      │  │ em Atraso      │              │
-│  └────────────────┘  └────────────────┘  └────────────────┘              │
-├──────────────────────────────────────────────────────────────────────────┤
-│  SEÇÃO 2: Visão Rápida (5 KPIs em grid responsivo)                       │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐        │
-│  │ Leads    │ │ Taxa     │ │ Novos    │ │Processos │ │ Prazos   │        │
-│  │ Ativos   │ │ Conversão│ │ Clientes │ │ Ativos   │ │ Próximos │        │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘        │
-├──────────────────────────────────────────────────────────────────────────┤
-│  SEÇÃO 3: Evolução de Leads (gráfico largura total)                      │
-│  ┌────────────────────────────────────────────────────────────────┐      │
-│  │  [Gráfico de área comparativo]                                 │      │
-│  └────────────────────────────────────────────────────────────────┘      │
-└──────────────────────────────────────────────────────────────────────────┘
-```
-
-## Mudanças Propostas
-
-### 1. Remover "Receita do Mês" e "Taxa de Inadimplência"
-- Esses indicadores financeiros já estão disponíveis no módulo Financeiro
-- O dashboard deve focar em métricas operacionais do dia
-
-### 2. Adicionar "Prazos Próximos"
-- Novo KPI mostrando quantidade de prazos judiciais vencendo nos próximos 7 dias
-- Usa dados da tabela `processos_prazos` com status "pendente"
-- Icone: `Calendar` (lucide-react)
-
-### 3. Reorganizar Grid de KPIs para 5 Colunas
-- Desktop (lg): 5 colunas
-- Tablet (md): 3 colunas (primeira linha com 3, segunda com 2)
-- Mobile: 2 colunas (com último item centralizado)
-
-### 4. Ordem dos KPIs (prioridade operacional)
-1. **Total de Leads** - Entrada do funil
-2. **Taxa de Conversão** - Eficiência comercial
-3. **Novos Clientes** - Resultado do período
-4. **Processos Ativos** - Carga de trabalho atual
-5. **Prazos Próximos** - Urgências da semana (NOVO)
+Modificar a lógica da célula "Docs" para:
+1. Se `processo.pasta_drive_url` existir → tornar o badge clicável, abrindo a pasta em nova aba
+2. Manter o visual atual, apenas adicionando interatividade
+3. Atualizar o tooltip para indicar que é clicável
 
 ## Detalhamento Técnico
 
-### Arquivo: `src/hooks/useDashboardData.ts`
-Adicionar nova query para prazos próximos:
+### Arquivo: `src/components/processos/ProcessosTable.tsx`
 
-```typescript
-// Dentro de useKPIs
-const { count: prazosProximos } = await supabase
-  .from('processos_prazos')
-  .select('*', { count: 'exact', head: true })
-  .eq('status', 'pendente')
-  .gte('data_prazo', now.toISOString())
-  .lte('data_prazo', sevenDaysFromNow.toISOString());
-```
+Modificar a célula da coluna Docs (linhas 138-164):
 
-### Arquivo: `src/types/dashboard.ts`
-Atualizar interface KPI:
-
-```typescript
-export interface KPI {
-  totalLeads: number;
-  taxaConversao: number;
-  novosClientes: number;
-  processosAtivos: number;
-  prazosProximos: number; // NOVO - substitui receitaMes
-  // receitaMes REMOVIDO
-  // taxaInadimplencia REMOVIDO
-}
-```
-
-### Arquivo: `src/pages/Dashboard.tsx`
-Atualizar grid de KPIs:
-
+**De:**
 ```tsx
-{/* Grid de 5 KPIs */}
-<div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-  <KPICard
-    title="Total de Leads"
-    value={kpis?.totalLeads || 0}
-    icon={Users}
-    loading={kpisLoading}
-  />
-  <KPICard
-    title="Taxa de Conversão"
-    value={kpis?.taxaConversao || 0}
-    icon={TrendingUp}
-    format="percentage"
-    loading={kpisLoading}
-  />
-  <KPICard
-    title="Novos Clientes"
-    value={kpis?.novosClientes || 0}
-    icon={UserPlus}
-    loading={kpisLoading}
-  />
-  <KPICard
-    title="Processos Ativos"
-    value={kpis?.processosAtivos || 0}
-    icon={Briefcase}
-    loading={kpisLoading}
-  />
-  <KPICard
-    title="Prazos Próximos"
-    value={kpis?.prazosProximos || 0}
-    icon={Calendar}
-    loading={kpisLoading}
-  />
-</div>
+<TableCell>
+  {docsCount !== undefined && docsCount > 0 ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-default">
+          <Link2 className="h-3 w-3" />
+          {docsCount}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        {docsCount} documento(s) vinculado(s)
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    // ... badge sem documentos
+  )}
+</TableCell>
 ```
 
-## Arquivos a Modificar
+**Para:**
+```tsx
+<TableCell>
+  {processo.pasta_drive_url ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <a 
+          href={processo.pasta_drive_url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-pointer">
+            <Link2 className="h-3 w-3" />
+            {docsCount || 0}
+          </Badge>
+        </a>
+      </TooltipTrigger>
+      <TooltipContent>
+        Abrir pasta do Google Drive ({docsCount || 0} doc(s))
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge variant="outline" className="gap-1 text-muted-foreground cursor-default">
+          <FileX className="h-3 w-3" />
+          0
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>
+        Nenhuma pasta vinculada
+      </TooltipContent>
+    </Tooltip>
+  )}
+</TableCell>
+```
+
+## Lógica de Exibição
+
+| Condição | Visual | Comportamento |
+|----------|--------|---------------|
+| `pasta_drive_url` existe | Badge verde com ícone Link2 | Clicável → abre pasta no Drive |
+| `pasta_drive_url` não existe | Badge outline com ícone FileX | Não clicável, apenas informativo |
+
+## Arquivo a Modificar
 
 | Arquivo | Ação |
 |---------|------|
-| `src/types/dashboard.ts` | Atualizar interface KPI |
-| `src/hooks/useDashboardData.ts` | Remover receitaMes e inadimplência, adicionar prazosProximos |
-| `src/pages/Dashboard.tsx` | Atualizar grid e cards |
+| `src/components/processos/ProcessosTable.tsx` | Modificar célula da coluna Docs |
 
-## Benefícios da Nova Estrutura
+## Benefícios
 
-1. **Foco Operacional**: Dashboard orientado para ação imediata
-2. **Menos Sobrecarga Visual**: 5 KPIs ao invés de 6, mais limpo
-3. **Informações Complementares**: Prazos judiciais são críticos para escritórios de advocacia
-4. **Dados Financeiros Separados**: Módulo Financeiro já possui visão detalhada de receitas
-5. **Consistência**: Segue o padrão visual existente dos cards
+1. **Acesso Rápido**: Um clique leva direto à pasta do cliente
+2. **Feedback Visual**: Cursor pointer indica que é clicável
+3. **Tooltip Informativo**: Usuário sabe o que esperar ao clicar
+4. **Sem Quebra de Fluxo**: `stopPropagation` evita conflitos com cliques na linha
 
-## Responsividade
-
-| Breakpoint | Layout KPIs |
-|------------|-------------|
-| Mobile (<640px) | 2 colunas |
-| Tablet (640-1024px) | 3 colunas |
-| Desktop (>1024px) | 5 colunas |
