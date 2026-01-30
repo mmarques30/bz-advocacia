@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useState } from "react";
-import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2, FileX } from "lucide-react";
+import { useState, useMemo } from "react";
+import { AlertTriangle, Eye, FileText, Calendar, MoreVertical, Link2, Trash2, FileX, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -212,6 +212,8 @@ interface ProcessosTableProps {
   onAddAndamento: (processoId: string) => void;
 }
 
+type SortDirection = 'asc' | 'desc' | null;
+
 export function ProcessosTable({
   processos,
   isLoading,
@@ -219,7 +221,31 @@ export function ProcessosTable({
   onAddAndamento,
 }: ProcessosTableProps) {
   const [processoToDelete, setProcessoToDelete] = useState<Processo | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const deleteProcesso = useDeleteProcesso();
+
+  const sortedProcessos = useMemo(() => {
+    if (!sortDirection) return processos;
+    
+    return [...processos].sort((a, b) => {
+      const nameA = (a.cliente?.nome_completo || 'zzz').toLowerCase();
+      const nameB = (b.cliente?.nome_completo || 'zzz').toLowerCase();
+      
+      if (sortDirection === 'asc') {
+        return nameA.localeCompare(nameB, 'pt-BR');
+      } else {
+        return nameB.localeCompare(nameA, 'pt-BR');
+      }
+    });
+  }, [processos, sortDirection]);
+
+  const toggleSort = () => {
+    if (sortDirection === null) setSortDirection('asc');
+    else if (sortDirection === 'asc') setSortDirection('desc');
+    else setSortDirection('asc');
+  };
+
+  const SortIcon = sortDirection === 'asc' ? ArrowUp : sortDirection === 'desc' ? ArrowDown : ArrowUpDown;
 
   const handleDelete = () => {
     if (processoToDelete) {
@@ -254,7 +280,17 @@ export function ProcessosTable({
           <TableHeader>
             <TableRow>
               <TableHead>Nº Processo</TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={toggleSort}
+                  className="h-8 px-2 -ml-2 hover:bg-muted"
+                >
+                  Cliente
+                  <SortIcon className="ml-1 h-4 w-4" />
+                </Button>
+              </TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Tribunal</TableHead>
               <TableHead>Status</TableHead>
@@ -265,7 +301,7 @@ export function ProcessosTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {processos.map((processo) => (
+            {sortedProcessos.map((processo) => (
               <ProcessoRow
                 key={processo.id}
                 processo={processo}
