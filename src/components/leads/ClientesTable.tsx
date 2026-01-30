@@ -1,5 +1,5 @@
-import { Eye, Edit, MoreVertical, Trash2, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { Eye, Edit, MoreVertical, Trash2, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useState, useMemo } from "react";
 import {
   Table,
   TableBody,
@@ -40,9 +40,12 @@ interface ClientesTableProps {
   onEdit: (lead: Lead) => void;
 }
 
+type SortDirection = 'asc' | 'desc' | null;
+
 export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: ClientesTableProps) {
   const deleteLead = useDeleteLead();
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
@@ -71,6 +74,30 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
     window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
   };
 
+  const sortedLeads = useMemo(() => {
+    if (!leads) return [];
+    if (!sortDirection) return leads;
+    
+    return [...leads].sort((a, b) => {
+      const nameA = a.nome_completo.toLowerCase();
+      const nameB = b.nome_completo.toLowerCase();
+      
+      if (sortDirection === 'asc') {
+        return nameA.localeCompare(nameB, 'pt-BR');
+      } else {
+        return nameB.localeCompare(nameA, 'pt-BR');
+      }
+    });
+  }, [leads, sortDirection]);
+
+  const toggleSort = () => {
+    if (sortDirection === null) setSortDirection('asc');
+    else if (sortDirection === 'asc') setSortDirection('desc');
+    else setSortDirection('asc');
+  };
+
+  const SortIcon = sortDirection === 'asc' ? ArrowUp : sortDirection === 'desc' ? ArrowDown : ArrowUpDown;
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -94,7 +121,17 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Nome</TableHead>
+            <TableHead>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={toggleSort}
+                className="h-8 px-2 -ml-2 hover:bg-muted"
+              >
+                Nome
+                <SortIcon className="ml-1 h-4 w-4" />
+              </Button>
+            </TableHead>
             <TableHead className="w-[60px] text-center">WhatsApp</TableHead>
             <TableHead>Origem</TableHead>
             <TableHead>Tipo</TableHead>
@@ -105,7 +142,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
           </TableRow>
         </TableHeader>
         <TableBody>
-          {leads.map((lead) => (
+          {sortedLeads.map((lead) => (
             <TableRow key={lead.id}>
               <TableCell className="font-medium">
                 <span className="truncate max-w-[200px]">
