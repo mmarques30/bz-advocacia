@@ -324,7 +324,7 @@ export const PropostaPDF = ({
           
           <Text style={styles.contactTitle}>Advogada(s) Contratada(s)</Text>
           
-          <Text style={styles.contactText}>Eliziane Zembruski Taborda</Text>
+          <Text style={styles.contactText}>Eliziane Zembruski</Text>
           <Text style={styles.contactOAB}>OAB/RS 115.245</Text>
           
           <Text style={styles.contactText}>Juliana Lima Borges Gasparini</Text>

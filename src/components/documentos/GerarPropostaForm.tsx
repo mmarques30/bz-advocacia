@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Loader2 } from "lucide-react";
+import { FileText, Download, Loader2, Sparkles } from "lucide-react";
 import { useLeads } from "@/hooks/useLeads";
 import { MODELOS_PROPOSTA } from "@/lib/propostaTemplates";
 import { PropostaPreview } from "./PropostaPreview";
@@ -13,6 +13,7 @@ import { PropostaPDF } from "./PropostaPDF";
 import { pdf } from '@react-pdf/renderer';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
 
 export const GerarPropostaForm = () => {
   const [modeloSelecionado, setModeloSelecionado] = useState<string>("");
@@ -36,6 +37,30 @@ export const GerarPropostaForm = () => {
     statusCliente: [],
   });
 
+  // Buscar modelos personalizados do banco
+  const { data: modelosPersonalizados = [] } = useModelosPersonalizados('proposta');
+
+  // Combinar modelos estáticos com personalizados
+  const todosModelos = useMemo(() => {
+    const modelosDB = modelosPersonalizados.map(m => {
+      let conteudo: ModeloConteudo = { servico_padrao: '', tipo_modelo: 'proposta', fonte: 'upload_ia' };
+      try {
+        conteudo = JSON.parse(m.conteudo);
+      } catch {}
+      
+      return {
+        id: m.id,
+        nome: m.nome,
+        tipo: m.categoria || 'civel',
+        descricao: m.descricao || '',
+        servico_padrao: conteudo.servico_padrao,
+        isCustom: true,
+      };
+    });
+    
+    return [...modelosDB, ...MODELOS_PROPOSTA.map(m => ({ ...m, isCustom: false }))];
+  }, [modelosPersonalizados]);
+
   const clienteData = useMemo(() => {
     const cliente = leads.find(l => l.id === clienteSelecionado);
     return {
@@ -49,7 +74,7 @@ export const GerarPropostaForm = () => {
 
   const handleModeloChange = (modeloId: string) => {
     setModeloSelecionado(modeloId);
-    const modelo = MODELOS_PROPOSTA.find(m => m.id === modeloId);
+    const modelo = todosModelos.find(m => m.id === modeloId);
     if (modelo) {
       setDescricaoServico(modelo.servico_padrao);
     }
@@ -168,9 +193,12 @@ export const GerarPropostaForm = () => {
                 <SelectValue placeholder="Selecione um modelo" />
               </SelectTrigger>
               <SelectContent>
-                {MODELOS_PROPOSTA.map((modelo) => (
+                {todosModelos.map((modelo) => (
                   <SelectItem key={modelo.id} value={modelo.id}>
-                    {modelo.nome}
+                    <span className="flex items-center gap-2">
+                      {modelo.isCustom && <Sparkles className="h-3 w-3 text-primary" />}
+                      {modelo.nome}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
