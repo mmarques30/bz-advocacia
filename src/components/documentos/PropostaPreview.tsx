@@ -177,7 +177,7 @@ export const PropostaPreview = ({
                 <h3 className="text-xs font-semibold text-primary mb-3">
                   Advogada(s) Contratada(s)
                 </h3>
-                <p className="text-xs">Eliziane Zembruski Taborda</p>
+                <p className="text-xs">Eliziane Zembruski</p>
                 <p className="text-[10px] text-muted-foreground mb-2">OAB/RS 115.245</p>
                 <p className="text-xs">Juliana Lima Borges Gasparini</p>
                 <p className="text-[10px] text-muted-foreground mb-3">OAB/RS 83.345</p>
