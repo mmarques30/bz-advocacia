@@ -1,250 +1,167 @@
 
 
-# Plano: Ajustes no Sistema de Documentos
+# Plano: Atualizar CPFs dos Clientes Importados
 
 ## Objetivo
-1. **Remover "Taborda"** do nome "Eliziane Zembruski Taborda" em todas as propostas e contratos
-2. **Permitir criação de novos modelos** de proposta/contrato via upload de documento com análise por IA
+Cadastrar os CPFs de todos os clientes importados da planilha B&Z no banco de dados, associando corretamente pelo nome do cliente.
 
----
+## Análise dos Dados
 
-## Parte 1: Remover Sobrenome "Taborda"
+### Planilha Excel
+- **Total de clientes**: 182 registros
+- **Clientes COM CPF na planilha**: ~95 clientes
+- **Clientes SEM CPF**: ~87 clientes (campos vazios)
 
-### Arquivos Afetados
+### Banco de Dados (contact_submissions)
+- Todos os clientes importados estão com `cpf = null`
+- Clientes estão com `estagio = 'fechado'`
+- Match será feito pelo campo `nome_completo`
 
-| Arquivo | Linha | Mudança |
-|---------|-------|---------|
-| `src/components/documentos/PropostaPDF.tsx` | 327 | "Eliziane Zembruski Taborda" → "Eliziane Zembruski" |
-| `src/components/documentos/PropostaPreview.tsx` | 180 | "Eliziane Zembruski Taborda" → "Eliziane Zembruski" |
+## Mapeamento de CPFs
 
-### Mudança Específica
+A planilha contém CPFs no formato numérico (ex: `97833770000`, `17733073049`). Alguns pontos importantes:
 
-**Antes:**
-```tsx
-<Text style={styles.contactText}>Eliziane Zembruski Taborda</Text>
-```
+1. **Nomes com observações entre parênteses**: Na importação, observações foram removidas
+   - Planilha: "Amélia Zanetti (karoline)" → Banco: "Amélia Zanetti"
+   - Planilha: "Bianca Schuller (Pedro)" → Banco: "Bianca Schuller"
 
-**Depois:**
-```tsx
-<Text style={styles.contactText}>Eliziane Zembruski</Text>
-```
+2. **CPFs variam entre CPF (11 dígitos) e CNPJ (14 dígitos)**
+   - CPF: `97833770000` (11 dígitos)
+   - CNPJ: `42082795000174` (14 dígitos para CB Move)
 
----
+3. **Clientes sem CPF serão ignorados** (não há dado para atualizar)
 
-## Parte 2: Sistema de Upload com Análise por IA
+## Estratégia de Implementação
 
-### Fluxo Proposto
-
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Aba "Modelos" - Novo Botão "Criar Modelo com IA"                       │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  1. Upload de Documento                                                 │
-│     ┌──────────────────────────────────────────────────────────────┐   │
-│     │  [Arraste o documento aqui ou clique para selecionar]        │   │
-│     │  Formatos: PDF, DOCX, TXT                                    │   │
-│     └──────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  2. Selecionar Tipo                                                     │
-│     ○ Proposta (gera modelo visual 4 páginas)                          │
-│     ○ Contrato (gera modelo texto estruturado)                         │
-│                                                                         │
-│  3. Nome do Modelo: [_________________________________]                 │
-│     Categoria: [_Saúde_____▾] (select: Saúde, Família, Cível...)       │
-│                                                                         │
-│  [Analisar com IA]                                                      │
-│                                                                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│  4. Resultado (após análise)                                            │
-│                                                                         │
-│  A IA extrai:                                                           │
-│  • Descrição do serviço padrão                                         │
-│  • Tipo de ação identificado                                           │
-│  • Variáveis detectadas (valores, prazos, etc.)                        │
-│                                                                         │
-│  [Preview do Modelo]  [Salvar Modelo]  [Cancelar]                      │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Arquivos a Criar/Modificar
-
-| Arquivo | Ação | Descrição |
-|---------|------|-----------|
-| `supabase/functions/analyze-document/index.ts` | Criar | Edge function que usa Lovable AI para analisar documento |
-| `src/components/documentos/UploadModeloDialog.tsx` | Criar | Dialog com upload, tipo e análise IA |
-| `src/components/documentos/ModelosContrato.tsx` | Modificar | Adicionar botão "Criar Modelo com IA" |
-| `src/lib/propostaTemplates.ts` | Modificar | Suportar modelos dinâmicos do banco |
-| `src/hooks/useModelosDocumentos.ts` | Criar | Hook para buscar modelos personalizados da tabela templates |
-
-### Edge Function: analyze-document
-
-Usa Lovable AI (gemini-3-flash-preview) para:
-- Extrair texto do documento enviado
-- Identificar tipo de ação jurídica (saúde, família, trabalhista, etc.)
-- Gerar descrição padrão do serviço
-- Identificar variáveis (nome cliente, valores, datas)
-
-**Payload de entrada:**
-```json
-{
-  "content": "texto do documento",
-  "tipo": "proposta" | "contrato"
-}
-```
-
-**Payload de saída:**
-```json
-{
-  "servico_padrao": "assessoria jurídica em...",
-  "tipo_identificado": "saude",
-  "variaveis": ["valor_entrada", "percentual_exito"],
-  "descricao_modelo": "Modelo para ações de saúde..."
-}
-```
-
-### Integração com Tabela Templates
-
-O modelo criado será salvo na tabela `templates` existente:
-
-```typescript
-{
-  nome: "Proposta - Ação de Saúde",
-  tipo: "proposta", // ou "contrato"
-  categoria: "saude",
-  conteudo: JSON.stringify({
-    servico_padrao: "...",
-    tipo_modelo: "proposta",
-    fonte: "upload_ia"
-  }),
-  descricao: "Modelo criado via upload com análise IA",
-  ativo: true,
-  variaveis: ["valor_entrada", "percentual_exito"]
-}
-```
-
-### Componente UploadModeloDialog
-
-**Funcionalidades:**
-- Drag & drop para upload de arquivo
-- Leitura de texto do arquivo (PDF via browser, DOCX via lib)
-- Seleção de tipo (proposta/contrato)
-- Input para nome e categoria
-- Botão "Analisar com IA" que chama edge function
-- Preview do resultado
-- Botão "Salvar Modelo" que persiste na tabela templates
-
-**Estados:**
-- `idle` - aguardando upload
-- `uploading` - processando arquivo
-- `analyzing` - chamando IA
-- `preview` - mostrando resultado
-- `saving` - salvando no banco
-
-### Modificação em ModelosContrato.tsx
-
-Adicionar:
-1. Botão "Criar Modelo com IA" no topo da lista
-2. Buscar modelos personalizados do banco além dos estáticos
-3. Badge "IA" para modelos criados via upload
-
-### Modificação em GerarPropostaForm.tsx
-
-Atualizar para:
-1. Combinar `MODELOS_PROPOSTA` estáticos com modelos do banco
-2. Identificar modelos de categoria "saude" para ações de saúde
-
----
+Criarei um script SQL que:
+1. Faz UPDATE direto na tabela `contact_submissions`
+2. Usa `nome_completo` como chave de match (com tratamento para nomes com observações)
+3. Formata CPF/CNPJ para o padrão brasileiro
 
 ## Detalhamento Técnico
 
-### 1. Edge Function analyze-document
+### Script SQL de Atualização
 
-```typescript
-// supabase/functions/analyze-document/index.ts
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+Será executado via ferramenta de migração do Supabase:
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const { content, tipo } = await req.json();
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-
-  const systemPrompt = `Você é um assistente jurídico especializado em análise de documentos.
-Analise o documento e extraia:
-1. Uma descrição padrão do serviço (max 200 caracteres)
-2. O tipo de ação jurídica (saude, familia, civel, trabalhista, consumidor, previdenciario)
-3. Variáveis que podem ser personalizadas
-
-Responda APENAS em JSON válido.`;
-
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Analise este documento (${tipo}): ${content}` }
-      ],
-      tools: [/* ... tool para structured output */]
-    }),
-  });
-
-  // Parse e retorna resultado
-});
+```sql
+-- Atualizar CPFs dos clientes importados
+UPDATE contact_submissions SET cpf = '978.337.700-00' WHERE nome_completo = 'Adem Campão Rodrigues Júnior' AND estagio = 'fechado';
+UPDATE contact_submissions SET cpf = '177.330.730-49' WHERE nome_completo = 'Ademar Lunardelli' AND estagio = 'fechado';
+UPDATE contact_submissions SET cpf = '899.389.500-78' WHERE nome_completo = 'Adriana Pacheco' AND estagio = 'fechado';
+-- ... continua para todos os clientes com CPF na planilha
 ```
 
-### 2. Hook useModelosDocumentos
+### Lista Completa de Atualizações
 
-```typescript
-// src/hooks/useModelosDocumentos.ts
-export const useModelosPersonalizados = (tipo: 'proposta' | 'contrato') => {
-  return useQuery({
-    queryKey: ['modelos-personalizados', tipo],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('templates')
-        .select('*')
-        .eq('tipo', tipo)
-        .eq('ativo', true);
-      return data;
-    }
-  });
-};
-```
+| Nome | CPF/CNPJ (formatado) |
+|------|---------------------|
+| Adem Campão Rodrigues Júnior | 978.337.700-00 |
+| Ademar Lunardelli | 177.330.730-49 |
+| Adriana Pacheco | 899.389.500-78 |
+| Airton Tonelo | 309.949.690-15 |
+| Aline Michelon Rizzi | 010.202.060-47 |
+| Alvaro Marcelo Martins de Oliveira | 897.747.790-53 |
+| Amanda Biachi Simon da Silva | 025.876.340-08 |
+| Amélia Zanetti | 252.188.080-91 |
+| Ana Esmeralda de Quevedo | 342.777.570-49 |
+| Artur Fernando Wagner | 135.148.300-53 |
+| Assis Marques de Vasconcellos | 827.730.090-53 |
+| Bianca Sattler | 036.970.340-57 |
+| Bianca Schuller | 719.739.230-68 |
+| Camila Avellar | 837.016.800-00 |
+| Carol Kunzler e Alceu Ricardo | 432.872.710-91 |
+| CB Move - Charlene | 42.082.795/0001-74 (CNPJ) |
+| Ceni Maria da Luz Correia | 954.761.990-04 |
+| Cintia Demoliner | 012.725.890-64 |
+| Cintia Pimentel da Silva | 975.101.140-04 |
+| Darlan Garcia da Silva | 028.111.410-22 |
+| Debora Secchi | 005.132.740-65 |
+| Denise Leão | 817.244.200-97 |
+| Dennis Rimoli Machado | 017.206.500-39 |
+| Elaine Flores da Silva | 738.969.850-00 |
+| Elizabete Homrich e Silvano Homrich | 278.927.780-04 |
+| Eraldo Luiz Perin | 270.166.840-91 |
+| Fabio Duarte Stumpf | 987.624.780-87 |
+| Fabio Marcelo Taborda | 929.357.610-49 |
+| Gabriel Braga Sampaio | 137.181.067-28 |
+| Gabriela da Silva Nodari | 023.332.290-63 |
+| Geovane Rosa Ferreira | 023.052.120-70 |
+| Germano Daniel Iserhard | 368.274.360-04 |
+| Giane Alves Santos | 005.313.970-41 |
+| Giovani Facchin | 251.961.700-49 |
+| Helena Maria Bom | 527.496.810-49 |
+| Isabela Stefanny da Rosa Oliveira | 872.194.760-00 |
+| Jalma Mariculi Soares | 001.649.440-79 |
+| João Francisco do Carmo | 502.607.820-68 |
+| Joaquim de Oliveira Borges | 056.591.670-04 |
+| Josiara | 014.569.430-57 |
+| Josué Schostack e Rebecca Schostack | 151.535.920-49 |
+| Joyce Silva | 009.793.730-42 |
+| Julio Cezar Saquete | 199.617.660-91 |
+| Kaquini Athayde dos Santos Martins | 017.341.879-13 |
+| Karen Viviane Brito de Oliveira | 860.083.660-34 |
+| Ketlyn Priscila dos Santos/Erika Eduarda | 028.309.580-63 |
+| Lauren Boeira, Elba Fargas e Vitor | 943.672.210-91 |
+| Leda Jeremias | 057.729.849-69 |
+| Lenice Lutckmeier e Carlos Andre | 284.013.520-53 |
+| Leoni Flores | 945.889.880-34 |
+| Lia Mailander | 607.393.470-04 |
+| Liberia Gutterres | 909.970.180-20 |
+| Lilia Mercedes Silva | 560.173.240-04 |
+| Liria Janaína Muller | 916.312.380-00 |
+| Luiz Fabrício Almeida | 868.685.780-91 |
+| Lourdes Elena Fritz | 286.354.500-00 |
+| Luciane Oliveira Mangia | 808.279.500-04 |
+| Marcia Silvana da Silva | 625.765.500-53 |
+| Maria da Graça Garbini | 168.128.670-04 |
+| Maria de Fátima Pereira | 651.929.900-68 |
+| Maria Isabel de Azevedo | 001.208.300-35 |
+| Maria Helena Mendes Hofmeister | 920.189.630-15 |
+| Maria Luiza Amaral da Rosa | 198.067.100-10 |
+| Maria Zélia Bimkowski | 241.436.500-53 |
+| Marilaine Martins da Silveira | 429.954.000-00 |
+| Marilene Amado Severo | 286.402.920-00 |
+| Marlene de Mello Bica | 289.980.140-68 |
+| Marina Mello Lima BB | 547.488.950-04 |
+| Neiva Ongaratto | 609.297.070-87 |
+| Priscila Gomes de Aguiar | 024.613.340-64 |
+| Rafael Silveira da Silva | 004.838.270-10 |
+| Rafaela Alessandra Duarte de Araujo | 890.193.500-72 |
+| Rafaela Vargas de Oliveira | 812.629.490-68 |
+| Reus Rogerio dos Santos Guedes | 606.317.320-04 |
+| Ricardo Pufal | 262.067.060-87 |
+| Rita Ferreira | 533.774.600-63 |
+| Rodrigo Faggiano | 980.306.710-91 |
+| Rodrigo Neto | 929.679.570-20 |
+| Roger Souza Marques/ Mary | 862.355.080-34 |
+| Ronaldo Renck | 564.064.520-20 |
+| Rosalinda Pasini/Tamara | 176.182.740-53 |
+| Roseane Rocha e Luciano Moreira | 900.342.600-72 |
+| Roselia Portella Lewis | 369.002.140-53 |
+| Silvano Homrich | 553.339.150-91 |
+| Thais Regina Lorenzatto de Lima | 032.226.530-46 |
+| Tiago Meurer Brum | 001.753.920-05 |
+| Vanessa Garcia Rodrigues | 819.320.810-20 |
+| Victor Hugo Sartori | 264.053.770-91 |
+| Victoria Caroline Vaz Schutze | 032.887.950-94 |
 
----
+## Arquivos/Ações
 
-## Resumo de Arquivos
+| Ação | Descrição |
+|------|-----------|
+| Migração SQL | Script UPDATE para 86 clientes com CPF |
 
-| Arquivo | Ação |
-|---------|------|
-| `src/components/documentos/PropostaPDF.tsx` | Modificar (remover "Taborda") |
-| `src/components/documentos/PropostaPreview.tsx` | Modificar (remover "Taborda") |
-| `supabase/functions/analyze-document/index.ts` | Criar |
-| `src/components/documentos/UploadModeloDialog.tsx` | Criar |
-| `src/components/documentos/ModelosContrato.tsx` | Modificar |
-| `src/hooks/useModelosDocumentos.ts` | Criar |
-| `src/lib/propostaTemplates.ts` | Modificar |
-| `src/components/documentos/GerarPropostaForm.tsx` | Modificar |
+## Considerações
 
----
+1. **Match por nome**: Alguns nomes podem ter variações leves (acentos, espaços)
+2. **Formato CPF**: Será salvo já formatado (XXX.XXX.XXX-XX)
+3. **CNPJ**: CB Move será salvo no formato CNPJ (XX.XXX.XXX/XXXX-XX)
+4. **Clientes sem CPF**: ~87 clientes permanecerão sem CPF (não há dado na planilha)
 
 ## Benefícios
 
-1. **Personalização**: Escritório pode criar modelos específicos para ações de saúde
-2. **Eficiência**: IA extrai automaticamente informações do documento fonte
-3. **Consistência**: Novos modelos seguem o padrão visual já definido
-4. **Escalabilidade**: Sistema suporta múltiplos tipos de ação sem código adicional
+1. **Dados completos**: Clientes terão CPF para geração de contratos/propostas
+2. **Documentos legais**: Contratos serão gerados com identificação correta
+3. **Consistência**: Base de dados alinhada com planilha original
 
