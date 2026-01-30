@@ -1,107 +1,250 @@
 
 
-# Plano: Ícone de Docs Clicável para Pasta do Cliente
+# Plano: Ajustes no Sistema de Documentos
 
 ## Objetivo
-Transformar o ícone da coluna "Docs" na tabela de processos em um link clicável que direciona para a pasta do Google Drive do cliente/processo.
+1. **Remover "Taborda"** do nome "Eliziane Zembruski Taborda" em todas as propostas e contratos
+2. **Permitir criação de novos modelos** de proposta/contrato via upload de documento com análise por IA
 
-## Situação Atual
+---
 
-Na `ProcessosTable.tsx`, a coluna "Docs" exibe:
-- **Badge verde com Link2**: quando há documentos vinculados
-- **Badge outline com FileX**: quando não há documentos
+## Parte 1: Remover Sobrenome "Taborda"
 
-Atualmente, esses badges são apenas visuais (`cursor-default`) e não têm interação.
+### Arquivos Afetados
 
-## Mudança Proposta
+| Arquivo | Linha | Mudança |
+|---------|-------|---------|
+| `src/components/documentos/PropostaPDF.tsx` | 327 | "Eliziane Zembruski Taborda" → "Eliziane Zembruski" |
+| `src/components/documentos/PropostaPreview.tsx` | 180 | "Eliziane Zembruski Taborda" → "Eliziane Zembruski" |
 
-Modificar a lógica da célula "Docs" para:
-1. Se `processo.pasta_drive_url` existir → tornar o badge clicável, abrindo a pasta em nova aba
-2. Manter o visual atual, apenas adicionando interatividade
-3. Atualizar o tooltip para indicar que é clicável
+### Mudança Específica
+
+**Antes:**
+```tsx
+<Text style={styles.contactText}>Eliziane Zembruski Taborda</Text>
+```
+
+**Depois:**
+```tsx
+<Text style={styles.contactText}>Eliziane Zembruski</Text>
+```
+
+---
+
+## Parte 2: Sistema de Upload com Análise por IA
+
+### Fluxo Proposto
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Aba "Modelos" - Novo Botão "Criar Modelo com IA"                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  1. Upload de Documento                                                 │
+│     ┌──────────────────────────────────────────────────────────────┐   │
+│     │  [Arraste o documento aqui ou clique para selecionar]        │   │
+│     │  Formatos: PDF, DOCX, TXT                                    │   │
+│     └──────────────────────────────────────────────────────────────┘   │
+│                                                                         │
+│  2. Selecionar Tipo                                                     │
+│     ○ Proposta (gera modelo visual 4 páginas)                          │
+│     ○ Contrato (gera modelo texto estruturado)                         │
+│                                                                         │
+│  3. Nome do Modelo: [_________________________________]                 │
+│     Categoria: [_Saúde_____▾] (select: Saúde, Família, Cível...)       │
+│                                                                         │
+│  [Analisar com IA]                                                      │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────┤
+│  4. Resultado (após análise)                                            │
+│                                                                         │
+│  A IA extrai:                                                           │
+│  • Descrição do serviço padrão                                         │
+│  • Tipo de ação identificado                                           │
+│  • Variáveis detectadas (valores, prazos, etc.)                        │
+│                                                                         │
+│  [Preview do Modelo]  [Salvar Modelo]  [Cancelar]                      │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Arquivos a Criar/Modificar
+
+| Arquivo | Ação | Descrição |
+|---------|------|-----------|
+| `supabase/functions/analyze-document/index.ts` | Criar | Edge function que usa Lovable AI para analisar documento |
+| `src/components/documentos/UploadModeloDialog.tsx` | Criar | Dialog com upload, tipo e análise IA |
+| `src/components/documentos/ModelosContrato.tsx` | Modificar | Adicionar botão "Criar Modelo com IA" |
+| `src/lib/propostaTemplates.ts` | Modificar | Suportar modelos dinâmicos do banco |
+| `src/hooks/useModelosDocumentos.ts` | Criar | Hook para buscar modelos personalizados da tabela templates |
+
+### Edge Function: analyze-document
+
+Usa Lovable AI (gemini-3-flash-preview) para:
+- Extrair texto do documento enviado
+- Identificar tipo de ação jurídica (saúde, família, trabalhista, etc.)
+- Gerar descrição padrão do serviço
+- Identificar variáveis (nome cliente, valores, datas)
+
+**Payload de entrada:**
+```json
+{
+  "content": "texto do documento",
+  "tipo": "proposta" | "contrato"
+}
+```
+
+**Payload de saída:**
+```json
+{
+  "servico_padrao": "assessoria jurídica em...",
+  "tipo_identificado": "saude",
+  "variaveis": ["valor_entrada", "percentual_exito"],
+  "descricao_modelo": "Modelo para ações de saúde..."
+}
+```
+
+### Integração com Tabela Templates
+
+O modelo criado será salvo na tabela `templates` existente:
+
+```typescript
+{
+  nome: "Proposta - Ação de Saúde",
+  tipo: "proposta", // ou "contrato"
+  categoria: "saude",
+  conteudo: JSON.stringify({
+    servico_padrao: "...",
+    tipo_modelo: "proposta",
+    fonte: "upload_ia"
+  }),
+  descricao: "Modelo criado via upload com análise IA",
+  ativo: true,
+  variaveis: ["valor_entrada", "percentual_exito"]
+}
+```
+
+### Componente UploadModeloDialog
+
+**Funcionalidades:**
+- Drag & drop para upload de arquivo
+- Leitura de texto do arquivo (PDF via browser, DOCX via lib)
+- Seleção de tipo (proposta/contrato)
+- Input para nome e categoria
+- Botão "Analisar com IA" que chama edge function
+- Preview do resultado
+- Botão "Salvar Modelo" que persiste na tabela templates
+
+**Estados:**
+- `idle` - aguardando upload
+- `uploading` - processando arquivo
+- `analyzing` - chamando IA
+- `preview` - mostrando resultado
+- `saving` - salvando no banco
+
+### Modificação em ModelosContrato.tsx
+
+Adicionar:
+1. Botão "Criar Modelo com IA" no topo da lista
+2. Buscar modelos personalizados do banco além dos estáticos
+3. Badge "IA" para modelos criados via upload
+
+### Modificação em GerarPropostaForm.tsx
+
+Atualizar para:
+1. Combinar `MODELOS_PROPOSTA` estáticos com modelos do banco
+2. Identificar modelos de categoria "saude" para ações de saúde
+
+---
 
 ## Detalhamento Técnico
 
-### Arquivo: `src/components/processos/ProcessosTable.tsx`
+### 1. Edge Function analyze-document
 
-Modificar a célula da coluna Docs (linhas 138-164):
+```typescript
+// supabase/functions/analyze-document/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-**De:**
-```tsx
-<TableCell>
-  {docsCount !== undefined && docsCount > 0 ? (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-default">
-          <Link2 className="h-3 w-3" />
-          {docsCount}
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>
-        {docsCount} documento(s) vinculado(s)
-      </TooltipContent>
-    </Tooltip>
-  ) : (
-    // ... badge sem documentos
-  )}
-</TableCell>
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const { content, tipo } = await req.json();
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+  const systemPrompt = `Você é um assistente jurídico especializado em análise de documentos.
+Analise o documento e extraia:
+1. Uma descrição padrão do serviço (max 200 caracteres)
+2. O tipo de ação jurídica (saude, familia, civel, trabalhista, consumidor, previdenciario)
+3. Variáveis que podem ser personalizadas
+
+Responda APENAS em JSON válido.`;
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: `Analise este documento (${tipo}): ${content}` }
+      ],
+      tools: [/* ... tool para structured output */]
+    }),
+  });
+
+  // Parse e retorna resultado
+});
 ```
 
-**Para:**
-```tsx
-<TableCell>
-  {processo.pasta_drive_url ? (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <a 
-          href={processo.pasta_drive_url} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Badge className="gap-1 bg-green-600 hover:bg-green-700 cursor-pointer">
-            <Link2 className="h-3 w-3" />
-            {docsCount || 0}
-          </Badge>
-        </a>
-      </TooltipTrigger>
-      <TooltipContent>
-        Abrir pasta do Google Drive ({docsCount || 0} doc(s))
-      </TooltipContent>
-    </Tooltip>
-  ) : (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Badge variant="outline" className="gap-1 text-muted-foreground cursor-default">
-          <FileX className="h-3 w-3" />
-          0
-        </Badge>
-      </TooltipTrigger>
-      <TooltipContent>
-        Nenhuma pasta vinculada
-      </TooltipContent>
-    </Tooltip>
-  )}
-</TableCell>
+### 2. Hook useModelosDocumentos
+
+```typescript
+// src/hooks/useModelosDocumentos.ts
+export const useModelosPersonalizados = (tipo: 'proposta' | 'contrato') => {
+  return useQuery({
+    queryKey: ['modelos-personalizados', tipo],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('tipo', tipo)
+        .eq('ativo', true);
+      return data;
+    }
+  });
+};
 ```
 
-## Lógica de Exibição
+---
 
-| Condição | Visual | Comportamento |
-|----------|--------|---------------|
-| `pasta_drive_url` existe | Badge verde com ícone Link2 | Clicável → abre pasta no Drive |
-| `pasta_drive_url` não existe | Badge outline com ícone FileX | Não clicável, apenas informativo |
-
-## Arquivo a Modificar
+## Resumo de Arquivos
 
 | Arquivo | Ação |
 |---------|------|
-| `src/components/processos/ProcessosTable.tsx` | Modificar célula da coluna Docs |
+| `src/components/documentos/PropostaPDF.tsx` | Modificar (remover "Taborda") |
+| `src/components/documentos/PropostaPreview.tsx` | Modificar (remover "Taborda") |
+| `supabase/functions/analyze-document/index.ts` | Criar |
+| `src/components/documentos/UploadModeloDialog.tsx` | Criar |
+| `src/components/documentos/ModelosContrato.tsx` | Modificar |
+| `src/hooks/useModelosDocumentos.ts` | Criar |
+| `src/lib/propostaTemplates.ts` | Modificar |
+| `src/components/documentos/GerarPropostaForm.tsx` | Modificar |
+
+---
 
 ## Benefícios
 
-1. **Acesso Rápido**: Um clique leva direto à pasta do cliente
-2. **Feedback Visual**: Cursor pointer indica que é clicável
-3. **Tooltip Informativo**: Usuário sabe o que esperar ao clicar
-4. **Sem Quebra de Fluxo**: `stopPropagation` evita conflitos com cliques na linha
+1. **Personalização**: Escritório pode criar modelos específicos para ações de saúde
+2. **Eficiência**: IA extrai automaticamente informações do documento fonte
+3. **Consistência**: Novos modelos seguem o padrão visual já definido
+4. **Escalabilidade**: Sistema suporta múltiplos tipos de ação sem código adicional
 
