@@ -176,7 +176,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
     createAcordo.mutate(
       {
         cliente_id: clienteId,
-        processo_id: processoId || null,
+        processo_id: processoId && processoId !== "none" ? processoId : null,
         tipo_servico: `${TIPO_ENTRADA_FATURAMENTO_LABELS[tipo]}${descricao ? ` - ${descricao}` : ''}`,
         valor_total: parseFloat(valor),
         forma_pagamento: 'a_vista',
@@ -226,7 +226,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
             <SelectValue placeholder="Vincular a um processo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Nenhum</SelectItem>
+            <SelectItem value="none">Nenhum</SelectItem>
             {processos?.map((processo) => (
               <SelectItem key={processo.id} value={processo.id}>
                 {processo.numero_processo || processo.tipo}
