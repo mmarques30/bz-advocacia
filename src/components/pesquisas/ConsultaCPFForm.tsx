@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { User, Search, Loader2, CheckCircle, XCircle, AlertCircle, Calendar } from "lucide-react";
+import { User, Search, Loader2, CheckCircle, XCircle, AlertCircle, Calendar, AlertTriangle } from "lucide-react";
 import { useConsultaCPF, ConsultaCPFResponse } from "@/hooks/useConsultaCPF";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -230,9 +230,10 @@ export const ConsultaCPFForm = () => {
             {resultado.dados.anoObito && (
               <>
                 <Separator />
-                <div className="p-3 bg-destructive/10 rounded-lg">
+                <div className="p-3 bg-destructive/10 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
                   <p className="text-sm text-destructive font-medium">
-                    ⚠️ Registro de óbito: {resultado.dados.anoObito}
+                    Registro de óbito: {resultado.dados.anoObito}
                   </p>
                 </div>
               </>
