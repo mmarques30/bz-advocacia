@@ -81,7 +81,10 @@ export function PagamentosAtrasados() {
               </div>
             ) : despesas.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground">Nenhuma despesa pendente 🎉</p>
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>Nenhuma despesa pendente</span>
+                </div>
               </div>
             ) : (
               <ScrollArea className="h-[300px] pr-4">

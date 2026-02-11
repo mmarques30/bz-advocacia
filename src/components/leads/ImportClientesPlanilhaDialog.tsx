@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, FileSpreadsheet, Users, Scale, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Upload, FileSpreadsheet, Users, Scale, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Info, FolderOpen, AlertTriangle } from "lucide-react";
 import * as XLSX from "xlsx";
 import {
   useImportClientesPlanilha,
@@ -190,7 +190,10 @@ export function ImportClientesPlanilhaDialog({ open, onClose }: ImportClientesPl
             </div>
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-              <p className="font-medium text-sm">ℹ️ Formato esperado:</p>
+              <p className="font-medium text-sm flex items-center gap-1.5">
+                <Info className="h-4 w-4 text-muted-foreground" />
+                Formato esperado:
+              </p>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• Coluna A: CLIENTES</li>
                 <li>• Coluna B: TJRS - 1º GRAU</li>
@@ -199,9 +202,10 @@ export function ImportClientesPlanilhaDialog({ open, onClose }: ImportClientesPl
                 <li>• Coluna E: LINK DA PASTA</li>
                 <li>• Coluna F: SITUAÇÃO</li>
               </ul>
-              <p className="text-sm text-amber-600 dark:text-amber-400 mt-3">
-                ⚠️ Processos separados por | serão cadastrados individualmente para cada cliente
-              </p>
+              <div className="flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400 mt-3">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Processos separados por | serão cadastrados individualmente para cada cliente</span>
+              </div>
             </div>
           </div>
         )}
@@ -255,10 +259,13 @@ export function ImportClientesPlanilhaDialog({ open, onClose }: ImportClientesPl
                           <div className="flex items-center gap-2">
                             <Badge variant="outline">{cliente.processos.length} processos</Badge>
                             {cliente.pastaUrl && (
-                              <Badge variant="secondary">📁</Badge>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <FolderOpen className="h-3 w-3" />
+                                Pasta
+                              </Badge>
                             )}
                             <Badge variant={cliente.situacao === 'ativo' ? 'default' : 'secondary'}>
-                              {cliente.situacao === 'ativo' ? '🟢 Ativo' : '⚪ Inativo'}
+                              {cliente.situacao === 'ativo' ? 'Ativo' : 'Inativo'}
                             </Badge>
                           </div>
                         </div>

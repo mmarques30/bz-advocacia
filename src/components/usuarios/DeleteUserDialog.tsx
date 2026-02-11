@@ -45,9 +45,10 @@ export function DeleteUserDialog({ open, onOpenChange, usuario }: DeleteUserDial
             <p className="font-medium">{usuario.nome_completo}</p>
             <p className="text-sm text-muted-foreground">{usuario.email}</p>
           </div>
-          <p className="mt-4 text-sm text-destructive">
-            ⚠️ Todos os dados associados a este usuário serão perdidos, incluindo histórico de atividades e logs.
-          </p>
+          <div className="mt-4 flex items-start gap-2 text-sm text-destructive">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Todos os dados associados a este usuário serão perdidos, incluindo histórico de atividades e logs.</span>
+          </div>
         </div>
 
         <DialogFooter>

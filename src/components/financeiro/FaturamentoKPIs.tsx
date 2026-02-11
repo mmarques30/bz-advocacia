@@ -40,19 +40,19 @@ export function FaturamentoKPIs({ filters }: FaturamentoKPIsProps) {
       title: "Receita Realizada",
       value: formatCurrency(kpis?.receita_mes || 0),
       icon: DollarSign,
-      color: "text-green-500",
+      color: "text-primary",
     },
     {
       title: "Projeção",
       value: formatCurrency(kpis?.projecao || 0),
       icon: Target,
-      color: "text-cyan-500",
+      color: "text-muted-foreground",
     },
     {
       title: "A Receber",
       value: formatCurrency(kpis?.a_receber_mes || 0),
       icon: TrendingUp,
-      color: "text-blue-500",
+      color: "text-secondary-foreground",
     },
     {
       title: "Em Atraso",
@@ -64,7 +64,7 @@ export function FaturamentoKPIs({ filters }: FaturamentoKPIsProps) {
       title: "Ticket Médio",
       value: formatCurrency(kpis?.ticket_medio || 0),
       icon: FileText,
-      color: "text-purple-500",
+      color: "text-muted-foreground",
     },
   ];
 

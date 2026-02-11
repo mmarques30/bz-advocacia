@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWhatsAppHistoricoProcesso } from "@/hooks/useWhatsAppHistorico";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
-import { Send, CheckCircle, Clock, XCircle, Copy, MessageCircle, Check } from "lucide-react";
+import { Send, CheckCircle, Clock, XCircle, Copy, MessageCircle, Check, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState, useMemo } from "react";
@@ -270,9 +270,10 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
           )}
 
           {!processo.cliente?.telefone && selectedTemplate && (
-            <p className="text-sm text-destructive">
-              ⚠️ Cliente não possui telefone cadastrado
-            </p>
+            <div className="flex items-center gap-2 text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Cliente não possui telefone cadastrado</span>
+            </div>
           )}
         </CardContent>
       </Card>
