@@ -261,3 +261,45 @@ export const useDeleteModelo = () => {
     },
   });
 };
+
+// Hook para duplicar modelo (personalizado ou padrão)
+export const useDuplicarModelo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (modelo: {
+      nome: string;
+      tipo: string;
+      categoria: string;
+      conteudo: string;
+      descricao: string | null;
+      variaveis: string[] | null;
+    }) => {
+      const { data: user } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from('templates')
+        .insert({
+          nome: `${modelo.nome} (cópia)`,
+          tipo: modelo.tipo,
+          categoria: modelo.categoria,
+          conteudo: modelo.conteudo,
+          descricao: modelo.descricao,
+          ativo: true,
+          variaveis: modelo.variaveis || [],
+          criado_por: user?.user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['modelos-personalizados'] });
+      toast.success('Modelo duplicado com sucesso!');
+    },
+    onError: () => {
+      toast.error('Erro ao duplicar modelo');
+    },
+  });
+};
