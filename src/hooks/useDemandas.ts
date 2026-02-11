@@ -33,6 +33,9 @@ export const useDemandas = (filters?: DemandasFilters) => {
       if (filters?.search) {
         query = query.ilike('titulo', `%${filters.search}%`);
       }
+      if (filters?.advogada_responsavel) {
+        query = query.eq('advogada_responsavel', filters.advogada_responsavel);
+      }
 
       const { data, error } = await query;
 
@@ -140,6 +143,7 @@ export const useCreateDemanda = () => {
       status?: string;
       responsavel_id?: string | null;
       categoria?: string;
+      advogada_responsavel?: string;
       processo_id?: string | null;
       lead_id?: string | null;
       data_limite?: string | null;

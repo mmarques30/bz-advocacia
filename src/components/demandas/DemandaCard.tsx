@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, User, FileText, AlertCircle } from "lucide-react";
+import { CalendarDays, User, FileText, AlertCircle, Scale } from "lucide-react";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Demanda, CATEGORIA_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
 import { cn } from "@/lib/utils";
 
 interface DemandaCardProps {
@@ -55,6 +55,15 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
 
         {/* Informações */}
         <div className="space-y-1.5 text-xs text-muted-foreground">
+          {demanda.advogada_responsavel && (
+            <div className="flex items-center gap-1.5">
+              <Scale className="h-3.5 w-3.5" />
+              <span className="truncate font-medium text-foreground">
+                {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS]}
+              </span>
+            </div>
+          )}
+
           {demanda.processo && (
             <div className="flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5" />

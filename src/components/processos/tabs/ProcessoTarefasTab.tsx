@@ -8,7 +8,7 @@ import { Plus, Clock, CheckCircle2, AlertCircle, ChevronDown, ListTodo, Timer } 
 import { format } from "date-fns";
 import { useState } from "react";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
-import { PRIORIDADE_LABELS, STATUS_LABELS } from "@/types/demandas";
+import { PRIORIDADE_LABELS, STATUS_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
 
 interface ProcessoTarefasTabProps {
   processoId: string;
@@ -108,6 +108,11 @@ export function ProcessoTarefasTab({ processoId }: ProcessoTarefasTabProps) {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{tarefa.titulo}</p>
                     <div className="flex items-center gap-2 mt-1">
+                      {tarefa.advogada_responsavel && (
+                        <span className="text-xs font-medium text-primary">
+                          {ADVOGADA_LABELS[tarefa.advogada_responsavel as keyof typeof ADVOGADA_LABELS]}
+                        </span>
+                      )}
                       {tarefa.responsavel?.nome_completo && (
                         <span className="text-xs text-muted-foreground">{tarefa.responsavel.nome_completo}</span>
                       )}

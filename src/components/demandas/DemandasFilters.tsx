@@ -10,7 +10,7 @@ interface DemandasFiltersProps {
 
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
       <Select value={filters.categoria || 'todos'} onValueChange={(value) => onFilterChange('categoria', value === 'todos' ? '' : value)}>
         <SelectTrigger>
           <SelectValue placeholder="Categoria" />
@@ -61,6 +61,17 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
           <SelectItem value="media">Média</SelectItem>
           <SelectItem value="alta">Alta</SelectItem>
           <SelectItem value="urgente">Urgente</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={filters.advogada_responsavel || 'todos'} onValueChange={(value) => onFilterChange('advogada_responsavel', value === 'todos' ? '' : value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Advogada" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="todos">Todas as advogadas</SelectItem>
+          <SelectItem value="juliana">Juliana</SelectItem>
+          <SelectItem value="liziane">Liziane</SelectItem>
         </SelectContent>
       </Select>
 

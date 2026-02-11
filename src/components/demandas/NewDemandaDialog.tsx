@@ -23,6 +23,7 @@ interface FormData {
   tipo: 'melhoria' | 'bug' | 'sugestao' | 'tarefa';
   prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
   categoria: 'processos' | 'vendas' | 'pagamentos' | 'administrativo' | 'geral';
+  advogada_responsavel: 'juliana' | 'liziane';
   responsavel_id: string;
   processo_id: string;
   data_limite: string;
@@ -151,6 +152,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
       tipo: data.tipo,
       prioridade: data.prioridade,
       categoria: data.categoria,
+      advogada_responsavel: data.advogada_responsavel,
       status: 'pendente',
       responsavel_id: data.responsavel_id === 'sem_responsavel' ? null : data.responsavel_id || null,
       processo_id: data.processo_id === 'sem_processo' ? null : data.processo_id || null,
@@ -319,6 +321,19 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
                 )}
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label>Advogada Responsável *</Label>
+            <Select onValueChange={(value) => setValue('advogada_responsavel', value as any)} defaultValue="juliana">
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="juliana">Juliana</SelectItem>
+                <SelectItem value="liziane">Liziane</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

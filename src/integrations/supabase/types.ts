@@ -596,6 +596,7 @@ export type Database = {
       }
       demandas_internas: {
         Row: {
+          advogada_responsavel: string
           categoria: string | null
           created_at: string
           criado_por: string | null
@@ -614,6 +615,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          advogada_responsavel?: string
           categoria?: string | null
           created_at?: string
           criado_por?: string | null
@@ -632,6 +634,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          advogada_responsavel?: string
           categoria?: string | null
           created_at?: string
           criado_por?: string | null
