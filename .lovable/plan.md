@@ -1,99 +1,143 @@
 
-# Plano: Dividir Origem em Categoria + Descricao
+# Plano: Gerenciamento de Listas Suspensas na Area Administrativa
 
 ## Resumo
 
-Separar a origem do lead em dois campos: "Origem" (categoria padronizada com novas opcoes como Facebook, Instagram) e "Descricao da Origem" (campo livre para detalhe como "Parceiro Joao", "Campanha Verao"). Reutilizar a coluna existente `outro_como_conheceu` no banco de dados para armazenar a descricao, sem necessidade de migracao.
+Criar uma pagina administrativa para gerenciar todas as listas suspensas (dropdowns) do sistema. As opcoes serao armazenadas no banco de dados, permitindo que as advogadas adicionem, editem e removam opcoes sem necessidade de alteracao de codigo.
 
-## Situacao Atual
+## Listas a serem gerenciadas
 
-- Campo `origem` no banco: texto livre com default 'site'
-- Campo `outro_como_conheceu`: existe no banco mas nao e utilizado na interface
-- `LeadOrigem` no TypeScript: `google | meta | indicacao | site | whatsapp_bot | outro`
-- Formularios e tabelas exibem apenas o campo de categoria
+1. **Origem de Leads** - google, facebook, instagram, tiktok, linkedin, indicacao, site, whatsapp_bot, outro
+2. **Tipo de Processo** - Divorcio Consensual, Divorcio Litigioso, Inventario, Pensao Alimenticia, Uniao Estavel, Outro
+3. **Categoria de Despesas** - aluguel_condominio, salarios_encargos, honorarios_terceiros, etc.
+4. **Categoria de Tarefas** - processos, vendas, pagamentos, administrativo, geral
 
 ## Alteracoes
 
-### 1. Expandir categorias de origem (`src/types/leads.ts`)
+### 1. Migracao de banco de dados
 
-Atualizar `LeadOrigem` e `ORIGEM_LABELS`:
+Criar tabela `opcoes_sistema` com as colunas:
+- `id` (uuid, PK)
+- `grupo` (text) - identifica qual dropdown (ex: 'origem_lead', 'tipo_processo', 'categoria_despesa', 'categoria_tarefa')
+- `valor` (text) - valor interno/codigo (ex: 'google', 'facebook')
+- `label` (text) - texto exibido ao usuario (ex: 'Google', 'Facebook')
+- `ordem` (integer) - ordem de exibicao
+- `ativo` (boolean, default true) - permite desativar sem excluir
+- `created_at` (timestamptz)
 
-- Separar `meta` em `facebook` e `instagram`
-- Adicionar `tiktok` e `linkedin`
-- Manter: `google`, `indicacao`, `site`, `whatsapp_bot`, `outro`
-- Adicionar campo `origem_descricao` na interface `Lead` (mapeado para `outro_como_conheceu` no banco)
+Inserir os valores atuais como seed inicial.
 
-### 2. Formulario de criacao/edicao (`src/components/leads/NewLeadDialog.tsx`)
+RLS: somente usuarios autenticados podem ler; somente admins podem modificar.
 
-- Adicionar campo `origem_descricao` ao schema do formulario (campo texto livre, opcional)
-- Exibir o campo abaixo do seletor de Origem com placeholder contextual: "Ex: Parceiro Joao, Campanha Verao 2025"
-- No submit, salvar em `outro_como_conheceu` no banco
+### 2. Hook `useOpcoesSistema` (`src/hooks/useOpcoesSistema.ts`)
 
-### 3. Exibicao nas tabelas (`LeadsTable.tsx`, `ClientesTable.tsx`)
+- Query para buscar opcoes por grupo
+- Mutations para criar, atualizar, reordenar e desativar opcoes
+- Cache por grupo com invalidacao seletiva
 
-- Ao lado do badge de origem, exibir a descricao (se existir) como texto menor/secundario
-- Formato: [Badge Indicacao] Parceiro Joao
+### 3. Pagina administrativa (`src/pages/configuracoes/ListasSuspensas.tsx`)
 
-### 4. Detalhes do lead (`LeadDetailsDialog.tsx`)
+- Interface com abas para cada grupo de opcoes
+- Cada aba mostra uma lista de opcoes com:
+  - Campo de label editavel inline
+  - Valor/codigo (somente leitura apos criacao)
+  - Toggle ativo/inativo
+  - Botao para excluir (somente se nao estiver em uso)
+  - Botao para adicionar nova opcao
+  - Drag-and-drop para reordenar (usando dnd-kit ja instalado)
 
-- Exibir "Origem" com badge + descricao na secao de informacoes
+### 4. Rota e navegacao
 
-### 5. Filtros (`LeadsFilters.tsx`, `ClientesFilters.tsx`)
+- Nova rota: `/dashboard/configuracoes/listas`
+- Adicionar no sidebar em "Administrativo": "Listas do Sistema"
+- Adicionar card na pagina index de configuracoes
 
-- Atualizar lista de checkboxes com as novas categorias de origem
+### 5. Integracao com componentes existentes
 
-### 6. Hook useLeads (`src/hooks/useLeads.ts`)
+Atualizar os seguintes componentes para consumir opcoes do banco em vez de constantes hardcoded:
 
-- Mapear `outro_como_conheceu` para `origem_descricao` no retorno dos dados
+- `NewLeadDialog.tsx` - dropdown de origem
+- `LeadsFilters.tsx` - checkboxes de origem
+- `DemandasFilters.tsx` - dropdown de categoria
+- `NewDemandaDialog.tsx` - dropdown de categoria
+- `NewDespesaDialog.tsx` - dropdown de categoria de despesa
+- `DespesasGlobalFilters.tsx` - dropdown de categoria de despesa
+
+Os tipos TypeScript (`LeadOrigem`, `CategoriaDespesa`, etc.) continuam existindo como fallback, mas a fonte primaria passa a ser o banco.
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/types/leads.ts` | Expandir `LeadOrigem`, `ORIGEM_LABELS`, adicionar campo `origem_descricao` |
-| `src/components/leads/NewLeadDialog.tsx` | Adicionar campo de descricao da origem no form |
-| `src/components/leads/LeadsTable.tsx` | Exibir descricao junto ao badge |
-| `src/components/leads/ClientesTable.tsx` | Exibir descricao junto ao badge |
-| `src/components/leads/LeadDetailsDialog.tsx` | Exibir descricao na aba informacoes |
-| `src/components/leads/LeadsFilters.tsx` | Atualizar categorias |
-| `src/components/clientes/ClientesFilters.tsx` | Atualizar categorias |
-| `src/hooks/useLeads.ts` | Mapear outro_como_conheceu para origem_descricao |
+| Migracao SQL | Criar tabela `opcoes_sistema` + seed com valores atuais + RLS |
+| `src/hooks/useOpcoesSistema.ts` | Novo hook para CRUD de opcoes |
+| `src/pages/configuracoes/ListasSuspensas.tsx` | Nova pagina de gerenciamento |
+| `src/App.tsx` | Adicionar rota `/dashboard/configuracoes/listas` |
+| `src/components/AppSidebar.tsx` | Adicionar link "Listas do Sistema" no menu Administrativo |
+| `src/pages/configuracoes/index.tsx` | Adicionar card de acesso |
+| `src/components/leads/NewLeadDialog.tsx` | Consumir opcoes do banco para origem |
+| `src/components/leads/LeadsFilters.tsx` | Consumir opcoes do banco para origem |
+| `src/components/demandas/DemandasFilters.tsx` | Consumir opcoes do banco para categoria |
+| `src/components/demandas/NewDemandaDialog.tsx` | Consumir opcoes do banco para categoria |
+| `src/components/financeiro/despesas/NewDespesaDialog.tsx` | Consumir opcoes do banco para categoria despesa |
+| `src/components/financeiro/DespesasGlobalFilters.tsx` | Consumir opcoes do banco para categoria despesa |
 
 ## Detalhes Tecnicos
 
-**Novas categorias de LeadOrigem:**
+**Estrutura da tabela:**
 ```text
-google | facebook | instagram | tiktok | linkedin | indicacao | site | whatsapp_bot | outro
+opcoes_sistema (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  grupo TEXT NOT NULL,           -- 'origem_lead', 'tipo_processo', 'categoria_despesa', 'categoria_tarefa'
+  valor TEXT NOT NULL,           -- codigo interno (ex: 'google')
+  label TEXT NOT NULL,           -- texto visivel (ex: 'Google')
+  ordem INTEGER DEFAULT 0,
+  ativo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(grupo, valor)
+)
 ```
 
-**Mapeamento no banco (sem migracao):**
+**Seed inicial (exemplo):**
 ```text
-origem (campo existente) -> categoria padronizada
-outro_como_conheceu (campo existente) -> descricao livre
+INSERT INTO opcoes_sistema (grupo, valor, label, ordem) VALUES
+  ('origem_lead', 'google', 'Google', 1),
+  ('origem_lead', 'facebook', 'Facebook', 2),
+  ('origem_lead', 'instagram', 'Instagram', 3),
+  ...
+  ('tipo_processo', 'divorcio_consensual', 'Divórcio Consensual', 1),
+  ...
+  ('categoria_despesa', 'aluguel_condominio', 'Aluguel e Condomínio', 1),
+  ...
+  ('categoria_tarefa', 'processos', 'Processos', 1),
+  ...
 ```
 
-**No formulario (submit):**
+**Hook de consumo nos componentes:**
 ```text
-origem: values.origem
-outro_como_conheceu: values.origem_descricao || null
-como_conheceu: values.origem
+const { data: origensLead } = useOpcoesSistema('origem_lead');
+// retorna: [{ valor: 'google', label: 'Google' }, ...]
+// Usado no <SelectItem value={opcao.valor}>{opcao.label}</SelectItem>
 ```
 
-**Na interface Lead:**
+**Interface da pagina:**
 ```text
-origem_descricao: string | null  // mapeado de outro_como_conheceu
-```
+Abas: [Origem de Leads] [Tipo de Processo] [Categoria de Despesas] [Categoria de Tarefas]
 
-**Exibicao na tabela:**
-```text
-<Badge>{ORIGEM_LABELS[lead.origem]}</Badge>
-{lead.origem_descricao && <span className="text-xs text-muted-foreground ml-1">{lead.origem_descricao}</span>}
+Cada aba:
++--------------------------------------------------+
+| Label              | Codigo    | Ativo | Acoes    |
+|--------------------+-----------+-------+----------|
+| Google             | google    |  [x]  | Editar   |
+| Facebook           | facebook  |  [x]  | Editar   |
+| Instagram          | instagram |  [x]  | Editar   |
++--------------------------------------------------+
+[+ Adicionar nova opcao]
 ```
 
 ## Resultado
 
-- Origem dividida em categoria padronizada + descricao livre
-- Novas categorias: Facebook, Instagram, TikTok, LinkedIn
-- Campo de descricao permite detalhar parcerias e campanhas especificas
-- Dados padronizados viabilizam graficos e relatorios por canal
-- Sem necessidade de migracao (reutiliza coluna existente)
+- Administradoras podem adicionar, editar e desativar opcoes de dropdowns sem mexer no codigo
+- Novas origens de lead, tipos de processo e categorias aparecem automaticamente em todos os formularios e filtros
+- Opcoes desativadas deixam de aparecer em novos cadastros mas nao afetam registros existentes
+- Dados historicos permanecem integros mesmo apos remocao de opcoes
