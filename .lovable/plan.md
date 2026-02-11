@@ -1,54 +1,71 @@
 
-# Conectar e Automatizar a Gestao de Pagamentos
 
-## Diagnostico
+# Criar Menu Lateral "Relatorios"
 
-A pagina "Gestao de Pagamentos" (`/dashboard/financeiro/pagamentos`) esta **desconectada** do restante do modulo financeiro:
+## Objetivo
 
-1. **Somente leitura**: Os cards de "Despesas Pendentes", "Receitas a Receber" e "Proximos Vencimentos" nao possuem nenhuma acao -- o usuario ve os dados mas nao pode fazer nada (marcar como pago, registrar pagamento, editar, excluir).
+Criar um novo grupo no menu lateral chamado **Relatorios**, transferindo para ele os submenus:
+- "Relatorios Vendas" (atualmente dentro de "Gestao de Clientes", rota `/dashboard/vendas/relatorios`)
+- "Relatorios Financeiros" (atualmente dentro de "Financeiro", rota `/dashboard/financeiro/relatorios`)
 
-2. **Dados parcialmente redundantes**: As mesmas informacoes de despesas pendentes e receitas a receber ja aparecem nos widgets da aba "Faturamento" (acordos/parcelas) e "Despesas" (alertas) do modulo financeiro principal.
-
-3. **Sem integracao com os dialogs existentes**: O sistema ja possui `RegistrarPagamentoDialog` para parcelas e acoes de pagar/editar despesas, mas nada disso esta conectado a esta pagina.
-
-## Solucao
-
-Transformar a pagina de Pagamentos de uma visao passiva em um **centro de acao operacional**, conectando-a aos dialogs e hooks ja existentes no sistema.
+As rotas e componentes continuam os mesmos -- apenas mudam de posicao no menu.
 
 ## Alteracoes
 
-### 1. `src/components/financeiro/pagamentos/PagamentosAtrasados.tsx`
+### 1. `src/components/AppSidebar.tsx`
 
-**Despesas Pendentes (lado esquerdo):**
-- Adicionar botao "Pagar" em cada item de despesa que atualiza o status para "pago" usando o hook `useUpdateDespesa` ja existente em `useDespesas.ts`
-- Adicionar botao "Editar" que abre o `DespesaDetailsDialog`
+- Importar icone `FileBarChart` do lucide-react (icone de relatorios)
+- Remover "Relatorios Vendas" do submenu de "Gestao de Clientes" (linha 74)
+- Remover "Relatorios Financeiros" do submenu de "Financeiro" (linha 105)
+- Adicionar novo item no array `menuItems`, posicionado entre "Financeiro" e "Administrativo":
 
-**Receitas a Receber (lado direito):**
-- Para itens com `origem: "parcelas"`: adicionar botao "Registrar Pagamento" que abre o `RegistrarPagamentoDialog` (ja existe)
-- Para itens com `origem: "transacoes"`: adicionar botao "Editar" que abre o `EditTransacaoDialog`
+```
+{
+  title: "Relatorios",
+  label: "Relatórios",
+  icon: FileBarChart,
+  submenu: [
+    { title: "Vendas", url: "/dashboard/vendas/relatorios" },
+    { title: "Financeiro", url: "/dashboard/financeiro/relatorios" },
+  ]
+}
+```
 
-### 2. `src/components/financeiro/pagamentos/ProximosVencimentos.tsx`
+### 2. `src/lib/pagePermissions.ts`
 
-- Adicionar botao de acao em cada card de vencimento:
-  - Se tipo "despesa": botao "Pagar" (marca despesa como paga)
-  - Se tipo "receita": botao "Registrar" (abre RegistrarPagamentoDialog)
-- Armazenar a `origem` (despesas/transacoes/parcelas) nos itens de vencimento para saber qual acao executar
+- Remover `gestao_clientes.relatorios` dos filhos de "Gestao de Clientes"
+- Remover `financeiro.relatorios` dos filhos de "Financeiro"
+- Adicionar novo grupo de permissao:
 
-### 3. `src/pages/financeiro/Pagamentos.tsx`
+```
+{
+  key: "relatorios",
+  label: "Relatórios",
+  description: "Relatórios de vendas e financeiros",
+  children: [
+    { key: "relatorios.vendas", label: "Vendas", parent: "relatorios" },
+    { key: "relatorios.financeiro", label: "Financeiro", parent: "relatorios" },
+  ],
+}
+```
 
-- Adicionar KPIs resumidos no topo: Total a Pagar, Total a Receber, Saldo Projetado (calculados a partir dos mesmos dados dos hooks existentes)
-- Adicionar states para controlar os dialogs de pagamento e detalhes
-- Renderizar `RegistrarPagamentoDialog` e `DespesaDetailsDialog`
-- Aumentar periodo de proximos vencimentos para 30 dias (mais util para planejamento)
+- Atualizar `ROUTE_TO_PERMISSION` para mapear as rotas para as novas chaves:
+  - `/dashboard/vendas/relatorios` -> `relatorios.vendas`
+  - `/dashboard/financeiro/relatorios` -> `relatorios.financeiro`
 
-### 4. `src/hooks/usePagamentos.ts`
+### 3. Sem alteracoes em rotas
 
-- Adicionar campo `origem` ao tipo `ItemVencimento` para que `ProximosVencimentos` saiba se deve abrir o dialog de parcela ou de despesa
-- Propagar o `origem` nos dados retornados por `useProximosVencimentos`
+As rotas em `App.tsx` permanecem identicas -- `/dashboard/vendas/relatorios` e `/dashboard/financeiro/relatorios` continuam apontando para os mesmos componentes (`RelatoriosVendas` e `FinanceiroRelatorios`). Apenas a navegacao do menu lateral muda.
 
 ## Resultado
 
-- Os 3 componentes da pagina de Pagamentos passam a ter **botoes de acao** conectados aos dialogs ja existentes
-- O usuario pode registrar pagamentos, marcar despesas como pagas e editar registros diretamente da pagina
-- KPIs no topo dao visao rapida do saldo pendente
-- Dados vem das mesmas fontes que o modulo financeiro principal (sem duplicacao de logica)
+O menu lateral passara a ter a seguinte estrutura:
+1. Painel B&Z
+2. Gestao de Vendas (Marketing, Leads)
+3. Gestao de Clientes (Clientes, Documentos)
+4. Gestao de Rotinas (Tarefas, Prazos)
+5. Pesquisas (...)
+6. Financeiro (Analises, Pagamentos)
+7. **Relatorios** (Vendas, Financeiro) -- NOVO
+8. Administrativo (...)
+
