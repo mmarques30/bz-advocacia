@@ -66,6 +66,7 @@ export function useLeads(filters: LeadsFilters) {
         return {
           ...lead,
           dias_parado: diasParado,
+          origem_descricao: lead.outro_como_conheceu || null,
         } as Lead;
       });
 

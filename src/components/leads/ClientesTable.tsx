@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Lead } from "@/types/leads";
+import { Lead, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
 import { useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,9 +50,14 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
       google: "bg-blue-100 text-blue-800 border-blue-200",
+      facebook: "bg-blue-100 text-blue-800 border-blue-200",
+      instagram: "bg-pink-100 text-pink-800 border-pink-200",
+      tiktok: "bg-gray-100 text-gray-800 border-gray-200",
+      linkedin: "bg-sky-100 text-sky-800 border-sky-200",
       meta: "bg-purple-100 text-purple-800 border-purple-200",
       indicacao: "bg-green-100 text-green-800 border-green-200",
       site: "bg-primary/10 text-primary border-primary/20",
+      whatsapp_bot: "bg-emerald-100 text-emerald-800 border-emerald-200",
       outro: "bg-gray-100 text-gray-800 border-gray-200",
     };
     return colors[origem] || colors.outro;
@@ -165,9 +170,14 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                 )}
               </TableCell>
               <TableCell>
-                <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
-                  {lead.origem.charAt(0).toUpperCase() + lead.origem.slice(1)}
-                </Badge>
+                <div className="flex items-center gap-1.5">
+                  <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
+                    {ORIGEM_LABELS[lead.origem] || lead.origem}
+                  </Badge>
+                  {lead.origem_descricao && (
+                    <span className="text-xs text-muted-foreground">{lead.origem_descricao}</span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="capitalize">
                 {lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
