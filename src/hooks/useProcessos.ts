@@ -26,11 +26,25 @@ export function useProcessos(filters: ProcessosFilters) {
         query = query.in("status", filters.status);
       }
 
-      // Filtro por busca (número, tipo)
+      // Filtro por busca (número, tipo, nome do cliente)
       if (filters.search) {
-        query = query.or(
-          `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%`
-        );
+        // First find client IDs matching the search term
+        const { data: matchingClients } = await supabase
+          .from("contact_submissions")
+          .select("id")
+          .ilike("nome_completo", `%${filters.search}%`);
+
+        const clientIds = matchingClients?.map((c) => c.id) || [];
+
+        if (clientIds.length > 0) {
+          query = query.or(
+            `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%,lead_id.in.(${clientIds.join(",")})`
+          );
+        } else {
+          query = query.or(
+            `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%`
+          );
+        }
       }
 
       // Filtro por tribunal
