@@ -2083,6 +2083,51 @@ export type Database = {
         }
         Relationships: []
       }
+      rotinas_calendario: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          data: string
+          horario: string | null
+          id: string
+          observacoes: string | null
+          prioridade: string | null
+          recorrencia: string | null
+          recorrente: boolean | null
+          status: string | null
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          data: string
+          horario?: string | null
+          id?: string
+          observacoes?: string | null
+          prioridade?: string | null
+          recorrencia?: string | null
+          recorrente?: boolean | null
+          status?: string | null
+          tipo?: string
+          titulo: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          data?: string
+          horario?: string | null
+          id?: string
+          observacoes?: string | null
+          prioridade?: string | null
+          recorrencia?: string | null
+          recorrente?: boolean | null
+          status?: string | null
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: []
+      }
       subcategorias_externas: {
         Row: {
           categoria_id: string | null
