@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Processo } from "@/types/processos";
 import { ProcessoInformacoesTab } from "./tabs/ProcessoInformacoesTab";
 import { ProcessoAndamentosTab } from "./tabs/ProcessoAndamentosTab";
+import { ProcessoTarefasTab } from "./tabs/ProcessoTarefasTab";
 import { ProcessoPrazosTab } from "./tabs/ProcessoPrazosTab";
 import { ProcessoDocumentosTab } from "./tabs/ProcessoDocumentosTab";
 import { ProcessoFinanceiroTab } from "./tabs/ProcessoFinanceiroTab";
@@ -61,9 +62,10 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
           </div>
         ) : processo ? (
           <Tabs defaultValue="informacoes" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="informacoes">Informações</TabsTrigger>
               <TabsTrigger value="andamentos">Andamentos</TabsTrigger>
+              <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
               <TabsTrigger value="prazos">Prazos</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
               <TabsTrigger value="comunicacao">Comunicação</TabsTrigger>
@@ -77,6 +79,10 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
 
             <TabsContent value="andamentos" className="mt-6">
               <ProcessoAndamentosTab processoId={processo.id} />
+            </TabsContent>
+
+            <TabsContent value="tarefas" className="mt-6">
+              <ProcessoTarefasTab processoId={processo.id} />
             </TabsContent>
 
             <TabsContent value="prazos" className="mt-6">

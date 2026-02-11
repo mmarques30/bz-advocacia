@@ -1,0 +1,1 @@
+ALTER TABLE public.demandas_internas ADD COLUMN horas_gastas numeric DEFAULT 0;

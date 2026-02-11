@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface NewDemandaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultProcessoId?: string | null;
 }
 
 interface FormData {
@@ -25,12 +26,13 @@ interface FormData {
   data_limite: string;
 }
 
-export const NewDemandaDialog = ({ open, onOpenChange }: NewDemandaDialogProps) => {
+export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewDemandaDialogProps) => {
   const { register, handleSubmit, reset, setValue, watch } = useForm<FormData>({
     defaultValues: {
       tipo: 'tarefa',
       prioridade: 'media',
       categoria: 'geral',
+      processo_id: defaultProcessoId || '',
     }
   });
   const createDemanda = useCreateDemanda();
