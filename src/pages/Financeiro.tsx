@@ -165,7 +165,9 @@ export default function Financeiro() {
             </TabsContent>
 
             <TabsContent value="projecao" className="space-y-6">
+              <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
               <FaturamentoProjecaoTab filters={faturamentoFilters} />
+              <FaturamentoTable filters={faturamentoFilters} />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -215,7 +217,15 @@ export default function Financeiro() {
             </TabsContent>
 
             <TabsContent value="projecao" className="space-y-6">
+              <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
               <DespesasProjecaoTab />
+              <DespesasTable 
+                filters={{
+                  categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
+                  status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
+                }}
+                onSelectDespesa={setSelectedDespesaId}
+              />
             </TabsContent>
           </Tabs>
         </TabsContent>
