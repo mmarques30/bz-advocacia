@@ -4,29 +4,41 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
 import { TIPOS_CONTRATO } from "@/types/contratos";
-import { FileText, Eye, Sparkles, Plus } from "lucide-react";
+import { FileText, Eye, Sparkles, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UploadModeloDialog } from "./UploadModeloDialog";
-import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
+import { EditModeloDialog } from "./EditModeloDialog";
+import { useModelosPersonalizados, useDeleteModelo, ModeloConteudo, ModeloPersonalizado } from "@/hooks/useModelosDocumentos";
 
 export function ModelosContrato() {
   const [previewModelo, setPreviewModelo] = useState<typeof MODELOS_CONTRATO[0] | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [editModelo, setEditModelo] = useState<ModeloPersonalizado | null>(null);
+  const [deleteModelo, setDeleteModelo] = useState<ModeloPersonalizado | null>(null);
   
-  // Buscar modelos personalizados do banco
   const { data: modelosPersonalizados = [] } = useModelosPersonalizados('contrato');
+  const deleteModeloMutation = useDeleteModelo();
 
   const getTipoLabel = (tipo: string) => {
     return TIPOS_CONTRATO.find(t => t.value === tipo)?.label || tipo;
   };
 
-  // Combinar modelos estáticos com personalizados
   const modelosPersonalizadosFormatados = modelosPersonalizados.map(m => {
     let conteudo: ModeloConteudo = { servico_padrao: '', tipo_modelo: 'contrato', fonte: 'upload_ia' };
     try {
@@ -34,14 +46,18 @@ export function ModelosContrato() {
     } catch {}
     
     return {
-      id: m.id,
-      nome: m.nome,
-      tipo: m.categoria || 'civel',
-      descricao: m.descricao || conteudo.servico_padrao,
+      ...m,
+      descricaoFormatada: m.descricao || conteudo.servico_padrao,
       template: conteudo.servico_padrao,
-      isCustom: true,
     };
   });
+
+  const handleDelete = () => {
+    if (!deleteModelo) return;
+    deleteModeloMutation.mutate(deleteModelo.id, {
+      onSuccess: () => setDeleteModelo(null),
+    });
+  };
 
   return (
     <>
@@ -79,7 +95,7 @@ export function ModelosContrato() {
                         <CardTitle className="text-base">{modelo.nome}</CardTitle>
                         <div className="flex gap-1 mt-1">
                           <Badge variant="secondary">
-                            {getTipoLabel(modelo.tipo)}
+                            {getTipoLabel(modelo.categoria || '')}
                           </Badge>
                           <Badge variant="outline" className="text-xs">IA</Badge>
                         </div>
@@ -87,10 +103,29 @@ export function ModelosContrato() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                   <p className="text-sm text-muted-foreground line-clamp-2">
-                    {modelo.descricao}
+                    {modelo.descricaoFormatada}
                   </p>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => setEditModelo(modelo)}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setDeleteModelo(modelo)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -161,6 +196,31 @@ export function ModelosContrato() {
         open={uploadDialogOpen} 
         onOpenChange={setUploadDialogOpen} 
       />
+
+      {/* Dialog de edição */}
+      <EditModeloDialog
+        open={!!editModelo}
+        onOpenChange={(open) => { if (!open) setEditModelo(null); }}
+        modelo={editModelo}
+      />
+
+      {/* Alert de exclusão */}
+      <AlertDialog open={!!deleteModelo} onOpenChange={(open) => { if (!open) setDeleteModelo(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir modelo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O modelo "{deleteModelo?.nome}" será desativado. Essa ação pode ser revertida pelo administrador.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
