@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { atualizarLeadParaPropostaEnviada } from "@/lib/leadStatusAutomation";
 import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { useCreateContrato } from "@/hooks/useContratos";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
@@ -46,6 +47,7 @@ const useLeadsSimple = () => {
 export function GerarContratoForm() {
   const { data: leads, isLoading: loadingLeads } = useLeadsSimple();
   const { configuracoes, isLoading: loadingConfig } = useConfiguracoesEscritorio();
+  const queryClient = useQueryClient();
   const createContrato = useCreateContrato();
   const { data: modelosCustom = [] } = useModelosPersonalizados('contrato');
 
@@ -216,6 +218,9 @@ export function GerarContratoForm() {
         dados_contrato: { ...dadosContrato },
         status: 'finalizado',
       });
+
+      // Atualizar status do lead automaticamente
+      await atualizarLeadParaPropostaEnviada(clienteId, 'contrato', queryClient);
 
       toast.success("PDF gerado e contrato salvo");
     } catch (error) {
