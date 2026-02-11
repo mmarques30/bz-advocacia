@@ -38,6 +38,7 @@ const leadFormSchema = z.object({
   cpf: z.string().optional(),
   tipo_processo: z.string().optional(),
   origem: z.string().optional(),
+  origem_descricao: z.string().optional(),
   estagio: z.string().optional(),
   mensagem: z.string().optional(),
 });
@@ -65,6 +66,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
       cpf: "",
       tipo_processo: "",
       origem: "site",
+      origem_descricao: "",
       estagio: isCliente ? "fechado" : "novo",
       mensagem: "",
     },
@@ -79,6 +81,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
         cpf: lead.cpf || "",
         tipo_processo: lead.tipo_processo,
         origem: lead.origem,
+        origem_descricao: lead.origem_descricao || "",
         estagio: lead.estagio,
         mensagem: lead.mensagem,
       });
@@ -90,6 +93,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
         cpf: "",
         tipo_processo: "",
         origem: "site",
+        origem_descricao: "",
         estagio: isCliente ? "fechado" : "novo",
         mensagem: "",
       });
@@ -107,6 +111,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
           cpf: values.cpf || null,
           tipo_processo: values.tipo_processo,
           origem: values.origem as any,
+          outro_como_conheceu: values.origem_descricao || null,
           estagio: values.estagio as any,
           mensagem: values.mensagem,
           como_conheceu: values.origem,
@@ -119,6 +124,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
           cpf: values.cpf || null,
           tipo_processo: values.tipo_processo,
           origem: values.origem as any,
+          outro_como_conheceu: values.origem_descricao || null,
           estagio: values.estagio as any,
           mensagem: values.mensagem,
           como_conheceu: values.origem,
@@ -251,6 +257,20 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="origem_descricao"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Descrição da Origem</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Ex: Parceiro João, Campanha Verão 2025" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

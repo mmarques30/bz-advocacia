@@ -8,7 +8,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lead, LEAD_STATUS_LABELS } from "@/types/leads";
+import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
 import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -30,9 +30,14 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
       google: "bg-blue-100 text-blue-800 border-blue-200",
+      facebook: "bg-blue-100 text-blue-800 border-blue-200",
+      instagram: "bg-pink-100 text-pink-800 border-pink-200",
+      tiktok: "bg-gray-100 text-gray-800 border-gray-200",
+      linkedin: "bg-sky-100 text-sky-800 border-sky-200",
       meta: "bg-purple-100 text-purple-800 border-purple-200",
       indicacao: "bg-green-100 text-green-800 border-green-200",
       site: "bg-primary/10 text-primary border-primary/20",
+      whatsapp_bot: "bg-emerald-100 text-emerald-800 border-emerald-200",
       outro: "bg-gray-100 text-gray-800 border-gray-200",
     };
     return colors[origem] || colors.outro;
@@ -61,8 +66,11 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   <DialogTitle className="text-2xl">{lead.nome_completo}</DialogTitle>
                   <DialogDescription className="mt-2 flex items-center gap-2">
                     <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
-                      {lead.origem.charAt(0).toUpperCase() + lead.origem.slice(1)}
+                      {ORIGEM_LABELS[lead.origem] || lead.origem}
                     </Badge>
+                    {lead.origem_descricao && (
+                      <span className="text-xs text-muted-foreground">{lead.origem_descricao}</span>
+                    )}
                     <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
                       {LEAD_STATUS_LABELS[lead.estagio]}
                     </Badge>

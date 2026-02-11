@@ -1,5 +1,5 @@
 export type LeadStatus = 'novo' | 'contato_inicial' | 'em_analise' | 'proposta_enviada' | 'fechado' | 'perdido';
-export type LeadOrigem = 'google' | 'meta' | 'indicacao' | 'site' | 'whatsapp_bot' | 'outro';
+export type LeadOrigem = 'google' | 'facebook' | 'instagram' | 'tiktok' | 'linkedin' | 'meta' | 'indicacao' | 'site' | 'whatsapp_bot' | 'outro';
 export type LeadPrioridade = 'alta' | 'media' | 'baixa';
 
 export interface Lead {
@@ -36,6 +36,7 @@ export interface Lead {
   pasta_drive_url: string | null;
   status_cliente: 'ativo' | 'inativo' | null;
   estado_civil: string | null;
+  origem_descricao: string | null;
   endereco_completo: string | null;
   // Campos de documentação pessoal
   cpf: string | null;
@@ -103,6 +104,10 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 
 export const ORIGEM_LABELS: Record<LeadOrigem, string> = {
   google: 'Google',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  tiktok: 'TikTok',
+  linkedin: 'LinkedIn',
   meta: 'Meta',
   indicacao: 'Indicação',
   site: 'Site',
