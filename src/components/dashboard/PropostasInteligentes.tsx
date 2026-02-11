@@ -55,32 +55,23 @@ export function PropostasInteligentes({ propostas, loading }: PropostasInteligen
     );
   }
 
+  if (propostas.length === 0) {
+    return null;
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Lightbulb className="h-5 w-5 text-primary" />
           <CardTitle className="text-base font-semibold">Sugestões de Ação</CardTitle>
-          {propostas.length > 0 && (
-            <Badge variant="outline" className="ml-auto font-medium">
-              {propostas.length} {propostas.length === 1 ? "item" : "itens"}
-            </Badge>
-          )}
+          <Badge variant="outline" className="ml-auto font-medium">
+            {propostas.length} {propostas.length === 1 ? "item" : "itens"}
+          </Badge>
         </div>
       </CardHeader>
       <CardContent>
-        {propostas.length === 0 ? (
-          <div className="text-center py-6">
-            <CheckCircle2 className="h-10 w-10 mx-auto text-chart-4 mb-3" />
-            <p className="text-sm font-medium text-foreground">
-              Tudo em ordem!
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Nenhuma ação urgente identificada no momento.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
+        <div className="space-y-2">
             {propostas.map((proposta) => {
               const Icone = ICONE_MAP[proposta.icone] || Lightbulb;
               const styles = SEVERIDADE_STYLES[proposta.severidade] || SEVERIDADE_STYLES.info;
@@ -106,7 +97,6 @@ export function PropostasInteligentes({ propostas, loading }: PropostasInteligen
               );
             })}
           </div>
-        )}
       </CardContent>
     </Card>
   );
