@@ -1,60 +1,44 @@
 
-# Plano: Corrigir RLS de Demandas para Todos os Usuarios Autenticados
+# Plano: Buscar Processo pelo Nome do Cliente ao Criar Demanda
 
-## Problema Identificado
+## Problema
 
-As politicas de RLS (Row Level Security) da tabela `demandas_internas` so permitem INSERT e UPDATE para usuarios com role `admin`. Usuarios sem essa role conseguem ver as demandas, mas recebem erro ao tentar criar ou alterar status.
-
-Politicas atuais:
-| Operacao | Politica | Quem pode |
-|----------|----------|-----------|
-| SELECT | `true` | Todos autenticados |
-| INSERT | `has_role(auth.uid(), 'admin')` | Somente admins |
-| UPDATE | `has_role(auth.uid(), 'admin')` | Somente admins |
-| DELETE | `has_role(auth.uid(), 'admin')` | Somente admins |
+Atualmente, o campo "Processo Relacionado" no formulario de nova demanda lista todos os processos de forma generica (numero ou tipo), sem indicar o cliente. O usuario precisa saber o numero do processo de antemao.
 
 ## Solucao
 
-Ajustar as politicas de INSERT e UPDATE para permitir que qualquer usuario autenticado crie e atualize demandas, mantendo DELETE restrito a admins (ou ao criador da demanda).
+Substituir o campo unico de processo por dois campos encadeados:
 
-### Migracao SQL
+1. **Cliente** (Input com busca): campo de texto que filtra clientes por nome
+2. **Processo do Cliente** (Select): exibe apenas os processos do cliente selecionado
 
-```sql
--- Remover politicas restritivas
-DROP POLICY "Admins can insert demandas" ON demandas_internas;
-DROP POLICY "Admins can update demandas" ON demandas_internas;
-DROP POLICY "Admins can delete demandas" ON demandas_internas;
+Fluxo: Digita nome do cliente -> Seleciona cliente -> Exibe processos vinculados -> Seleciona processo
 
--- INSERT: qualquer usuario autenticado
-CREATE POLICY "Authenticated users can insert demandas"
-  ON demandas_internas FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
+## Arquivo a Modificar
 
--- UPDATE: admins ou o criador ou o responsavel
-CREATE POLICY "Users can update own or assigned demandas"
-  ON demandas_internas FOR UPDATE
-  USING (
-    has_role(auth.uid(), 'admin'::app_role)
-    OR criado_por = auth.uid()
-    OR responsavel_id = auth.uid()
-  );
-
--- DELETE: admins ou o criador
-CREATE POLICY "Admins or creator can delete demandas"
-  ON demandas_internas FOR DELETE
-  USING (
-    has_role(auth.uid(), 'admin'::app_role)
-    OR criado_por = auth.uid()
-  );
-```
-
-## Resultado
-
-- Todos os usuarios autenticados poderao criar demandas
-- Usuarios poderao alterar status das demandas que criaram ou sao responsaveis
-- Admins continuam com acesso total
-- DELETE continua restrito a admins e ao criador da demanda
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/demandas/NewDemandaDialog.tsx` | Substituir select unico por busca cliente + select processo |
 
 ## Detalhamento Tecnico
 
-Nenhuma alteracao de codigo frontend sera necessaria. O problema e exclusivamente de permissao no banco de dados. As funcoes `useCreateDemanda` e `useUpdateDemanda` ja estao corretas -- o erro vem da rejeicao do Supabase via RLS.
+### Alteracoes no `NewDemandaDialog.tsx`
+
+1. **Adicionar estado local**:
+   - `clienteSearch` (string): texto digitado para buscar cliente
+   - `selectedClienteId` (string | null): cliente selecionado
+
+2. **Nova query de clientes**: buscar `contact_submissions` com `estagio = 'fechado'`, filtrado pelo texto digitado (`.ilike('nome_completo', '%texto%')`)
+
+3. **Alterar query de processos**: quando `selectedClienteId` estiver preenchido, buscar processos com `.eq('lead_id', selectedClienteId)` e incluir dados do cliente na query (`.select('id, numero_processo, tipo, cliente:contact_submissions!lead_id(nome_completo)')`)
+
+4. **Substituir a secao "Processo Relacionado"** por:
+   - Campo "Cliente" com Input de busca + lista dropdown de resultados
+   - Campo "Processo" (Select) que aparece somente apos selecionar um cliente, listando os processos daquele cliente
+   - Botao "Limpar" para resetar a selecao
+
+5. **Manter compatibilidade** com `defaultProcessoId`: quando preenchido, buscar o processo e pre-selecionar o cliente automaticamente
+
+## Resultado
+
+O usuario digitara o nome do cliente, vera uma lista filtrada, selecionara o cliente desejado, e entao um segundo campo exibira apenas os processos daquele cliente para selecao.
