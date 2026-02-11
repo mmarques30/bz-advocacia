@@ -19,12 +19,17 @@ export interface Demanda {
   lead_id: string | null;
   data_limite: string | null;
   data_conclusao: string | null;
+  parent_id: string | null;
+  ordem: number | null;
   created_at: string;
   updated_at: string;
   criador?: { nome_completo: string };
   responsavel?: { nome_completo: string };
   processo?: { numero_processo: string | null; tipo: string };
   lead?: { nome_completo: string };
+  subtarefas?: Demanda[];
+  subtarefas_count?: number;
+  subtarefas_concluidas?: number;
 }
 
 export interface DemandasFilters {

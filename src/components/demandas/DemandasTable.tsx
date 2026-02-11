@@ -2,7 +2,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Eye, Edit, Trash2, AlertCircle } from "lucide-react";
+import { MoreVertical, Eye, Edit, Trash2, AlertCircle, GitBranch } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
@@ -46,6 +48,29 @@ const categoriaColors: Record<string, string> = {
 };
 
 export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: DemandasTableProps) => {
+  // Fetch subtask counts for all parent tasks
+  const parentIds = demandas.map(d => d.id);
+  const { data: subtaskCounts } = useQuery({
+    queryKey: ['subtask-counts', parentIds],
+    queryFn: async () => {
+      if (parentIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from('demandas_internas')
+        .select('parent_id, status')
+        .in('parent_id', parentIds);
+      if (error) throw error;
+      const counts: Record<string, { total: number; concluidas: number }> = {};
+      data?.forEach((s: any) => {
+        if (!s.parent_id) return;
+        if (!counts[s.parent_id]) counts[s.parent_id] = { total: 0, concluidas: 0 };
+        counts[s.parent_id].total++;
+        if (s.status === 'concluido') counts[s.parent_id].concluidas++;
+      });
+      return counts;
+    },
+    enabled: parentIds.length > 0,
+  });
+
   return (
     <div className="border rounded-lg">
       <Table>
@@ -81,6 +106,12 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     <div className="flex items-center gap-2">
                       {isAtrasada && <AlertCircle className="h-4 w-4 text-destructive" />}
                       {demanda.titulo}
+                      {subtaskCounts?.[demanda.id] && (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground font-normal">
+                          <GitBranch className="h-3.5 w-3.5" />
+                          {subtaskCounts[demanda.id].concluidas}/{subtaskCounts[demanda.id].total}
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
