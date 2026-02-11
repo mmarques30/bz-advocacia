@@ -20,9 +20,10 @@ interface LeadDetailsDialogProps {
   onClose: () => void;
   lead: Lead | null;
   onEdit: (lead: Lead) => void;
+  isCliente?: boolean;
 }
 
-export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDialogProps) {
+export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false }: LeadDetailsDialogProps) {
   const diasParado = lead?.dias_parado || 0;
 
   const getOrigemBadgeColor = (origem: string) => {
@@ -66,11 +67,11 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDi
                     </Badge>
                   </DialogDescription>
                 </div>
-                <Button onClick={() => onEdit(lead)}>Editar Lead</Button>
+                <Button onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
               </div>
             </DialogHeader>
 
-            {diasParado > 7 && (
+            {!isCliente && diasParado > 7 && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-destructive" />
                 <p className="text-sm text-destructive font-medium">
@@ -136,6 +137,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDi
                     </p>
                   </div>
 
+                  {!isCliente && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <span className="text-sm font-medium">Tempo Parado</span>
@@ -144,6 +146,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDi
                       {diasParado} {diasParado === 1 ? 'dia' : 'dias'}
                     </p>
                   </div>
+                  )}
 
                   {lead.cpf && (
                     <div className="space-y-2">
