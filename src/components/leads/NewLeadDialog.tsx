@@ -33,7 +33,7 @@ import { useEffect } from "react";
 
 const leadFormSchema = z.object({
   nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
-  email: z.string().email("Email inválido"),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefone: z.string().min(10, "Telefone inválido"),
   cpf: z.string().optional(),
   tipo_processo: z.string().optional(),

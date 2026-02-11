@@ -386,7 +386,7 @@ export type Database = {
           created_at: string
           data_ultima_atividade: string | null
           documentos: string[] | null
-          email: string
+          email: string | null
           endereco_cep: string | null
           endereco_cidade: string | null
           endereco_completo: string | null
@@ -437,7 +437,7 @@ export type Database = {
           created_at?: string
           data_ultima_atividade?: string | null
           documentos?: string[] | null
-          email: string
+          email?: string | null
           endereco_cep?: string | null
           endereco_cidade?: string | null
           endereco_completo?: string | null
@@ -488,7 +488,7 @@ export type Database = {
           created_at?: string
           data_ultima_atividade?: string | null
           documentos?: string[] | null
-          email?: string
+          email?: string | null
           endereco_cep?: string | null
           endereco_cidade?: string | null
           endereco_completo?: string | null
