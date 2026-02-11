@@ -129,6 +129,58 @@ export function useUpdateParcela() {
   });
 }
 
+export function useDesfazerPagamento() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (parcelaId: string) => {
+      // Revert parcela to pendente
+      const { error: parcelaError } = await supabase
+        .from("parcelas_financeiras")
+        .update({
+          status: "pendente",
+          data_pagamento: null,
+          valor_pago: null,
+          forma_pagamento_recebido: null,
+        })
+        .eq("id", parcelaId);
+
+      if (parcelaError) throw parcelaError;
+
+      // Remove payment history entries
+      const { error: historicoError } = await supabase
+        .from("historico_pagamentos")
+        .delete()
+        .eq("parcela_id", parcelaId);
+
+      if (historicoError) throw historicoError;
+
+      return parcelaId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parcelas"] });
+      queryClient.invalidateQueries({ queryKey: ["acordo-detalhes"] });
+      queryClient.invalidateQueries({ queryKey: ["acordos-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["parcelas-vencendo"] });
+      queryClient.invalidateQueries({ queryKey: ["historico-pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["projetado-vs-realizado"] });
+      toast({
+        title: "Pagamento desfeito",
+        description: "A parcela voltou para o status pendente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao desfazer pagamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useDeleteParcela() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
