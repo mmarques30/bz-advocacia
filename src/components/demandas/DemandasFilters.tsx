@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import { DemandasFilters as FiltersType } from "@/types/demandas";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
 interface DemandasFiltersProps {
   filters: FiltersType;
@@ -9,6 +10,18 @@ interface DemandasFiltersProps {
 }
 
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
+  const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
+
+  const categorias = categoriasDb && categoriasDb.length > 0
+    ? categoriasDb.map(o => ({ value: o.valor, label: o.label }))
+    : [
+        { value: 'processos', label: 'Processos' },
+        { value: 'vendas', label: 'Vendas' },
+        { value: 'pagamentos', label: 'Pagamentos' },
+        { value: 'administrativo', label: 'Administrativo' },
+        { value: 'geral', label: 'Geral' },
+      ];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
       <Select value={filters.categoria || 'todos'} onValueChange={(value) => onFilterChange('categoria', value === 'todos' ? '' : value)}>
@@ -17,11 +30,9 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todas as categorias</SelectItem>
-          <SelectItem value="processos">Processos</SelectItem>
-          <SelectItem value="vendas">Vendas</SelectItem>
-          <SelectItem value="pagamentos">Pagamentos</SelectItem>
-          <SelectItem value="administrativo">Administrativo</SelectItem>
-          <SelectItem value="geral">Geral</SelectItem>
+          {categorias.map((cat) => (
+            <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

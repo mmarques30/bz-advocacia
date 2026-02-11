@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Users, BookOpen, MessageSquare, Zap } from "lucide-react";
+import { User, Users, BookOpen, MessageSquare, Zap, List } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Configuracoes() {
@@ -31,6 +31,13 @@ export default function Configuracoes() {
       icon: Zap,
       href: "/dashboard/configuracoes/automacoes",
       color: "text-orange-600",
+    },
+    {
+      title: "Listas do Sistema",
+      description: "Gerencie origens de leads, tipos de processo e categorias",
+      icon: List,
+      href: "/dashboard/configuracoes/listas",
+      color: "text-cyan-600",
     },
     {
       title: "Guia de Uso",

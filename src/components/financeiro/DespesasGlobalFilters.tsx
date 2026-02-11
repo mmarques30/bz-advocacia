@@ -19,6 +19,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
 import { DateRange } from "react-day-picker";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
 export interface DespesasGlobalFiltersState {
   tipoDespesa: string;
@@ -56,6 +57,12 @@ const getAnoFromRange = (range: DateRange | undefined): string => {
 };
 
 export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFiltersProps) {
+  const { data: categoriasDespesaDb } = useOpcoesSistema('categoria_despesa', true);
+
+  const categoriasEntries = categoriasDespesaDb && categoriasDespesaDb.length > 0
+    ? categoriasDespesaDb.map(o => [o.valor, o.label] as [string, string])
+    : Object.entries(CATEGORIA_DESPESA_LABELS);
+
   const handleChange = (key: keyof DespesasGlobalFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
   };
@@ -194,7 +201,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todas as Categorias</SelectItem>
-            {Object.entries(CATEGORIA_DESPESA_LABELS).map(([value, label]) => (
+            {categoriasEntries.map(([value, label]) => (
               <SelectItem key={value} value={value}>
                 {label}
               </SelectItem>

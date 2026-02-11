@@ -30,6 +30,7 @@ import {
 import { Lead, ORIGEM_LABELS, TIPO_PROCESSO_OPTIONS, LEAD_STATUS_LABELS } from "@/types/leads";
 import { useCreateLead, useUpdateLead } from "@/hooks/useLeads";
 import { useEffect } from "react";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
 const leadFormSchema = z.object({
   nome_completo: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
@@ -56,6 +57,8 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
   const createLead = useCreateLead();
   const updateLead = useUpdateLead();
   const isEditing = !!lead;
+  const { data: origensDb } = useOpcoesSistema('origem_lead', true);
+  const { data: tiposProcessoDb } = useOpcoesSistema('tipo_processo', true);
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadFormSchema),
@@ -225,7 +228,10 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {TIPO_PROCESSO_OPTIONS.map((tipo) => (
+                        {(tiposProcessoDb && tiposProcessoDb.length > 0
+                          ? tiposProcessoDb.map(o => o.label)
+                          : TIPO_PROCESSO_OPTIONS
+                        ).map((tipo) => (
                           <SelectItem key={tipo} value={tipo}>
                             {tipo}
                           </SelectItem>
@@ -250,7 +256,10 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(ORIGEM_LABELS).map(([key, label]) => (
+                        {(origensDb && origensDb.length > 0
+                          ? origensDb.map(o => ({ key: o.valor, label: o.label }))
+                          : Object.entries(ORIGEM_LABELS).map(([key, label]) => ({ key, label }))
+                        ).map(({ key, label }) => (
                           <SelectItem key={key} value={key}>
                             {label}
                           </SelectItem>

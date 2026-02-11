@@ -15,6 +15,7 @@ import { useCreateDespesa } from "@/hooks/useDespesas";
 import { useProcessos } from "@/hooks/useProcessos";
 import { CATEGORIA_DESPESA_LABELS, FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
 import type { CategoriaDespesa, StatusDespesa, FormaPagamentoRecebido } from "@/types/financeiro";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
 interface NewDespesaDialogProps {
   open: boolean;
@@ -33,6 +34,11 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
 
   const createDespesa = useCreateDespesa();
   const { data: processos } = useProcessos({ status: undefined });
+  const { data: categoriasDespesaDb } = useOpcoesSistema('categoria_despesa', true);
+
+  const categoriasEntries = categoriasDespesaDb && categoriasDespesaDb.length > 0
+    ? categoriasDespesaDb.map(o => [o.valor, o.label] as [string, string])
+    : Object.entries(CATEGORIA_DESPESA_LABELS);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,7 +147,7 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(CATEGORIA_DESPESA_LABELS).map(([key, label]) => (
+                  {categoriasEntries.map(([key, label]) => (
                     <SelectItem key={key} value={key}>
                       {label}
                     </SelectItem>
