@@ -1,29 +1,38 @@
 
-# Remover cores vibrantes dos icones na aba Marketing
+# Adicionar filtros rapidos de Nome e Origem na barra de Leads
 
-## Problema
+## O que muda
 
-Os componentes de Marketing usam icones com cores vibrantes (azul, verde, roxo, laranja, ciano, vermelho, amber, emerald), quebrando o padrao visual do projeto que deve ser neutro e profissional.
+Na barra do header de Leads (`LeadsHeader`), adicionar dois selects (dropdowns) logo apos o botao "Importar":
+
+1. **Filtro por Nome** - Select com lista dos nomes dos leads disponiveis, permitindo filtrar por um lead especifico
+2. **Filtro por Origem** - Select com as origens cadastradas (Google, Facebook, Instagram, etc.), usando as constantes ja existentes em `ORIGEM_LABELS`
+
+Alem disso, reduzir a largura maxima da barra de pesquisa de `max-w-md` para `max-w-xs`.
 
 ## Alteracoes
 
-### 1. `src/pages/vendas/MetaAds.tsx` - ROICard
+### 1. `src/components/leads/LeadsHeader.tsx`
 
-- Remover cores individuais dos icones (`text-red-500`, `text-blue-500`, `text-amber-500`, `text-emerald-500`)
-- Remover backgrounds coloridos (`bg-red-500/10`, `bg-blue-500/10`, etc.)
-- Usar `text-muted-foreground` para todos os icones e `bg-muted` para os backgrounds
-- Remover gradiente do Card (`bg-gradient-to-r from-primary/5 to-transparent` e `border-primary/20`)
-- Remover icone `text-primary` do titulo "Resumo de ROI"
+- Adicionar props `origemFilter` e `onOrigemFilterChange` para o filtro de origem
+- Adicionar props `nomeFilter` e `onNomeFilterChange` para o filtro de nome
+- Buscar nomes unicos dos leads no banco (`contact_submissions`) para popular o select de nomes (quando nao for aba de clientes)
+- Renderizar dois `Select` apos o botao Importar:
+  - Select "Todos os nomes" com lista de nomes
+  - Select "Todas as origens" com opcoes de `ORIGEM_LABELS`
+- Reduzir barra de pesquisa de `max-w-md` para `max-w-xs`
 
-### 2. `src/components/meta-ads/MetaAdsKPIs.tsx`
+### 2. `src/pages/Leads.tsx`
 
-- Substituir todas as cores dos icones (`text-blue-600`, `text-green-600`, `text-purple-600`, `text-orange-600`, `text-cyan-600`) por `text-muted-foreground`
-- Manter apenas as cores de variacao (verde para positivo, vermelho para negativo) pois sao indicadores funcionais, nao decorativos
+- Adicionar estados `nomeFilter` e `origemFilter` (ambos `string | null`)
+- Passar esses estados como props para `LeadsHeader`
+- Integrar os filtros com o estado de `filters` existente: quando `origemFilter` muda, atualizar `filters.origem`; quando `nomeFilter` muda, atualizar `filters.search`
 
-### 3. `src/components/meta-ads/MetaAdsChart.tsx`
+## Detalhes tecnicos
 
-- Nenhuma alteracao necessaria, as cores do grafico sao funcionais (diferenciar linhas)
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/components/leads/LeadsHeader.tsx` | Adicionar 2 selects (nome e origem), buscar nomes do banco, reduzir largura da pesquisa |
+| `src/pages/Leads.tsx` | Adicionar estados dos filtros rapidos e conectar ao LeadsHeader |
 
-## Resultado
-
-Icones neutros (`text-muted-foreground`) em todos os cards, alinhados com o padrao visual do restante da aplicacao. Apenas indicadores de tendencia (positivo/negativo) mantem cor funcional.
+Os selects seguem o mesmo padrao visual ja usado no filtro de clientes existente no componente (linhas 102-118).
