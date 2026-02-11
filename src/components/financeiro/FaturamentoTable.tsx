@@ -4,12 +4,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useFaturamentoDetalhado } from "@/hooks/useFinanceiro";
+import { useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
+import { EditTransacaoDialog } from "./transacoes/EditTransacaoDialog";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
+import type { TransacaoFinanceira } from "@/types/transacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CONTA_LABELS } from "@/types/financeiro";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface FaturamentoTableProps {
   filters?: FaturamentoFiltersState;
@@ -20,8 +40,12 @@ const INITIAL_ITEMS = 3;
 export function FaturamentoTable({ filters }: FaturamentoTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
+  const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transacaoToDelete, setTransacaoToDelete] = useState<string | null>(null);
   
   const { data: faturamentos, isLoading } = useFaturamentoDetalhado(filters);
+  const deleteTransacao = useDeleteTransacao();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -30,28 +54,54 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
     }).format(value);
   };
 
-  // Filtrar por termo de busca
   const filteredData = faturamentos?.filter(item => 
     item.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.categoria?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.subcategoria?.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  // Controle de exibição com expandir/ocultar
   const displayedData = isExpanded 
     ? filteredData 
     : filteredData.slice(0, INITIAL_ITEMS);
 
   const temMaisItens = filteredData.length > INITIAL_ITEMS;
-  const itensRestantes = filteredData.length - INITIAL_ITEMS;
 
-  // Reset expansão ao mudar busca
   const handleSearch = (value: string) => {
     setSearchTerm(value);
     setIsExpanded(false);
   };
 
-  // Calcular total
+  const handleEdit = (item: any) => {
+    const transacao: TransacaoFinanceira = {
+      id: item.id,
+      mes: item.mes,
+      ano: item.ano,
+      mes_nome: item.mes_nome,
+      tipo_codigo: item.tipo_codigo,
+      categoria_codigo: item.categoria_codigo || item.categoria,
+      subcategoria_codigo: item.subcategoria_codigo || item.subcategoria,
+      descricao: item.descricao,
+      data_transacao: item.data_transacao || item.data,
+      valor: item.valor,
+      created_at: item.created_at || "",
+      conta: item.conta,
+    };
+    setEditingTransacao(transacao);
+  };
+
+  const handleDelete = async () => {
+    if (!transacaoToDelete) return;
+    try {
+      await deleteTransacao.mutateAsync(transacaoToDelete);
+      toast.success("Registro excluído com sucesso");
+    } catch {
+      toast.error("Erro ao excluir registro");
+    } finally {
+      setDeleteDialogOpen(false);
+      setTransacaoToDelete(null);
+    }
+  };
+
   const total = filteredData.reduce((sum, item) => sum + item.valor, 0);
 
   if (isLoading) {
@@ -99,12 +149,13 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
               <TableHead>Subcategoria</TableHead>
               <TableHead>Conta</TableHead>
               <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   Nenhum registro encontrado
                 </TableCell>
               </TableRow>
@@ -132,6 +183,31 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
                   </TableCell>
                   <TableCell className="text-right font-semibold text-emerald-600">
                     +{formatCurrency(item.valor)}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="bg-popover">
+                        <DropdownMenuItem onClick={() => handleEdit(item)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => {
+                            setTransacaoToDelete(item.id);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -161,6 +237,32 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
           </Button>
         </div>
       )}
+
+      <EditTransacaoDialog
+        open={!!editingTransacao}
+        onClose={() => setEditingTransacao(null)}
+        transacao={editingTransacao}
+      />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

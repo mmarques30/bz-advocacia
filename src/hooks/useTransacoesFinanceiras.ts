@@ -472,6 +472,9 @@ export function useUpdateTransacao() {
       queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
       queryClient.invalidateQueries({ queryKey: ["resumo-mensal-transacoes"] });
       queryClient.invalidateQueries({ queryKey: ["resumo-subcategoria-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["faturamento-detalhado"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["fluxo-caixa"] });
     },
   });
 }
@@ -493,6 +496,9 @@ export function useDeleteTransacao() {
       queryClient.invalidateQueries({ queryKey: ["kpis-transacoes"] });
       queryClient.invalidateQueries({ queryKey: ["resumo-mensal-transacoes"] });
       queryClient.invalidateQueries({ queryKey: ["resumo-subcategoria-transacoes"] });
+      queryClient.invalidateQueries({ queryKey: ["faturamento-detalhado"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["fluxo-caixa"] });
     },
   });
 }
