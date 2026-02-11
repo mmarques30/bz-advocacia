@@ -1,115 +1,88 @@
 
-# Plano: Dashboard de Produtividade Individual
+# Plano: Edicao de Modelos de Documentos
 
 ## Resumo
 
-Substituir completamente o conteudo da aba "Alertas" em Gestao de Tarefas por um dashboard focado em produtividade individual da equipe. O componente `AlertasUnificados` sera reescrito para exibir metricas de produtividade por membro.
+Adicionar botao "Editar" em cada modelo personalizado (propostas e contratos) na tela de Modelos, abrindo um dialog com editor de texto completo que permite alterar nome, categoria, descricao, conteudo e variaveis do modelo. Inclui versionamento basico salvando o historico de alteracoes.
 
-## O que sera removido
+## Contexto Atual
 
-- Cards de "Alertas Importantes", "Minhas Demandas" e "Proximos 7 Dias"
-- Esses dados ja estao cobertos pelos filtros da propria listagem de tarefas
+- Modelos personalizados sao salvos na tabela `templates` com conteudo em JSON (`ModeloConteudo`)
+- Ja existe `useUpdateTemplate` no hook `useTemplates.ts` pronto para usar
+- Ja existe `TemplateEditor` com insercao de variaveis dinamicas
+- Modelos padrao (hardcoded em `contratoTemplates.ts`) NAO serao editaveis -- apenas os personalizados criados via IA
 
-## Novo Layout do Dashboard
+## Alteracoes
 
-```text
-+------------------------------------------------------------+
-| [Filtro de Periodo: Este Mes | Ultimos 30d | 90d | Todos]  |
-+------------------------------------------------------------+
-| KPI 1         | KPI 2          | KPI 3       | KPI 4       |
-| Total         | Concluidas     | Tempo Medio | Taxa        |
-| Concluidas    | no Periodo     | Conclusao   | Conclusao   |
-+------------------------------------------------------------+
-| Ranking por Executor              | Distribuicao de Carga  |
-| (quem executou - tabela)          | (grafico barras horiz) |
-|                                   |                        |
-| Nome | Concl | Pendentes | Media  |                        |
-+------------------------------------------------------------+
-| Tarefas por Advogada Responsavel  | Evolucao Mensal        |
-| (grafico pizza/donut)             | (grafico barras)       |
-+------------------------------------------------------------+
-```
+### 1. Nova tabela: `templates_versoes` (migracao)
 
-## Alteracoes Detalhadas
+Para manter historico de alteracoes:
 
-### 1. Renomear aba "Alertas" para "Produtividade" (`Demandas.tsx`)
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | PK |
+| template_id | uuid | FK para templates |
+| versao | integer | Numero da versao (incrementa) |
+| nome | text | Nome na versao |
+| conteudo | text | Conteudo na versao |
+| descricao | text | Descricao na versao |
+| variaveis | text[] | Variaveis na versao |
+| editado_por | uuid | Usuario que editou |
+| created_at | timestamptz | Data da versao |
 
-- Mudar o texto da tab de "Alertas" para "Produtividade"
-- Mudar o icone de AlertTriangle para BarChart3
+RLS: usuarios autenticados podem ler e inserir.
 
-### 2. Reescrever `AlertasUnificados.tsx` -> `ProdutividadeDashboard.tsx`
+### 2. Novo componente: `EditModeloDialog.tsx` em `src/components/documentos/`
 
-Novo componente completo com:
+Dialog de edicao com:
+- Campo **Nome** do modelo (editavel)
+- Select de **Categoria** (saude, familia, civel, etc.)
+- Campo **Descricao** (editavel)
+- **Editor de conteudo** usando `TemplateEditor` existente para inserir variaveis
+- Exibicao das **variaveis detectadas** automaticamente no conteudo
+- Secao de **Historico de Versoes** colapsavel mostrando versoes anteriores
+- Botoes: Cancelar, Salvar
 
-**Filtro de periodo** no topo:
-- Este Mes (padrao), Ultimos 30 dias, Ultimos 90 dias, Todos
+Ao salvar:
+1. Salva versao atual na tabela `templates_versoes` (antes de sobrescrever)
+2. Atualiza o template na tabela `templates` via `useUpdateTemplate`
+3. Invalida queries para atualizar a listagem
 
-**4 KPI Cards** em grid:
-- Total de tarefas concluidas no periodo
-- Tarefas concluidas por advogada (maior numero)
-- Tempo medio de conclusao (dias)
-- Taxa de conclusao (%)
+### 3. Hook: `useUpdateModelo` em `useModelosDocumentos.ts`
 
-**Ranking por Executor** (card com tabela):
-- Tabela mostrando cada membro da equipe
-- Colunas: Nome, Concluidas, Pendentes, Em Andamento, Tempo Medio
-- Ordenado por concluidas (maior primeiro)
-- Dados vem do campo `responsavel_id` (quem executou)
+Nova mutation que:
+- Recebe id do modelo e dados atualizados
+- Busca dados atuais do template (para salvar como versao anterior)
+- Insere versao anterior em `templates_versoes`
+- Atualiza template com novos dados
+- Invalida queries
 
-**Distribuicao de Carga de Trabalho** (card com grafico):
-- Grafico de barras horizontal empilhado (reaproveita estilo do DistribuicaoResponsavel atual)
-- Mostra pendentes, em andamento e concluidas por pessoa
+### 4. Hook: `useModeloVersoes` em `useModelosDocumentos.ts`
 
-**Tarefas por Advogada Responsavel** (card com grafico):
-- Grafico de barras agrupado mostrando Juliana vs Liziane
-- Barras: Concluidas, Pendentes, Em Andamento
+Query simples que busca versoes anteriores de um template:
+- Filtra por `template_id`
+- Ordena por `versao` descendente
 
-**Evolucao Mensal** (card com grafico):
-- Grafico de barras vertical com os ultimos 6 meses
-- Barras: tarefas concluidas por mes
+### 5. Componente: `ModelosContrato.tsx` - Adicionar botao Editar
 
-### 3. Novo Hook: `useProdutividadeEquipe.ts`
-
-Hook dedicado que busca e calcula todas as metricas:
-
-- Busca demandas concluidas no periodo selecionado
-- Busca demandas ativas (pendentes/em andamento)
-- Agrupa por `responsavel_id` (executor) e por `advogada_responsavel` (advogada)
-- Calcula tempo medio de conclusao por pessoa
-- Calcula evolucao mensal (ultimos 6 meses)
-- Aceita parametro de periodo para filtrar
-
-Retorna:
-```text
-{
-  kpis: { totalConcluidas, tempoMedio, taxaConclusao, topExecutor }
-  rankingExecutores: [{ nome, concluidas, pendentes, emAndamento, tempoMedio }]
-  distribuicaoCarga: [{ nome, pendentes, emAndamento, concluidas }]
-  porAdvogada: [{ advogada, concluidas, pendentes, emAndamento }]
-  evolucaoMensal: [{ mes, concluidas }]
-}
-```
-
-### 4. Componentes auxiliares removidos/mantidos
-
-- `PerformanceIndicators.tsx` e `DistribuicaoResponsavel.tsx` deixam de ser usados (substituidos pelo novo dashboard)
-- O hook `useDemandasPerformance.ts` sera substituido pelo novo `useProdutividadeEquipe.ts`
+Nos cards de modelos personalizados:
+- Adicionar botao "Editar" ao lado do card (icone Pencil)
+- Ao clicar, abre `EditModeloDialog` com dados do modelo
+- Adicionar tambem botao "Excluir" (desativa o modelo via `useDeleteTemplate` existente)
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/pages/processos/Demandas.tsx` | Renomear tab "Alertas" para "Produtividade", trocar icone |
-| `src/components/demandas/AlertasUnificados.tsx` | **Reescrever** completamente como `ProdutividadeDashboard` |
-| `src/hooks/useProdutividadeEquipe.ts` | **Novo** - hook com todas as metricas de produtividade |
-| `src/components/demandas/PerformanceIndicators.tsx` | Removido (absorvido pelo novo dashboard) |
-| `src/components/demandas/DistribuicaoResponsavel.tsx` | Removido (absorvido pelo novo dashboard) |
+| Migracao SQL | **Nova** - tabela `templates_versoes` |
+| `src/components/documentos/EditModeloDialog.tsx` | **Novo** - dialog de edicao |
+| `src/hooks/useModelosDocumentos.ts` | Adicionar `useUpdateModelo` e `useModeloVersoes` |
+| `src/components/documentos/ModelosContrato.tsx` | Adicionar botoes Editar/Excluir nos cards personalizados |
 
 ## Resultado
 
-- Dashboard focado em produtividade individual com metricas claras
-- Visibilidade de quem esta executando mais tarefas
-- Comparacao entre advogadas responsaveis
-- Tempo medio de conclusao por pessoa
-- Evolucao temporal para acompanhar tendencias
-- Filtro de periodo para analises flexiveis
+- Cada modelo personalizado tera botao "Editar" no card
+- Editor completo com insercao de variaveis dinamicas
+- Historico de versoes anteriores acessivel dentro do dialog
+- Variaveis sao preservadas e detectadas automaticamente
+- Modelos padrao permanecem inalterados (somente visualizacao)
