@@ -115,11 +115,7 @@ const App = () => (
       />
       <Route 
         path="/dashboard/vendas/analises"
-        element={
-          <ProtectedRoute>
-            <VendasAnalises />
-          </ProtectedRoute>
-        } 
+        element={<Navigate to="/dashboard/vendas/meta-ads" replace />}
       />
       <Route 
         path="/dashboard/vendas/meta-ads"
