@@ -205,6 +205,7 @@ export function ImportTransacoesDialog({ open, onClose }: Props) {
         descricao: row.descricao || null,
         data_transacao: `${parsedDate.year || defaultYear}-${String(parsedDate.month).padStart(2, "0")}-${String(parsedDate.day).padStart(2, "0")}`,
         valor: parseFloat(valorStr),
+        conta: null,
       };
     });
 

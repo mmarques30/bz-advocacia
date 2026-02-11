@@ -250,6 +250,7 @@ export function ImportDespesasDialog({ open, onClose, onSuccess }: Props) {
         descricao: row.descricao.trim(),
         valor: row.valorNumerico,
         data_transacao: parseDate(row.data, row.mesNumero, ano),
+        conta: null,
       }));
 
       // Import in batches of 50

@@ -17,6 +17,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { format, addMonths } from "date-fns";
 import { FORMA_PAGAMENTO_RECEBIDO_LABELS } from "@/types/financeiro";
 import type { FormaPagamento } from "@/types/financeiro";
+import { CONTA_LABELS } from "@/types/financeiro";
 
 interface NewAcordoDialogProps {
   open: boolean;
@@ -35,6 +36,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const [dataPrimeiroVencimento, setDataPrimeiroVencimento] = useState("");
   const [formaPagamentoRecebido, setFormaPagamentoRecebido] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
+  const [conta, setConta] = useState("escritorio");
 
   const [parcelasPreview, setParcelasPreview] = useState<any[]>([]);
 
@@ -82,6 +84,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
         forma_pagamento: formaPagamento,
         numero_parcelas: formaPagamento === "parcelado" ? parseInt(numeroParcelas) : 1,
         data_primeiro_vencimento: dataPrimeiroVencimento || null,
+        conta,
         parcelas,
       },
       {
@@ -239,6 +242,22 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
               )}
             </>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="conta">Conta *</Label>
+            <Select value={conta} onValueChange={setConta}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CONTA_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="observacoes">Observações</Label>

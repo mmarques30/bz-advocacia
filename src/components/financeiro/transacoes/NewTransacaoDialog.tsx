@@ -73,6 +73,7 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
         descricao: descricao || null,
         data_transacao: dataTransacao || null,
         valor: parseFloat(valor.replace(",", ".")),
+        conta: null,
       });
 
       toast.success("Transação criada com sucesso");

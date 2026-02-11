@@ -106,6 +106,9 @@ export function useTransacoes(filters: TransacoesFilters = {}) {
       if (filters.subcategoria_codigo) {
         query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
       }
+      if (filters.conta) {
+        query = query.eq("conta", filters.conta);
+      }
 
       const { data, error } = await query.limit(10000);
 
@@ -142,6 +145,9 @@ export function useKPIsTransacoes(filters: TransacoesFilters = {}) {
       }
       if (filters.subcategoria_codigo) {
         query = query.eq("subcategoria_codigo", filters.subcategoria_codigo);
+      }
+      if (filters.conta) {
+        query = query.eq("conta", filters.conta);
       }
 
       const { data, error } = await query.limit(10000);

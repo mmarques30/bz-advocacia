@@ -11,6 +11,14 @@ export const TIPO_ENTRADA_FATURAMENTO_LABELS: Record<TipoEntradaFaturamento, str
 export type StatusParcela = 'pendente' | 'pago' | 'atrasado' | 'cancelado';
 export type FormaPagamentoRecebido = 'pix' | 'boleto' | 'cartao' | 'dinheiro' | 'transferencia';
 
+export type ContaFinanceira = 'juliana' | 'liziane' | 'escritorio';
+
+export const CONTA_LABELS: Record<string, string> = {
+  juliana: 'Conta Juliana',
+  liziane: 'Conta Liziane',
+  escritorio: 'Conta Escritório',
+};
+
 export interface AcordoFinanceiro {
   id: string;
   cliente_id: string;
@@ -24,6 +32,7 @@ export interface AcordoFinanceiro {
   observacoes: string | null;
   created_at: string;
   created_by: string | null;
+  conta: string | null;
   
   // Relações
   cliente?: {
@@ -205,6 +214,7 @@ export interface Despesa {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  conta: string | null;
   
   // Relações
   processo?: {

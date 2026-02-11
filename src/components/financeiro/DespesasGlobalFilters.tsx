@@ -17,7 +17,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { DateRange } from "react-day-picker";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
@@ -26,6 +26,7 @@ export interface DespesasGlobalFiltersState {
   dateRange: DateRange | undefined;
   categoria: string;
   status: string;
+  conta: string;
 }
 
 interface DespesasGlobalFiltersProps {
@@ -85,6 +86,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
       dateRange: undefined,
       categoria: "todos",
       status: "todos",
+      conta: "todos",
     });
   };
 
@@ -95,7 +97,8 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
     filters.dateRange?.from !== undefined || 
     filters.dateRange?.to !== undefined ||
     filters.categoria !== "todos" || 
-    filters.status !== "todos";
+    filters.status !== "todos" ||
+    filters.conta !== "todos";
 
   const getActiveFilterLabels = () => {
     const labels: string[] = [];
@@ -226,6 +229,23 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           </SelectContent>
         </Select>
 
+        <Select
+          value={filters.conta}
+          onValueChange={(value) => handleChange("conta", value)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Conta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as Contas</SelectItem>
+            {Object.entries(CONTA_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4 mr-1" />
@@ -253,4 +273,5 @@ export const getDefaultDespesasGlobalFilters = (): DespesasGlobalFiltersState =>
   dateRange: undefined,
   categoria: "todos",
   status: "todos",
+  conta: "todos",
 });

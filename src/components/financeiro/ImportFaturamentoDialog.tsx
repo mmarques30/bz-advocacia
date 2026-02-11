@@ -307,6 +307,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
           descricao: string;
           valor: number;
           data_transacao: string;
+          conta: string | null;
         }> = [];
         
         const valorEliziane = parseValor(row.valor_eliziane);
@@ -326,6 +327,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
             descricao: row.descricao.trim(),
             valor: valorEliziane,
             data_transacao: dataTransacao,
+            conta: null,
           });
         }
         
@@ -341,6 +343,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
             descricao: row.descricao.trim(),
             valor: valorJuliana,
             data_transacao: dataTransacao,
+            conta: null,
           });
         }
         
@@ -356,6 +359,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
             descricao: row.descricao.trim(),
             valor: valorPJ,
             data_transacao: dataTransacao,
+            conta: null,
           });
         }
         
@@ -371,6 +375,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
             descricao: row.descricao.trim(),
             valor: row.valorNumerico,
             data_transacao: dataTransacao,
+            conta: null,
           });
         }
         

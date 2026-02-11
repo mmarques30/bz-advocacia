@@ -17,6 +17,7 @@ export type Database = {
       acordos_financeiros: {
         Row: {
           cliente_id: string
+          conta: string | null
           created_at: string | null
           created_by: string | null
           data_primeiro_vencimento: string | null
@@ -31,6 +32,7 @@ export type Database = {
         }
         Insert: {
           cliente_id: string
+          conta?: string | null
           created_at?: string | null
           created_by?: string | null
           data_primeiro_vencimento?: string | null
@@ -45,6 +47,7 @@ export type Database = {
         }
         Update: {
           cliente_id?: string
+          conta?: string | null
           created_at?: string | null
           created_by?: string | null
           data_primeiro_vencimento?: string | null
@@ -700,6 +703,7 @@ export type Database = {
         Row: {
           anexo_url: string | null
           categoria: string
+          conta: string | null
           created_at: string | null
           created_by: string | null
           data: string
@@ -715,6 +719,7 @@ export type Database = {
         Insert: {
           anexo_url?: string | null
           categoria: string
+          conta?: string | null
           created_at?: string | null
           created_by?: string | null
           data: string
@@ -730,6 +735,7 @@ export type Database = {
         Update: {
           anexo_url?: string | null
           categoria?: string
+          conta?: string | null
           created_at?: string | null
           created_by?: string | null
           data?: string
@@ -2231,6 +2237,7 @@ export type Database = {
         Row: {
           ano: number
           categoria_codigo: string | null
+          conta: string | null
           created_at: string | null
           data_transacao: string | null
           descricao: string | null
@@ -2244,6 +2251,7 @@ export type Database = {
         Insert: {
           ano: number
           categoria_codigo?: string | null
+          conta?: string | null
           created_at?: string | null
           data_transacao?: string | null
           descricao?: string | null
@@ -2257,6 +2265,7 @@ export type Database = {
         Update: {
           ano?: number
           categoria_codigo?: string | null
+          conta?: string | null
           created_at?: string | null
           data_transacao?: string | null
           descricao?: string | null

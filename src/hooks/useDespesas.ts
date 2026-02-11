@@ -121,12 +121,13 @@ export function useDespesas(filters?: DespesasFilters) {
         categoria: mapCategoriaCodigo(transacao.categoria_codigo),
         processo_id: null,
         forma_pagamento: null,
-        status: 'pago' as StatusDespesa, // Todas importadas são pagas
+        status: 'pago' as StatusDespesa,
         observacoes: null,
         anexo_url: null,
         created_at: transacao.created_at || '',
         updated_at: transacao.created_at || '',
         created_by: null,
+        conta: transacao.conta || null,
       }));
 
       return despesas;
@@ -165,6 +166,7 @@ export function useDespesa(despesaId: string | null) {
         created_at: data.created_at || '',
         updated_at: data.created_at || '',
         created_by: null,
+        conta: data.conta || null,
       };
 
       return despesa;
@@ -400,6 +402,7 @@ export function useDespesasRecentes(filters?: DespesasGlobalFiltersState) {
         created_at: transacao.created_at || '',
         updated_at: transacao.created_at || '',
         created_by: null,
+        conta: transacao.conta || null,
       }));
 
       return despesas;

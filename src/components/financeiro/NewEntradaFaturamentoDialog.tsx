@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { 
   TIPO_ENTRADA_FATURAMENTO_LABELS, 
   FORMA_PAGAMENTO_RECEBIDO_LABELS,
+  CONTA_LABELS,
   type TipoEntradaFaturamento,
   type FormaPagamentoRecebido 
 } from "@/types/financeiro";
@@ -168,6 +169,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
   const [dataRecebimento, setDataRecebimento] = useState(format(new Date(), "yyyy-MM-dd"));
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoRecebido>("pix");
   const [observacoes, setObservacoes] = useState("");
+  const [conta, setConta] = useState("escritorio");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -183,6 +185,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
         numero_parcelas: 1,
         data_primeiro_vencimento: dataRecebimento,
         observacoes: observacoes || null,
+        conta,
         parcelas: [{
           numero_parcela: 1,
           valor: parseFloat(valor),
@@ -281,6 +284,22 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
           </SelectTrigger>
           <SelectContent>
             {Object.entries(FORMA_PAGAMENTO_RECEBIDO_LABELS).map(([key, label]) => (
+              <SelectItem key={key} value={key}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="conta">Conta *</Label>
+        <Select value={conta} onValueChange={setConta}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(CONTA_LABELS).map(([key, label]) => (
               <SelectItem key={key} value={key}>
                 {label}
               </SelectItem>

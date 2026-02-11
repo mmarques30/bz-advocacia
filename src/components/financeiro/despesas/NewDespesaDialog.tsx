@@ -13,7 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useCreateDespesa } from "@/hooks/useDespesas";
 import { useProcessos } from "@/hooks/useProcessos";
-import { CATEGORIA_DESPESA_LABELS, FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { CATEGORIA_DESPESA_LABELS, FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import type { CategoriaDespesa, StatusDespesa, FormaPagamentoRecebido } from "@/types/financeiro";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
@@ -31,6 +31,7 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoRecebido | "">("");
   const [status, setStatus] = useState<StatusDespesa>("pendente");
   const [observacoes, setObservacoes] = useState("");
+  const [conta, setConta] = useState("escritorio");
 
   const createDespesa = useCreateDespesa();
   const { data: processos } = useProcessos({ status: undefined });
@@ -58,6 +59,7 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
         status,
         observacoes: observacoes || null,
         anexo_url: null,
+        conta,
       },
       {
         onSuccess: () => {
@@ -205,6 +207,22 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="conta">Conta *</Label>
+            <Select value={conta} onValueChange={setConta}>
+              <SelectTrigger id="conta">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CONTA_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
