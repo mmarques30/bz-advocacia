@@ -56,12 +56,23 @@ export interface LeadsEvolutionItem {
   anterior: number;
 }
 
+export interface ProcessoSemAtualizacao {
+  id: string;
+  numero_processo: string | null;
+  tipo: string;
+  autor: string | null;
+  reu: string | null;
+  data_ultima_atualizacao: string | null;
+  dias_sem_atualizacao: number;
+}
+
 export interface DashboardCompletoData {
   processos: ProcessosPorStatus;
   proximosPrazos: PrazoProximo[];
   pipeline: PipelineEstagio[];
   leadsRecentes: LeadRecente[];
   propostas: PropostaAcao[];
+  processosSemAtualizacao: ProcessoSemAtualizacao[];
   totalClientes: number;
   totalLeadsMes: number;
   taxaConversao: number;
@@ -127,12 +138,14 @@ export function useDashboardCompleto() {
           .order("created_at", { ascending: false })
           .limit(5),
 
-        // 5. Processos sem atualização há 30+ dias
+        // 5. Processos sem atualização há 30+ dias (dados completos)
         supabase
           .from("processos")
-          .select("id", { count: "exact", head: true })
+          .select("id, numero_processo, tipo, autor, reu, data_ultima_atualizacao")
           .eq("status", "em_andamento")
-          .lt("data_ultima_atualizacao", ha30Dias.toISOString()),
+          .lt("data_ultima_atualizacao", ha30Dias.toISOString())
+          .order("data_ultima_atualizacao", { ascending: true })
+          .limit(5),
 
         // 6. Leads parados há 7+ dias
         supabase
@@ -272,7 +285,23 @@ export function useDashboardCompleto() {
 
       // Generate propostas
       const propostas: PropostaAcao[] = [];
-      const processosAtrasados = processosAtrasadosResult.count || 0;
+      const processosSemAtualizacaoData = processosAtrasadosResult.data || [];
+      const processosSemAtualizacao: ProcessoSemAtualizacao[] = processosSemAtualizacaoData.map((p) => {
+        const lastUpdate = p.data_ultima_atualizacao ? new Date(p.data_ultima_atualizacao) : null;
+        const diasSem = lastUpdate
+          ? Math.floor((hoje.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24))
+          : 999;
+        return {
+          id: p.id,
+          numero_processo: p.numero_processo,
+          tipo: p.tipo,
+          autor: p.autor,
+          reu: p.reu,
+          data_ultima_atualizacao: p.data_ultima_atualizacao,
+          dias_sem_atualizacao: diasSem,
+        };
+      });
+      const processosAtrasados = processosSemAtualizacaoData.length;
       const leadsParados = leadsParadosResult.count || 0;
       const demandasAtrasadas = demandasAtrasadasResult.count || 0;
 
@@ -338,6 +367,7 @@ export function useDashboardCompleto() {
         pipeline,
         leadsRecentes,
         propostas,
+        processosSemAtualizacao,
         totalClientes: totalClientesResult.count || 0,
         totalLeadsMes,
         taxaConversao,

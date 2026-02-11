@@ -16,6 +16,7 @@ import type {
   PrazoProximo,
   PipelineEstagio,
   LeadRecente,
+  ProcessoSemAtualizacao,
 } from "@/hooks/useDashboardCompleto";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -23,6 +24,7 @@ import { ptBR } from "date-fns/locale";
 interface VisaoOperacionalProps {
   processos: ProcessosPorStatus;
   proximosPrazos: PrazoProximo[];
+  processosSemAtualizacao: ProcessoSemAtualizacao[];
   pipeline: PipelineEstagio[];
   leadsRecentes: LeadRecente[];
   loading?: boolean;
@@ -39,10 +41,12 @@ const ESTAGIO_LABELS: Record<string, string> = {
 function ProcessosPrazosCard({
   processos,
   proximosPrazos,
+  processosSemAtualizacao,
   loading,
 }: {
   processos: ProcessosPorStatus;
   proximosPrazos: PrazoProximo[];
+  processosSemAtualizacao: ProcessoSemAtualizacao[];
   loading?: boolean;
 }) {
   if (loading) {
@@ -136,6 +140,50 @@ function ProcessosPrazosCard({
             </Link>
           )}
         </div>
+
+        {/* Processos sem atualização */}
+        {processosSemAtualizacao.length > 0 && (
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              Sem Atualização
+            </h4>
+            <div className="space-y-2">
+              {processosSemAtualizacao.map((proc) => (
+                <div
+                  key={proc.id}
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {proc.numero_processo || proc.tipo}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {proc.autor && proc.reu
+                        ? `${proc.autor} vs ${proc.reu}`
+                        : proc.autor || proc.reu || proc.tipo}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={proc.dias_sem_atualizacao > 60 ? "destructive" : "secondary"}
+                    className={cn(
+                      "text-xs whitespace-nowrap ml-2",
+                      proc.dias_sem_atualizacao <= 60 && "bg-yellow-100 text-yellow-800 border-yellow-200"
+                    )}
+                  >
+                    {proc.dias_sem_atualizacao}d
+                  </Badge>
+                </div>
+              ))}
+            </div>
+            <Link
+              to="/dashboard/processos"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
+            >
+              Ver todos <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -235,6 +283,7 @@ function PipelineVendasCard({
 export function VisaoOperacional({
   processos,
   proximosPrazos,
+  processosSemAtualizacao,
   pipeline,
   leadsRecentes,
   loading,
@@ -244,6 +293,7 @@ export function VisaoOperacional({
       <ProcessosPrazosCard
         processos={processos}
         proximosPrazos={proximosPrazos}
+        processosSemAtualizacao={processosSemAtualizacao}
         loading={loading}
       />
       <PipelineVendasCard pipeline={pipeline} leadsRecentes={leadsRecentes} loading={loading} />
