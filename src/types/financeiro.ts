@@ -291,3 +291,31 @@ export const TIPOS_RELATORIO_LABELS: Record<TipoRelatorio, string> = {
   inadimplencia_detalhada: 'Inadimplência Detalhada',
   fluxo_caixa_projetado: 'Fluxo de Caixa Projetado',
 };
+
+// Créditos Condicionais
+export type StatusCreditoCondicional = 'backlog' | 'a_receber' | 'convertido' | 'cancelado';
+
+export const STATUS_CREDITO_CONDICIONAL_LABELS: Record<StatusCreditoCondicional, string> = {
+  backlog: 'Backlog',
+  a_receber: 'A Receber',
+  convertido: 'Convertido',
+  cancelado: 'Cancelado',
+};
+
+export interface CreditoCondicional {
+  id: string;
+  cliente_id: string;
+  processo_id: string | null;
+  descricao: string;
+  valor: number;
+  conta: string | null;
+  evento_gatilho: string;
+  status: StatusCreditoCondicional;
+  data_ativacao: string | null;
+  observacoes: string | null;
+  acordo_id: string | null;
+  created_at: string;
+  created_by: string | null;
+  cliente?: { id: string; nome_completo: string };
+  processo?: { id: string; numero_processo: string | null; tipo: string };
+}

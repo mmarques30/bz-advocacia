@@ -23,6 +23,7 @@ import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagam
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
 import { DespesasFixasManager } from "@/components/financeiro/despesas/DespesasFixasManager";
+import { CreditosCondicionaisSection } from "@/components/financeiro/CreditosCondicionaisSection";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
 import { TransacoesKPIs } from "@/components/financeiro/transacoes/TransacoesKPIs";
 import { TransacoesCharts } from "@/components/financeiro/transacoes/TransacoesCharts";
@@ -161,6 +162,8 @@ export default function Financeiro() {
           <FaturamentoKPIs filters={faturamentoFilters} />
           <FaturamentoCharts filters={faturamentoFilters} />
           <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
+          
+          <CreditosCondicionaisSection />
           
           <FaturamentoTable filters={faturamentoFilters} />
         </TabsContent>

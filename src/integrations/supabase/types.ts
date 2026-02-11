@@ -597,6 +597,54 @@ export type Database = {
           },
         ]
       }
+      creditos_condicionais: {
+        Row: {
+          acordo_id: string | null
+          cliente_id: string
+          conta: string | null
+          created_at: string | null
+          created_by: string | null
+          data_ativacao: string | null
+          descricao: string
+          evento_gatilho: string
+          id: string
+          observacoes: string | null
+          processo_id: string | null
+          status: string | null
+          valor: number
+        }
+        Insert: {
+          acordo_id?: string | null
+          cliente_id: string
+          conta?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_ativacao?: string | null
+          descricao: string
+          evento_gatilho: string
+          id?: string
+          observacoes?: string | null
+          processo_id?: string | null
+          status?: string | null
+          valor: number
+        }
+        Update: {
+          acordo_id?: string | null
+          cliente_id?: string
+          conta?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          data_ativacao?: string | null
+          descricao?: string
+          evento_gatilho?: string
+          id?: string
+          observacoes?: string | null
+          processo_id?: string | null
+          status?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       demandas_internas: {
         Row: {
           advogada_responsavel: string
