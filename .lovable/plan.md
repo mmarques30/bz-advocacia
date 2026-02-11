@@ -1,169 +1,160 @@
 
 
-# Plano: Despesas Fixas com Replicacao Automatica
+# Plano: Creditos Condicionais (Backlog Financeiro)
 
 ## Resumo
 
-Adicionar o conceito de "despesa fixa" ao sistema financeiro. Despesas marcadas como fixas (Aluguel, Internet, Sistemas, Contador, Salarios) sao automaticamente replicadas para os meses seguintes com valores editaveis. Cada ocorrencia mensal pode ser editada ou cancelada individualmente.
+Criar uma funcionalidade de "creditos a receber condicionais" -- valores que dependem de eventos futuros do processo (liminar, sentenca, encerramento) e ficam em backlog ate que o evento ocorra. Quando ativados, tornam-se receitas normais com data definida.
 
-## Abordagem
+## Como funciona
 
-Criar uma tabela `despesas_fixas` que armazena os modelos de despesas recorrentes. Uma funcao no frontend (ou edge function com cron) verifica ao abrir o modulo financeiro se ja existem ocorrencias geradas para o mes atual -- se nao, gera automaticamente na tabela `despesas` com base nos modelos ativos. Cada ocorrencia gerada e uma despesa normal, editavel e cancelavel, vinculada ao modelo original via `despesa_fixa_id`.
+1. Advogada registra um credito condicional: "Honorarios de exito R$ 5.000 - condicionado a liminar no processo 1234567"
+2. O credito fica com status **backlog** -- nao aparece em KPIs, graficos nem projecoes
+3. Quando o evento ocorre, a advogada edita o credito para status **a_receber**, define a data e ele se torna um acordo financeiro normal
+4. Tambem pode ser cancelado se o evento nao se concretizar
 
 ## Alteracoes
 
-### 1. Migracao de banco de dados
+### 1. Banco de dados
 
-Criar tabela `despesas_fixas`:
-- `id` (uuid, PK)
-- `descricao` (text) - ex: "Aluguel Escritorio"
-- `valor` (numeric) - valor padrao mensal
-- `categoria` (text) - categoria da despesa
-- `conta` (text) - conta responsavel
-- `dia_vencimento` (integer) - dia do mes para vencimento (1-31)
-- `ativa` (boolean, default true) - se ainda esta ativa
-- `observacoes` (text, nullable)
-- `created_at`, `created_by`
+Criar tabela `creditos_condicionais`:
 
-Adicionar coluna na tabela `despesas`:
-- `despesa_fixa_id` (uuid, nullable, FK para despesas_fixas) - vincula a ocorrencia ao modelo
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid PK | Identificador |
+| cliente_id | uuid FK | Cliente vinculado |
+| processo_id | uuid FK nullable | Processo vinculado |
+| descricao | text | Ex: "Honorarios de exito" |
+| valor | numeric | Valor estimado |
+| conta | text | Conta responsavel (juliana/liziane/escritorio) |
+| evento_gatilho | text | Ex: "Concessao de liminar" |
+| status | text | backlog, a_receber, convertido, cancelado |
+| data_ativacao | date nullable | Data em que foi ativado (quando sai de backlog) |
+| observacoes | text nullable | Notas adicionais |
+| acordo_id | uuid FK nullable | Acordo gerado ao converter |
+| created_at | timestamptz | Data de criacao |
+| created_by | uuid | Usuario que criou |
 
-RLS: mesmas politicas das outras tabelas financeiras.
+RLS habilitado com politica para usuarios autenticados.
 
 ### 2. Tipos TypeScript
 
 Adicionar em `src/types/financeiro.ts`:
-- Interface `DespesaFixa` com os campos acima
-- Atualizar `Despesa` para incluir `despesa_fixa_id`
+- Tipo `StatusCreditoCondicional = 'backlog' | 'a_receber' | 'convertido' | 'cancelado'`
+- Interface `CreditoCondicional`
+- Labels `STATUS_CREDITO_CONDICIONAL_LABELS`
 
-### 3. Hook `useDespesasFixas.ts`
+### 3. Hook `useCreditosCondicionais.ts`
 
 Novo hook com:
-- `useDespesasFixas()` - listar modelos ativos
-- `useCreateDespesaFixa()` - criar novo modelo
-- `useUpdateDespesaFixa()` - editar modelo (ex: reajuste de valor)
-- `useDeleteDespesaFixa()` - desativar modelo (soft delete via `ativa = false`)
-- `useGerarDespesasFixasMes()` - gera ocorrencias do mes atual para todas as fixas que ainda nao foram geradas
+- `useCreditosCondicionais(filtros)` -- listar creditos com filtro por status
+- `useCreateCreditoCondicional()` -- criar novo credito em backlog
+- `useAtivarCredito()` -- mudar de backlog para a_receber com data
+- `useConverterCredito()` -- converter em acordo financeiro real (cria acordo + parcela)
+- `useCancelarCredito()` -- marcar como cancelado
 
-### 4. Logica de replicacao automatica
+### 4. Componentes de UI
 
-Ao carregar a aba de Despesas (ou o modulo financeiro), o sistema verifica:
-1. Busca todas as `despesas_fixas` ativas
-2. Para cada uma, verifica se ja existe uma `despesa` com `despesa_fixa_id = X` e `data` no mes/ano atual
-3. Se nao existir, cria automaticamente com os dados do modelo
-4. O dia de vencimento respeita o `dia_vencimento` do modelo
+**`CreditosCondicionaisSection.tsx`** -- Secao na aba Faturamento:
+- Card colapsavel "Creditos Condicionais" com badge de contagem
+- Tabela com: Cliente, Processo, Descricao, Evento Gatilho, Valor, Status, Acoes
+- Acoes por credito: Ativar (definir data), Converter em Acordo, Cancelar
+- Botao "Novo Credito Condicional"
 
-Isso e executado via hook `useGerarDespesasFixasMes` chamado no componente da aba Despesas.
+**`NewCreditoCondicionalDialog.tsx`** -- Dialog de criacao:
+- Campos: Cliente (dropdown), Processo (dropdown), Descricao, Valor, Conta, Evento Gatilho, Observacoes
+- Status inicial sempre "backlog"
 
-### 5. Interface - Gerenciamento de despesas fixas
+**`AtivarCreditoDialog.tsx`** -- Dialog para ativar:
+- Mostra detalhes do credito
+- Campo para data de ativacao (quando se torna exigivel)
+- Opcao de converter diretamente em acordo
 
-Novo componente `DespesasFixasManager.tsx` exibido na aba de Despesas:
-- Card colapsavel "Despesas Fixas" no topo
-- Lista os modelos ativos com valor, categoria, conta e dia de vencimento
-- Botao "Nova Despesa Fixa" abre dialog de criacao
-- Acoes por modelo: Editar (reajuste), Desativar
-- Badge indicando se a ocorrencia do mes atual ja foi gerada
+### 5. Integracao na pagina Financeiro
 
-### 6. Dialog `NewDespesaFixaDialog.tsx`
-
-Formulario com:
-- Descricao
-- Valor mensal
-- Categoria (dropdown das categorias de despesa)
-- Conta (dropdown Juliana/Liziane/Escritorio)
-- Dia de vencimento (1-31)
-- Observacoes
-
-### 7. Indicador nas despesas geradas
-
-Na tabela de despesas, ocorrencias geradas a partir de fixas mostram um badge/icone "Fixa" para identificar que vieram de um modelo recorrente.
+Adicionar `CreditosCondicionaisSection` na aba Faturamento, acima da tabela de faturamento -- similar ao `DespesasFixasManager` na aba Despesas.
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| Migracao SQL | CREATE TABLE despesas_fixas + ALTER TABLE despesas |
-| `src/types/financeiro.ts` | Adicionar DespesaFixa + despesa_fixa_id |
-| `src/hooks/useDespesasFixas.ts` | NOVO - CRUD + geracao automatica |
-| `src/components/financeiro/despesas/DespesasFixasManager.tsx` | NOVO - gerenciar modelos |
-| `src/components/financeiro/despesas/NewDespesaFixaDialog.tsx` | NOVO - criar modelo |
-| `src/components/financeiro/despesas/EditDespesaFixaDialog.tsx` | NOVO - editar modelo |
-| `src/pages/Financeiro.tsx` | Adicionar DespesasFixasManager na aba Despesas |
-| `src/components/financeiro/despesas/DespesasTable.tsx` | Badge "Fixa" nas ocorrencias |
+| Migracao SQL | CREATE TABLE creditos_condicionais |
+| `src/types/financeiro.ts` | Adicionar tipos CreditoCondicional |
+| `src/hooks/useCreditosCondicionais.ts` | NOVO - CRUD + ativar/converter |
+| `src/components/financeiro/CreditosCondicionaisSection.tsx` | NOVO - secao principal |
+| `src/components/financeiro/NewCreditoCondicionalDialog.tsx` | NOVO - dialog criacao |
+| `src/components/financeiro/AtivarCreditoDialog.tsx` | NOVO - dialog ativacao |
+| `src/pages/Financeiro.tsx` | Adicionar secao na aba Faturamento |
 
 ## Detalhes Tecnicos
 
-**Tabela despesas_fixas:**
+**Migracao SQL:**
 ```text
-CREATE TABLE despesas_fixas (
+CREATE TABLE public.creditos_condicionais (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  cliente_id uuid NOT NULL,
+  processo_id uuid,
   descricao text NOT NULL,
   valor numeric NOT NULL,
-  categoria text NOT NULL,
   conta text DEFAULT 'escritorio',
-  dia_vencimento integer NOT NULL DEFAULT 10,
-  ativa boolean DEFAULT true,
+  evento_gatilho text NOT NULL,
+  status text DEFAULT 'backlog',
+  data_ativacao date,
   observacoes text,
+  acordo_id uuid,
   created_at timestamptz DEFAULT now(),
-  created_by uuid REFERENCES auth.users(id)
+  created_by uuid
 );
 
-ALTER TABLE despesas ADD COLUMN despesa_fixa_id uuid REFERENCES despesas_fixas(id);
+ALTER TABLE public.creditos_condicionais ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can manage creditos_condicionais"
+ON public.creditos_condicionais FOR ALL
+USING (true) WITH CHECK (true);
 ```
 
-**Logica de geracao automatica (no hook):**
+**Conversao em acordo (no hook):**
 ```text
-async function gerarDespesasFixasMes() {
-  const hoje = new Date();
-  const mesAtual = format(hoje, 'yyyy-MM');
-  
-  // Buscar todas as fixas ativas
-  const { data: fixas } = await supabase
-    .from('despesas_fixas')
-    .select('*')
-    .eq('ativa', true);
+// Ao converter, cria um acordo financeiro real
+const { data: acordo } = await supabase
+  .from('acordos_financeiros')
+  .insert({
+    cliente_id: credito.cliente_id,
+    processo_id: credito.processo_id,
+    tipo_servico: credito.descricao,
+    valor_total: credito.valor,
+    forma_pagamento: 'a_vista',
+    numero_parcelas: 1,
+    data_primeiro_vencimento: credito.data_ativacao,
+    conta: credito.conta,
+  })
+  .select().single();
 
-  // Buscar despesas ja geradas neste mes
-  const { data: jaGeradas } = await supabase
-    .from('despesas')
-    .select('despesa_fixa_id')
-    .not('despesa_fixa_id', 'is', null)
-    .gte('data', `${mesAtual}-01`)
-    .lte('data', `${mesAtual}-31`);
+// Cria parcela pendente
+await supabase.from('parcelas_financeiras').insert({
+  acordo_id: acordo.id,
+  numero_parcela: 1,
+  valor: credito.valor,
+  data_vencimento: credito.data_ativacao,
+  status: 'pendente',
+});
 
-  const idsJaGerados = new Set(jaGeradas?.map(d => d.despesa_fixa_id));
-
-  // Gerar as que faltam
-  const novas = fixas
-    .filter(f => !idsJaGerados.has(f.id))
-    .map(f => ({
-      descricao: f.descricao,
-      valor: f.valor,
-      data: `${mesAtual}-${String(Math.min(f.dia_vencimento, 28)).padStart(2, '0')}`,
-      categoria: f.categoria,
-      conta: f.conta,
-      status: 'pendente',
-      despesa_fixa_id: f.id,
-      observacoes: 'Gerada automaticamente - Despesa fixa',
-    }));
-
-  if (novas.length > 0) {
-    await supabase.from('despesas').insert(novas);
-  }
-}
+// Atualiza credito como convertido
+await supabase
+  .from('creditos_condicionais')
+  .update({ status: 'convertido', acordo_id: acordo.id })
+  .eq('id', credito.id);
 ```
 
-**Cancelar ocorrencia especifica:**
-A despesa gerada e uma despesa normal na tabela `despesas`. Para cancelar, o usuario pode alterar o status para "cancelado" ou excluir a ocorrencia. Isso nao afeta o modelo nem as ocorrencias de outros meses.
-
-**Editar valor (reajuste):**
-Editar o modelo (`despesas_fixas`) altera o valor para as proximas geracoes. Ocorrencias ja geradas mantem o valor original (podem ser editadas individualmente).
+**Regra de negocio:**
+- Creditos com status `backlog` NAO aparecem em KPIs, graficos ou projecoes
+- Creditos com status `a_receber` aparecem apenas como informativo na secao (sem afetar projecoes ate serem convertidos)
+- Somente creditos `convertido` geram impacto financeiro real (via acordo criado)
+- Creditos `cancelado` ficam no historico mas sem impacto
 
 ## Resultado
 
-- Despesas fixas (Aluguel, Internet, Sistemas, Contador, Salarios) sao cadastradas uma vez como modelos
-- Todo mes, ao abrir o financeiro, as ocorrencias sao geradas automaticamente com status "pendente"
-- Cada ocorrencia mensal pode ser editada (valor diferente) ou cancelada sem afetar outros meses
-- Reajustes no modelo afetam apenas futuras geracoes
-- Badge visual identifica despesas vindas de modelos fixos
-
+- Advogadas podem registrar honorarios de exito e outros creditos condicionais sem poluir as projecoes financeiras
+- Cada credito fica vinculado ao processo/cliente correspondente
+- Quando o evento gatilho ocorre, basta ativar e converter em acordo real
+- Historico completo de creditos condicionais (backlog, ativados, convertidos, cancelados)
