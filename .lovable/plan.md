@@ -1,44 +1,80 @@
 
-# Plano: Buscar Processo pelo Nome do Cliente ao Criar Demanda
 
-## Problema
+# Plano: Adicionar Campo "Advogada Responsavel" nas Tarefas
 
-Atualmente, o campo "Processo Relacionado" no formulario de nova demanda lista todos os processos de forma generica (numero ou tipo), sem indicar o cliente. O usuario precisa saber o numero do processo de antemao.
+## Resumo
 
-## Solucao
+Adicionar um campo obrigatorio "Advogada Responsavel" com opcoes fixas (Juliana / Liziane) na tabela de demandas, permitindo rastreabilidade, filtragem e futuros relatorios de produtividade.
 
-Substituir o campo unico de processo por dois campos encadeados:
+## Alteracoes
 
-1. **Cliente** (Input com busca): campo de texto que filtra clientes por nome
-2. **Processo do Cliente** (Select): exibe apenas os processos do cliente selecionado
+### 1. Migracao de Banco de Dados
 
-Fluxo: Digita nome do cliente -> Seleciona cliente -> Exibe processos vinculados -> Seleciona processo
+Adicionar coluna `advogada_responsavel` na tabela `demandas_internas`:
 
-## Arquivo a Modificar
+```sql
+ALTER TABLE demandas_internas
+  ADD COLUMN advogada_responsavel text NOT NULL DEFAULT 'juliana'
+  CHECK (advogada_responsavel IN ('juliana', 'liziane'));
+```
 
-| Arquivo | Descricao |
-|---------|-----------|
-| `src/components/demandas/NewDemandaDialog.tsx` | Substituir select unico por busca cliente + select processo |
+### 2. Tipo TypeScript (`src/types/demandas.ts`)
 
-## Detalhamento Tecnico
+- Adicionar tipo `AdvogadaResponsavel = 'juliana' | 'liziane'`
+- Adicionar campo `advogada_responsavel` na interface `Demanda`
+- Adicionar `ADVOGADA_LABELS` com os nomes formatados
+- Adicionar `advogada_responsavel?: string` no `DemandasFilters`
 
-### Alteracoes no `NewDemandaDialog.tsx`
+### 3. Formulario de Criacao (`NewDemandaDialog.tsx`)
 
-1. **Adicionar estado local**:
-   - `clienteSearch` (string): texto digitado para buscar cliente
-   - `selectedClienteId` (string | null): cliente selecionado
+- Adicionar campo Select obrigatorio "Advogada Responsavel" com opcoes Juliana e Liziane
+- Enviar o valor no `createDemanda.mutate()`
 
-2. **Nova query de clientes**: buscar `contact_submissions` com `estagio = 'fechado'`, filtrado pelo texto digitado (`.ilike('nome_completo', '%texto%')`)
+### 4. Formulario de Edicao (`DemandaDetailsDialog.tsx`)
 
-3. **Alterar query de processos**: quando `selectedClienteId` estiver preenchido, buscar processos com `.eq('lead_id', selectedClienteId)` e incluir dados do cliente na query (`.select('id, numero_processo, tipo, cliente:contact_submissions!lead_id(nome_completo)')`)
+- Exibir "Advogada Responsavel" na visualizacao (modo leitura)
+- Adicionar Select no modo de edicao
+- Enviar o valor no `updateDemanda.mutate()`
 
-4. **Substituir a secao "Processo Relacionado"** por:
-   - Campo "Cliente" com Input de busca + lista dropdown de resultados
-   - Campo "Processo" (Select) que aparece somente apos selecionar um cliente, listando os processos daquele cliente
-   - Botao "Limpar" para resetar a selecao
+### 5. Tabela de Demandas (`DemandasTable.tsx`)
 
-5. **Manter compatibilidade** com `defaultProcessoId`: quando preenchido, buscar o processo e pre-selecionar o cliente automaticamente
+- Adicionar coluna "Advogada" na tabela entre "Prazo" e "Responsavel"
+
+### 6. Filtros (`DemandasFilters.tsx`)
+
+- Adicionar novo Select "Advogada" para filtrar por Juliana ou Liziane
+- Ajustar o grid de 5 para 6 colunas
+
+### 7. Hook de dados (`useDemandas.ts`)
+
+- Adicionar filtro `advogada_responsavel` na query principal quando o filtro estiver ativo
+
+### 8. Card do Kanban (`DemandaCard.tsx`)
+
+- Exibir o nome da advogada no card
+
+### 9. Aba Tarefas do Processo (`ProcessoTarefasTab.tsx`)
+
+- Exibir advogada nas tarefas pendentes e concluidas
+
+## Arquivos Envolvidos
+
+| Arquivo | Acao |
+|---------|------|
+| Migracao SQL | Criar coluna `advogada_responsavel` |
+| `src/types/demandas.ts` | Adicionar tipo e labels |
+| `src/components/demandas/NewDemandaDialog.tsx` | Campo obrigatorio no formulario |
+| `src/components/demandas/DemandaDetailsDialog.tsx` | Exibir e editar advogada |
+| `src/components/demandas/DemandasTable.tsx` | Nova coluna na tabela |
+| `src/components/demandas/DemandasFilters.tsx` | Novo filtro por advogada |
+| `src/components/demandas/DemandaCard.tsx` | Exibir no card kanban |
+| `src/hooks/useDemandas.ts` | Filtro no hook |
+| `src/components/processos/tabs/ProcessoTarefasTab.tsx` | Exibir advogada |
 
 ## Resultado
 
-O usuario digitara o nome do cliente, vera uma lista filtrada, selecionara o cliente desejado, e entao um segundo campo exibira apenas os processos daquele cliente para selecao.
+- Toda tarefa tera obrigatoriamente uma advogada responsavel (Juliana ou Liziane)
+- Filtros permitem ver tarefas por advogada
+- Tabela e kanban exibem a advogada de cada tarefa
+- Base pronta para relatorios de produtividade individual
+
