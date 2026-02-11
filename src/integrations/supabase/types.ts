@@ -602,6 +602,7 @@ export type Database = {
           data_conclusao: string | null
           data_limite: string | null
           descricao: string | null
+          horas_gastas: number | null
           id: string
           lead_id: string | null
           prioridade: string
@@ -619,6 +620,7 @@ export type Database = {
           data_conclusao?: string | null
           data_limite?: string | null
           descricao?: string | null
+          horas_gastas?: number | null
           id?: string
           lead_id?: string | null
           prioridade?: string
@@ -636,6 +638,7 @@ export type Database = {
           data_conclusao?: string | null
           data_limite?: string | null
           descricao?: string | null
+          horas_gastas?: number | null
           id?: string
           lead_id?: string | null
           prioridade?: string
