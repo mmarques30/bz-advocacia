@@ -228,6 +228,8 @@ export function useUpdateDespesa() {
       queryClient.invalidateQueries({ queryKey: ['despesa'] });
       queryClient.invalidateQueries({ queryKey: ['kpis-despesas'] });
       queryClient.invalidateQueries({ queryKey: ['despesas-por-categoria'] });
+      queryClient.invalidateQueries({ queryKey: ['despesas-atrasadas'] });
+      queryClient.invalidateQueries({ queryKey: ['proximos-vencimentos'] });
       toast.success('Despesa atualizada com sucesso!');
     },
     onError: (error: Error) => {
