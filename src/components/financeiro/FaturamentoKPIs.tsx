@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DollarSign, TrendingUp, FileText, AlertTriangle } from "lucide-react";
+import { DollarSign, TrendingUp, FileText, AlertTriangle, Target } from "lucide-react";
 import { useKPIsFinanceiros } from "@/hooks/useFinanceiro";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 
@@ -20,8 +20,8 @@ export function FaturamentoKPIs({ filters }: FaturamentoKPIsProps) {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid gap-4 md:grid-cols-5">
+        {[...Array(5)].map((_, i) => (
           <Card key={i}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton className="h-4 w-24" />
@@ -37,10 +37,16 @@ export function FaturamentoKPIs({ filters }: FaturamentoKPIsProps) {
 
   const kpiData = [
     {
-      title: "Receita do Mês",
+      title: "Receita Realizada",
       value: formatCurrency(kpis?.receita_mes || 0),
       icon: DollarSign,
       color: "text-green-500",
+    },
+    {
+      title: "Projeção",
+      value: formatCurrency(kpis?.projecao || 0),
+      icon: Target,
+      color: "text-cyan-500",
     },
     {
       title: "A Receber",
@@ -63,7 +69,7 @@ export function FaturamentoKPIs({ filters }: FaturamentoKPIsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-5">
       {kpiData.map((kpi) => (
         <Card key={kpi.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

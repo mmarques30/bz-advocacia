@@ -11,7 +11,8 @@ import type {
   ParcelaVencendo,
   ClienteInadimplente,
   MaiorPagador,
-  AcordosFilters
+  AcordosFilters,
+  ProjetadoVsRealizado,
 } from "@/types/financeiro";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
@@ -133,6 +134,11 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         ? acordos.reduce((sum, a) => sum + a.valor_total, 0) / acordos.length
         : 0;
 
+      // Projeção: soma das parcelas pendentes de acordos ativos
+      const projecao = parcelas
+        ?.filter(p => p.status === 'pendente')
+        .reduce((sum, p) => sum + p.valor, 0) || 0;
+
       return {
         receita_mes: receitaMes,
         recebido_mes: receitaMes,
@@ -140,7 +146,55 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         valor_atrasado: valorAtrasado,
         taxa_inadimplencia: taxaInadimplencia,
         ticket_medio: ticketMedio,
+        projecao,
       };
+    },
+  });
+}
+
+export function useProjetadoVsRealizado(meses: number = 12) {
+  return useQuery({
+    queryKey: ["projetado-vs-realizado", meses],
+    queryFn: async (): Promise<ProjetadoVsRealizado[]> => {
+      const { data: parcelas } = await supabase
+        .from("parcelas_financeiras")
+        .select("*")
+        .limit(10000);
+
+      if (!parcelas) return [];
+
+      const hoje = new Date();
+      const resultado: ProjetadoVsRealizado[] = [];
+
+      for (let i = meses - 1; i >= 0; i--) {
+        const data = subMonths(hoje, i);
+        const inicio = startOfMonth(data);
+        const fim = endOfMonth(data);
+
+        const realizado = parcelas
+          .filter(p => {
+            if (p.status !== 'pago' || !p.data_pagamento) return false;
+            const dp = new Date(p.data_pagamento);
+            return dp >= inicio && dp <= fim;
+          })
+          .reduce((sum, p) => sum + (p.valor_pago || 0), 0);
+
+        const projetado = parcelas
+          .filter(p => {
+            if (p.status !== 'pendente') return false;
+            const dv = new Date(p.data_vencimento);
+            return dv >= inicio && dv <= fim;
+          })
+          .reduce((sum, p) => sum + p.valor, 0);
+
+        resultado.push({
+          mes: format(data, "MMM/yy"),
+          realizado,
+          projetado,
+        });
+      }
+
+      return resultado;
     },
   });
 }
