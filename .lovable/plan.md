@@ -1,62 +1,56 @@
 
-
-# Reorganizar Projecoes como Sub-abas e Adicionar Gestao de Metas
+# Corrigir Filtros do Calendario e Prazos
 
 ## Problema
 
-1. O grafico "Projetado vs Realizado" na aba Faturamento esta vazio porque busca dados de `parcelas_financeiras` (acordos), e nao ha acordos cadastrados
-2. Nao existe forma de configurar metas/projecoes dentro do modulo Financeiro -- o dialog de metas so existe no Dashboard
-3. Os graficos de projecao (Projetado vs Realizado, Fluxo de Caixa) ocupam espaco na aba principal de Faturamento/Despesas quando deveriam ser sub-abas internas
+Os filtros "Todos", "Prazos", "Tarefas" e "Rotinas" no calendario nao afetam a visualizacao do calendario em si -- apenas a lista abaixo muda. Os marcadores coloridos no calendario continuam mostrando todos os tipos independente do filtro selecionado. Alem disso, o dialog ao clicar em um dia tambem nao respeita o filtro.
 
-## Solucao
+## Causa raiz
 
-### 1. Aba Faturamento: adicionar sub-abas internas
+- `itensPorData` (que alimenta os modifiers do calendario) e calculado a partir de `todosItens` (sem filtro)
+- Os modifiers `diasUrgentes`, `diasAlerta`, etc. tambem usam `itensPorData` sem filtro
+- O dialog `itensDoDialog` busca de `itensPorData` sem filtro
 
-Dentro da aba "Faturamento", criar sub-abas:
+## Correcao
 
-- **Lancamentos** (padrao): contem os KPIs, widgets, tabela de faturamento e creditos condicionais (conteudo atual)
-- **Projecao**: contem o grafico "Projetado vs Realizado" alimentado pelas metas mensais + dados reais de `transacoes_financeiras`, o grafico de Fluxo de Caixa, e o botao "Configurar Metas" para definir projecoes
+### Arquivo: `src/pages/processos/Calendario.tsx`
 
-### 2. Aba Despesas: adicionar sub-abas internas
+**1. Criar `itensFiltradosPorTipo`** -- uma lista intermediaria que filtra apenas pelo tipo (sem filtro de status), para alimentar o calendario e o dialog:
 
-Dentro da aba "Despesas", criar sub-abas:
+```typescript
+const itensFiltradosPorTipo = useMemo(() => {
+  if (filtroTipo === "todos") return todosItens;
+  const tipoSingular = filtroTipo.slice(0, -1); // "prazos" -> "prazo"
+  return todosItens.filter(item => item.tipo === tipoSingular);
+}, [todosItens, filtroTipo]);
+```
 
-- **Lancamentos** (padrao): contem alertas, KPIs, graficos, widgets e tabela de despesas (conteudo atual)
-- **Projecao**: contem grafico de evolucao de despesas com meta de orcamento, botao para configurar orcamento mensal de despesas
+**2. Alterar `itensPorData`** para usar `itensFiltradosPorTipo` em vez de `todosItens`:
 
-### 3. Corrigir "Projetado vs Realizado"
+```typescript
+const itensPorData = useMemo(() => {
+  const mapa = new Map<string, CalendarioItem[]>();
+  itensFiltradosPorTipo.forEach((item) => { ... });
+  return mapa;
+}, [itensFiltradosPorTipo]);
+```
 
-O hook `useProjetadoVsRealizado` atualmente busca apenas de `parcelas_financeiras`. Alterar para:
+**3. Alterar `itensFiltrados`** (lista abaixo) para filtrar a partir de `itensFiltradosPorTipo` aplicando o filtro de status:
 
-- **Realizado**: buscar da tabela `transacoes_financeiras` (receitas reais, que ja esta populada com importacoes)
-- **Projetado**: buscar da tabela `metas_mensais` (metas definidas pelo usuario)
+```typescript
+const itensFiltrados = useMemo(() => {
+  return itensFiltradosPorTipo.filter((item) => {
+    // aplicar apenas filtro de status
+    ...
+  });
+}, [itensFiltradosPorTipo, filtroStatus]);
+```
 
-Isso vai alimentar o grafico com dados reais.
+Isso garante que tanto o calendario (cores/marcadores), o dialog (ao clicar no dia) e a lista (abaixo) reflitam o filtro de tipo selecionado.
 
-### 4. Reutilizar ConfigurarMetaDialog
+### Resultado esperado
 
-Mover/reutilizar o `ConfigurarMetaDialog` (ja existente em `src/components/dashboard/`) para que apareca na sub-aba "Projecao" de Faturamento, permitindo definir metas de receita por mes.
-
-## Alteracoes por arquivo
-
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/Financeiro.tsx` | Adicionar sub-abas (Tabs internas) nas abas Faturamento e Despesas; mover graficos de projecao para sub-aba "Projecao" |
-| `src/hooks/useFinanceiro.ts` | Alterar `useProjetadoVsRealizado` para buscar realizado de `transacoes_financeiras` e projetado de `metas_mensais` |
-| `src/components/financeiro/FaturamentoCharts.tsx` | Separar: manter Fluxo de Caixa e Faturamento por Responsavel no "Lancamentos"; mover Projetado vs Realizado para a sub-aba "Projecao" |
-
-### Nova sub-aba "Projecao" em Faturamento contera:
-- Botao "Configurar Metas" (reutilizando ConfigurarMetaDialog)
-- Grafico Projetado vs Realizado (com dados corrigidos)
-- Grafico de Fluxo de Caixa
-
-### Nova sub-aba "Projecao" em Despesas contera:
-- Grafico de evolucao mensal de despesas
-- Comparativo com meses anteriores
-
-## Resultado esperado
-
-- O grafico "Projetado vs Realizado" mostrara dados reais (receitas importadas vs metas configuradas)
-- O usuario podera configurar metas diretamente na aba Financeiro > Faturamento > Projecao
-- A aba principal de Faturamento ficara mais limpa, focando nos lancamentos do dia-a-dia
-
+- Selecionar "Prazos": calendario mostra apenas dias com prazos, lista mostra apenas prazos
+- Selecionar "Tarefas": calendario mostra apenas dias com tarefas, lista mostra apenas tarefas
+- Selecionar "Rotinas": calendario mostra apenas dias com rotinas, lista mostra apenas rotinas
+- Selecionar "Todos": comportamento atual (mostra tudo)
