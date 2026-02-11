@@ -1,29 +1,57 @@
 
 
-# Correção: Remover mensagem "Parabéns! Você está em dia"
+# Mostrar processos ativos sem atualização no card "Processos e Prazos"
 
-## Problema
+## Objetivo
 
-A mensagem que aparece no painel ("Parabéns! Você está em dia. Nenhuma pendência urgente no momento.") vem do componente **UserPendenciasCards**, não do PropostasInteligentes. Quando o usuário não tem pendências (tarefas atrasadas, pagamentos, processos), o sistema exibe um card verde grande que não traz nenhuma informação útil.
+No card "Processos e Prazos" do painel, além dos próximos prazos, exibir uma lista de processos ativos (em_andamento) que estão sem atualização de status há mais de 30 dias.
 
-## Solução
+## O que muda
 
-Quando não houver pendências, o componente simplesmente não renderiza nada (retorna `null`), igual ao que foi feito no PropostasInteligentes. O card só aparece quando há pendências reais para mostrar.
+### 1. Hook `useDashboardCompleto.ts`
 
-## Alteração
+- Alterar a query #5 (processos sem atualização) para trazer os dados completos em vez de apenas a contagem (`head: true`)
+- Trazer campos: `id`, `numero_processo`, `tipo`, `autor`, `reu`, `data_ultima_atualizacao`, `status`
+- Limitar a 5 resultados, ordenados pela data de última atualização (mais antigo primeiro)
+- Criar uma nova interface `ProcessoSemAtualizacao` com esses campos
+- Adicionar o array `processosSemAtualizacao` ao retorno do hook
 
-| Arquivo | Ação |
-|---------|------|
-| `src/components/dashboard/UserPendenciasCards.tsx` | Linhas 146-159: trocar o bloco do card verde "Parabéns" por `return null` |
+### 2. Componente `VisaoOperacional.tsx`
 
-## Detalhe Técnico
+- Receber a nova prop `processosSemAtualizacao`
+- No card "Processos e Prazos" (`ProcessosPrazosCard`), adicionar uma nova seção abaixo dos "Próximos Prazos"
+- Título da seção: "Sem Atualização" com ícone de alerta
+- Cada item mostra: número do processo (ou tipo), partes (autor vs réu), e há quantos dias está sem atualização
+- Badge amarelo/vermelho indicando o tempo sem atualização (ex: "45d sem update")
+- Link "Ver todos" apontando para `/dashboard/processos`
 
-No arquivo `src/components/dashboard/UserPendenciasCards.tsx`, o trecho nas linhas 146-159 será substituído por:
+### 3. Componente `Dashboard.tsx`
+
+- Passar a nova prop `processosSemAtualizacao` para o componente `VisaoOperacional`
+
+## Layout da nova seção (dentro do card existente)
 
 ```text
-if (totalPendencias === 0) {
-  return null;
-}
++------------------------------------------+
+| Processos e Prazos           Ver todos > |
+|                                          |
+| [badges: Em andamento: X | Concluídos: X]|
+|                                          |
+| Próximos Prazos                          |
+| - Prazo 1 ................... Amanhã     |
+| - Prazo 2 ................... 3d         |
+|                                          |
+| Sem Atualização                          |
+| - Proc 001234 (Divórcio) .... 45d        |
+| - Proc 005678 (Inventário) .. 32d        |
++------------------------------------------+
 ```
 
-Isso remove o card verde com a mensagem e o ícone de check, mantendo o componente invisível quando não há pendências — comportamento consistente com o PropostasInteligentes.
+## Arquivos alterados
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `src/hooks/useDashboardCompleto.ts` | Nova interface `ProcessoSemAtualizacao`, query #5 traz dados completos, novo campo no retorno |
+| `src/components/dashboard/VisaoOperacional.tsx` | Nova prop e seção "Sem Atualização" no card de processos |
+| `src/pages/Dashboard.tsx` | Passar `processosSemAtualizacao` para `VisaoOperacional` |
+
