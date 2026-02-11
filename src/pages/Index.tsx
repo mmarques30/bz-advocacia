@@ -23,7 +23,7 @@ export default function Index() {
           style={{
             backgroundImage: `url(${lawyersImg})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center center',
+            backgroundPosition: 'center top',
             backgroundRepeat: 'no-repeat',
           }}
         />
