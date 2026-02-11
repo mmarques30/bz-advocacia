@@ -1,112 +1,169 @@
 
-# Plano: Relatorio Consolidado para Contador
 
-## Problema Atual
+# Plano: Despesas Fixas com Replicacao Automatica
 
-A pagina de relatorios financeiros tem 7 relatorios separados, muitos redundantes:
-- **Receitas do Periodo** - util, mas usa hook `useReceitaMensal` que ignora filtro de data
-- **Inadimplencia** - util, manter
-- **Fluxo de Caixa** - redundante com a visao de Projetado vs Realizado ja implementada
-- **Performance por Tipo** - secundario, pouco uso pratico
-- **Performance por Cliente** - secundario, pouco uso pratico  
-- **Despesas do Periodo** - util, mas separado das receitas
-- **Despesas por Categoria** - redundante com o detalhamento de despesas
+## Resumo
 
-O seletor de tipo no topo (`RelatorioSelector`) tem um dropdown que **nao inclui** "Despesas do Periodo" e "Despesas por Categoria" (so tem 5 opcoes), mas a lista de cards abaixo tem 7 opcoes. Inconsistencia.
+Adicionar o conceito de "despesa fixa" ao sistema financeiro. Despesas marcadas como fixas (Aluguel, Internet, Sistemas, Contador, Salarios) sao automaticamente replicadas para os meses seguintes com valores editaveis. Cada ocorrencia mensal pode ser editada ou cancelada individualmente.
 
-Alem disso, o `exportToExcel` atual gera um arquivo TSV disfarçado de .xls - nao e um Excel real. O projeto ja tem a biblioteca `xlsx` instalada.
+## Abordagem
 
-## Solucao
+Criar uma tabela `despesas_fixas` que armazena os modelos de despesas recorrentes. Uma funcao no frontend (ou edge function com cron) verifica ao abrir o modulo financeiro se ja existem ocorrencias geradas para o mes atual -- se nao, gera automaticamente na tabela `despesas` com base nos modelos ativos. Cada ocorrencia gerada e uma despesa normal, editavel e cancelavel, vinculada ao modelo original via `despesa_fixa_id`.
 
-Substituir os 7 relatorios por **3 relatorios uteis**:
+## Alteracoes
 
-1. **Relatorio para Contador** (NOVO) - Consolidado de receitas + despesas + saldo por conta, com exportacao Excel real usando `xlsx`
-2. **Inadimplencia** (MANTER) - Ja funciona bem
-3. **Fluxo de Caixa** (MANTER simplificado) - Parcelas a receber nos proximos meses
+### 1. Migracao de banco de dados
 
-Remover: Performance por Tipo, Performance por Cliente, Despesas por Categoria, Receitas do Periodo (absorvidos pelo relatorio consolidado).
+Criar tabela `despesas_fixas`:
+- `id` (uuid, PK)
+- `descricao` (text) - ex: "Aluguel Escritorio"
+- `valor` (numeric) - valor padrao mensal
+- `categoria` (text) - categoria da despesa
+- `conta` (text) - conta responsavel
+- `dia_vencimento` (integer) - dia do mes para vencimento (1-31)
+- `ativa` (boolean, default true) - se ainda esta ativa
+- `observacoes` (text, nullable)
+- `created_at`, `created_by`
+
+Adicionar coluna na tabela `despesas`:
+- `despesa_fixa_id` (uuid, nullable, FK para despesas_fixas) - vincula a ocorrencia ao modelo
+
+RLS: mesmas politicas das outras tabelas financeiras.
+
+### 2. Tipos TypeScript
+
+Adicionar em `src/types/financeiro.ts`:
+- Interface `DespesaFixa` com os campos acima
+- Atualizar `Despesa` para incluir `despesa_fixa_id`
+
+### 3. Hook `useDespesasFixas.ts`
+
+Novo hook com:
+- `useDespesasFixas()` - listar modelos ativos
+- `useCreateDespesaFixa()` - criar novo modelo
+- `useUpdateDespesaFixa()` - editar modelo (ex: reajuste de valor)
+- `useDeleteDespesaFixa()` - desativar modelo (soft delete via `ativa = false`)
+- `useGerarDespesasFixasMes()` - gera ocorrencias do mes atual para todas as fixas que ainda nao foram geradas
+
+### 4. Logica de replicacao automatica
+
+Ao carregar a aba de Despesas (ou o modulo financeiro), o sistema verifica:
+1. Busca todas as `despesas_fixas` ativas
+2. Para cada uma, verifica se ja existe uma `despesa` com `despesa_fixa_id = X` e `data` no mes/ano atual
+3. Se nao existir, cria automaticamente com os dados do modelo
+4. O dia de vencimento respeita o `dia_vencimento` do modelo
+
+Isso e executado via hook `useGerarDespesasFixasMes` chamado no componente da aba Despesas.
+
+### 5. Interface - Gerenciamento de despesas fixas
+
+Novo componente `DespesasFixasManager.tsx` exibido na aba de Despesas:
+- Card colapsavel "Despesas Fixas" no topo
+- Lista os modelos ativos com valor, categoria, conta e dia de vencimento
+- Botao "Nova Despesa Fixa" abre dialog de criacao
+- Acoes por modelo: Editar (reajuste), Desativar
+- Badge indicando se a ocorrencia do mes atual ja foi gerada
+
+### 6. Dialog `NewDespesaFixaDialog.tsx`
+
+Formulario com:
+- Descricao
+- Valor mensal
+- Categoria (dropdown das categorias de despesa)
+- Conta (dropdown Juliana/Liziane/Escritorio)
+- Dia de vencimento (1-31)
+- Observacoes
+
+### 7. Indicador nas despesas geradas
+
+Na tabela de despesas, ocorrencias geradas a partir de fixas mostram um badge/icone "Fixa" para identificar que vieram de um modelo recorrente.
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/types/financeiro.ts` | Simplificar `TipoRelatorio` para 3 opcoes |
-| `src/pages/financeiro/Relatorios.tsx` | Reescrever pagina com 3 relatorios |
-| `src/components/financeiro/relatorios/RelatorioSelector.tsx` | Simplificar seletor com filtro de conta |
-| `src/components/financeiro/relatorios/RelatorioContador.tsx` | NOVO - relatorio consolidado |
-| `src/lib/exportUtils.ts` | Adicionar `exportToExcelFormatado` usando biblioteca `xlsx` |
-| `src/components/financeiro/relatorios/RelatorioReceitasPeriodo.tsx` | Remover |
-| `src/components/financeiro/relatorios/RelatorioDespesasPeriodo.tsx` | Remover |
-| `src/components/financeiro/relatorios/RelatorioDespesasCategoria.tsx` | Remover |
-| `src/components/financeiro/relatorios/RelatorioPerformanceTipo.tsx` | Remover |
-| `src/components/financeiro/relatorios/RelatorioPerformanceCliente.tsx` | Remover |
+| Migracao SQL | CREATE TABLE despesas_fixas + ALTER TABLE despesas |
+| `src/types/financeiro.ts` | Adicionar DespesaFixa + despesa_fixa_id |
+| `src/hooks/useDespesasFixas.ts` | NOVO - CRUD + geracao automatica |
+| `src/components/financeiro/despesas/DespesasFixasManager.tsx` | NOVO - gerenciar modelos |
+| `src/components/financeiro/despesas/NewDespesaFixaDialog.tsx` | NOVO - criar modelo |
+| `src/components/financeiro/despesas/EditDespesaFixaDialog.tsx` | NOVO - editar modelo |
+| `src/pages/Financeiro.tsx` | Adicionar DespesasFixasManager na aba Despesas |
+| `src/components/financeiro/despesas/DespesasTable.tsx` | Badge "Fixa" nas ocorrencias |
 
 ## Detalhes Tecnicos
 
-### 1. Novo tipo `TipoRelatorio`
-
+**Tabela despesas_fixas:**
 ```text
-export type TipoRelatorio = 
-  | 'consolidado_contador'
-  | 'inadimplencia_detalhada'
-  | 'fluxo_caixa_projetado';
+CREATE TABLE despesas_fixas (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  descricao text NOT NULL,
+  valor numeric NOT NULL,
+  categoria text NOT NULL,
+  conta text DEFAULT 'escritorio',
+  dia_vencimento integer NOT NULL DEFAULT 10,
+  ativa boolean DEFAULT true,
+  observacoes text,
+  created_at timestamptz DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id)
+);
+
+ALTER TABLE despesas ADD COLUMN despesa_fixa_id uuid REFERENCES despesas_fixas(id);
 ```
 
-### 2. `RelatorioContador.tsx` - O relatorio principal
-
-Recebe `dataInicio`, `dataFim` e `conta` (filtro opcional).
-
-Busca dados de 3 fontes:
-- Parcelas pagas no periodo (receitas de acordos)
-- Transacoes importadas do periodo (receitas e despesas)
-- Despesas do periodo (tabela despesas)
-
-Exibe em 4 secoes:
-
-**Resumo (KPIs):**
-- Total Receitas | Total Despesas | Saldo Liquido | Saldo por Conta
-
-**Aba Receitas:**
-- Tabela com data, descricao, cliente, categoria, conta, valor
-- Subtotal
-
-**Aba Despesas:**
-- Tabela com data, descricao, categoria, conta, valor
-- Subtotal
-
-**Aba Saldo por Conta:**
-- Tabela: Conta | Receitas | Despesas | Saldo
-- Uma linha por conta (Juliana, Liziane, Escritorio)
-
-**Botao "Exportar Excel para Contador":**
-- Gera arquivo .xlsx real com 4 abas (Resumo, Receitas, Despesas, Saldo por Conta)
-- Formatado com headers em negrito, valores em formato moeda, totais destacados
-
-### 3. `RelatorioSelector.tsx` - Simplificado
-
-Manter filtros de data + adicionar filtro de **Conta** (Todas / Juliana / Liziane / Escritorio). Remover dropdown de tipo (os 3 relatorios ficam como cards clicaveis).
-
-### 4. `exportToExcelFormatado` em `exportUtils.ts`
-
+**Logica de geracao automatica (no hook):**
 ```text
-Usar biblioteca xlsx ja instalada:
-- XLSX.utils.json_to_sheet() para criar abas
-- XLSX.utils.book_new() + book_append_sheet() para montar workbook
-- XLSX.writeFile() para download
-- Adicionar largura de colunas e formatacao basica
+async function gerarDespesasFixasMes() {
+  const hoje = new Date();
+  const mesAtual = format(hoje, 'yyyy-MM');
+  
+  // Buscar todas as fixas ativas
+  const { data: fixas } = await supabase
+    .from('despesas_fixas')
+    .select('*')
+    .eq('ativa', true);
+
+  // Buscar despesas ja geradas neste mes
+  const { data: jaGeradas } = await supabase
+    .from('despesas')
+    .select('despesa_fixa_id')
+    .not('despesa_fixa_id', 'is', null)
+    .gte('data', `${mesAtual}-01`)
+    .lte('data', `${mesAtual}-31`);
+
+  const idsJaGerados = new Set(jaGeradas?.map(d => d.despesa_fixa_id));
+
+  // Gerar as que faltam
+  const novas = fixas
+    .filter(f => !idsJaGerados.has(f.id))
+    .map(f => ({
+      descricao: f.descricao,
+      valor: f.valor,
+      data: `${mesAtual}-${String(Math.min(f.dia_vencimento, 28)).padStart(2, '0')}`,
+      categoria: f.categoria,
+      conta: f.conta,
+      status: 'pendente',
+      despesa_fixa_id: f.id,
+      observacoes: 'Gerada automaticamente - Despesa fixa',
+    }));
+
+  if (novas.length > 0) {
+    await supabase.from('despesas').insert(novas);
+  }
+}
 ```
 
-### 5. Pagina `Relatorios.tsx` simplificada
+**Cancelar ocorrencia especifica:**
+A despesa gerada e uma despesa normal na tabela `despesas`. Para cancelar, o usuario pode alterar o status para "cancelado" ou excluir a ocorrencia. Isso nao afeta o modelo nem as ocorrencias de outros meses.
 
-- 3 cards de relatorio em grid
-- Seletor de periodo + conta no topo
-- Ao clicar num card, renderiza o relatorio abaixo
-- Layout limpo e direto
+**Editar valor (reajuste):**
+Editar o modelo (`despesas_fixas`) altera o valor para as proximas geracoes. Ocorrencias ja geradas mantem o valor original (podem ser editadas individualmente).
 
 ## Resultado
 
-- Pagina de relatorios com 3 opcoes claras em vez de 7
-- Relatorio consolidado para contador com todas as informacoes necessarias
-- Exportacao Excel real (.xlsx) com multiplas abas formatadas
-- Filtro por conta funcional em todos os relatorios
-- Filtro de data funcional (atualmente o de Receitas ignora o filtro)
+- Despesas fixas (Aluguel, Internet, Sistemas, Contador, Salarios) sao cadastradas uma vez como modelos
+- Todo mes, ao abrir o financeiro, as ocorrencias sao geradas automaticamente com status "pendente"
+- Cada ocorrencia mensal pode ser editada (valor diferente) ou cancelada sem afetar outros meses
+- Reajustes no modelo afetam apenas futuras geracoes
+- Badge visual identifica despesas vindas de modelos fixos
+
