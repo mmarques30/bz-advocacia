@@ -17,6 +17,7 @@ import { AlertCircle, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubtarefasList } from "./SubtarefasList";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
+import { useIsAdvogada } from "@/hooks/useIsAdvogada";
 import { toast } from "sonner";
 
 interface DemandaDetailsDialogProps {
@@ -33,6 +34,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
   const [localEditing, setLocalEditing] = useState(isEditing);
   const isParent = demanda ? !demanda.parent_id : false;
   const { data: subtarefas } = useSubtarefas(isParent && demanda ? demanda.id : null);
+  const { isAdvogada } = useIsAdvogada();
 
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-demandas'],
@@ -85,6 +87,12 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
 
   const onSubmit = (data: any) => {
     if (!demanda) return;
+
+    // Block non-advogadas from completing tasks
+    if (data.status === 'concluido' && !isAdvogada) {
+      toast.error('Apenas advogadas podem concluir tarefas.');
+      return;
+    }
 
     // Block completing parent if subtasks are pending
     if (data.status === 'concluido' && isParent && subtarefas && subtarefas.length > 0) {
@@ -261,7 +269,9 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                   <SelectContent>
                     <SelectItem value="pendente">Pendente</SelectItem>
                     <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="concluido" disabled={!isAdvogada}>
+                      Concluído {!isAdvogada && '(apenas advogadas)'}
+                    </SelectItem>
                     <SelectItem value="cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
