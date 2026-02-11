@@ -14,8 +14,11 @@ import { pdf } from '@react-pdf/renderer';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
+import { atualizarLeadParaPropostaEnviada } from "@/lib/leadStatusAutomation";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const GerarPropostaForm = () => {
+  const queryClient = useQueryClient();
   const [modeloSelecionado, setModeloSelecionado] = useState<string>("");
   const [clienteSelecionado, setClienteSelecionado] = useState<string>("");
   const [descricaoServico, setDescricaoServico] = useState<string>("");
@@ -147,6 +150,8 @@ export const GerarPropostaForm = () => {
         console.error('Erro ao salvar proposta:', saveError);
         toast.warning("Proposta gerada, mas houve erro ao salvar no histórico");
       } else {
+        // Atualizar status do lead automaticamente
+        await atualizarLeadParaPropostaEnviada(clienteSelecionado, 'proposta', queryClient);
         toast.success("Proposta gerada e salva com sucesso!");
       }
     } catch (error) {
