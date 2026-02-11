@@ -19,7 +19,6 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
     description: "Módulo de vendas e marketing",
     children: [
       { key: "gestao_vendas.marketing", label: "Marketing", parent: "gestao_vendas" },
-      { key: "gestao_vendas.analises", label: "Análises", parent: "gestao_vendas" },
       { key: "gestao_vendas.leads", label: "Leads", parent: "gestao_vendas" },
     ],
   },
@@ -30,7 +29,6 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
     children: [
       { key: "gestao_clientes.clientes", label: "Clientes", parent: "gestao_clientes" },
       { key: "gestao_clientes.documentos", label: "Documentos", parent: "gestao_clientes" },
-      { key: "gestao_clientes.processos", label: "Processos", parent: "gestao_clientes" },
     ],
   },
   {
@@ -81,6 +79,7 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
       { key: "administrativo.usuarios", label: "Usuários", parent: "administrativo" },
       { key: "administrativo.modelos_chat", label: "Modelos Chat", parent: "administrativo" },
       { key: "administrativo.automacoes", label: "Automações", parent: "administrativo" },
+      { key: "administrativo.listas", label: "Listas do Sistema", parent: "administrativo" },
       { key: "administrativo.guia", label: "Guia de Uso", parent: "administrativo" },
     ],
   },
@@ -90,11 +89,9 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
 export const ROUTE_TO_PERMISSION: Record<string, string> = {
   "/dashboard": "painel",
   "/dashboard/vendas/meta-ads": "gestao_vendas.marketing",
-  "/dashboard/vendas/analises": "gestao_vendas.analises",
   "/dashboard/leads": "gestao_vendas.leads",
   "/dashboard/clientes": "gestao_clientes.clientes",
   "/dashboard/documentos": "gestao_clientes.documentos",
-  "/dashboard/processos": "gestao_clientes.processos",
   "/dashboard/vendas/relatorios": "relatorios.vendas",
   "/dashboard/processos/demandas": "gestao_rotinas.tarefas",
   "/dashboard/processos/calendario": "gestao_rotinas.prazos",
@@ -110,6 +107,7 @@ export const ROUTE_TO_PERMISSION: Record<string, string> = {
   "/dashboard/configuracoes/usuarios": "administrativo.usuarios",
   "/dashboard/configuracoes/whatsapp-templates": "administrativo.modelos_chat",
   "/dashboard/configuracoes/automacoes": "administrativo.automacoes",
+  "/dashboard/configuracoes/listas": "administrativo.listas",
   "/dashboard/configuracoes/guia": "administrativo.guia",
 };
 
