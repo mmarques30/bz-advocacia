@@ -38,6 +38,11 @@ export const useDemandas = (filters?: DemandasFilters) => {
         query = query.eq('advogada_responsavel', filters.advogada_responsavel);
       }
 
+      // Quando nenhum status é selecionado, excluir concluídas e canceladas por padrão
+      if (!filters?.status) {
+        query = query.not('status', 'in', '("concluido","cancelado")');
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
@@ -228,5 +233,28 @@ export const useDeleteDemanda = () => {
     onError: (error: any) => {
       toast.error('Erro ao excluir demanda: ' + error.message);
     },
+  });
+};
+
+export const useDemandasByLead = (leadId: string) => {
+  return useQuery({
+    queryKey: ['demandas-by-lead', leadId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('demandas_internas')
+        .select(`
+          *,
+          criador:profiles!demandas_internas_criado_por_fkey(nome_completo),
+          responsavel:profiles!demandas_internas_responsavel_id_fkey(nome_completo),
+          processo:processos(numero_processo, tipo)
+        `)
+        .eq('lead_id', leadId)
+        .is('parent_id', null)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as Demanda[];
+    },
+    enabled: !!leadId,
   });
 };

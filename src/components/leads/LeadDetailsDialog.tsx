@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lead, LEAD_STATUS_LABELS } from "@/types/leads";
 import { format } from "date-fns";
-import { Mail, Phone, Calendar, FileText, AlertCircle } from "lucide-react";
+import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
+import { ClienteTarefasTab } from "./ClienteTarefasTab";
 
 interface LeadDetailsDialogProps {
   open: boolean;
@@ -81,12 +82,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 <TabsTrigger value="processos">Processos</TabsTrigger>
                 <TabsTrigger value="contratos">Contratos</TabsTrigger>
+                <TabsTrigger value="tarefas" className="flex items-center gap-1">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  Tarefas
+                </TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
-                <TabsTrigger value="notas">Notas Internas</TabsTrigger>
+                <TabsTrigger value="notas">Notas</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="space-y-4 mt-4">
@@ -218,6 +223,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
 
               <TabsContent value="contratos" className="mt-4">
                 <LeadContratosTab clienteId={lead.id} />
+              </TabsContent>
+
+              <TabsContent value="tarefas" className="mt-4">
+                <ClienteTarefasTab leadId={lead.id} />
               </TabsContent>
 
               <TabsContent value="documentos" className="mt-4">
