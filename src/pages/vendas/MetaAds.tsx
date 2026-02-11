@@ -22,37 +22,29 @@ function ROICard({ kpis, isLoading }: { kpis: any; isLoading: boolean }) {
       label: "Investimento Total",
       value: isLoading ? "—" : `R$ ${(kpis?.gasto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: "text-red-500",
-      bgColor: "bg-red-500/10",
     },
     {
       label: "Leads Gerados",
       value: isLoading ? "—" : String(kpis?.leads || 0),
       icon: Users,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
     },
     {
       label: "CPL (Custo/Lead)",
       value: isLoading ? "—" : `R$ ${(kpis?.custoLead || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
       icon: Target,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/10",
     },
     {
       label: "ROI Estimado",
       value: isLoading ? "—" : `${roi.toFixed(1)}%`,
       icon: BarChart3,
-      color: roi >= 0 ? "text-emerald-500" : "text-red-500",
-      bgColor: roi >= 0 ? "bg-emerald-500/10" : "bg-red-500/10",
     },
   ];
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+    <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
+          <TrendingUp className="h-5 w-5 text-muted-foreground" />
           Resumo de ROI
         </CardTitle>
       </CardHeader>
@@ -60,8 +52,8 @@ function ROICard({ kpis, isLoading }: { kpis: any; isLoading: boolean }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {metrics.map((m) => (
             <div key={m.label} className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${m.bgColor}`}>
-                <m.icon className={`h-5 w-5 ${m.color}`} />
+              <div className="p-2 rounded-lg bg-muted">
+                <m.icon className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{m.label}</p>
