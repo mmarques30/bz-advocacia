@@ -17,6 +17,9 @@ export default function Leads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
 
+  const [nomeFilter, setNomeFilter] = useState<string | null>(null);
+  const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+
   const [filters, setFilters] = useState<FiltersType>({
     search: "",
     status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada'],
@@ -27,6 +30,16 @@ export default function Leads() {
     responsavel: null,
     statusCliente: [],
   });
+
+  const handleNomeFilterChange = (nome: string | null) => {
+    setNomeFilter(nome);
+    setFilters(prev => ({ ...prev, search: nome || "" }));
+  };
+
+  const handleOrigemFilterChange = (origem: string | null) => {
+    setOrigemFilter(origem);
+    setFilters(prev => ({ ...prev, origem: origem ? [origem as any] : [] }));
+  };
 
   const { data: leads, isLoading } = useLeads(filters);
 
@@ -77,6 +90,10 @@ export default function Leads() {
         onSearchChange={(search) => setFilters({ ...filters, search })}
         activeFiltersCount={activeFiltersCount}
         isClienteTab={false}
+        nomeFilter={nomeFilter}
+        onNomeFilterChange={handleNomeFilterChange}
+        origemFilter={origemFilter}
+        onOrigemFilterChange={handleOrigemFilterChange}
       />
 
       {view === 'table' ? (

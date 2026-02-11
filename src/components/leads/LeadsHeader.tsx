@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { ORIGEM_LABELS, LeadOrigem } from "@/types/leads";
 
 interface LeadsHeaderProps {
   view: 'table' | 'kanban';
@@ -34,6 +35,10 @@ interface LeadsHeaderProps {
   hideViewToggle?: boolean;
   clienteFilterId?: string | null;
   onClienteFilterChange?: (id: string | null) => void;
+  nomeFilter?: string | null;
+  onNomeFilterChange?: (nome: string | null) => void;
+  origemFilter?: string | null;
+  onOrigemFilterChange?: (origem: string | null) => void;
 }
 
 export function LeadsHeader({
@@ -50,8 +55,13 @@ export function LeadsHeader({
   hideViewToggle = false,
   clienteFilterId,
   onClienteFilterChange,
+  nomeFilter,
+  onNomeFilterChange,
+  origemFilter,
+  onOrigemFilterChange,
 }: LeadsHeaderProps) {
   const [clientes, setClientes] = useState<{ id: string; nome_completo: string }[]>([]);
+  const [nomes, setNomes] = useState<string[]>([]);
 
   useEffect(() => {
     if (!isClienteTab) return;
@@ -64,6 +74,22 @@ export function LeadsHeader({
       if (data) setClientes(data);
     };
     fetchClientes();
+  }, [isClienteTab]);
+
+  useEffect(() => {
+    if (isClienteTab) return;
+    const fetchNomes = async () => {
+      const { data } = await supabase
+        .from('contact_submissions')
+        .select('nome_completo')
+        .neq('estagio', 'fechado')
+        .order('nome_completo');
+      if (data) {
+        const uniqueNomes = [...new Set(data.map(d => d.nome_completo))];
+        setNomes(uniqueNomes);
+      }
+    };
+    fetchNomes();
   }, [isClienteTab]);
 
   return (
@@ -99,6 +125,44 @@ export function LeadsHeader({
           </DropdownMenuContent>
         </DropdownMenu>
 
+        {!isClienteTab && onNomeFilterChange && (
+          <Select
+            value={nomeFilter || "all"}
+            onValueChange={(v) => onNomeFilterChange(v === "all" ? null : v)}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Todos os nomes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os nomes</SelectItem>
+              {nomes.map((nome) => (
+                <SelectItem key={nome} value={nome}>
+                  {nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {!isClienteTab && onOrigemFilterChange && (
+          <Select
+            value={origemFilter || "all"}
+            onValueChange={(v) => onOrigemFilterChange(v === "all" ? null : v)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Todas as origens" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as origens</SelectItem>
+              {Object.entries(ORIGEM_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {isClienteTab && onClienteFilterChange && (
           <Select
             value={clienteFilterId || "all"}
@@ -118,7 +182,7 @@ export function LeadsHeader({
           </Select>
         )}
 
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome, CPF, email ou telefone..."
