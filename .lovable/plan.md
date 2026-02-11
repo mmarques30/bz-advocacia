@@ -1,114 +1,148 @@
 
-
-# Plano: Edicao Individual de Status de Parcelas
+# Plano: Associar Lancamentos Financeiros a Contas/Responsaveis
 
 ## Resumo
 
-Melhorar o dialog de detalhes do acordo para permitir edicao completa de cada parcela: alterar status (pendente/pago), editar valor, e filtrar parcelas por status.
+Adicionar um campo "conta" (responsavel) a todos os lancamentos financeiros, permitindo controle individualizado por Juliana, Liziane ou Escritorio (compartilhada). Isso permite filtrar receitas, despesas e transacoes por conta, e visualizar KPIs segmentados.
 
-## Situacao Atual
+## Contas previstas
 
-- `AcordoDetailsDialog` exibe parcelas em tabela com botao "Registrar" para pendentes
-- `RegistrarPagamentoDialog` permite marcar como pago com data, valor e forma de pagamento
-- Nao ha como reverter uma parcela de "pago" para "pendente"
-- Nao ha como editar o valor previsto de uma parcela
-- Nao ha filtro de parcelas por status dentro do dialog
-- Hook `useUpdateParcela` ja existe e suporta atualizacoes parciais
+- **Juliana** - lancamentos pessoais da advogada Juliana
+- **Liziane** - lancamentos pessoais da advogada Liziane
+- **Escritorio** - despesas e receitas compartilhadas do escritorio
 
 ## Alteracoes
 
-### 1. Filtro de parcelas no dialog (`AcordoDetailsDialog.tsx`)
+### 1. Migracao de banco de dados
 
-Adicionar barra de filtro acima da tabela de parcelas com 4 opcoes:
-- **Todas** (padrao)
-- **A Receber** (status pendente, nao vencida)
-- **Recebidas** (status pago)
-- **Atrasadas** (status pendente, vencida)
+Adicionar coluna `conta` (text, nullable, default 'escritorio') nas tres tabelas financeiras:
+- `acordos_financeiros` - para associar acordos/receitas a uma conta
+- `despesas` - para associar despesas a uma conta
+- `transacoes_financeiras` - para associar transacoes importadas a uma conta
 
-Implementar como toggle group ou botoes com contadores.
+Adicionar as opcoes de conta na tabela `opcoes_sistema` (grupo: 'conta_financeira') para que possam ser gerenciadas pela area administrativa.
 
-### 2. Edicao inline de valor (`AcordoDetailsDialog.tsx`)
+### 2. Tipos TypeScript
 
-Na coluna "Valor" da tabela de parcelas:
-- Exibir icone de edicao (lapiz) ao lado do valor
-- Ao clicar, campo se torna editavel (input number)
-- Ao confirmar (Enter ou blur), salva via `useUpdateParcela`
-- Se o valor for diferente do original, exibir indicador visual (tooltip ou texto menor com valor original)
+Atualizar os tipos em `src/types/financeiro.ts`:
+- Adicionar `conta` ao tipo `AcordoFinanceiro`
+- Adicionar `conta` ao tipo `Despesa`
+- Adicionar constante `CONTA_LABELS` com os labels das contas
+- Adicionar `conta` ao tipo `KPIsFinanceiros` (nao necessario, filtro externo)
 
-### 3. Acoes expandidas por parcela (`AcordoDetailsDialog.tsx`)
+Atualizar `src/types/transacoes.ts`:
+- Adicionar `conta` ao tipo `TransacaoFinanceira`
+- Adicionar `conta` ao tipo `TransacoesFilters`
 
-Coluna de acoes com dropdown menu:
-- **Parcela pendente**: "Registrar Pagamento" (abre dialog existente) + "Editar Valor"
-- **Parcela paga**: "Desfazer Pagamento" (volta para pendente, limpa data_pagamento e valor_pago) + "Ver Detalhes do Pagamento"
+### 3. Filtros - Adicionar seletor de conta
 
-### 4. Mutation para desfazer pagamento (`useParcelas.ts`)
+Adicionar dropdown "Conta" nos seguintes filtros:
+- `FaturamentoFilters.tsx` - adicionar campo `conta` ao `FaturamentoFiltersState`
+- `DespesasGlobalFilters.tsx` - adicionar campo `conta` ao `DespesasGlobalFiltersState`
+- `TransacoesFilters.tsx` - adicionar campo `conta` ao `TFilters`
 
-Novo hook `useDesfazerPagamento`:
-- Atualiza parcela: status = 'pendente', data_pagamento = null, valor_pago = null
-- Remove entrada correspondente do historico_pagamentos
-- Invalida caches relevantes
+### 4. Formularios - Adicionar campo de conta
 
-### 5. Dialog de edicao de valor (`EditParcelaValorDialog.tsx`)
+Adicionar campo "Conta" nos formularios de criacao:
+- `NewAcordoDialog.tsx` - dropdown de conta ao criar acordo
+- `NewEntradaFaturamentoDialog.tsx` - dropdown de conta ao criar entrada avulsa
+- `NewDespesaDialog.tsx` - dropdown de conta ao criar despesa
+- `ImportFaturamentoDialog.tsx` - dropdown de conta ao importar
+- `ImportDespesasDialog.tsx` - dropdown de conta ao importar
 
-Novo dialog simples:
-- Campo com valor atual
-- Campo com novo valor
-- Motivo da alteracao (opcional)
-- Salva via `useUpdateParcela`
+### 5. Hooks - Filtrar por conta
+
+Atualizar hooks para respeitar o filtro de conta:
+- `useFinanceiro.ts` - filtrar acordos, parcelas e KPIs por conta
+- `useDespesas.ts` - filtrar despesas por conta
+- `useTransacoesFinanceiras.ts` - filtrar transacoes por conta
+
+### 6. Tabelas e visualizacoes
+
+Adicionar coluna "Conta" nas tabelas:
+- `FaturamentoTable.tsx` - exibir conta do acordo
+- `DespesasTable.tsx` - exibir conta da despesa
+- `TransacoesTable.tsx` - exibir conta da transacao
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/components/financeiro/AcordoDetailsDialog.tsx` | Adicionar filtro de status + acoes expandidas + edicao inline |
-| `src/hooks/useParcelas.ts` | Adicionar `useDesfazerPagamento` |
-| `src/components/financeiro/EditParcelaValorDialog.tsx` | Novo dialog para editar valor da parcela |
+| Migracao SQL | ALTER TABLE + seed opcoes_sistema |
+| `src/types/financeiro.ts` | Adicionar `conta` aos tipos + CONTA_LABELS |
+| `src/types/transacoes.ts` | Adicionar `conta` ao TransacaoFinanceira e TransacoesFilters |
+| `src/components/financeiro/FaturamentoFilters.tsx` | Adicionar filtro de conta |
+| `src/components/financeiro/DespesasGlobalFilters.tsx` | Adicionar filtro de conta |
+| `src/components/financeiro/transacoes/TransacoesFilters.tsx` | Adicionar filtro de conta |
+| `src/components/financeiro/NewAcordoDialog.tsx` | Adicionar campo conta |
+| `src/components/financeiro/NewEntradaFaturamentoDialog.tsx` | Adicionar campo conta |
+| `src/components/financeiro/despesas/NewDespesaDialog.tsx` | Adicionar campo conta |
+| `src/hooks/useFinanceiro.ts` | Filtrar por conta nos KPIs e queries |
+| `src/hooks/useDespesas.ts` | Filtrar por conta |
+| `src/hooks/useTransacoesFinanceiras.ts` | Filtrar por conta |
+| `src/components/financeiro/FaturamentoTable.tsx` | Exibir coluna conta |
+| `src/components/financeiro/despesas/DespesasTable.tsx` | Exibir coluna conta |
+| `src/components/financeiro/transacoes/TransacoesTable.tsx` | Exibir coluna conta |
 
 ## Detalhes Tecnicos
 
-**Filtro de parcelas (estado local no dialog):**
+**Migracao SQL:**
 ```text
-const [statusFilter, setStatusFilter] = useState<'todas' | 'a_receber' | 'recebidas' | 'atrasadas'>('todas');
+-- Adicionar coluna conta nas tabelas financeiras
+ALTER TABLE acordos_financeiros ADD COLUMN conta text DEFAULT 'escritorio';
+ALTER TABLE despesas ADD COLUMN conta text DEFAULT 'escritorio';
+ALTER TABLE transacoes_financeiras ADD COLUMN conta text DEFAULT 'escritorio';
 
-parcelasFiltradas = acordo.parcelas.filter(p => {
-  if (statusFilter === 'recebidas') return p.status === 'pago';
-  if (statusFilter === 'a_receber') return p.status === 'pendente' && new Date(p.data_vencimento) >= new Date();
-  if (statusFilter === 'atrasadas') return p.status !== 'pago' && new Date(p.data_vencimento) < new Date();
-  return true;
-});
+-- Seed opcoes_sistema para contas
+INSERT INTO opcoes_sistema (grupo, valor, label, ordem) VALUES
+  ('conta_financeira', 'juliana', 'Conta Juliana', 1),
+  ('conta_financeira', 'liziane', 'Conta Liziane', 2),
+  ('conta_financeira', 'escritorio', 'Conta Escritório', 3);
 ```
 
-**useDesfazerPagamento:**
+**Constante CONTA_LABELS:**
 ```text
-1. UPDATE parcelas_financeiras SET status='pendente', data_pagamento=null, valor_pago=null WHERE id=parcelaId
-2. DELETE FROM historico_pagamentos WHERE parcela_id=parcelaId
-3. Invalidar queries: parcelas, acordo-detalhes, acordos-financeiros, kpis-financeiros, projetado-vs-realizado
+export const CONTA_LABELS: Record<string, string> = {
+  juliana: 'Conta Juliana',
+  liziane: 'Conta Liziane',
+  escritorio: 'Conta Escritório',
+};
 ```
 
-**Acoes por status:**
+**Filtro de conta nos hooks (exemplo KPIs):**
 ```text
-Pendente (nao vencida):
-  - [Registrar Pagamento] (abre RegistrarPagamentoDialog)
-  - [Editar Valor] (abre EditParcelaValorDialog)
-
-Pendente (vencida/atrasada):
-  - [Registrar Pagamento]
-  - [Editar Valor]
-
-Pago:
-  - [Desfazer Pagamento] (com confirmacao)
-  - [Editar Valor]
+// Se filtro de conta definido, filtrar acordos e parcelas
+if (filters?.conta && filters.conta !== 'todos') {
+  // Buscar acordo_ids da conta
+  const { data: acordosDaConta } = await supabase
+    .from('acordos_financeiros')
+    .select('id')
+    .eq('conta', filters.conta);
+  
+  // Filtrar parcelas apenas dos acordos dessa conta
+  parcelas = parcelas.filter(p => acordoIds.includes(p.acordo_id));
+}
 ```
 
-**Contadores nos filtros:**
+**Dropdown de conta nos filtros:**
 ```text
-[Todas (12)] [A Receber (5)] [Recebidas (4)] [Atrasadas (3)]
+<Select value={filters.conta} onValueChange={(v) => handleChange("conta", v)}>
+  <SelectTrigger className="w-[160px]">
+    <SelectValue placeholder="Conta" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="todos">Todas as Contas</SelectItem>
+    <SelectItem value="juliana">Conta Juliana</SelectItem>
+    <SelectItem value="liziane">Conta Liziane</SelectItem>
+    <SelectItem value="escritorio">Conta Escritório</SelectItem>
+  </SelectContent>
+</Select>
 ```
 
 ## Resultado
 
-- Visualizacao completa de todas as parcelas de um contrato com filtros por status
-- Edicao individual do valor previsto de cada parcela
-- Marcacao de parcela como recebida com data e valor (ja existia)
-- Possibilidade de desfazer um pagamento registrado por engano
-- Filtros rapidos para ver somente pendentes, recebidas ou atrasadas
+- Cada lancamento financeiro (acordo, despesa, transacao importada) pode ser associado a uma conta especifica
+- Filtros permitem visualizar o financeiro de cada advogada separadamente ou do escritorio
+- KPIs, graficos e tabelas respeitam o filtro de conta selecionado
+- Contas sao gerenciaveis pela area administrativa (via opcoes_sistema)
+- Registros existentes assumem "Escritorio" como conta padrao
