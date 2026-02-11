@@ -8,6 +8,8 @@ import { ADVOGADA_LABELS, STATUS_LABELS } from "@/types/demandas";
 import { useState } from "react";
 import { NewSubtarefaDialog } from "./NewSubtarefaDialog";
 import { Demanda } from "@/types/demandas";
+import { useIsAdvogada } from "@/hooks/useIsAdvogada";
+import { toast } from "sonner";
 
 interface SubtarefasListProps {
   parentDemanda: Demanda;
@@ -24,6 +26,7 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
   const { data: subtarefas, isLoading } = useSubtarefas(parentDemanda.id);
   const updateStatus = useUpdateSubtarefaStatus();
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const { isAdvogada } = useIsAdvogada();
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando subtarefas...</p>;
 
@@ -33,6 +36,10 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
 
   const handleToggle = (subtarefa: Demanda) => {
     const newStatus = subtarefa.status === 'concluido' ? 'pendente' : 'concluido';
+    if (newStatus === 'concluido' && !isAdvogada) {
+      toast.error('Apenas advogadas podem concluir tarefas.');
+      return;
+    }
     updateStatus.mutate({
       id: subtarefa.id,
       status: newStatus,
@@ -68,7 +75,8 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
               <Checkbox
                 checked={sub.status === 'concluido'}
                 onCheckedChange={() => handleToggle(sub)}
-                disabled={updateStatus.isPending}
+                disabled={updateStatus.isPending || (sub.status !== 'concluido' && !isAdvogada)}
+                title={!isAdvogada && sub.status !== 'concluido' ? 'Apenas advogadas podem concluir' : undefined}
               />
               <span className="text-xs text-muted-foreground font-mono w-5">{sub.ordem ?? idx + 1}.</span>
               <div className="flex-1 min-w-0">
