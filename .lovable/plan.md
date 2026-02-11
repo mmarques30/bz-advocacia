@@ -1,56 +1,36 @@
 
-# Corrigir Filtros do Calendario e Prazos
+# Adicionar Filtros e Tabelas nas Sub-abas de Projecao
 
-## Problema
+## O que sera feito
 
-Os filtros "Todos", "Prazos", "Tarefas" e "Rotinas" no calendario nao afetam a visualizacao do calendario em si -- apenas a lista abaixo muda. Os marcadores coloridos no calendario continuam mostrando todos os tipos independente do filtro selecionado. Alem disso, o dialog ao clicar em um dia tambem nao respeita o filtro.
+Duplicar os filtros e tabelas que existem em "Lancamentos" para dentro da sub-aba "Projecao", tanto em Faturamento quanto em Despesas.
 
-## Causa raiz
+## Alteracoes
 
-- `itensPorData` (que alimenta os modifiers do calendario) e calculado a partir de `todosItens` (sem filtro)
-- Os modifiers `diasUrgentes`, `diasAlerta`, etc. tambem usam `itensPorData` sem filtro
-- O dialog `itensDoDialog` busca de `itensPorData` sem filtro
+### 1. Faturamento > Projecao (`src/pages/Financeiro.tsx`)
 
-## Correcao
+Na sub-aba "projecao" de Faturamento (linhas 167-169), adicionar:
+- O componente `FaturamentoFilters` (mesmo filtro da aba Lancamentos, usando o mesmo state `faturamentoFilters`)
+- Manter os graficos de projecao (`FaturamentoProjecaoTab`)
+- Adicionar `FaturamentoTable` ao final da pagina
 
-### Arquivo: `src/pages/processos/Calendario.tsx`
+### 2. Despesas > Projecao (`src/pages/Financeiro.tsx`)
 
-**1. Criar `itensFiltradosPorTipo`** -- uma lista intermediaria que filtra apenas pelo tipo (sem filtro de status), para alimentar o calendario e o dialog:
+Na sub-aba "projecao" de Despesas (linhas 217-219), adicionar:
+- O componente `DespesasGlobalFilters` (mesmo filtro da aba Lancamentos, usando o mesmo state `despesasGlobalFilters`)
+- Manter os graficos de projecao (`DespesasProjecaoTab`)
+- Adicionar `DespesasTable` ao final da pagina
 
-```typescript
-const itensFiltradosPorTipo = useMemo(() => {
-  if (filtroTipo === "todos") return todosItens;
-  const tipoSingular = filtroTipo.slice(0, -1); // "prazos" -> "prazo"
-  return todosItens.filter(item => item.tipo === tipoSingular);
-}, [todosItens, filtroTipo]);
-```
+### 3. Ajustar componentes de projecao
 
-**2. Alterar `itensPorData`** para usar `itensFiltradosPorTipo` em vez de `todosItens`:
+- `FaturamentoProjecaoTab`: ja recebe `filters` -- nenhuma alteracao necessaria
+- `DespesasProjecaoTab`: adicionar prop `filters` do tipo `DespesasGlobalFiltersState` para que os graficos de projecao tambem respeitem os filtros
 
-```typescript
-const itensPorData = useMemo(() => {
-  const mapa = new Map<string, CalendarioItem[]>();
-  itensFiltradosPorTipo.forEach((item) => { ... });
-  return mapa;
-}, [itensFiltradosPorTipo]);
-```
+## Resultado
 
-**3. Alterar `itensFiltrados`** (lista abaixo) para filtrar a partir de `itensFiltradosPorTipo` aplicando o filtro de status:
+Ambas as sub-abas de Projecao terao:
+1. Filtros identicos aos de Lancamentos (compartilhando o mesmo state)
+2. Graficos de projecao (conteudo atual)
+3. Tabela de dados ao final (mesma tabela de Lancamentos)
 
-```typescript
-const itensFiltrados = useMemo(() => {
-  return itensFiltradosPorTipo.filter((item) => {
-    // aplicar apenas filtro de status
-    ...
-  });
-}, [itensFiltradosPorTipo, filtroStatus]);
-```
-
-Isso garante que tanto o calendario (cores/marcadores), o dialog (ao clicar no dia) e a lista (abaixo) reflitam o filtro de tipo selecionado.
-
-### Resultado esperado
-
-- Selecionar "Prazos": calendario mostra apenas dias com prazos, lista mostra apenas prazos
-- Selecionar "Tarefas": calendario mostra apenas dias com tarefas, lista mostra apenas tarefas
-- Selecionar "Rotinas": calendario mostra apenas dias com rotinas, lista mostra apenas rotinas
-- Selecionar "Todos": comportamento atual (mostra tudo)
+O usuario podera filtrar por periodo, conta, categoria etc. e ver tanto os graficos de projecao quanto a tabela detalhada na mesma visualizacao.
