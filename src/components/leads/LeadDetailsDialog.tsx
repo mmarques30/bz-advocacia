@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { Mail, Phone, Calendar, FileText, AlertCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
+import { ClienteProcessosTab } from "./ClienteProcessosTab";
 
 interface LeadDetailsDialogProps {
   open: boolean;
@@ -79,8 +80,9 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDi
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="info">Informações</TabsTrigger>
+                <TabsTrigger value="processos">Processos</TabsTrigger>
                 <TabsTrigger value="contratos">Contratos</TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 <TabsTrigger value="notas">Notas Internas</TabsTrigger>
@@ -205,6 +207,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit }: LeadDetailsDi
                     </div>
                   </>
                 )}
+              </TabsContent>
+
+              <TabsContent value="processos" className="mt-4">
+                <ClienteProcessosTab clienteId={lead.id} clienteNome={lead.nome_completo} />
               </TabsContent>
 
               <TabsContent value="contratos" className="mt-4">
