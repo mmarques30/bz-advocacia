@@ -1,148 +1,112 @@
 
-# Plano: Associar Lancamentos Financeiros a Contas/Responsaveis
+# Plano: Relatorio Consolidado para Contador
 
-## Resumo
+## Problema Atual
 
-Adicionar um campo "conta" (responsavel) a todos os lancamentos financeiros, permitindo controle individualizado por Juliana, Liziane ou Escritorio (compartilhada). Isso permite filtrar receitas, despesas e transacoes por conta, e visualizar KPIs segmentados.
+A pagina de relatorios financeiros tem 7 relatorios separados, muitos redundantes:
+- **Receitas do Periodo** - util, mas usa hook `useReceitaMensal` que ignora filtro de data
+- **Inadimplencia** - util, manter
+- **Fluxo de Caixa** - redundante com a visao de Projetado vs Realizado ja implementada
+- **Performance por Tipo** - secundario, pouco uso pratico
+- **Performance por Cliente** - secundario, pouco uso pratico  
+- **Despesas do Periodo** - util, mas separado das receitas
+- **Despesas por Categoria** - redundante com o detalhamento de despesas
 
-## Contas previstas
+O seletor de tipo no topo (`RelatorioSelector`) tem um dropdown que **nao inclui** "Despesas do Periodo" e "Despesas por Categoria" (so tem 5 opcoes), mas a lista de cards abaixo tem 7 opcoes. Inconsistencia.
 
-- **Juliana** - lancamentos pessoais da advogada Juliana
-- **Liziane** - lancamentos pessoais da advogada Liziane
-- **Escritorio** - despesas e receitas compartilhadas do escritorio
+Alem disso, o `exportToExcel` atual gera um arquivo TSV disfarçado de .xls - nao e um Excel real. O projeto ja tem a biblioteca `xlsx` instalada.
 
-## Alteracoes
+## Solucao
 
-### 1. Migracao de banco de dados
+Substituir os 7 relatorios por **3 relatorios uteis**:
 
-Adicionar coluna `conta` (text, nullable, default 'escritorio') nas tres tabelas financeiras:
-- `acordos_financeiros` - para associar acordos/receitas a uma conta
-- `despesas` - para associar despesas a uma conta
-- `transacoes_financeiras` - para associar transacoes importadas a uma conta
+1. **Relatorio para Contador** (NOVO) - Consolidado de receitas + despesas + saldo por conta, com exportacao Excel real usando `xlsx`
+2. **Inadimplencia** (MANTER) - Ja funciona bem
+3. **Fluxo de Caixa** (MANTER simplificado) - Parcelas a receber nos proximos meses
 
-Adicionar as opcoes de conta na tabela `opcoes_sistema` (grupo: 'conta_financeira') para que possam ser gerenciadas pela area administrativa.
-
-### 2. Tipos TypeScript
-
-Atualizar os tipos em `src/types/financeiro.ts`:
-- Adicionar `conta` ao tipo `AcordoFinanceiro`
-- Adicionar `conta` ao tipo `Despesa`
-- Adicionar constante `CONTA_LABELS` com os labels das contas
-- Adicionar `conta` ao tipo `KPIsFinanceiros` (nao necessario, filtro externo)
-
-Atualizar `src/types/transacoes.ts`:
-- Adicionar `conta` ao tipo `TransacaoFinanceira`
-- Adicionar `conta` ao tipo `TransacoesFilters`
-
-### 3. Filtros - Adicionar seletor de conta
-
-Adicionar dropdown "Conta" nos seguintes filtros:
-- `FaturamentoFilters.tsx` - adicionar campo `conta` ao `FaturamentoFiltersState`
-- `DespesasGlobalFilters.tsx` - adicionar campo `conta` ao `DespesasGlobalFiltersState`
-- `TransacoesFilters.tsx` - adicionar campo `conta` ao `TFilters`
-
-### 4. Formularios - Adicionar campo de conta
-
-Adicionar campo "Conta" nos formularios de criacao:
-- `NewAcordoDialog.tsx` - dropdown de conta ao criar acordo
-- `NewEntradaFaturamentoDialog.tsx` - dropdown de conta ao criar entrada avulsa
-- `NewDespesaDialog.tsx` - dropdown de conta ao criar despesa
-- `ImportFaturamentoDialog.tsx` - dropdown de conta ao importar
-- `ImportDespesasDialog.tsx` - dropdown de conta ao importar
-
-### 5. Hooks - Filtrar por conta
-
-Atualizar hooks para respeitar o filtro de conta:
-- `useFinanceiro.ts` - filtrar acordos, parcelas e KPIs por conta
-- `useDespesas.ts` - filtrar despesas por conta
-- `useTransacoesFinanceiras.ts` - filtrar transacoes por conta
-
-### 6. Tabelas e visualizacoes
-
-Adicionar coluna "Conta" nas tabelas:
-- `FaturamentoTable.tsx` - exibir conta do acordo
-- `DespesasTable.tsx` - exibir conta da despesa
-- `TransacoesTable.tsx` - exibir conta da transacao
+Remover: Performance por Tipo, Performance por Cliente, Despesas por Categoria, Receitas do Periodo (absorvidos pelo relatorio consolidado).
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| Migracao SQL | ALTER TABLE + seed opcoes_sistema |
-| `src/types/financeiro.ts` | Adicionar `conta` aos tipos + CONTA_LABELS |
-| `src/types/transacoes.ts` | Adicionar `conta` ao TransacaoFinanceira e TransacoesFilters |
-| `src/components/financeiro/FaturamentoFilters.tsx` | Adicionar filtro de conta |
-| `src/components/financeiro/DespesasGlobalFilters.tsx` | Adicionar filtro de conta |
-| `src/components/financeiro/transacoes/TransacoesFilters.tsx` | Adicionar filtro de conta |
-| `src/components/financeiro/NewAcordoDialog.tsx` | Adicionar campo conta |
-| `src/components/financeiro/NewEntradaFaturamentoDialog.tsx` | Adicionar campo conta |
-| `src/components/financeiro/despesas/NewDespesaDialog.tsx` | Adicionar campo conta |
-| `src/hooks/useFinanceiro.ts` | Filtrar por conta nos KPIs e queries |
-| `src/hooks/useDespesas.ts` | Filtrar por conta |
-| `src/hooks/useTransacoesFinanceiras.ts` | Filtrar por conta |
-| `src/components/financeiro/FaturamentoTable.tsx` | Exibir coluna conta |
-| `src/components/financeiro/despesas/DespesasTable.tsx` | Exibir coluna conta |
-| `src/components/financeiro/transacoes/TransacoesTable.tsx` | Exibir coluna conta |
+| `src/types/financeiro.ts` | Simplificar `TipoRelatorio` para 3 opcoes |
+| `src/pages/financeiro/Relatorios.tsx` | Reescrever pagina com 3 relatorios |
+| `src/components/financeiro/relatorios/RelatorioSelector.tsx` | Simplificar seletor com filtro de conta |
+| `src/components/financeiro/relatorios/RelatorioContador.tsx` | NOVO - relatorio consolidado |
+| `src/lib/exportUtils.ts` | Adicionar `exportToExcelFormatado` usando biblioteca `xlsx` |
+| `src/components/financeiro/relatorios/RelatorioReceitasPeriodo.tsx` | Remover |
+| `src/components/financeiro/relatorios/RelatorioDespesasPeriodo.tsx` | Remover |
+| `src/components/financeiro/relatorios/RelatorioDespesasCategoria.tsx` | Remover |
+| `src/components/financeiro/relatorios/RelatorioPerformanceTipo.tsx` | Remover |
+| `src/components/financeiro/relatorios/RelatorioPerformanceCliente.tsx` | Remover |
 
 ## Detalhes Tecnicos
 
-**Migracao SQL:**
-```text
--- Adicionar coluna conta nas tabelas financeiras
-ALTER TABLE acordos_financeiros ADD COLUMN conta text DEFAULT 'escritorio';
-ALTER TABLE despesas ADD COLUMN conta text DEFAULT 'escritorio';
-ALTER TABLE transacoes_financeiras ADD COLUMN conta text DEFAULT 'escritorio';
+### 1. Novo tipo `TipoRelatorio`
 
--- Seed opcoes_sistema para contas
-INSERT INTO opcoes_sistema (grupo, valor, label, ordem) VALUES
-  ('conta_financeira', 'juliana', 'Conta Juliana', 1),
-  ('conta_financeira', 'liziane', 'Conta Liziane', 2),
-  ('conta_financeira', 'escritorio', 'Conta Escritório', 3);
+```text
+export type TipoRelatorio = 
+  | 'consolidado_contador'
+  | 'inadimplencia_detalhada'
+  | 'fluxo_caixa_projetado';
 ```
 
-**Constante CONTA_LABELS:**
+### 2. `RelatorioContador.tsx` - O relatorio principal
+
+Recebe `dataInicio`, `dataFim` e `conta` (filtro opcional).
+
+Busca dados de 3 fontes:
+- Parcelas pagas no periodo (receitas de acordos)
+- Transacoes importadas do periodo (receitas e despesas)
+- Despesas do periodo (tabela despesas)
+
+Exibe em 4 secoes:
+
+**Resumo (KPIs):**
+- Total Receitas | Total Despesas | Saldo Liquido | Saldo por Conta
+
+**Aba Receitas:**
+- Tabela com data, descricao, cliente, categoria, conta, valor
+- Subtotal
+
+**Aba Despesas:**
+- Tabela com data, descricao, categoria, conta, valor
+- Subtotal
+
+**Aba Saldo por Conta:**
+- Tabela: Conta | Receitas | Despesas | Saldo
+- Uma linha por conta (Juliana, Liziane, Escritorio)
+
+**Botao "Exportar Excel para Contador":**
+- Gera arquivo .xlsx real com 4 abas (Resumo, Receitas, Despesas, Saldo por Conta)
+- Formatado com headers em negrito, valores em formato moeda, totais destacados
+
+### 3. `RelatorioSelector.tsx` - Simplificado
+
+Manter filtros de data + adicionar filtro de **Conta** (Todas / Juliana / Liziane / Escritorio). Remover dropdown de tipo (os 3 relatorios ficam como cards clicaveis).
+
+### 4. `exportToExcelFormatado` em `exportUtils.ts`
+
 ```text
-export const CONTA_LABELS: Record<string, string> = {
-  juliana: 'Conta Juliana',
-  liziane: 'Conta Liziane',
-  escritorio: 'Conta Escritório',
-};
+Usar biblioteca xlsx ja instalada:
+- XLSX.utils.json_to_sheet() para criar abas
+- XLSX.utils.book_new() + book_append_sheet() para montar workbook
+- XLSX.writeFile() para download
+- Adicionar largura de colunas e formatacao basica
 ```
 
-**Filtro de conta nos hooks (exemplo KPIs):**
-```text
-// Se filtro de conta definido, filtrar acordos e parcelas
-if (filters?.conta && filters.conta !== 'todos') {
-  // Buscar acordo_ids da conta
-  const { data: acordosDaConta } = await supabase
-    .from('acordos_financeiros')
-    .select('id')
-    .eq('conta', filters.conta);
-  
-  // Filtrar parcelas apenas dos acordos dessa conta
-  parcelas = parcelas.filter(p => acordoIds.includes(p.acordo_id));
-}
-```
+### 5. Pagina `Relatorios.tsx` simplificada
 
-**Dropdown de conta nos filtros:**
-```text
-<Select value={filters.conta} onValueChange={(v) => handleChange("conta", v)}>
-  <SelectTrigger className="w-[160px]">
-    <SelectValue placeholder="Conta" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="todos">Todas as Contas</SelectItem>
-    <SelectItem value="juliana">Conta Juliana</SelectItem>
-    <SelectItem value="liziane">Conta Liziane</SelectItem>
-    <SelectItem value="escritorio">Conta Escritório</SelectItem>
-  </SelectContent>
-</Select>
-```
+- 3 cards de relatorio em grid
+- Seletor de periodo + conta no topo
+- Ao clicar num card, renderiza o relatorio abaixo
+- Layout limpo e direto
 
 ## Resultado
 
-- Cada lancamento financeiro (acordo, despesa, transacao importada) pode ser associado a uma conta especifica
-- Filtros permitem visualizar o financeiro de cada advogada separadamente ou do escritorio
-- KPIs, graficos e tabelas respeitam o filtro de conta selecionado
-- Contas sao gerenciaveis pela area administrativa (via opcoes_sistema)
-- Registros existentes assumem "Escritorio" como conta padrao
+- Pagina de relatorios com 3 opcoes claras em vez de 7
+- Relatorio consolidado para contador com todas as informacoes necessarias
+- Exportacao Excel real (.xlsx) com multiplas abas formatadas
+- Filtro por conta funcional em todos os relatorios
+- Filtro de data funcional (atualmente o de Receitas ignora o filtro)
