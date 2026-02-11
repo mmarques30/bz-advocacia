@@ -16,6 +16,7 @@ export const useDemandas = (filters?: DemandasFilters) => {
           processo:processos(numero_processo, tipo),
           lead:contact_submissions(nome_completo)
         `)
+        .is('parent_id', null)
         .order('created_at', { ascending: false });
 
       if (filters?.tipo) {
@@ -108,6 +109,7 @@ export const useDemandasByStatus = () => {
           processo:processos(numero_processo, tipo),
           lead:contact_submissions(nome_completo)
         `)
+        .is('parent_id', null)
         .not('status', 'eq', 'cancelado')
         .order('prioridade', { ascending: false })
         .order('created_at', { ascending: false });
@@ -148,6 +150,8 @@ export const useCreateDemanda = () => {
       lead_id?: string | null;
       data_limite?: string | null;
       data_conclusao?: string | null;
+      parent_id?: string | null;
+      ordem?: number | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       

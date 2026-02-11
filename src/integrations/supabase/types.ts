@@ -606,6 +606,8 @@ export type Database = {
           horas_gastas: number | null
           id: string
           lead_id: string | null
+          ordem: number | null
+          parent_id: string | null
           prioridade: string
           processo_id: string | null
           responsavel_id: string | null
@@ -625,6 +627,8 @@ export type Database = {
           horas_gastas?: number | null
           id?: string
           lead_id?: string | null
+          ordem?: number | null
+          parent_id?: string | null
           prioridade?: string
           processo_id?: string | null
           responsavel_id?: string | null
@@ -644,6 +648,8 @@ export type Database = {
           horas_gastas?: number | null
           id?: string
           lead_id?: string | null
+          ordem?: number | null
+          parent_id?: string | null
           prioridade?: string
           processo_id?: string | null
           responsavel_id?: string | null
@@ -665,6 +671,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandas_internas_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "demandas_internas"
             referencedColumns: ["id"]
           },
           {

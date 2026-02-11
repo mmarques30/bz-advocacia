@@ -13,8 +13,11 @@ import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SubtarefasList } from "./SubtarefasList";
+import { useSubtarefas } from "@/hooks/useSubtarefas";
+import { toast } from "sonner";
 
 interface DemandaDetailsDialogProps {
   demanda: Demanda | null;
@@ -28,6 +31,8 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
   const { register, handleSubmit, reset, setValue, watch } = useForm();
   const updateDemanda = useUpdateDemanda();
   const [localEditing, setLocalEditing] = useState(isEditing);
+  const isParent = demanda ? !demanda.parent_id : false;
+  const { data: subtarefas } = useSubtarefas(isParent && demanda ? demanda.id : null);
 
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-demandas'],
@@ -80,6 +85,15 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
 
   const onSubmit = (data: any) => {
     if (!demanda) return;
+
+    // Block completing parent if subtasks are pending
+    if (data.status === 'concluido' && isParent && subtarefas && subtarefas.length > 0) {
+      const allDone = subtarefas.every(s => s.status === 'concluido');
+      if (!allDone) {
+        toast.error('Conclua todas as subtarefas antes de finalizar a tarefa-mãe.');
+        return;
+      }
+    }
     
     updateDemanda.mutate({
       id: demanda.id,
@@ -186,6 +200,11 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                 </div>
               )}
             </div>
+
+            {/* Subtarefas section */}
+            {isParent && (
+              <SubtarefasList parentDemanda={demanda} />
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -35,6 +35,7 @@ export function ProcessoTarefasTab({ processoId }: ProcessoTarefasTabProps) {
           responsavel:profiles!demandas_internas_responsavel_id_fkey(nome_completo)
         `)
         .eq("processo_id", processoId)
+        .is("parent_id", null)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

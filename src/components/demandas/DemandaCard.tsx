@@ -1,6 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, User, FileText, AlertCircle, Scale } from "lucide-react";
+import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Demanda, CATEGORIA_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
@@ -30,6 +32,11 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
   const isAtrasada = demanda.data_limite && 
     isPast(parseISO(demanda.data_limite)) && 
     !['concluido', 'cancelado'].includes(demanda.status);
+
+  const isParent = !demanda.parent_id;
+  const { data: subtarefas } = useSubtarefas(isParent ? demanda.id : null);
+  const subTotal = subtarefas?.length || 0;
+  const subConcluidas = subtarefas?.filter(s => s.status === 'concluido').length || 0;
 
   return (
     <Card 
@@ -93,6 +100,17 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
             </div>
           )}
         </div>
+
+        {/* Subtask progress */}
+        {subTotal > 0 && (
+          <div className="space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><GitBranch className="h-3 w-3" /> Subtarefas</span>
+              <span>{subConcluidas}/{subTotal}</span>
+            </div>
+            <Progress value={(subConcluidas / subTotal) * 100} className="h-1.5" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
