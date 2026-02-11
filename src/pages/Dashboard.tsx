@@ -1,70 +1,72 @@
-import { Users, TrendingUp, UserPlus, Briefcase, Calendar } from "lucide-react";
-import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
-import { KPICard } from "@/components/dashboard/KPICard";
-import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
-import { UserPendenciasCards } from "@/components/dashboard/UserPendenciasCards";
-import { useDateFilter } from "@/hooks/useDateFilter";
-import { useUserPendencias } from "@/hooks/useUserPendencias";
 import {
-  useKPIs,
-  useLeadsEvolution,
-} from "@/hooks/useDashboardData";
+  Users,
+  TrendingUp,
+  Briefcase,
+  ClipboardList,
+  Calendar,
+} from "lucide-react";
+import { KPICard } from "@/components/dashboard/KPICard";
+import { UserPendenciasCards } from "@/components/dashboard/UserPendenciasCards";
+import { VisaoOperacional } from "@/components/dashboard/VisaoOperacional";
+import { PropostasInteligentes } from "@/components/dashboard/PropostasInteligentes";
+import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
+import { useUserPendencias } from "@/hooks/useUserPendencias";
+import { useDashboardCompleto } from "@/hooks/useDashboardCompleto";
 
 export default function Dashboard() {
-  const { filters, setPreset, clearFilters } = useDateFilter();
-
   const { data: pendencias, isLoading: pendenciasLoading } = useUserPendencias();
-  const { data: kpis, isLoading: kpisLoading } = useKPIs(filters);
-  const { data: leadsData, isLoading: leadsLoading } = useLeadsEvolution(filters);
+  const { data: dashboard, isLoading: dashboardLoading } = useDashboardCompleto();
 
   return (
     <div className="space-y-6">
-      <DashboardFilters
-        periodo={filters.periodo}
-        onPeriodoChange={setPreset}
-        onClearFilters={clearFilters}
-      />
-
       {/* Pendências do Usuário */}
       <UserPendenciasCards data={pendencias} loading={pendenciasLoading} />
 
-      {/* KPIs Grid - 5 colunas responsivo */}
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+      {/* KPIs Grid - 4 colunas operacionais (sem valores financeiros) */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Total de Leads"
-          value={kpis?.totalLeads || 0}
+          title="Clientes Ativos"
+          value={dashboard?.totalClientes || 0}
           icon={Users}
-          loading={kpisLoading}
+          loading={dashboardLoading}
         />
         <KPICard
-          title="Taxa de Conversão"
-          value={kpis?.taxaConversao || 0}
+          title="Leads no Mês"
+          value={dashboard?.totalLeadsMes || 0}
           icon={TrendingUp}
-          format="percentage"
-          loading={kpisLoading}
-        />
-        <KPICard
-          title="Novos Clientes"
-          value={kpis?.novosClientes || 0}
-          icon={UserPlus}
-          loading={kpisLoading}
+          loading={dashboardLoading}
         />
         <KPICard
           title="Processos Ativos"
-          value={kpis?.processosAtivos || 0}
+          value={dashboard?.processos.emAndamento || 0}
           icon={Briefcase}
-          loading={kpisLoading}
+          loading={dashboardLoading}
         />
         <KPICard
-          title="Prazos Próximos"
-          value={kpis?.prazosProximos || 0}
-          icon={Calendar}
-          loading={kpisLoading}
+          title="Tarefas Pendentes"
+          value={dashboard?.demandasPendentes || 0}
+          icon={ClipboardList}
+          loading={dashboardLoading}
         />
       </div>
 
-      {/* Leads Evolution Chart - Full Width */}
-      <LeadsEvolution data={leadsData || []} loading={leadsLoading} />
+      {/* Sugestões de Ação */}
+      <PropostasInteligentes
+        propostas={dashboard?.propostas || []}
+        loading={dashboardLoading}
+      />
+
+      {/* Visão Operacional: Processos + Pipeline */}
+      <VisaoOperacional
+        processos={dashboard?.processos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
+        proximosPrazos={dashboard?.proximosPrazos || []}
+        pipeline={dashboard?.pipeline || []}
+        leadsRecentes={dashboard?.leadsRecentes || []}
+        loading={dashboardLoading}
+      />
+
+      {/* Evolução de Leads */}
+      <LeadsEvolution data={dashboard?.leadsEvolution || []} loading={dashboardLoading} />
     </div>
   );
 }
