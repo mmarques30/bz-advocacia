@@ -60,6 +60,7 @@ export default function Dashboard() {
       <VisaoOperacional
         processos={dashboard?.processos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
         proximosPrazos={dashboard?.proximosPrazos || []}
+        processosSemAtualizacao={dashboard?.processosSemAtualizacao || []}
         pipeline={dashboard?.pipeline || []}
         leadsRecentes={dashboard?.leadsRecentes || []}
         loading={dashboardLoading}
