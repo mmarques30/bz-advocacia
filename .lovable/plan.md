@@ -1,30 +1,29 @@
 
 
-# Correcao: Remover mensagem "Tudo em ordem" das Propostas Inteligentes
+# Correção: Remover mensagem "Parabéns! Você está em dia"
 
 ## Problema
 
-Quando nao ha alertas ou sugestoes de acao, o card "Sugestoes de Acao" exibe uma mensagem "Tudo em ordem! Nenhuma acao urgente identificada no momento." com um icone de check verde. Isso nao faz sentido porque o sistema pode simplesmente nao ter dados suficientes ou o usuario acabou de entrar.
+A mensagem que aparece no painel ("Parabéns! Você está em dia. Nenhuma pendência urgente no momento.") vem do componente **UserPendenciasCards**, não do PropostasInteligentes. Quando o usuário não tem pendências (tarefas atrasadas, pagamentos, processos), o sistema exibe um card verde grande que não traz nenhuma informação útil.
 
-## Solucao
+## Solução
 
-Quando `propostas.length === 0`, o componente `PropostasInteligentes` simplesmente retorna `null` -- ou seja, nao renderiza nada. Sem card vazio, sem mensagem desnecessaria.
+Quando não houver pendências, o componente simplesmente não renderiza nada (retorna `null`), igual ao que foi feito no PropostasInteligentes. O card só aparece quando há pendências reais para mostrar.
 
-## Alteracao
+## Alteração
 
-| Arquivo | Acao |
+| Arquivo | Ação |
 |---------|------|
-| `src/components/dashboard/PropostasInteligentes.tsx` | Retornar `null` quando `propostas` estiver vazio (remover bloco "Tudo em ordem") |
+| `src/components/dashboard/UserPendenciasCards.tsx` | Linhas 146-159: trocar o bloco do card verde "Parabéns" por `return null` |
 
-## Detalhe Tecnico
+## Detalhe Técnico
 
-No componente, adicionar um early return antes do JSX:
+No arquivo `src/components/dashboard/UserPendenciasCards.tsx`, o trecho nas linhas 146-159 será substituído por:
 
 ```text
-if (!loading && propostas.length === 0) {
+if (totalPendencias === 0) {
   return null;
 }
 ```
 
-E remover o bloco condicional interno que exibe "Tudo em ordem!" (linhas 72-81 do arquivo atual).
-
+Isso remove o card verde com a mensagem e o ícone de check, mantendo o componente invisível quando não há pendências — comportamento consistente com o PropostasInteligentes.
