@@ -1,57 +1,33 @@
 
 
-# Mostrar processos ativos sem atualização no card "Processos e Prazos"
+# Correção: "999d" e clique nos processos sem atualização
 
-## Objetivo
+## Problemas
 
-No card "Processos e Prazos" do painel, além dos próximos prazos, exibir uma lista de processos ativos (em_andamento) que estão sem atualização de status há mais de 30 dias.
+1. **"999d"**: Processos sem `data_ultima_atualizacao` (valor NULL no banco) recebem o valor padrão `999` dias. Deveria exibir algo como "Sem registro" ou "N/D".
 
-## O que muda
+2. **Clique não abre detalhes**: Os itens da seção "Sem Atualização" são `div` simples sem ação de clique. Ao clicar, nada acontece. Deveria abrir o diálogo de detalhes do processo (`ProcessoDetailsDialog`).
 
-### 1. Hook `useDashboardCompleto.ts`
+## Solução
 
-- Alterar a query #5 (processos sem atualização) para trazer os dados completos em vez de apenas a contagem (`head: true`)
-- Trazer campos: `id`, `numero_processo`, `tipo`, `autor`, `reu`, `data_ultima_atualizacao`, `status`
-- Limitar a 5 resultados, ordenados pela data de última atualização (mais antigo primeiro)
-- Criar uma nova interface `ProcessoSemAtualizacao` com esses campos
-- Adicionar o array `processosSemAtualizacao` ao retorno do hook
+### 1. Arquivo `src/components/dashboard/VisaoOperacional.tsx`
 
-### 2. Componente `VisaoOperacional.tsx`
+- Importar `ProcessoDetailsDialog` e adicionar estado para controlar qual processo está aberto
+- Tornar cada item clicável com `cursor-pointer` e `onClick` que abre o diálogo de detalhes
+- Tratar o badge: quando `dias_sem_atualizacao >= 999`, exibir "S/ registro" em vez de "999d"
 
-- Receber a nova prop `processosSemAtualizacao`
-- No card "Processos e Prazos" (`ProcessosPrazosCard`), adicionar uma nova seção abaixo dos "Próximos Prazos"
-- Título da seção: "Sem Atualização" com ícone de alerta
-- Cada item mostra: número do processo (ou tipo), partes (autor vs réu), e há quantos dias está sem atualização
-- Badge amarelo/vermelho indicando o tempo sem atualização (ex: "45d sem update")
-- Link "Ver todos" apontando para `/dashboard/processos`
+### 2. Arquivo `src/hooks/useDashboardCompleto.ts`
 
-### 3. Componente `Dashboard.tsx`
+- Nenhuma alteração necessária. O valor `999` continua sendo útil para ordenação, apenas o componente visual vai tratar a exibição.
 
-- Passar a nova prop `processosSemAtualizacao` para o componente `VisaoOperacional`
+## Resultado esperado
 
-## Layout da nova seção (dentro do card existente)
+- Badge mostra "S/ registro" para processos sem data de atualização, e "45d", "32d" etc. para os demais
+- Ao clicar em um processo, abre o diálogo com as abas de detalhes (Informações, Andamentos, Tarefas, etc.)
 
-```text
-+------------------------------------------+
-| Processos e Prazos           Ver todos > |
-|                                          |
-| [badges: Em andamento: X | Concluídos: X]|
-|                                          |
-| Próximos Prazos                          |
-| - Prazo 1 ................... Amanhã     |
-| - Prazo 2 ................... 3d         |
-|                                          |
-| Sem Atualização                          |
-| - Proc 001234 (Divórcio) .... 45d        |
-| - Proc 005678 (Inventário) .. 32d        |
-+------------------------------------------+
-```
-
-## Arquivos alterados
+## Arquivo alterado
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/hooks/useDashboardCompleto.ts` | Nova interface `ProcessoSemAtualizacao`, query #5 traz dados completos, novo campo no retorno |
-| `src/components/dashboard/VisaoOperacional.tsx` | Nova prop e seção "Sem Atualização" no card de processos |
-| `src/pages/Dashboard.tsx` | Passar `processosSemAtualizacao` para `VisaoOperacional` |
+| `src/components/dashboard/VisaoOperacional.tsx` | Adicionar estado + `ProcessoDetailsDialog`, tornar itens clicáveis, tratar exibição "999d" |
 
