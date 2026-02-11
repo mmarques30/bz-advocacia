@@ -1,60 +1,115 @@
 
-# Plano: Historico de Tarefas na Ficha do Cliente + Filtro na Gestao de Tarefas
+# Plano: Dashboard de Produtividade Individual
 
 ## Resumo
 
-Duas mudancas complementares:
-1. **Gestao de Tarefas**: por padrao, mostrar apenas tarefas ativas (pendente/em_andamento), com filtro para ver concluidas quando necessario (ja existe o filtro de status, basta mudar o comportamento padrao)
-2. **Ficha do Cliente**: adicionar aba "Tarefas" mostrando historico completo (ativas + concluidas) vinculadas ao cliente via `lead_id`
+Substituir completamente o conteudo da aba "Alertas" em Gestao de Tarefas por um dashboard focado em produtividade individual da equipe. O componente `AlertasUnificados` sera reescrito para exibir metricas de produtividade por membro.
 
-## Alteracoes
+## O que sera removido
 
-### 1. Gestao de Tarefas - Filtro padrao para ativas (`src/pages/processos/Demandas.tsx`)
+- Cards de "Alertas Importantes", "Minhas Demandas" e "Proximos 7 Dias"
+- Esses dados ja estao cobertos pelos filtros da propria listagem de tarefas
 
-- Inicializar `filters` com `status` vazio (sem filtro), mas alterar a query no hook para excluir concluidas/canceladas por padrao
-- Melhor abordagem: adicionar um filtro `excluirConcluidas` no `DemandasFilters` que por padrao esta ativo
-- Na pratica: manter o filtro de status existente e apenas inicializar com `status: ''` (ja funciona assim). Mudar o hook `useDemandas` para, quando nenhum status for selecionado, excluir automaticamente concluidas e canceladas. Quando o usuario seleciona "Concluido" explicitamente, mostra apenas concluidas.
+## Novo Layout do Dashboard
 
-### 2. Hook `useDemandas.ts` - Comportamento padrao sem concluidas
+```text
++------------------------------------------------------------+
+| [Filtro de Periodo: Este Mes | Ultimos 30d | 90d | Todos]  |
++------------------------------------------------------------+
+| KPI 1         | KPI 2          | KPI 3       | KPI 4       |
+| Total         | Concluidas     | Tempo Medio | Taxa        |
+| Concluidas    | no Periodo     | Conclusao   | Conclusao   |
++------------------------------------------------------------+
+| Ranking por Executor              | Distribuicao de Carga  |
+| (quem executou - tabela)          | (grafico barras horiz) |
+|                                   |                        |
+| Nome | Concl | Pendentes | Media  |                        |
++------------------------------------------------------------+
+| Tarefas por Advogada Responsavel  | Evolucao Mensal        |
+| (grafico pizza/donut)             | (grafico barras)       |
++------------------------------------------------------------+
+```
 
-- Quando `filters.status` estiver vazio/undefined: adicionar `.not('status', 'in', '("concluido","cancelado")')` para mostrar apenas ativas
-- Quando `filters.status` tiver valor (ex: "concluido"): filtrar normalmente pelo status escolhido
-- Isso garante que a listagem padrao mostra apenas tarefas ativas, mas o filtro permite ver concluidas
+## Alteracoes Detalhadas
 
-### 3. Novo Hook: `useDemandasByLead(leadId)` em `useDemandas.ts`
+### 1. Renomear aba "Alertas" para "Produtividade" (`Demandas.tsx`)
 
-- Query que busca TODAS as demandas (ativas + concluidas) vinculadas a um `lead_id`
-- Sem filtro de status -- mostra historico completo
-- Ordenado por `created_at` descendente
+- Mudar o texto da tab de "Alertas" para "Produtividade"
+- Mudar o icone de AlertTriangle para BarChart3
 
-### 4. Nova Aba "Tarefas" na Ficha do Cliente (`LeadDetailsDialog.tsx`)
+### 2. Reescrever `AlertasUnificados.tsx` -> `ProdutividadeDashboard.tsx`
 
-- Adicionar 6a tab "Tarefas" no TabsList
-- Importar e usar o novo hook `useDemandasByLead`
-- Exibir lista com: titulo, status (badge colorido), advogada, data de conclusao (se concluida), prioridade
-- Separar visualmente: tarefas ativas no topo, concluidas abaixo com estilo mais suave
-- Clicar em uma tarefa pode abrir o `DemandaDetailsDialog`
+Novo componente completo com:
 
-### 5. Novo Componente: `ClienteTarefasTab.tsx` em `src/components/leads/`
+**Filtro de periodo** no topo:
+- Este Mes (padrao), Ultimos 30 dias, Ultimos 90 dias, Todos
 
-Componente dedicado para a aba de tarefas do cliente:
-- Recebe `leadId` como prop
-- Usa `useDemandasByLead(leadId)` para buscar dados
-- Exibe secao "Tarefas Ativas" e "Tarefas Concluidas" separadas
-- Cada item mostra: titulo, status badge, advogada responsavel, prazo/data conclusao
-- Estado vazio amigavel quando nao ha tarefas
+**4 KPI Cards** em grid:
+- Total de tarefas concluidas no periodo
+- Tarefas concluidas por advogada (maior numero)
+- Tempo medio de conclusao (dias)
+- Taxa de conclusao (%)
+
+**Ranking por Executor** (card com tabela):
+- Tabela mostrando cada membro da equipe
+- Colunas: Nome, Concluidas, Pendentes, Em Andamento, Tempo Medio
+- Ordenado por concluidas (maior primeiro)
+- Dados vem do campo `responsavel_id` (quem executou)
+
+**Distribuicao de Carga de Trabalho** (card com grafico):
+- Grafico de barras horizontal empilhado (reaproveita estilo do DistribuicaoResponsavel atual)
+- Mostra pendentes, em andamento e concluidas por pessoa
+
+**Tarefas por Advogada Responsavel** (card com grafico):
+- Grafico de barras agrupado mostrando Juliana vs Liziane
+- Barras: Concluidas, Pendentes, Em Andamento
+
+**Evolucao Mensal** (card com grafico):
+- Grafico de barras vertical com os ultimos 6 meses
+- Barras: tarefas concluidas por mes
+
+### 3. Novo Hook: `useProdutividadeEquipe.ts`
+
+Hook dedicado que busca e calcula todas as metricas:
+
+- Busca demandas concluidas no periodo selecionado
+- Busca demandas ativas (pendentes/em andamento)
+- Agrupa por `responsavel_id` (executor) e por `advogada_responsavel` (advogada)
+- Calcula tempo medio de conclusao por pessoa
+- Calcula evolucao mensal (ultimos 6 meses)
+- Aceita parametro de periodo para filtrar
+
+Retorna:
+```text
+{
+  kpis: { totalConcluidas, tempoMedio, taxaConclusao, topExecutor }
+  rankingExecutores: [{ nome, concluidas, pendentes, emAndamento, tempoMedio }]
+  distribuicaoCarga: [{ nome, pendentes, emAndamento, concluidas }]
+  porAdvogada: [{ advogada, concluidas, pendentes, emAndamento }]
+  evolucaoMensal: [{ mes, concluidas }]
+}
+```
+
+### 4. Componentes auxiliares removidos/mantidos
+
+- `PerformanceIndicators.tsx` e `DistribuicaoResponsavel.tsx` deixam de ser usados (substituidos pelo novo dashboard)
+- O hook `useDemandasPerformance.ts` sera substituido pelo novo `useProdutividadeEquipe.ts`
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/hooks/useDemandas.ts` | Filtro padrao sem concluidas + novo hook `useDemandasByLead` |
-| `src/components/leads/ClienteTarefasTab.tsx` | **Novo** - aba de tarefas do cliente |
-| `src/components/leads/LeadDetailsDialog.tsx` | Adicionar aba "Tarefas" |
+| `src/pages/processos/Demandas.tsx` | Renomear tab "Alertas" para "Produtividade", trocar icone |
+| `src/components/demandas/AlertasUnificados.tsx` | **Reescrever** completamente como `ProdutividadeDashboard` |
+| `src/hooks/useProdutividadeEquipe.ts` | **Novo** - hook com todas as metricas de produtividade |
+| `src/components/demandas/PerformanceIndicators.tsx` | Removido (absorvido pelo novo dashboard) |
+| `src/components/demandas/DistribuicaoResponsavel.tsx` | Removido (absorvido pelo novo dashboard) |
 
 ## Resultado
 
-- Gestao de Tarefas mostra apenas tarefas ativas por padrao
-- Filtro de status permite ver concluidas quando desejado
-- Ficha do Cliente tem historico completo de todas as tarefas (ativas e concluidas)
-- Tarefas concluidas ficam registradas e acessiveis na ficha do cliente para sempre
+- Dashboard focado em produtividade individual com metricas claras
+- Visibilidade de quem esta executando mais tarefas
+- Comparacao entre advogadas responsaveis
+- Tempo medio de conclusao por pessoa
+- Evolucao temporal para acompanhar tendencias
+- Filtro de periodo para analises flexiveis
