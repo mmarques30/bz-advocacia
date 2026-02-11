@@ -2081,6 +2081,50 @@ export type Database = {
         }
         Relationships: []
       }
+      templates_versoes: {
+        Row: {
+          conteudo: string
+          created_at: string
+          descricao: string | null
+          editado_por: string | null
+          id: string
+          nome: string
+          template_id: string
+          variaveis: string[] | null
+          versao: number
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          descricao?: string | null
+          editado_por?: string | null
+          id?: string
+          nome: string
+          template_id: string
+          variaveis?: string[] | null
+          versao?: number
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          descricao?: string | null
+          editado_por?: string | null
+          id?: string
+          nome?: string
+          template_id?: string
+          variaveis?: string[] | null
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_versoes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tipos_transacao: {
         Row: {
           codigo: string
