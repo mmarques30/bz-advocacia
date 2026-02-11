@@ -115,6 +115,7 @@ const menuItems: MenuItem[] = [
       { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
       { title: "Modelos Chat", url: "/dashboard/configuracoes/whatsapp-templates" },
       { title: "Automações", url: "/dashboard/configuracoes/automacoes" },
+      { title: "Listas do Sistema", url: "/dashboard/configuracoes/listas" },
       { title: "Guia de Uso", url: "/dashboard/configuracoes/guia" },
     ]
   },

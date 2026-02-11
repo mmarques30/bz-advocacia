@@ -1431,6 +1431,36 @@ export type Database = {
         }
         Relationships: []
       }
+      opcoes_sistema: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          grupo: string
+          id: string
+          label: string
+          ordem: number | null
+          valor: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          grupo: string
+          id?: string
+          label: string
+          ordem?: number | null
+          valor: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          grupo?: string
+          id?: string
+          label?: string
+          ordem?: number | null
+          valor?: string
+        }
+        Relationships: []
+      }
       parcelas_financeiras: {
         Row: {
           acordo_id: string

@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect } from "react";
 import { Search, X, User } from "lucide-react";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
 interface NewDemandaDialogProps {
   open: boolean;
@@ -39,6 +40,17 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
     }
   });
   const createDemanda = useCreateDemanda();
+  const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
+
+  const categorias = categoriasDb && categoriasDb.length > 0
+    ? categoriasDb.map(o => ({ value: o.valor, label: o.label }))
+    : [
+        { value: 'processos', label: 'Processos' },
+        { value: 'vendas', label: 'Vendas' },
+        { value: 'pagamentos', label: 'Pagamentos' },
+        { value: 'administrativo', label: 'Administrativo' },
+        { value: 'geral', label: 'Geral' },
+      ];
 
   const [clienteSearch, setClienteSearch] = useState('');
   const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
@@ -201,11 +213,9 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="processos">Processos</SelectItem>
-                  <SelectItem value="vendas">Vendas</SelectItem>
-                  <SelectItem value="pagamentos">Pagamentos</SelectItem>
-                  <SelectItem value="administrativo">Administrativo</SelectItem>
-                  <SelectItem value="geral">Geral</SelectItem>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

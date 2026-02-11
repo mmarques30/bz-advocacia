@@ -13,6 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LeadsFilters as FiltersType, LEAD_STATUS_LABELS, ORIGEM_LABELS, TIPO_PROCESSO_OPTIONS, STATUS_CLIENTE_LABELS, StatusCliente } from "@/types/leads";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 
 interface LeadsFiltersProps {
   open: boolean;
@@ -27,6 +28,16 @@ export function LeadsFilters({
   filters,
   onFiltersChange,
 }: LeadsFiltersProps) {
+  const { data: origensDb } = useOpcoesSistema('origem_lead', true);
+  const { data: tiposProcessoDb } = useOpcoesSistema('tipo_processo', true);
+
+  const origensEntries = origensDb && origensDb.length > 0
+    ? origensDb.map(o => [o.valor, o.label] as [string, string])
+    : Object.entries(ORIGEM_LABELS);
+
+  const tiposProcessoList = tiposProcessoDb && tiposProcessoDb.length > 0
+    ? tiposProcessoDb.map(o => o.label)
+    : TIPO_PROCESSO_OPTIONS;
   const handleClearFilters = () => {
     onFiltersChange({
       search: filters.search,
@@ -120,10 +131,10 @@ export function LeadsFilters({
             <Separator />
 
             {/* Origem */}
-            <div className="space-y-3">
+              <div className="space-y-3">
               <h3 className="font-medium text-sm">Origem</h3>
               <div className="space-y-2">
-                {Object.entries(ORIGEM_LABELS).map(([key, label]) => (
+                {origensEntries.map(([key, label]) => (
                   <div key={key} className="flex items-center space-x-2">
                     <Checkbox
                       id={`origem-${key}`}
@@ -144,7 +155,7 @@ export function LeadsFilters({
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Tipo de Processo</h3>
               <div className="space-y-2">
-                {TIPO_PROCESSO_OPTIONS.map((tipo) => (
+                {tiposProcessoList.map((tipo) => (
                   <div key={tipo} className="flex items-center space-x-2">
                     <Checkbox
                       id={`tipo-${tipo}`}
