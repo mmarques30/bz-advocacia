@@ -138,13 +138,13 @@ export function useDashboardCompleto() {
           .order("created_at", { ascending: false })
           .limit(5),
 
-        // 5. Processos sem atualização há 30+ dias (dados completos)
+        // 5. Processos sem atualização há 30+ dias (dados completos) - inclui NULL
         supabase
           .from("processos")
           .select("id, numero_processo, tipo, autor, reu, data_ultima_atualizacao")
           .eq("status", "em_andamento")
-          .lt("data_ultima_atualizacao", ha30Dias.toISOString())
-          .order("data_ultima_atualizacao", { ascending: true })
+          .or(`data_ultima_atualizacao.lt.${ha30Dias.toISOString()},data_ultima_atualizacao.is.null`)
+          .order("data_ultima_atualizacao", { ascending: true, nullsFirst: true })
           .limit(5),
 
         // 6. Leads parados há 7+ dias
