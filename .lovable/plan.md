@@ -1,36 +1,25 @@
 
-# Adicionar Filtros e Tabelas nas Sub-abas de Projecao
+# Remover Duplicacao de Informacoes no Resumo de Marketing
 
-## O que sera feito
+## Problema
 
-Duplicar os filtros e tabelas que existem em "Lancamentos" para dentro da sub-aba "Projecao", tanto em Faturamento quanto em Despesas.
+Na aba "Resumo" de Marketing, o card "Resumo de ROI" e os KPIs abaixo exibem dados duplicados:
+- ROI Card: Investimento, Leads, CPL, ROI Estimado
+- KPIs: Investimento, Leads, Custo/Lead, Cliques, CTR
+
+Tres metricas (Investimento, Leads, Custo/Lead) aparecem duplicadas.
+
+## Solucao
+
+Remover o componente `ROICard` e adicionar a metrica "ROI Estimado" diretamente nos KPIs, resultando em 6 cards unificados: Investimento, Leads, Custo/Lead, Cliques, CTR e ROI Estimado.
 
 ## Alteracoes
 
-### 1. Faturamento > Projecao (`src/pages/Financeiro.tsx`)
+### `src/pages/vendas/MetaAds.tsx`
+- Remover o componente interno `ROICard` (linhas 19-67)
+- Remover a linha `<ROICard kpis={kpis} isLoading={isLoadingMetrics} />` (linha 108)
+- Remover imports nao utilizados (DollarSign, Users, Target, BarChart3 do lucide)
 
-Na sub-aba "projecao" de Faturamento (linhas 167-169), adicionar:
-- O componente `FaturamentoFilters` (mesmo filtro da aba Lancamentos, usando o mesmo state `faturamentoFilters`)
-- Manter os graficos de projecao (`FaturamentoProjecaoTab`)
-- Adicionar `FaturamentoTable` ao final da pagina
-
-### 2. Despesas > Projecao (`src/pages/Financeiro.tsx`)
-
-Na sub-aba "projecao" de Despesas (linhas 217-219), adicionar:
-- O componente `DespesasGlobalFilters` (mesmo filtro da aba Lancamentos, usando o mesmo state `despesasGlobalFilters`)
-- Manter os graficos de projecao (`DespesasProjecaoTab`)
-- Adicionar `DespesasTable` ao final da pagina
-
-### 3. Ajustar componentes de projecao
-
-- `FaturamentoProjecaoTab`: ja recebe `filters` -- nenhuma alteracao necessaria
-- `DespesasProjecaoTab`: adicionar prop `filters` do tipo `DespesasGlobalFiltersState` para que os graficos de projecao tambem respeitem os filtros
-
-## Resultado
-
-Ambas as sub-abas de Projecao terao:
-1. Filtros identicos aos de Lancamentos (compartilhando o mesmo state)
-2. Graficos de projecao (conteudo atual)
-3. Tabela de dados ao final (mesma tabela de Lancamentos)
-
-O usuario podera filtrar por periodo, conta, categoria etc. e ver tanto os graficos de projecao quanto a tabela detalhada na mesma visualizacao.
+### `src/components/meta-ads/MetaAdsKPIs.tsx`
+- Adicionar um sexto card "ROI Estimado" calculado a partir de `kpis.gasto` e `kpis.leads`
+- Ajustar o grid de 5 para 6 colunas (`lg:grid-cols-6`)
