@@ -1,50 +1,62 @@
 
 
-# Corrigir contagem de Clientes Ativos e Processos
+# Reorganizar Projecoes como Sub-abas e Adicionar Gestao de Metas
 
-## Problema identificado
+## Problema
 
-O banco mostra:
-- 184 clientes com estagio "fechado", mas apenas **94** tem `status_cliente = 'ativo'` e **90** sao `'inativo'`
-- O KPI "Clientes Ativos" no Painel conta **todos** os 184 (filtra apenas por `estagio = 'fechado'`, ignorando `status_cliente`)
-- Todos os 184 processos estao com status `em_andamento`, inclusive os vinculados a clientes inativos
+1. O grafico "Projetado vs Realizado" na aba Faturamento esta vazio porque busca dados de `parcelas_financeiras` (acordos), e nao ha acordos cadastrados
+2. Nao existe forma de configurar metas/projecoes dentro do modulo Financeiro -- o dialog de metas so existe no Dashboard
+3. Os graficos de projecao (Projetado vs Realizado, Fluxo de Caixa) ocupam espaco na aba principal de Faturamento/Despesas quando deveriam ser sub-abas internas
 
-## Correcoes
+## Solucao
 
-### 1. KPI "Clientes Ativos" no Dashboard (`src/hooks/useDashboardCompleto.ts`)
+### 1. Aba Faturamento: adicionar sub-abas internas
 
-Alterar a query de `totalClientes` (linha 168-170) para considerar `status_cliente`:
+Dentro da aba "Faturamento", criar sub-abas:
 
-**Antes:** Conta todos com `estagio = 'fechado'` (184)
-**Depois:** Conta apenas com `estagio = 'fechado'` **E** `status_cliente = 'ativo'` (94)
+- **Lancamentos** (padrao): contem os KPIs, widgets, tabela de faturamento e creditos condicionais (conteudo atual)
+- **Projecao**: contem o grafico "Projetado vs Realizado" alimentado pelas metas mensais + dados reais de `transacoes_financeiras`, o grafico de Fluxo de Caixa, e o botao "Configurar Metas" para definir projecoes
 
-### 2. Corrigir processos de clientes inativos (migracao SQL)
+### 2. Aba Despesas: adicionar sub-abas internas
 
-Executar uma migracao para atualizar os processos vinculados a clientes inativos, mudando o status de `em_andamento` para `concluido`:
+Dentro da aba "Despesas", criar sub-abas:
 
-```sql
-UPDATE processos 
-SET status = 'concluido'
-WHERE lead_id IN (
-  SELECT id FROM contact_submissions 
-  WHERE status_cliente = 'inativo'
-)
-AND status = 'em_andamento';
-```
+- **Lancamentos** (padrao): contem alertas, KPIs, graficos, widgets e tabela de despesas (conteudo atual)
+- **Projecao**: contem grafico de evolucao de despesas com meta de orcamento, botao para configurar orcamento mensal de despesas
 
-Isso vai corrigir os ~90 processos que deveriam estar como concluidos, resultando em:
-- ~94 processos ativos (em_andamento) -- correspondendo aos clientes ativos
-- ~90 processos concluidos -- correspondendo aos clientes inativos
+### 3. Corrigir "Projetado vs Realizado"
 
-### 3. Gestao de Clientes - verificar filtro
+O hook `useProjetadoVsRealizado` atualmente busca apenas de `parcelas_financeiras`. Alterar para:
 
-A pagina de Gestao de Clientes (`/dashboard/clientes`) ja pode estar mostrando todos os 184 se nao filtrar por `status_cliente`. Verificar e corrigir se necessario.
+- **Realizado**: buscar da tabela `transacoes_financeiras` (receitas reais, que ja esta populada com importacoes)
+- **Projetado**: buscar da tabela `metas_mensais` (metas definidas pelo usuario)
+
+Isso vai alimentar o grafico com dados reais.
+
+### 4. Reutilizar ConfigurarMetaDialog
+
+Mover/reutilizar o `ConfigurarMetaDialog` (ja existente em `src/components/dashboard/`) para que apareca na sub-aba "Projecao" de Faturamento, permitindo definir metas de receita por mes.
+
+## Alteracoes por arquivo
+
+| Arquivo | Alteracao |
+|---------|-----------|
+| `src/pages/Financeiro.tsx` | Adicionar sub-abas (Tabs internas) nas abas Faturamento e Despesas; mover graficos de projecao para sub-aba "Projecao" |
+| `src/hooks/useFinanceiro.ts` | Alterar `useProjetadoVsRealizado` para buscar realizado de `transacoes_financeiras` e projetado de `metas_mensais` |
+| `src/components/financeiro/FaturamentoCharts.tsx` | Separar: manter Fluxo de Caixa e Faturamento por Responsavel no "Lancamentos"; mover Projetado vs Realizado para a sub-aba "Projecao" |
+
+### Nova sub-aba "Projecao" em Faturamento contera:
+- Botao "Configurar Metas" (reutilizando ConfigurarMetaDialog)
+- Grafico Projetado vs Realizado (com dados corrigidos)
+- Grafico de Fluxo de Caixa
+
+### Nova sub-aba "Projecao" em Despesas contera:
+- Grafico de evolucao mensal de despesas
+- Comparativo com meses anteriores
 
 ## Resultado esperado
 
-| KPI | Antes | Depois |
-|-----|-------|--------|
-| Clientes Ativos | 184 | 94 |
-| Processos Ativos | 184 | ~94 |
-| Processos Concluidos | 0 | ~90 |
+- O grafico "Projetado vs Realizado" mostrara dados reais (receitas importadas vs metas configuradas)
+- O usuario podera configurar metas diretamente na aba Financeiro > Faturamento > Projecao
+- A aba principal de Faturamento ficara mais limpa, focando nos lancamentos do dia-a-dia
 
