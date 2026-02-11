@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Scale,
@@ -11,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
 import type {
   ProcessosPorStatus,
   PrazoProximo,
@@ -43,11 +45,13 @@ function ProcessosPrazosCard({
   proximosPrazos,
   processosSemAtualizacao,
   loading,
+  onOpenProcesso,
 }: {
   processos: ProcessosPorStatus;
   proximosPrazos: PrazoProximo[];
   processosSemAtualizacao: ProcessoSemAtualizacao[];
   loading?: boolean;
+  onOpenProcesso: (id: string) => void;
 }) {
   if (loading) {
     return (
@@ -152,7 +156,8 @@ function ProcessosPrazosCard({
               {processosSemAtualizacao.map((proc) => (
                 <div
                   key={proc.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                  onClick={() => onOpenProcesso(proc.id)}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">
@@ -165,13 +170,13 @@ function ProcessosPrazosCard({
                     </p>
                   </div>
                   <Badge
-                    variant={proc.dias_sem_atualizacao > 60 ? "destructive" : "secondary"}
+                    variant={proc.dias_sem_atualizacao >= 999 ? "secondary" : proc.dias_sem_atualizacao > 60 ? "destructive" : "secondary"}
                     className={cn(
                       "text-xs whitespace-nowrap ml-2",
-                      proc.dias_sem_atualizacao <= 60 && "bg-yellow-100 text-yellow-800 border-yellow-200"
+                      proc.dias_sem_atualizacao < 999 && proc.dias_sem_atualizacao <= 60 && "bg-yellow-100 text-yellow-800 border-yellow-200"
                     )}
                   >
-                    {proc.dias_sem_atualizacao}d
+                    {proc.dias_sem_atualizacao >= 999 ? "S/ registro" : `${proc.dias_sem_atualizacao}d`}
                   </Badge>
                 </div>
               ))}
@@ -288,15 +293,25 @@ export function VisaoOperacional({
   leadsRecentes,
   loading,
 }: VisaoOperacionalProps) {
+  const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <ProcessosPrazosCard
-        processos={processos}
-        proximosPrazos={proximosPrazos}
-        processosSemAtualizacao={processosSemAtualizacao}
-        loading={loading}
+    <>
+      <div className="grid gap-4 md:grid-cols-2">
+        <ProcessosPrazosCard
+          processos={processos}
+          proximosPrazos={proximosPrazos}
+          processosSemAtualizacao={processosSemAtualizacao}
+          loading={loading}
+          onOpenProcesso={(id) => setSelectedProcessoId(id)}
+        />
+        <PipelineVendasCard pipeline={pipeline} leadsRecentes={leadsRecentes} loading={loading} />
+      </div>
+      <ProcessoDetailsDialog
+        processoId={selectedProcessoId}
+        open={!!selectedProcessoId}
+        onClose={() => setSelectedProcessoId(null)}
       />
-      <PipelineVendasCard pipeline={pipeline} leadsRecentes={leadsRecentes} loading={loading} />
-    </div>
+    </>
   );
 }
