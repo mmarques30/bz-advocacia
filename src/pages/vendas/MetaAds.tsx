@@ -9,8 +9,7 @@ import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
 import { useDateFilter } from "@/hooks/useDateFilter";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
-import { DashboardConversao } from "@/components/dashboard/analises/DashboardConversao";
-import { DashboardPerformanceCanal } from "@/components/dashboard/analises/DashboardPerformanceCanal";
+import { DashboardAnalises } from "@/components/dashboard/analises/DashboardAnalises";
 import { PeriodoFiltro } from "@/types/meta-ads";
 import { TrendingUp } from "lucide-react";
 
@@ -32,8 +31,7 @@ export default function MetaAds() {
       <Tabs defaultValue="resumo" className="space-y-6">
         <TabsList>
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
-          <TabsTrigger value="conversao">Análise de Conversão</TabsTrigger>
-          <TabsTrigger value="canais">Performance por Canal</TabsTrigger>
+          <TabsTrigger value="analises">Análises</TabsTrigger>
         </TabsList>
 
         {/* Aba Resumo */}
@@ -68,24 +66,14 @@ export default function MetaAds() {
           </Card>
         </TabsContent>
 
-        {/* Aba Conversão */}
-        <TabsContent value="conversao" className="space-y-6">
+        {/* Aba Análises (unificada) */}
+        <TabsContent value="analises" className="space-y-6">
           <DashboardFilters
             periodo={filters.periodo}
             onPeriodoChange={setPreset}
             onClearFilters={clearFilters}
           />
-          <DashboardConversao filters={filters} />
-        </TabsContent>
-
-        {/* Aba Canais */}
-        <TabsContent value="canais" className="space-y-6">
-          <DashboardFilters
-            periodo={filters.periodo}
-            onPeriodoChange={setPreset}
-            onClearFilters={clearFilters}
-          />
-          <DashboardPerformanceCanal filters={filters} />
+          <DashboardAnalises filters={filters} />
         </TabsContent>
       </Tabs>
     </div>

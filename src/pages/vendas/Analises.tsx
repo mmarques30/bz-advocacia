@@ -1,7 +1,5 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
-import { DashboardConversao } from "@/components/dashboard/analises/DashboardConversao";
-import { DashboardPerformanceCanal } from "@/components/dashboard/analises/DashboardPerformanceCanal";
+import { DashboardAnalises } from "@/components/dashboard/analises/DashboardAnalises";
 import { useDateFilter } from "@/hooks/useDateFilter";
 
 export default function VendasAnalises() {
@@ -22,20 +20,7 @@ export default function VendasAnalises() {
         onClearFilters={clearFilters}
       />
 
-      <Tabs defaultValue="conversao" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="conversao">Análise de Conversão</TabsTrigger>
-          <TabsTrigger value="canais">Performance por Canal</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="conversao">
-          <DashboardConversao filters={filters} />
-        </TabsContent>
-
-        <TabsContent value="canais">
-          <DashboardPerformanceCanal filters={filters} />
-        </TabsContent>
-      </Tabs>
+      <DashboardAnalises filters={filters} />
     </div>
   );
 }
