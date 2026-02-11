@@ -134,6 +134,7 @@ export default function Clientes() {
         onClose={() => setSelectedLead(null)}
         lead={selectedLead}
         onEdit={handleEdit}
+        isCliente={true}
       />
     </div>
   );
