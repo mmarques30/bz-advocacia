@@ -1,33 +1,49 @@
 
 
-# Correção: "999d" e clique nos processos sem atualização
+# Unificar Marketing e Análises em uma única página com abas
 
-## Problemas
+## Situação Atual
 
-1. **"999d"**: Processos sem `data_ultima_atualizacao` (valor NULL no banco) recebem o valor padrão `999` dias. Deveria exibir algo como "Sem registro" ou "N/D".
+- **Marketing** (`/dashboard/vendas/meta-ads`): KPIs de investimento, gráfico de evolução, tabela de campanhas
+- **Análises** (`/dashboard/vendas/analises`): Análise de conversão e performance por canal (página separada no menu)
+- Redundância: ambas tratam do mesmo funil de vendas/marketing, mas em páginas distintas
 
-2. **Clique não abre detalhes**: Os itens da seção "Sem Atualização" são `div` simples sem ação de clique. Ao clicar, nada acontece. Deveria abrir o diálogo de detalhes do processo (`ProcessoDetailsDialog`).
+## O que muda
 
-## Solução
+### 1. Página Marketing unificada com abas
 
-### 1. Arquivo `src/components/dashboard/VisaoOperacional.tsx`
+A página `/dashboard/vendas/meta-ads` passa a ter 3 abas:
 
-- Importar `ProcessoDetailsDialog` e adicionar estado para controlar qual processo está aberto
-- Tornar cada item clicável com `cursor-pointer` e `onClick` que abre o diálogo de detalhes
-- Tratar o badge: quando `dias_sem_atualizacao >= 999`, exibir "S/ registro" em vez de "999d"
+| Aba | Conteúdo |
+|-----|----------|
+| **Resumo** | Card de ROI (investimento, CPL, leads, ROI%) + KPIs atuais + gráfico de evolução + campanhas |
+| **Análise de Conversão** | Funil detalhado, taxa de conversão, tempo por estágio, conversão por origem (conteúdo atual de Análises) |
+| **Performance por Canal** | Distribuição de leads, evolução por canal, tabela comparativa, insights automáticos (conteúdo atual de Análises) |
 
-### 2. Arquivo `src/hooks/useDashboardCompleto.ts`
+### 2. Card de ROI (novo)
 
-- Nenhuma alteração necessária. O valor `999` continua sendo útil para ordenação, apenas o componente visual vai tratar a exibição.
+Novo card no topo da aba "Resumo" com 4 métricas em destaque:
 
-## Resultado esperado
+- **Investimento Total** (soma do gasto no período)
+- **Leads Gerados** (total de leads)
+- **CPL** (Custo por Lead)
+- **ROI Estimado** (baseado em faturamento vs investimento, quando disponível)
 
-- Badge mostra "S/ registro" para processos sem data de atualização, e "45d", "32d" etc. para os demais
-- Ao clicar em um processo, abre o diálogo com as abas de detalhes (Informações, Andamentos, Tarefas, etc.)
+### 3. Navegação simplificada
 
-## Arquivo alterado
+- Remover "Análises" como item separado do submenu "Gestão de Vendas"
+- Menu fica: Marketing | Leads (em vez de Marketing | Análises | Leads)
+- Rota `/dashboard/vendas/analises` redireciona para `/dashboard/vendas/meta-ads` (compatibilidade)
+
+## Arquivos alterados
 
 | Arquivo | Alteração |
 |---------|-----------|
-| `src/components/dashboard/VisaoOperacional.tsx` | Adicionar estado + `ProcessoDetailsDialog`, tornar itens clicáveis, tratar exibição "999d" |
+| `src/pages/vendas/MetaAds.tsx` | Reescrever com Tabs (Resumo, Conversão, Canais) + card ROI |
+| `src/components/AppSidebar.tsx` | Remover "Análises" do submenu de Gestão de Vendas |
+| `src/App.tsx` | Redirecionar `/dashboard/vendas/analises` para `/dashboard/vendas/meta-ads` |
+
+## Resultado
+
+Uma única página "Marketing" com tudo o que o gestor precisa: resumo rápido de ROI, análises de conversão e performance por canal, tudo acessível por abas sem sair da página.
 
