@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, LayoutList, Kanban, AlertTriangle } from "lucide-react";
+import { Plus, LayoutList, Kanban, BarChart3 } from "lucide-react";
 import { useDemandas, useDemandasStats, useDemandasByStatus, useDeleteDemanda } from "@/hooks/useDemandas";
 import { DemandasFilters } from "@/components/demandas/DemandasFilters";
 import { DemandasTable } from "@/components/demandas/DemandasTable";
@@ -9,7 +9,7 @@ import { DemandasKPIs } from "@/components/demandas/DemandasKPIs";
 import { DemandasKanban } from "@/components/demandas/DemandasKanban";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
 import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
-import { AlertasUnificados } from "@/components/demandas/AlertasUnificados";
+import { ProdutividadeDashboard } from "@/components/demandas/ProdutividadeDashboard";
 import { Demanda, DemandasFilters as FiltersType } from "@/types/demandas";
 import {
   AlertDialog,
@@ -91,8 +91,8 @@ export default function ProcessosDemandas() {
             Demandas
           </TabsTrigger>
           <TabsTrigger value="alertas" className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Alertas
+            <BarChart3 className="h-4 w-4" />
+            Produtividade
           </TabsTrigger>
         </TabsList>
 
@@ -137,7 +137,7 @@ export default function ProcessosDemandas() {
 
         {/* Tab: Alertas Unificados */}
         <TabsContent value="alertas" className="mt-6">
-          <AlertasUnificados />
+          <ProdutividadeDashboard />
         </TabsContent>
       </Tabs>
 
