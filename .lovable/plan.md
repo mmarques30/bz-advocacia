@@ -1,38 +1,74 @@
 
-# Adicionar filtros rapidos de Nome e Origem na barra de Leads
+# Integrar Tarefas e Rotinas ao Calendario de Prazos
+
+## Situacao Atual
+
+O calendario (`/dashboard/processos/calendario`) exibe apenas **prazos processuais** da tabela `processos_prazos`. Tarefas (demandas internas) que possuem `data_limite` nao aparecem no calendario, e nao ha suporte para rotinas importantes.
 
 ## O que muda
 
-Na barra do header de Leads (`LeadsHeader`), adicionar dois selects (dropdowns) logo apos o botao "Importar":
+### 1. Tarefas (demandas) refletidas no calendario
 
-1. **Filtro por Nome** - Select com lista dos nomes dos leads disponiveis, permitindo filtrar por um lead especifico
-2. **Filtro por Origem** - Select com as origens cadastradas (Google, Facebook, Instagram, etc.), usando as constantes ja existentes em `ORIGEM_LABELS`
+Buscar todas as demandas que possuem `data_limite` preenchida e exibi-las no calendario junto com os prazos, diferenciando visualmente por tipo (prazo vs tarefa).
 
-Alem disso, reduzir a largura maxima da barra de pesquisa de `max-w-md` para `max-w-xs`.
+### 2. Nova funcionalidade: Rotinas Importantes
+
+Criar uma tabela `rotinas_calendario` para armazenar compromissos e rotinas que nao estao vinculados a processos. Exemplos: reunioes de equipe, prazos administrativos, compromissos recorrentes.
+
+### 3. Calendario unificado com filtros por tipo
+
+Adicionar filtros para o usuario escolher o que visualizar: Prazos, Tarefas, Rotinas ou Todos.
 
 ## Alteracoes
 
-### 1. `src/components/leads/LeadsHeader.tsx`
+### Banco de dados
 
-- Adicionar props `origemFilter` e `onOrigemFilterChange` para o filtro de origem
-- Adicionar props `nomeFilter` e `onNomeFilterChange` para o filtro de nome
-- Buscar nomes unicos dos leads no banco (`contact_submissions`) para popular o select de nomes (quando nao for aba de clientes)
-- Renderizar dois `Select` apos o botao Importar:
-  - Select "Todos os nomes" com lista de nomes
-  - Select "Todas as origens" com opcoes de `ORIGEM_LABELS`
-- Reduzir barra de pesquisa de `max-w-md` para `max-w-xs`
+Nova tabela `rotinas_calendario`:
 
-### 2. `src/pages/Leads.tsx`
+| Coluna | Tipo | Descricao |
+|--------|------|-----------|
+| id | uuid | PK |
+| titulo | text | Descricao da rotina |
+| data | date | Data do evento |
+| horario | text | Horario opcional (ex: "14:00") |
+| tipo | text | Categoria (reuniao, administrativo, pessoal, outro) |
+| recorrente | boolean | Se repete |
+| recorrencia | text | semanal, mensal, etc (quando recorrente) |
+| prioridade | text | alta, media, baixa |
+| status | text | pendente, concluido |
+| observacoes | text | Notas adicionais |
+| created_by | uuid | Quem criou |
+| created_at | timestamptz | Data criacao |
 
-- Adicionar estados `nomeFilter` e `origemFilter` (ambos `string | null`)
-- Passar esses estados como props para `LeadsHeader`
-- Integrar os filtros com o estado de `filters` existente: quando `origemFilter` muda, atualizar `filters.origem`; quando `nomeFilter` muda, atualizar `filters.search`
+RLS: usuarios autenticados podem gerenciar suas rotinas.
 
-## Detalhes tecnicos
+### Arquivos alterados
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/components/leads/LeadsHeader.tsx` | Adicionar 2 selects (nome e origem), buscar nomes do banco, reduzir largura da pesquisa |
-| `src/pages/Leads.tsx` | Adicionar estados dos filtros rapidos e conectar ao LeadsHeader |
+| `src/pages/processos/Calendario.tsx` | Buscar demandas com data_limite e rotinas; unificar no calendario; adicionar filtros por tipo; botao "Adicionar Rotina" |
+| `src/hooks/useRotinasCalendario.ts` | Novo hook para CRUD de rotinas |
+| `src/components/processos/AddRotinaDialog.tsx` | Novo dialog para criar rotina |
 
-Os selects seguem o mesmo padrao visual ja usado no filtro de clientes existente no componente (linhas 102-118).
+### Logica do calendario unificado
+
+O calendario passa a agrupar 3 fontes de dados por data:
+
+- **Prazos** (processos_prazos) - marcados com indicador azul/vermelho conforme urgencia
+- **Tarefas** (demandas_internas com data_limite) - marcados com indicador roxo
+- **Rotinas** (rotinas_calendario) - marcados com indicador cinza
+
+Filtros por abas no topo: Todos | Prazos | Tarefas | Rotinas
+
+Ao clicar em um dia, o dialog mostra todos os itens daquele dia agrupados por tipo, com acoes (marcar como cumprido/concluido).
+
+### Dialog de detalhes do dia
+
+O dialog atual sera expandido para mostrar:
+- Secao "Prazos Processuais" (com checkbox de cumprido)
+- Secao "Tarefas" (com link para a demanda)
+- Secao "Rotinas" (com checkbox de concluido e opcao de excluir)
+
+### Botao de adicionar rotina
+
+Botao "Adicionar Rotina" no header da pagina, abrindo um dialog com campos: titulo, data, horario, tipo, prioridade e observacoes.
