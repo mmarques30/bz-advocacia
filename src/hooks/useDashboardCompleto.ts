@@ -163,11 +163,12 @@ export function useDashboardCompleto() {
           .in("status", ["pendente", "em_andamento"])
           .lt("data_limite", hojeISO),
 
-        // 8. Total clientes ativos
+        // 8. Total clientes ativos (estagio fechado E status_cliente ativo)
         supabase
           .from("contact_submissions")
           .select("id", { count: "exact", head: true })
-          .eq("estagio", "fechado"),
+          .eq("estagio", "fechado")
+          .eq("status_cliente", "ativo"),
 
         // 9. Total leads do mês
         supabase
