@@ -1,54 +1,54 @@
 
-# Adicionar Edicao e Exclusao na FaturamentoTable
+# Conectar e Automatizar a Gestao de Pagamentos
 
-## Problema
+## Diagnostico
 
-A `FaturamentoTable` (usada tanto em Lancamentos quanto em Projecao de Faturamento) exibe dados da tabela `transacoes_financeiras` de forma somente leitura -- sem botoes de editar ou excluir. A `DespesasTable` ja possui essas funcionalidades.
+A pagina "Gestao de Pagamentos" (`/dashboard/financeiro/pagamentos`) esta **desconectada** do restante do modulo financeiro:
+
+1. **Somente leitura**: Os cards de "Despesas Pendentes", "Receitas a Receber" e "Proximos Vencimentos" nao possuem nenhuma acao -- o usuario ve os dados mas nao pode fazer nada (marcar como pago, registrar pagamento, editar, excluir).
+
+2. **Dados parcialmente redundantes**: As mesmas informacoes de despesas pendentes e receitas a receber ja aparecem nos widgets da aba "Faturamento" (acordos/parcelas) e "Despesas" (alertas) do modulo financeiro principal.
+
+3. **Sem integracao com os dialogs existentes**: O sistema ja possui `RegistrarPagamentoDialog` para parcelas e acoes de pagar/editar despesas, mas nada disso esta conectado a esta pagina.
 
 ## Solucao
 
-Adicionar coluna de acoes na `FaturamentoTable` com botoes de editar e excluir, reutilizando componentes ja existentes no projeto:
-
-- **Editar**: Abrir o `EditTransacaoDialog` (ja existe em `src/components/financeiro/transacoes/EditTransacaoDialog.tsx`)
-- **Excluir**: Dialog de confirmacao + `useDeleteTransacao` (ja existe em `src/hooks/useTransacoesFinanceiras.ts`)
+Transformar a pagina de Pagamentos de uma visao passiva em um **centro de acao operacional**, conectando-a aos dialogs e hooks ja existentes no sistema.
 
 ## Alteracoes
 
-### `src/components/financeiro/FaturamentoTable.tsx`
+### 1. `src/components/financeiro/pagamentos/PagamentosAtrasados.tsx`
 
-1. Adicionar imports:
-   - `useDeleteTransacao` de `useTransacoesFinanceiras`
-   - `EditTransacaoDialog` de `transacoes/EditTransacaoDialog`
-   - `AlertDialog` para confirmacao de exclusao
-   - Icones `Pencil`, `Trash2`, `MoreHorizontal`
-   - `DropdownMenu` para menu de acoes
-   - `toast` de sonner
+**Despesas Pendentes (lado esquerdo):**
+- Adicionar botao "Pagar" em cada item de despesa que atualiza o status para "pago" usando o hook `useUpdateDespesa` ja existente em `useDespesas.ts`
+- Adicionar botao "Editar" que abre o `DespesaDetailsDialog`
 
-2. Adicionar states:
-   - `editingTransacao` (transacao selecionada para edicao)
-   - `deleteDialogOpen` e `transacaoToDelete` (controle da exclusao)
+**Receitas a Receber (lado direito):**
+- Para itens com `origem: "parcelas"`: adicionar botao "Registrar Pagamento" que abre o `RegistrarPagamentoDialog` (ja existe)
+- Para itens com `origem: "transacoes"`: adicionar botao "Editar" que abre o `EditTransacaoDialog`
 
-3. Buscar dados completos da transacao: ajustar o `useFaturamentoDetalhado` para retornar os campos completos necessarios para o `EditTransacaoDialog` (ou buscar sob demanda)
+### 2. `src/components/financeiro/pagamentos/ProximosVencimentos.tsx`
 
-4. Adicionar coluna "Acoes" na tabela com `DropdownMenu` contendo:
-   - "Editar" -- abre `EditTransacaoDialog`
-   - "Excluir" -- abre dialog de confirmacao
+- Adicionar botao de acao em cada card de vencimento:
+  - Se tipo "despesa": botao "Pagar" (marca despesa como paga)
+  - Se tipo "receita": botao "Registrar" (abre RegistrarPagamentoDialog)
+- Armazenar a `origem` (despesas/transacoes/parcelas) nos itens de vencimento para saber qual acao executar
 
-5. Renderizar `EditTransacaoDialog` e `AlertDialog` de exclusao
+### 3. `src/pages/financeiro/Pagamentos.tsx`
 
-6. Invalidar queries de faturamento apos editar/excluir
+- Adicionar KPIs resumidos no topo: Total a Pagar, Total a Receber, Saldo Projetado (calculados a partir dos mesmos dados dos hooks existentes)
+- Adicionar states para controlar os dialogs de pagamento e detalhes
+- Renderizar `RegistrarPagamentoDialog` e `DespesaDetailsDialog`
+- Aumentar periodo de proximos vencimentos para 30 dias (mais util para planejamento)
 
-### `src/hooks/useTransacoesFinanceiras.ts`
+### 4. `src/hooks/usePagamentos.ts`
 
-Adicionar invalidacao das queries `faturamento-detalhado` nos hooks `useUpdateTransacao` e `useDeleteTransacao` para que a tabela atualize automaticamente apos edicao/exclusao.
-
-### `src/hooks/useFinanceiro.ts`
-
-Ajustar `useFaturamentoDetalhado` para retornar o objeto completo da transacao (incluindo todos os campos que o `EditTransacaoDialog` precisa), em vez de apenas os campos resumidos.
+- Adicionar campo `origem` ao tipo `ItemVencimento` para que `ProximosVencimentos` saiba se deve abrir o dialog de parcela ou de despesa
+- Propagar o `origem` nos dados retornados por `useProximosVencimentos`
 
 ## Resultado
 
-- A tabela de faturamento tera um menu de acoes por linha (editar/excluir)
-- Editar abre o mesmo dialog usado na aba de Transacoes
-- Excluir exige confirmacao antes de remover
-- Funciona identicamente em Lancamentos e Projecao (mesmo componente)
+- Os 3 componentes da pagina de Pagamentos passam a ter **botoes de acao** conectados aos dialogs ja existentes
+- O usuario pode registrar pagamentos, marcar despesas como pagas e editar registros diretamente da pagina
+- KPIs no topo dao visao rapida do saldo pendente
+- Dados vem das mesmas fontes que o modulo financeiro principal (sem duplicacao de logica)
