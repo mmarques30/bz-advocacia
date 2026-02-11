@@ -1,49 +1,29 @@
 
+# Remover cores vibrantes dos icones na aba Marketing
 
-# Unificar Marketing e Análises em uma única página com abas
+## Problema
 
-## Situação Atual
+Os componentes de Marketing usam icones com cores vibrantes (azul, verde, roxo, laranja, ciano, vermelho, amber, emerald), quebrando o padrao visual do projeto que deve ser neutro e profissional.
 
-- **Marketing** (`/dashboard/vendas/meta-ads`): KPIs de investimento, gráfico de evolução, tabela de campanhas
-- **Análises** (`/dashboard/vendas/analises`): Análise de conversão e performance por canal (página separada no menu)
-- Redundância: ambas tratam do mesmo funil de vendas/marketing, mas em páginas distintas
+## Alteracoes
 
-## O que muda
+### 1. `src/pages/vendas/MetaAds.tsx` - ROICard
 
-### 1. Página Marketing unificada com abas
+- Remover cores individuais dos icones (`text-red-500`, `text-blue-500`, `text-amber-500`, `text-emerald-500`)
+- Remover backgrounds coloridos (`bg-red-500/10`, `bg-blue-500/10`, etc.)
+- Usar `text-muted-foreground` para todos os icones e `bg-muted` para os backgrounds
+- Remover gradiente do Card (`bg-gradient-to-r from-primary/5 to-transparent` e `border-primary/20`)
+- Remover icone `text-primary` do titulo "Resumo de ROI"
 
-A página `/dashboard/vendas/meta-ads` passa a ter 3 abas:
+### 2. `src/components/meta-ads/MetaAdsKPIs.tsx`
 
-| Aba | Conteúdo |
-|-----|----------|
-| **Resumo** | Card de ROI (investimento, CPL, leads, ROI%) + KPIs atuais + gráfico de evolução + campanhas |
-| **Análise de Conversão** | Funil detalhado, taxa de conversão, tempo por estágio, conversão por origem (conteúdo atual de Análises) |
-| **Performance por Canal** | Distribuição de leads, evolução por canal, tabela comparativa, insights automáticos (conteúdo atual de Análises) |
+- Substituir todas as cores dos icones (`text-blue-600`, `text-green-600`, `text-purple-600`, `text-orange-600`, `text-cyan-600`) por `text-muted-foreground`
+- Manter apenas as cores de variacao (verde para positivo, vermelho para negativo) pois sao indicadores funcionais, nao decorativos
 
-### 2. Card de ROI (novo)
+### 3. `src/components/meta-ads/MetaAdsChart.tsx`
 
-Novo card no topo da aba "Resumo" com 4 métricas em destaque:
-
-- **Investimento Total** (soma do gasto no período)
-- **Leads Gerados** (total de leads)
-- **CPL** (Custo por Lead)
-- **ROI Estimado** (baseado em faturamento vs investimento, quando disponível)
-
-### 3. Navegação simplificada
-
-- Remover "Análises" como item separado do submenu "Gestão de Vendas"
-- Menu fica: Marketing | Leads (em vez de Marketing | Análises | Leads)
-- Rota `/dashboard/vendas/analises` redireciona para `/dashboard/vendas/meta-ads` (compatibilidade)
-
-## Arquivos alterados
-
-| Arquivo | Alteração |
-|---------|-----------|
-| `src/pages/vendas/MetaAds.tsx` | Reescrever com Tabs (Resumo, Conversão, Canais) + card ROI |
-| `src/components/AppSidebar.tsx` | Remover "Análises" do submenu de Gestão de Vendas |
-| `src/App.tsx` | Redirecionar `/dashboard/vendas/analises` para `/dashboard/vendas/meta-ads` |
+- Nenhuma alteracao necessaria, as cores do grafico sao funcionais (diferenciar linhas)
 
 ## Resultado
 
-Uma única página "Marketing" com tudo o que o gestor precisa: resumo rápido de ROI, análises de conversão e performance por canal, tudo acessível por abas sem sair da página.
-
+Icones neutros (`text-muted-foreground`) em todos os cards, alinhados com o padrao visual do restante da aplicacao. Apenas indicadores de tendencia (positivo/negativo) mantem cor funcional.
