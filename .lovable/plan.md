@@ -1,52 +1,54 @@
 
-# Unificar Abas de Analise em uma Unica Aba "Analises"
+# Adicionar Edicao e Exclusao na FaturamentoTable
 
-## Diagnostico
+## Problema
 
-As duas abas possuem sobreposicao significativa:
-- "Conversao por Origem" (grafico de barras) mostra taxa de conversao por canal
-- "Comparacao de Canais" (tabela) mostra os mesmos dados + ticket medio e tempo medio
-- Ambas usam o mesmo filtro de periodo
-
-A separacao forca o usuario a alternar entre abas para ter a visao completa.
+A `FaturamentoTable` (usada tanto em Lancamentos quanto em Projecao de Faturamento) exibe dados da tabela `transacoes_financeiras` de forma somente leitura -- sem botoes de editar ou excluir. A `DespesasTable` ja possui essas funcionalidades.
 
 ## Solucao
 
-Substituir as duas abas ("Analise de Conversao" e "Performance por Canal") por uma unica aba **"Analises"** com o seguinte layout sequencial:
+Adicionar coluna de acoes na `FaturamentoTable` com botoes de editar e excluir, reutilizando componentes ja existentes no projeto:
 
-1. **KPI de Conversao Geral** (do DashboardConversao)
-2. **Insights Automaticos** (do DashboardPerformanceCanal)
-3. **Funil Detalhado** (do DashboardConversao)
-4. **Grid 2 colunas:**
-   - Evolucao da Taxa de Conversao (linha temporal)
-   - Distribuicao de Leads por Canal (pizza)
-5. **Grid 2 colunas:**
-   - Evolucao por Canal (linha temporal por canal)
-   - Tempo Medio por Estagio (tabela)
-6. **Tabela Comparativa de Canais** (substitui o grafico "Conversao por Origem" que era redundante)
+- **Editar**: Abrir o `EditTransacaoDialog` (ja existe em `src/components/financeiro/transacoes/EditTransacaoDialog.tsx`)
+- **Excluir**: Dialog de confirmacao + `useDeleteTransacao` (ja existe em `src/hooks/useTransacoesFinanceiras.ts`)
 
 ## Alteracoes
 
-### `src/pages/vendas/MetaAds.tsx`
-- Remover as duas TabsTrigger ("conversao" e "canais") e seus TabsContent
-- Adicionar uma unica TabsTrigger "analises" com label "Analises"
-- O conteudo da aba renderiza um novo componente `DashboardAnalises`
+### `src/components/financeiro/FaturamentoTable.tsx`
 
-### Novo: `src/components/dashboard/analises/DashboardAnalises.tsx`
-- Combina os dados de `useConversionAnalytics` e `useChannelPerformance` / `useChannelEvolution` / `useAutoInsights`
-- Renderiza todos os componentes na ordem descrita acima
-- Remove o `ConversionByOriginChart` (redundante com a tabela comparativa)
+1. Adicionar imports:
+   - `useDeleteTransacao` de `useTransacoesFinanceiras`
+   - `EditTransacaoDialog` de `transacoes/EditTransacaoDialog`
+   - `AlertDialog` para confirmacao de exclusao
+   - Icones `Pencil`, `Trash2`, `MoreHorizontal`
+   - `DropdownMenu` para menu de acoes
+   - `toast` de sonner
 
-### Removidos da renderizacao (nao deletados)
-- `DashboardConversao.tsx` -- nao sera mais importado em MetaAds
-- `DashboardPerformanceCanal.tsx` -- nao sera mais importado em MetaAds
-- `ConversionByOriginChart` -- nao sera renderizado (a tabela comparativa ja mostra a mesma informacao de forma mais completa)
+2. Adicionar states:
+   - `editingTransacao` (transacao selecionada para edicao)
+   - `deleteDialogOpen` e `transacaoToDelete` (controle da exclusao)
 
-### `src/pages/vendas/Analises.tsx`
-- Atualizar para usar o novo `DashboardAnalises` em vez das duas abas separadas, simplificando tambem essa pagina
+3. Buscar dados completos da transacao: ajustar o `useFaturamentoDetalhado` para retornar os campos completos necessarios para o `EditTransacaoDialog` (ou buscar sob demanda)
+
+4. Adicionar coluna "Acoes" na tabela com `DropdownMenu` contendo:
+   - "Editar" -- abre `EditTransacaoDialog`
+   - "Excluir" -- abre dialog de confirmacao
+
+5. Renderizar `EditTransacaoDialog` e `AlertDialog` de exclusao
+
+6. Invalidar queries de faturamento apos editar/excluir
+
+### `src/hooks/useTransacoesFinanceiras.ts`
+
+Adicionar invalidacao das queries `faturamento-detalhado` nos hooks `useUpdateTransacao` e `useDeleteTransacao` para que a tabela atualize automaticamente apos edicao/exclusao.
+
+### `src/hooks/useFinanceiro.ts`
+
+Ajustar `useFaturamentoDetalhado` para retornar o objeto completo da transacao (incluindo todos os campos que o `EditTransacaoDialog` precisa), em vez de apenas os campos resumidos.
 
 ## Resultado
 
-- Marketing tera 2 abas: **Resumo** e **Analises**
-- Tudo em uma unica visualizacao com scroll, sem necessidade de alternar abas
-- Eliminada a redundancia entre grafico de conversao por origem e tabela comparativa
+- A tabela de faturamento tera um menu de acoes por linha (editar/excluir)
+- Editar abre o mesmo dialog usado na aba de Transacoes
+- Excluir exige confirmacao antes de remover
+- Funciona identicamente em Lancamentos e Projecao (mesmo componente)
