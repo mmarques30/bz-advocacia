@@ -1,74 +1,50 @@
 
-# Integrar Tarefas e Rotinas ao Calendario de Prazos
 
-## Situacao Atual
+# Corrigir contagem de Clientes Ativos e Processos
 
-O calendario (`/dashboard/processos/calendario`) exibe apenas **prazos processuais** da tabela `processos_prazos`. Tarefas (demandas internas) que possuem `data_limite` nao aparecem no calendario, e nao ha suporte para rotinas importantes.
+## Problema identificado
 
-## O que muda
+O banco mostra:
+- 184 clientes com estagio "fechado", mas apenas **94** tem `status_cliente = 'ativo'` e **90** sao `'inativo'`
+- O KPI "Clientes Ativos" no Painel conta **todos** os 184 (filtra apenas por `estagio = 'fechado'`, ignorando `status_cliente`)
+- Todos os 184 processos estao com status `em_andamento`, inclusive os vinculados a clientes inativos
 
-### 1. Tarefas (demandas) refletidas no calendario
+## Correcoes
 
-Buscar todas as demandas que possuem `data_limite` preenchida e exibi-las no calendario junto com os prazos, diferenciando visualmente por tipo (prazo vs tarefa).
+### 1. KPI "Clientes Ativos" no Dashboard (`src/hooks/useDashboardCompleto.ts`)
 
-### 2. Nova funcionalidade: Rotinas Importantes
+Alterar a query de `totalClientes` (linha 168-170) para considerar `status_cliente`:
 
-Criar uma tabela `rotinas_calendario` para armazenar compromissos e rotinas que nao estao vinculados a processos. Exemplos: reunioes de equipe, prazos administrativos, compromissos recorrentes.
+**Antes:** Conta todos com `estagio = 'fechado'` (184)
+**Depois:** Conta apenas com `estagio = 'fechado'` **E** `status_cliente = 'ativo'` (94)
 
-### 3. Calendario unificado com filtros por tipo
+### 2. Corrigir processos de clientes inativos (migracao SQL)
 
-Adicionar filtros para o usuario escolher o que visualizar: Prazos, Tarefas, Rotinas ou Todos.
+Executar uma migracao para atualizar os processos vinculados a clientes inativos, mudando o status de `em_andamento` para `concluido`:
 
-## Alteracoes
+```sql
+UPDATE processos 
+SET status = 'concluido'
+WHERE lead_id IN (
+  SELECT id FROM contact_submissions 
+  WHERE status_cliente = 'inativo'
+)
+AND status = 'em_andamento';
+```
 
-### Banco de dados
+Isso vai corrigir os ~90 processos que deveriam estar como concluidos, resultando em:
+- ~94 processos ativos (em_andamento) -- correspondendo aos clientes ativos
+- ~90 processos concluidos -- correspondendo aos clientes inativos
 
-Nova tabela `rotinas_calendario`:
+### 3. Gestao de Clientes - verificar filtro
 
-| Coluna | Tipo | Descricao |
-|--------|------|-----------|
-| id | uuid | PK |
-| titulo | text | Descricao da rotina |
-| data | date | Data do evento |
-| horario | text | Horario opcional (ex: "14:00") |
-| tipo | text | Categoria (reuniao, administrativo, pessoal, outro) |
-| recorrente | boolean | Se repete |
-| recorrencia | text | semanal, mensal, etc (quando recorrente) |
-| prioridade | text | alta, media, baixa |
-| status | text | pendente, concluido |
-| observacoes | text | Notas adicionais |
-| created_by | uuid | Quem criou |
-| created_at | timestamptz | Data criacao |
+A pagina de Gestao de Clientes (`/dashboard/clientes`) ja pode estar mostrando todos os 184 se nao filtrar por `status_cliente`. Verificar e corrigir se necessario.
 
-RLS: usuarios autenticados podem gerenciar suas rotinas.
+## Resultado esperado
 
-### Arquivos alterados
+| KPI | Antes | Depois |
+|-----|-------|--------|
+| Clientes Ativos | 184 | 94 |
+| Processos Ativos | 184 | ~94 |
+| Processos Concluidos | 0 | ~90 |
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/processos/Calendario.tsx` | Buscar demandas com data_limite e rotinas; unificar no calendario; adicionar filtros por tipo; botao "Adicionar Rotina" |
-| `src/hooks/useRotinasCalendario.ts` | Novo hook para CRUD de rotinas |
-| `src/components/processos/AddRotinaDialog.tsx` | Novo dialog para criar rotina |
-
-### Logica do calendario unificado
-
-O calendario passa a agrupar 3 fontes de dados por data:
-
-- **Prazos** (processos_prazos) - marcados com indicador azul/vermelho conforme urgencia
-- **Tarefas** (demandas_internas com data_limite) - marcados com indicador roxo
-- **Rotinas** (rotinas_calendario) - marcados com indicador cinza
-
-Filtros por abas no topo: Todos | Prazos | Tarefas | Rotinas
-
-Ao clicar em um dia, o dialog mostra todos os itens daquele dia agrupados por tipo, com acoes (marcar como cumprido/concluido).
-
-### Dialog de detalhes do dia
-
-O dialog atual sera expandido para mostrar:
-- Secao "Prazos Processuais" (com checkbox de cumprido)
-- Secao "Tarefas" (com link para a demanda)
-- Secao "Rotinas" (com checkbox de concluido e opcao de excluir)
-
-### Botao de adicionar rotina
-
-Botao "Adicionar Rotina" no header da pagina, abrindo um dialog com campos: titulo, data, horario, tipo, prioridade e observacoes.
