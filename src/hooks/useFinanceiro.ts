@@ -819,6 +819,15 @@ export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
         subcategoria: t.subcategoria_codigo,
         valor: t.valor || 0,
         conta: t.conta || null,
+        // Campos completos para edição
+        mes: t.mes,
+        ano: t.ano,
+        mes_nome: t.mes_nome,
+        tipo_codigo: t.tipo_codigo,
+        categoria_codigo: t.categoria_codigo,
+        subcategoria_codigo: t.subcategoria_codigo,
+        data_transacao: t.data_transacao,
+        created_at: t.created_at,
       }));
     },
   });
