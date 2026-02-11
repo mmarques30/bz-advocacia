@@ -1,37 +1,39 @@
 
-# Plano: Separar Tratamento de Clientes e Leads no Dialog de Detalhes
+# Plano: Adicionar Dropdown de Filtro por Nome de Cliente no Header de Clientes
 
 ## Problema
 
-O dialog de detalhes (`LeadDetailsDialog`) e compartilhado entre Leads e Clientes, mas exibe metricas de pipeline de vendas (como "Parado ha X dias" e alerta vermelho) para clientes. Clientes devem ser acompanhados pelo status do processo, nao pelo tempo sem contato.
-
-## Pontos afetados
-
-| Local | Problema |
-|-------|----------|
-| Alerta vermelho "Lead parado ha X dias" (linha 73-79) | Aparece para clientes |
-| Campo "Tempo Parado" na aba Informacoes (linha 139-146) | Aparece para clientes |
-| Botao "Editar Lead" (linha 69) | Texto incorreto para clientes |
-| `LeadCard.tsx` usado no Kanban de leads | Mostra "Parado ha X dias" -- ok para leads, mas precisa garantir que nao e usado no Kanban de clientes |
+O header da pagina de Clientes (`LeadsHeader.tsx`) nao possui um dropdown para filtrar clientes por nome. O dropdown de filtro por cliente foi implementado apenas na pagina de Processos (`ProcessosHeader.tsx`).
 
 ## Solucao
 
-### Arquivo: `src/components/leads/LeadDetailsDialog.tsx`
+Adicionar um `Select` dropdown no `LeadsHeader.tsx` que aparece apenas quando `isClienteTab` e `true`, permitindo filtrar a lista de clientes por nome.
 
-1. Adicionar prop `isCliente?: boolean` ao componente
-2. **Condicionar o alerta vermelho**: so exibir "Lead parado ha X dias" quando `isCliente` for `false`
-3. **Condicionar o campo "Tempo Parado"**: so exibir na aba Informacoes quando `isCliente` for `false`
-4. **Texto do botao**: trocar "Editar Lead" por "Editar Cliente" quando `isCliente` for `true`
+## Arquivos a Modificar
 
-### Arquivo: `src/pages/Clientes.tsx`
+| Arquivo | Descricao |
+|---------|-----------|
+| `src/components/leads/LeadsHeader.tsx` | Adicionar props e dropdown de filtro por cliente |
+| `src/pages/Clientes.tsx` | Passar as novas props e aplicar filtro por cliente selecionado |
 
-Passar `isCliente={true}` para o `LeadDetailsDialog` (ja passa para outros componentes como `NewLeadDialog`)
+## Detalhamento Tecnico
 
-### Arquivo: `src/pages/Leads.tsx`
+### 1. LeadsHeader.tsx
 
-Nenhuma mudanca necessaria -- o comportamento padrao (`isCliente` ausente/false) mantem o alerta e campo de "dias parado" para leads.
+- Adicionar props opcionais:
+  - `clienteFilterId?: string | null` -- ID do cliente selecionado
+  - `onClienteFilterChange?: (id: string | null) => void` -- callback ao trocar
+- Buscar lista de clientes (`contact_submissions` com `estagio = 'fechado'`) usando `useEffect` + query do Supabase
+- Renderizar um `Select` entre o botao "Importar" e o campo de busca, somente quando `isClienteTab` for `true`
+  - Opcao padrao: "Todos os clientes"
+  - Demais opcoes: nome de cada cliente, ordenado alfabeticamente
+
+### 2. Clientes.tsx
+
+- Adicionar estado `clienteFilterId` (string | null)
+- Passar `clienteFilterId` e `onClienteFilterChange` para o `LeadsHeader`
+- Filtrar os resultados de `useLeads` localmente pelo `clienteFilterId` antes de passar para a tabela/kanban (ou adicionar ao objeto de filtros se o hook suportar)
 
 ## Resultado
 
-- **Leads**: continuam mostrando alerta de tempo parado, campo de dias parado, botao "Editar Lead"
-- **Clientes**: sem alerta de tempo, sem campo "Tempo Parado", botao "Editar Cliente", foco no status do cliente (Ativo/Inativo) que ja existe
+Na pagina de Gestao de Clientes, ao lado do botao Importar, aparecera um dropdown "Todos os clientes" que permite selecionar um cliente especifico para filtrar a lista.
