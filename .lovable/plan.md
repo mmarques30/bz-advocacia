@@ -1,139 +1,73 @@
 
-# Plano: Sistema de Tarefa-Mae com Subtarefas
+
+# Plano: Restringir Conclusao de Tarefas as Advogadas
 
 ## Resumo
 
-Adicionar suporte a hierarquia de tarefas na tabela `demandas_internas`, permitindo criar uma tarefa principal ("tarefa-mae") com subtarefas vinculadas em sequencia. A tarefa-mae so pode ser concluida quando todas as subtarefas estiverem finalizadas.
+Impedir que estagiarios marquem tarefas como concluidas. Apenas Juliana e Liziane (as advogadas) podem alterar o status para "concluido". Estagiarios continuam podendo criar, visualizar e atualizar tarefas normalmente (exceto concluir).
 
-## Exemplo de Uso
+## Como Identificar a Advogada
 
-```text
-Tarefa-Mae: "Peticao Inicial"
-  |-- 1. Pesquisa jurisprudencia (estagiario)
-  |-- 2. Redigir peticao (estagiario)
-  |-- 3. Revisar (Juliana)
-  |-- 4. Protocolar (Juliana)
-```
+O sistema ja possui os usuarios cadastrados. A identificacao sera feita comparando o email do usuario logado com os emails das advogadas:
 
-Cada subtarefa tem seu proprio responsavel e advogada. A tarefa-mae acompanha o progresso geral.
+- Juliana: julianalimaborges@hotmail.com
+- Liziane: liziztaborda@hotmail.com
+
+Sera criado um hook `useIsAdvogada()` que retorna `true` se o usuario logado e uma das duas.
 
 ## Alteracoes
 
-### 1. Migracao de Banco de Dados
+### 1. Novo Hook: `src/hooks/useIsAdvogada.ts`
 
-Adicionar duas colunas na tabela `demandas_internas`:
+Hook simples que verifica se o usuario logado e uma advogada:
 
-- `parent_id` (uuid, nullable, FK para si mesma) -- vincula subtarefa a tarefa-mae
-- `ordem` (integer, nullable) -- define a sequencia das subtarefas
+```
+const ADVOGADAS_EMAILS = [
+  'julianalimaborges@hotmail.com',
+  'liziztaborda@hotmail.com'
+];
 
-```sql
-ALTER TABLE demandas_internas
-  ADD COLUMN parent_id uuid REFERENCES demandas_internas(id) ON DELETE CASCADE,
-  ADD COLUMN ordem integer;
-
-CREATE INDEX idx_demandas_parent ON demandas_internas(parent_id);
+useIsAdvogada() => boolean
 ```
 
-RLS: as politicas existentes ja cobrem a nova coluna (mesma tabela).
+Usa `supabase.auth.getUser()` para obter o email do usuario logado e comparar.
 
-### 2. Tipos TypeScript (`src/types/demandas.ts`)
+### 2. Dialog de Edicao (`DemandaDetailsDialog.tsx`)
 
-- Adicionar `parent_id?: string | null` e `ordem?: number | null` na interface `Demanda`
-- Adicionar campo opcional `subtarefas?: Demanda[]` para uso no frontend
+- Importar `useIsAdvogada`
+- No Select de Status (modo edicao): desabilitar a opcao "Concluido" para nao-advogadas
+- Exibir tooltip ou texto explicativo: "Apenas advogadas podem concluir tarefas"
+- Na funcao `onSubmit`: validacao adicional bloqueando status "concluido" para nao-advogadas
 
-### 3. Hook de Dados (`src/hooks/useDemandas.ts`)
+### 3. Lista de Subtarefas (`SubtarefasList.tsx`)
 
-- **Query principal**: filtrar apenas tarefas sem parent (`is.('parent_id', null)`) para evitar duplicacao na listagem
-- **Nova query `useSubtarefas(parentId)`**: buscar subtarefas de uma tarefa-mae ordenadas por `ordem`
-- **`useCreateDemanda`**: aceitar `parent_id` e `ordem` opcionais
-- **Logica de conclusao**: ao atualizar status para "concluido" em tarefa-mae, verificar se todas subtarefas estao concluidas; se nao, bloquear e exibir alerta
+- Importar `useIsAdvogada`
+- No `handleToggle`: se o usuario nao e advogada e esta tentando marcar como concluido, exibir toast de erro e bloquear
+- Desabilitar o checkbox para "concluir" se nao for advogada (permitir apenas desmarcar)
 
-### 4. Formulario de Criacao (`NewDemandaDialog.tsx`)
+### 4. Hook de Update (`useDemandas.ts`)
 
-- Nenhuma mudanca no formulario de criacao inicial (tarefas-mae sao criadas como hoje)
-- Subtarefas serao adicionadas a partir do dialog de detalhes
+- Adicionar validacao client-side no `useUpdateDemanda`: se status = "concluido" e usuario nao e advogada, bloquear com toast
 
-### 5. Dialog de Detalhes (`DemandaDetailsDialog.tsx`)
+### 5. Hook de Subtarefas (`useSubtarefas.ts`)
 
-Maior mudanca -- adicionar secao de subtarefas quando a tarefa nao tem `parent_id`:
-
-- **Secao "Subtarefas"**: lista as subtarefas ordenadas por `ordem`, com status, responsavel e advogada
-- **Botao "Adicionar Subtarefa"**: abre um mini-formulario inline ou dialog simplificado para criar subtarefa vinculada (titulo, responsavel, advogada, prazo)
-- **Barra de progresso**: mostra X de Y subtarefas concluidas
-- **Bloqueio de conclusao**: se a tarefa tem subtarefas pendentes, desabilitar opcao "Concluido" no select de status com tooltip explicativo
-- **Indicador visual**: badge "Tarefa-Mae" ou "Subtarefa de: [titulo]" conforme o caso
-- Reordenacao via drag-and-drop (opcional, pode ser fase 2)
-
-### 6. Novo Componente: `SubtarefasList.tsx`
-
-Componente dedicado para exibir e gerenciar subtarefas dentro do dialog de detalhes:
-
-- Lista com checkbox visual para marcar conclusao rapida
-- Cada item mostra: ordem, titulo, advogada, responsavel, status
-- Botao para adicionar nova subtarefa
-- Indicador de progresso (barra)
-
-### 7. Novo Componente: `NewSubtarefaDialog.tsx`
-
-Dialog simplificado para criar subtarefa:
-
-- Titulo (obrigatorio)
-- Advogada Responsavel (obrigatorio)
-- Responsavel (usuario do sistema)
-- Data Limite
-- Herda automaticamente: processo_id, lead_id, categoria da tarefa-mae
-- Define `parent_id` e `ordem` automaticamente (proximo numero)
-
-### 8. Tabela de Demandas (`DemandasTable.tsx`)
-
-- Adicionar indicador visual (icone) para tarefas que possuem subtarefas
-- Mostrar contagem de subtarefas (ex: "3/4 concluidas")
-- Subtarefas nao aparecem na listagem principal (filtradas no hook)
-
-### 9. Card do Kanban (`DemandaCard.tsx`)
-
-- Exibir mini barra de progresso quando a tarefa tem subtarefas
-- Mostrar contagem (ex: "2/4")
-
-### 10. Aba Tarefas do Processo (`ProcessoTarefasTab.tsx`)
-
-- Agrupar subtarefas sob a tarefa-mae na listagem
-- Exibir de forma indentada ou colapsavel
+- Adicionar mesma validacao no `useUpdateSubtarefaStatus`
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| Migracao SQL | Adicionar `parent_id` e `ordem` |
-| `src/types/demandas.ts` | Novos campos na interface |
-| `src/hooks/useDemandas.ts` | Filtrar tarefas-mae, novo hook subtarefas, logica conclusao |
-| `src/components/demandas/DemandaDetailsDialog.tsx` | Secao de subtarefas, bloqueio conclusao |
-| `src/components/demandas/SubtarefasList.tsx` | **Novo** - lista e gestao de subtarefas |
-| `src/components/demandas/NewSubtarefaDialog.tsx` | **Novo** - formulario de subtarefa |
-| `src/components/demandas/DemandasTable.tsx` | Indicador de subtarefas |
-| `src/components/demandas/DemandaCard.tsx` | Barra de progresso |
-| `src/components/processos/tabs/ProcessoTarefasTab.tsx` | Agrupamento hierarquico |
-
-## Fluxo de Trabalho
-
-```text
-1. Advogada cria tarefa-mae "Peticao Inicial"
-2. Adiciona subtarefas em ordem:
-   - Pesquisa jurisprudencia (resp: estagiario)
-   - Redigir peticao (resp: estagiario)
-   - Revisar (resp: advogada)
-   - Protocolar (resp: advogada)
-3. Estagiario conclui subtarefa 1 -> status volta para advogada ver
-4. Estagiario conclui subtarefa 2 -> advogada recebe para revisao
-5. Advogada conclui subtarefa 3 (revisao)
-6. Advogada conclui subtarefa 4 (protocolo)
-7. Todas subtarefas concluidas -> advogada pode concluir tarefa-mae
-```
+| `src/hooks/useIsAdvogada.ts` | **Novo** - hook de verificacao |
+| `src/components/demandas/DemandaDetailsDialog.tsx` | Bloquear opcao "concluido" para estagiarios |
+| `src/components/demandas/SubtarefasList.tsx` | Bloquear checkbox de conclusao para estagiarios |
+| `src/hooks/useDemandas.ts` | Validacao client-side no update |
+| `src/hooks/useSubtarefas.ts` | Validacao client-side no update de subtarefa |
 
 ## Resultado
 
-- Tarefas podem ter subtarefas vinculadas em sequencia
-- Cada subtarefa tem seu responsavel e advogada
-- Tarefa-mae so conclui quando todas subtarefas estiverem finalizadas
-- Progresso visivel na tabela, kanban e detalhes
-- Base para relatorios de produtividade por etapa
+- Estagiarios podem criar e atualizar tarefas (status pendente, em andamento)
+- Estagiarios NAO conseguem selecionar "Concluido" no formulario
+- Estagiarios NAO conseguem marcar checkbox de subtarefa como concluida
+- Apenas Juliana e Liziane veem e podem usar a opcao "Concluido"
+- Mensagem clara explica a restricao quando necessario
+
