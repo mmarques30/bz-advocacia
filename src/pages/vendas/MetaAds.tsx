@@ -12,60 +12,7 @@ import { DashboardFilters } from "@/components/dashboard/DashboardFilters";
 import { DashboardConversao } from "@/components/dashboard/analises/DashboardConversao";
 import { DashboardPerformanceCanal } from "@/components/dashboard/analises/DashboardPerformanceCanal";
 import { PeriodoFiltro } from "@/types/meta-ads";
-import { TrendingUp, DollarSign, Users, Target, BarChart3 } from "lucide-react";
-
-function ROICard({ kpis, isLoading }: { kpis: any; isLoading: boolean }) {
-  const roi = kpis?.gasto > 0 ? ((((kpis?.leads || 0) * (kpis?.custoLead || 0)) - kpis.gasto) / kpis.gasto * 100) : 0;
-
-  const metrics = [
-    {
-      label: "Investimento Total",
-      value: isLoading ? "—" : `R$ ${(kpis?.gasto || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      icon: DollarSign,
-    },
-    {
-      label: "Leads Gerados",
-      value: isLoading ? "—" : String(kpis?.leads || 0),
-      icon: Users,
-    },
-    {
-      label: "CPL (Custo/Lead)",
-      value: isLoading ? "—" : `R$ ${(kpis?.custoLead || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-      icon: Target,
-    },
-    {
-      label: "ROI Estimado",
-      value: isLoading ? "—" : `${roi.toFixed(1)}%`,
-      icon: BarChart3,
-    },
-  ];
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-muted-foreground" />
-          Resumo de ROI
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {metrics.map((m) => (
-            <div key={m.label} className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-muted">
-                <m.icon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{m.label}</p>
-                <p className="text-lg font-bold">{m.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+import { TrendingUp } from "lucide-react";
 
 export default function MetaAds() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("30d");
@@ -105,7 +52,6 @@ export default function MetaAds() {
             </Select>
           </div>
 
-          <ROICard kpis={kpis} isLoading={isLoadingMetrics} />
           <MetaAdsKPIs kpis={kpis} isLoading={isLoadingMetrics} />
           <MetaAdsChart data={chartData} isLoading={isLoadingMetrics} />
 
