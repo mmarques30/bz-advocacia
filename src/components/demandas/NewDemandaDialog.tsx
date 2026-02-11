@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { useCreateDemanda } from "@/hooks/useDemandas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef, useEffect } from "react";
+import { Search, X, User } from "lucide-react";
 
 interface NewDemandaDialogProps {
   open: boolean;
@@ -37,6 +39,12 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
   });
   const createDemanda = useCreateDemanda();
 
+  const [clienteSearch, setClienteSearch] = useState('');
+  const [selectedClienteId, setSelectedClienteId] = useState<string | null>(null);
+  const [selectedClienteNome, setSelectedClienteNome] = useState('');
+  const [showClienteDropdown, setShowClienteDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-demandas'],
     queryFn: async () => {
@@ -45,25 +53,96 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
         .select('id, nome_completo')
         .eq('ativo', true)
         .order('nome_completo');
-      
       if (error) throw error;
       return data;
     },
   });
 
+  const { data: clientes } = useQuery({
+    queryKey: ['clientes-demandas', clienteSearch],
+    queryFn: async () => {
+      const query = supabase
+        .from('contact_submissions')
+        .select('id, nome_completo')
+        .eq('estagio', 'fechado')
+        .order('nome_completo')
+        .limit(20);
+      if (clienteSearch.length >= 2) {
+        query.ilike('nome_completo', `%${clienteSearch}%`);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+    enabled: clienteSearch.length >= 2,
+  });
+
   const { data: processos } = useQuery({
-    queryKey: ['processos-demandas'],
+    queryKey: ['processos-demandas-cliente', selectedClienteId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('processos')
         .select('id, numero_processo, tipo')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
+        .eq('lead_id', selectedClienteId!)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data;
     },
+    enabled: !!selectedClienteId,
   });
+
+  // Handle defaultProcessoId: pre-select client
+  useEffect(() => {
+    if (defaultProcessoId && open) {
+      supabase
+        .from('processos')
+        .select('id, lead_id, numero_processo, tipo')
+        .eq('id', defaultProcessoId)
+        .single()
+        .then(({ data }) => {
+          if (data?.lead_id) {
+            supabase
+              .from('contact_submissions')
+              .select('id, nome_completo')
+              .eq('id', data.lead_id)
+              .single()
+              .then(({ data: cliente }) => {
+                if (cliente) {
+                  setSelectedClienteId(cliente.id);
+                  setSelectedClienteNome(cliente.nome_completo);
+                  setValue('processo_id', defaultProcessoId);
+                }
+              });
+          }
+        });
+    }
+  }, [defaultProcessoId, open, setValue]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowClienteDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleSelectCliente = (id: string, nome: string) => {
+    setSelectedClienteId(id);
+    setSelectedClienteNome(nome);
+    setClienteSearch('');
+    setShowClienteDropdown(false);
+    setValue('processo_id', '');
+  };
+
+  const handleClearCliente = () => {
+    setSelectedClienteId(null);
+    setSelectedClienteNome('');
+    setClienteSearch('');
+    setValue('processo_id', '');
+  };
 
   const onSubmit = (data: FormData) => {
     createDemanda.mutate({
@@ -80,6 +159,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
     }, {
       onSuccess: () => {
         reset();
+        handleClearCliente();
         onOpenChange(false);
       },
     });
@@ -170,21 +250,75 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
             </div>
           </div>
 
+          {/* Cliente search + Processo selection */}
           <div className="space-y-2">
-            <Label>Processo Relacionado</Label>
-            <Select onValueChange={(value) => setValue('processo_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um processo (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sem_processo">Nenhum processo</SelectItem>
-                {processos?.map((processo) => (
-                  <SelectItem key={processo.id} value={processo.id}>
-                    {processo.numero_processo || processo.tipo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Cliente / Processo Relacionado</Label>
+            {selectedClienteId ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 rounded-md border border-input bg-muted/50 px-3 py-2 text-sm">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1">{selectedClienteNome}</span>
+                  <button type="button" onClick={handleClearCliente} className="text-muted-foreground hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <Select onValueChange={(value) => setValue('processo_id', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o processo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sem_processo">Nenhum processo</SelectItem>
+                    {processos?.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.numero_processo || p.tipo}
+                      </SelectItem>
+                    ))}
+                    {processos?.length === 0 && (
+                      <div className="px-2 py-3 text-sm text-muted-foreground text-center">
+                        Nenhum processo encontrado para este cliente
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="relative" ref={dropdownRef}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Digite o nome do cliente..."
+                    value={clienteSearch}
+                    onChange={(e) => {
+                      setClienteSearch(e.target.value);
+                      setShowClienteDropdown(e.target.value.length >= 2);
+                    }}
+                    onFocus={() => {
+                      if (clienteSearch.length >= 2) setShowClienteDropdown(true);
+                    }}
+                    className="pl-9"
+                  />
+                </div>
+                {showClienteDropdown && clientes && clientes.length > 0 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md max-h-[200px] overflow-y-auto">
+                    {clientes.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleSelectCliente(c.id, c.nome_completo)}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground"
+                      >
+                        {c.nome_completo}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showClienteDropdown && clientes && clientes.length === 0 && clienteSearch.length >= 2 && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md px-3 py-3 text-sm text-muted-foreground text-center">
+                    Nenhum cliente encontrado
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
