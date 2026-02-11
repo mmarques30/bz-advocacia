@@ -708,6 +708,7 @@ export type Database = {
           created_by: string | null
           data: string
           descricao: string
+          despesa_fixa_id: string | null
           forma_pagamento: string | null
           id: string
           observacoes: string | null
@@ -724,6 +725,7 @@ export type Database = {
           created_by?: string | null
           data: string
           descricao: string
+          despesa_fixa_id?: string | null
           forma_pagamento?: string | null
           id?: string
           observacoes?: string | null
@@ -740,6 +742,7 @@ export type Database = {
           created_by?: string | null
           data?: string
           descricao?: string
+          despesa_fixa_id?: string | null
           forma_pagamento?: string | null
           id?: string
           observacoes?: string | null
@@ -750,6 +753,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "despesas_despesa_fixa_id_fkey"
+            columns: ["despesa_fixa_id"]
+            isOneToOne: false
+            referencedRelation: "despesas_fixas"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "despesas_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -757,6 +767,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      despesas_fixas: {
+        Row: {
+          ativa: boolean | null
+          categoria: string
+          conta: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string
+          dia_vencimento: number
+          id: string
+          observacoes: string | null
+          valor: number
+        }
+        Insert: {
+          ativa?: boolean | null
+          categoria: string
+          conta?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao: string
+          dia_vencimento?: number
+          id?: string
+          observacoes?: string | null
+          valor: number
+        }
+        Update: {
+          ativa?: boolean | null
+          categoria?: string
+          conta?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string
+          dia_vencimento?: number
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Relationships: []
       }
       documentos_drive: {
         Row: {

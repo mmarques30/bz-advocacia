@@ -215,6 +215,7 @@ export interface Despesa {
   updated_at: string;
   created_by: string | null;
   conta: string | null;
+  despesa_fixa_id?: string | null;
   
   // Relações
   processo?: {
@@ -222,6 +223,19 @@ export interface Despesa {
     numero_processo: string | null;
     tipo: string;
   };
+}
+
+export interface DespesaFixa {
+  id: string;
+  descricao: string;
+  valor: number;
+  categoria: string;
+  conta: string | null;
+  dia_vencimento: number;
+  ativa: boolean;
+  observacoes: string | null;
+  created_at: string;
+  created_by: string | null;
 }
 
 export interface DespesasFilters {

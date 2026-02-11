@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Eye, Trash2, ChevronDown, ChevronUp, CalendarClock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
@@ -111,12 +111,20 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
                   {format(new Date(despesa.data), "dd/MM/yyyy", { locale: ptBR })}
                 </TableCell>
                 <TableCell>
-                  <div>
-                    <p className="font-medium">{despesa.descricao}</p>
-                    {despesa.processo && (
-                      <p className="text-xs text-muted-foreground">
-                        Processo: {despesa.processo.numero_processo || despesa.processo.tipo}
-                      </p>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <p className="font-medium">{despesa.descricao}</p>
+                      {despesa.processo && (
+                        <p className="text-xs text-muted-foreground">
+                          Processo: {despesa.processo.numero_processo || despesa.processo.tipo}
+                        </p>
+                      )}
+                    </div>
+                    {despesa.despesa_fixa_id && (
+                      <Badge variant="outline" className="text-xs gap-1 shrink-0">
+                        <CalendarClock className="h-3 w-3" />
+                        Fixa
+                      </Badge>
                     )}
                   </div>
                 </TableCell>

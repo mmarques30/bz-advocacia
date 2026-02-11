@@ -22,6 +22,7 @@ import { AcordoDetailsDialog } from "@/components/financeiro/AcordoDetailsDialog
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
+import { DespesasFixasManager } from "@/components/financeiro/despesas/DespesasFixasManager";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
 import { TransacoesKPIs } from "@/components/financeiro/transacoes/TransacoesKPIs";
 import { TransacoesCharts } from "@/components/financeiro/transacoes/TransacoesCharts";
@@ -166,6 +167,7 @@ export default function Financeiro() {
 
         {/* Aba Despesas */}
         <TabsContent value="despesas" className="space-y-6">
+          <DespesasFixasManager />
           <DespesasAlerts />
           
           <div className="flex items-start gap-4">
