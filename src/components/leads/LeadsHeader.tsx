@@ -1,8 +1,16 @@
 import { Plus, Search, Filter, Table2, LayoutGrid, Upload, ChevronDown, FileSpreadsheet, Table } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LeadsHeaderProps {
   view: 'table' | 'kanban';
@@ -23,6 +32,8 @@ interface LeadsHeaderProps {
   activeFiltersCount: number;
   isClienteTab?: boolean;
   hideViewToggle?: boolean;
+  clienteFilterId?: string | null;
+  onClienteFilterChange?: (id: string | null) => void;
 }
 
 export function LeadsHeader({
@@ -37,7 +48,24 @@ export function LeadsHeader({
   activeFiltersCount,
   isClienteTab = false,
   hideViewToggle = false,
+  clienteFilterId,
+  onClienteFilterChange,
 }: LeadsHeaderProps) {
+  const [clientes, setClientes] = useState<{ id: string; nome_completo: string }[]>([]);
+
+  useEffect(() => {
+    if (!isClienteTab) return;
+    const fetchClientes = async () => {
+      const { data } = await supabase
+        .from('contact_submissions')
+        .select('id, nome_completo')
+        .eq('estagio', 'fechado')
+        .order('nome_completo');
+      if (data) setClientes(data);
+    };
+    fetchClientes();
+  }, [isClienteTab]);
+
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-center gap-3 flex-1 min-w-[300px]">
@@ -70,6 +98,25 @@ export function LeadsHeader({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {isClienteTab && onClienteFilterChange && (
+          <Select
+            value={clienteFilterId || "all"}
+            onValueChange={(v) => onClienteFilterChange(v === "all" ? null : v)}
+          >
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os clientes</SelectItem>
+              {clientes.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome_completo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
