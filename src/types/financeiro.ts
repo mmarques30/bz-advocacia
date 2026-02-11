@@ -268,20 +268,12 @@ export const STATUS_DESPESA_LABELS: Record<StatusDespesa, string> = {
 };
 
 export type TipoRelatorio = 
-  | 'receitas_periodo'
+  | 'consolidado_contador'
   | 'inadimplencia_detalhada'
-  | 'fluxo_caixa_projetado'
-  | 'performance_tipo_processo'
-  | 'performance_cliente'
-  | 'despesas_periodo'
-  | 'despesas_categoria';
+  | 'fluxo_caixa_projetado';
 
 export const TIPOS_RELATORIO_LABELS: Record<TipoRelatorio, string> = {
-  receitas_periodo: 'Receitas do Período',
+  consolidado_contador: 'Relatório para Contador',
   inadimplencia_detalhada: 'Inadimplência Detalhada',
   fluxo_caixa_projetado: 'Fluxo de Caixa Projetado',
-  performance_tipo_processo: 'Performance por Tipo de Processo',
-  performance_cliente: 'Performance por Cliente',
-  despesas_periodo: 'Despesas do Período',
-  despesas_categoria: 'Despesas por Categoria',
 };

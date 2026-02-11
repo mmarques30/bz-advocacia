@@ -101,35 +101,52 @@ export function exportToExcel(data: any[], filename: string) {
     return;
   }
 
-  // Converter para TSV (Tab-Separated Values) para melhor compatibilidade com Excel
-  const headers = Object.keys(data[0]);
-  const tsvContent = [
-    headers.join("\t"),
-    ...data.map((row) =>
-      headers.map((header) => {
-        const value = row[header];
-        // Converter para string e escapar tabs
-        return String(value || "").replace(/\t/g, " ");
-      }).join("\t")
-    ),
-  ].join("\n");
+  // Usar xlsx para gerar Excel real
+  import("xlsx").then((XLSX) => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Dados");
+    XLSX.writeFile(wb, `${filename}-${new Date().toISOString().split("T")[0]}.xlsx`);
 
-  // Criar arquivo e fazer download com BOM para UTF-8
-  const BOM = "\uFEFF";
-  const blob = new Blob([BOM + tsvContent], { type: "application/vnd.ms-excel;charset=utf-8;" });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  
-  link.setAttribute("href", url);
-  link.setAttribute("download", `${filename}-${new Date().toISOString().split("T")[0]}.xls`);
-  link.style.visibility = "hidden";
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    toast({
+      title: "Exportado com sucesso",
+      description: `Arquivo ${filename}.xlsx foi baixado`,
+    });
+  });
+}
 
-  toast({
-    title: "Exportado com sucesso",
-    description: `Arquivo ${filename}.xls foi baixado`,
+export interface ExcelSheet {
+  name: string;
+  data: any[];
+  colWidths?: number[];
+}
+
+export function exportToExcelMultiSheet(sheets: ExcelSheet[], filename: string) {
+  if (!sheets || sheets.length === 0) {
+    toast({
+      title: "Sem dados",
+      description: "Não há dados para exportar",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  import("xlsx").then((XLSX) => {
+    const wb = XLSX.utils.book_new();
+
+    sheets.forEach((sheet) => {
+      const ws = XLSX.utils.json_to_sheet(sheet.data);
+      if (sheet.colWidths) {
+        ws["!cols"] = sheet.colWidths.map((w) => ({ wch: w }));
+      }
+      XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+    });
+
+    XLSX.writeFile(wb, `${filename}-${new Date().toISOString().split("T")[0]}.xlsx`);
+
+    toast({
+      title: "Exportado com sucesso",
+      description: `Arquivo ${filename}.xlsx foi baixado`,
+    });
   });
 }
