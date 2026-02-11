@@ -144,19 +144,7 @@ export function UserPendenciasCards({ data, loading }: UserPendenciasCardsProps)
     data.processos.total;
 
   if (totalPendencias === 0) {
-    return (
-      <Card className="bg-success/5 border-success/20">
-        <CardContent className="py-8 text-center">
-          <CheckCircle className="h-12 w-12 mx-auto text-success mb-3" />
-          <p className="text-lg font-semibold text-success">
-            Parabéns! Você está em dia.
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Nenhuma pendência urgente no momento.
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   return (
