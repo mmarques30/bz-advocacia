@@ -77,6 +77,13 @@ export interface KPIsFinanceiros {
   valor_atrasado: number;
   taxa_inadimplencia: number;
   ticket_medio: number;
+  projecao: number;
+}
+
+export interface ProjetadoVsRealizado {
+  mes: string;
+  realizado: number;
+  projetado: number;
 }
 
 export interface ReceitaMensal {

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, Area, AreaChart } from "recharts";
-import { useFluxoCaixa, useDistribuicaoTipo } from "@/hooks/useFinanceiro";
+import { useFluxoCaixa, useDistribuicaoTipo, useProjetadoVsRealizado } from "@/hooks/useFinanceiro";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -34,6 +34,7 @@ const mapResponsavel = (codigo: string): string => {
 export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
   const { data: fluxoCaixa } = useFluxoCaixa(filters);
   const { data: distribuicao } = useDistribuicaoTipo(filters);
+  const { data: projetadoVsRealizado } = useProjetadoVsRealizado();
 
   const getPeriodoLabel = () => {
     if (filters?.dateRange?.from && filters?.dateRange?.to) {
@@ -146,6 +147,44 @@ export function FaturamentoCharts({ filters }: FaturamentoChartsProps) {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Projetado vs Realizado</span>
+            <span className="text-xs font-normal text-muted-foreground">Últimos 12 meses</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {projetadoVsRealizado && projetadoVsRealizado.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={projetadoVsRealizado} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} className="text-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number, name: string) => [
+                    formatCurrencyFull(value),
+                    name === 'realizado' ? 'Realizado' : 'Projetado',
+                  ]}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                  }}
+                />
+                <Legend formatter={(value) => (value === 'realizado' ? 'Realizado' : 'Projetado')} />
+                <Bar dataKey="realizado" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="projetado" fill="hsl(var(--chart-4))" radius={[4, 4, 0, 0]} opacity={0.6} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+              Nenhum dado disponível
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
