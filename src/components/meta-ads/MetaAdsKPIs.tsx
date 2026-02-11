@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, DollarSign, Users, Target, MousePointerClick, Eye } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Users, Target, MousePointerClick, Eye, BarChart3 } from "lucide-react";
 import { MetaKPIs } from "@/types/meta-ads";
 
 interface MetaAdsKPIsProps {
@@ -7,6 +7,8 @@ interface MetaAdsKPIsProps {
 }
 
 export function MetaAdsKPIs({ kpis, isLoading }: MetaAdsKPIsProps) {
+  const roi = kpis.gasto > 0 ? ((((kpis.leads || 0) * (kpis.custoLead || 0)) - kpis.gasto) / kpis.gasto * 100) : 0;
+
   const cards = [
     {
       title: "Investimento",
@@ -43,12 +45,19 @@ export function MetaAdsKPIs({ kpis, isLoading }: MetaAdsKPIsProps) {
       icon: Eye,
       color: "text-muted-foreground",
     },
+    {
+      title: "ROI Estimado",
+      value: `${roi.toFixed(1)}%`,
+      variacao: 0,
+      icon: BarChart3,
+      color: "text-muted-foreground",
+    },
   ];
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {[...Array(5)].map((_, i) => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        {[...Array(6)].map((_, i) => (
           <div key={i} className="rounded-lg border bg-card p-6 animate-pulse">
             <div className="h-4 bg-muted rounded w-2/3 mb-4"></div>
             <div className="h-8 bg-muted rounded w-full mb-2"></div>
@@ -60,7 +69,7 @@ export function MetaAdsKPIs({ kpis, isLoading }: MetaAdsKPIsProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
       {cards.map((card) => {
         const Icon = card.icon;
         const isPositive = card.variacao > 0;
