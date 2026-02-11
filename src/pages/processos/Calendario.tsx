@@ -104,16 +104,23 @@ export default function ProcessosCalendario() {
     return items.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
   }, [prazos, demandas, rotinas]);
 
-  // Group by date
+  // Filter by type (for calendar + dialog)
+  const itensFiltradosPorTipo = useMemo(() => {
+    if (filtroTipo === "todos") return todosItens;
+    const tipoSingular = filtroTipo.slice(0, -1) as CalendarioItem["tipo"];
+    return todosItens.filter(item => item.tipo === tipoSingular);
+  }, [todosItens, filtroTipo]);
+
+  // Group by date (uses type-filtered items)
   const itensPorData = useMemo(() => {
     const mapa = new Map<string, CalendarioItem[]>();
-    todosItens.forEach((item) => {
+    itensFiltradosPorTipo.forEach((item) => {
       const key = format(new Date(item.data), "yyyy-MM-dd");
       const existing = mapa.get(key) || [];
       mapa.set(key, [...existing, item]);
     });
     return mapa;
-  }, [todosItens]);
+  }, [itensFiltradosPorTipo]);
 
   // Classify dates for calendar modifiers
   const { diasUrgentes, diasAlerta, diasNormais, diasCumpridos, diasTarefa, diasRotina } = useMemo(() => {
@@ -149,10 +156,9 @@ export default function ProcessosCalendario() {
     return { diasUrgentes: urgentes, diasAlerta: alerta, diasNormais: normais, diasCumpridos: cumpridos, diasTarefa: tarefa, diasRotina: rotina };
   }, [itensPorData]);
 
-  // Filtered items for list
+  // Filtered items for list (type already filtered, apply status)
   const itensFiltrados = useMemo(() => {
-    return todosItens.filter((item) => {
-      if (filtroTipo !== "todos" && item.tipo !== filtroTipo.slice(0, -1)) return false;
+    return itensFiltradosPorTipo.filter((item) => {
       const dias = item.diasRestantes ?? 0;
       const isVencido = item.status === "pendente" && dias < 0;
       switch (filtroStatus) {
@@ -162,7 +168,7 @@ export default function ProcessosCalendario() {
         default: return true;
       }
     });
-  }, [todosItens, filtroStatus, filtroTipo]);
+  }, [itensFiltradosPorTipo, filtroStatus]);
 
   const itensDoDialog = useMemo(() => {
     if (!selectedDate) return [];
