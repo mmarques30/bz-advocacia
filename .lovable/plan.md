@@ -1,143 +1,98 @@
 
-# Plano: Gerenciamento de Listas Suspensas na Area Administrativa
+
+# Plano: Projecao de Faturamento vs. Realizado
 
 ## Resumo
 
-Criar uma pagina administrativa para gerenciar todas as listas suspensas (dropdowns) do sistema. As opcoes serao armazenadas no banco de dados, permitindo que as advogadas adicionem, editem e removam opcoes sem necessidade de alteracao de codigo.
+Quando um contrato e fechado, o valor entra no financeiro como **Projecao de Faturamento** (nao como receita confirmada). Somente quando o pagamento e confirmado manualmente (via "Registrar Pagamento" nas parcelas) o valor passa a ser **Receita Realizada**. Isso evita contabilizar como receita o que ainda nao entrou no caixa.
 
-## Listas a serem gerenciadas
+## Situacao Atual
 
-1. **Origem de Leads** - google, facebook, instagram, tiktok, linkedin, indicacao, site, whatsapp_bot, outro
-2. **Tipo de Processo** - Divorcio Consensual, Divorcio Litigioso, Inventario, Pensao Alimenticia, Uniao Estavel, Outro
-3. **Categoria de Despesas** - aluguel_condominio, salarios_encargos, honorarios_terceiros, etc.
-4. **Categoria de Tarefas** - processos, vendas, pagamentos, administrativo, geral
+- Ao fechar contrato, o sistema cria um acordo financeiro (`acordos_financeiros`) com parcelas (`parcelas_financeiras`) com status `pendente`
+- Os KPIs ja distinguem parcialmente: "Receita do Mes" soma parcelas pagas + transacoes importadas, e "A Receber" soma parcelas pendentes
+- Porem nao ha conceito explicito de "Projecao" vindo de contratos fechados
+- Os graficos e widgets nao mostram visao separada Projetado vs Realizado
 
-## Alteracoes
+## O que precisa mudar
 
-### 1. Migracao de banco de dados
+### 1. KPIs de Faturamento - Adicionar "Projecao" (`FaturamentoKPIs.tsx`)
 
-Criar tabela `opcoes_sistema` com as colunas:
-- `id` (uuid, PK)
-- `grupo` (text) - identifica qual dropdown (ex: 'origem_lead', 'tipo_processo', 'categoria_despesa', 'categoria_tarefa')
-- `valor` (text) - valor interno/codigo (ex: 'google', 'facebook')
-- `label` (text) - texto exibido ao usuario (ex: 'Google', 'Facebook')
-- `ordem` (integer) - ordem de exibicao
-- `ativo` (boolean, default true) - permite desativar sem excluir
-- `created_at` (timestamptz)
+Adicionar um novo KPI card: **"Projecao"** que soma o valor total dos acordos ativos com parcelas pendentes (valores de contratos fechados que ainda nao foram pagos).
 
-Inserir os valores atuais como seed inicial.
+Layout passa de 4 para 5 KPIs:
+- Receita Realizada (parcelas pagas + transacoes importadas - como ja funciona)
+- Projecao (valor total de parcelas pendentes de acordos ativos)
+- A Receber (parcelas pendentes com vencimento no periodo - ja existe)
+- Em Atraso (parcelas vencidas nao pagas - ja existe)
+- Ticket Medio (ja existe)
 
-RLS: somente usuarios autenticados podem ler; somente admins podem modificar.
+### 2. Hook `useKPIsFinanceiros` - Calcular projecao (`useFinanceiro.ts`)
 
-### 2. Hook `useOpcoesSistema` (`src/hooks/useOpcoesSistema.ts`)
+Adicionar campo `projecao` no retorno dos KPIs:
+- Somar `valor_total` de todos os acordos com status `ativo` que possuem parcelas com status `pendente`
+- Ou somar o valor das parcelas pendentes diretamente (mais preciso, pois parcelas parcialmente pagas serao descontadas)
 
-- Query para buscar opcoes por grupo
-- Mutations para criar, atualizar, reordenar e desativar opcoes
-- Cache por grupo com invalidacao seletiva
+Adicionar ao tipo `KPIsFinanceiros` em `types/financeiro.ts`.
 
-### 3. Pagina administrativa (`src/pages/configuracoes/ListasSuspensas.tsx`)
+### 3. Grafico Projetado vs Realizado (`FaturamentoCharts.tsx`)
 
-- Interface com abas para cada grupo de opcoes
-- Cada aba mostra uma lista de opcoes com:
-  - Campo de label editavel inline
-  - Valor/codigo (somente leitura apos criacao)
-  - Toggle ativo/inativo
-  - Botao para excluir (somente se nao estiver em uso)
-  - Botao para adicionar nova opcao
-  - Drag-and-drop para reordenar (usando dnd-kit ja instalado)
+Adicionar um novo grafico de barras agrupadas mostrando por mes:
+- Barra verde: **Realizado** (parcelas pagas no mes)
+- Barra azul tracejada: **Projetado** (parcelas pendentes com vencimento no mes)
 
-### 4. Rota e navegacao
+Hook novo `useProjetadoVsRealizado` em `useFinanceiro.ts` que retorna array mensal com ambos os valores.
 
-- Nova rota: `/dashboard/configuracoes/listas`
-- Adicionar no sidebar em "Administrativo": "Listas do Sistema"
-- Adicionar card na pagina index de configuracoes
+### 4. Fluxo de Criacao de Acordo via Contrato
 
-### 5. Integracao com componentes existentes
+O fluxo atual ja funciona corretamente:
+1. Contrato emitido -> Lead vira "Fechado" (automacao ja implementada)
+2. Acordo criado -> Parcelas criadas com status `pendente` (ja funciona)
+3. Confirmacao manual via "Registrar Pagamento" -> Parcela muda para `pago` (ja funciona)
 
-Atualizar os seguintes componentes para consumir opcoes do banco em vez de constantes hardcoded:
-
-- `NewLeadDialog.tsx` - dropdown de origem
-- `LeadsFilters.tsx` - checkboxes de origem
-- `DemandasFilters.tsx` - dropdown de categoria
-- `NewDemandaDialog.tsx` - dropdown de categoria
-- `NewDespesaDialog.tsx` - dropdown de categoria de despesa
-- `DespesasGlobalFilters.tsx` - dropdown de categoria de despesa
-
-Os tipos TypeScript (`LeadOrigem`, `CategoriaDespesa`, etc.) continuam existindo como fallback, mas a fonte primaria passa a ser o banco.
+**Nenhuma mudanca necessaria no fluxo de criacao.** A unica mudanca e na **visualizacao**, para deixar claro que parcelas pendentes sao projecao e nao receita.
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| Migracao SQL | Criar tabela `opcoes_sistema` + seed com valores atuais + RLS |
-| `src/hooks/useOpcoesSistema.ts` | Novo hook para CRUD de opcoes |
-| `src/pages/configuracoes/ListasSuspensas.tsx` | Nova pagina de gerenciamento |
-| `src/App.tsx` | Adicionar rota `/dashboard/configuracoes/listas` |
-| `src/components/AppSidebar.tsx` | Adicionar link "Listas do Sistema" no menu Administrativo |
-| `src/pages/configuracoes/index.tsx` | Adicionar card de acesso |
-| `src/components/leads/NewLeadDialog.tsx` | Consumir opcoes do banco para origem |
-| `src/components/leads/LeadsFilters.tsx` | Consumir opcoes do banco para origem |
-| `src/components/demandas/DemandasFilters.tsx` | Consumir opcoes do banco para categoria |
-| `src/components/demandas/NewDemandaDialog.tsx` | Consumir opcoes do banco para categoria |
-| `src/components/financeiro/despesas/NewDespesaDialog.tsx` | Consumir opcoes do banco para categoria despesa |
-| `src/components/financeiro/DespesasGlobalFilters.tsx` | Consumir opcoes do banco para categoria despesa |
+| `src/types/financeiro.ts` | Adicionar `projecao` ao tipo `KPIsFinanceiros` |
+| `src/hooks/useFinanceiro.ts` | Calcular projecao nos KPIs + novo hook `useProjetadoVsRealizado` |
+| `src/components/financeiro/FaturamentoKPIs.tsx` | Adicionar card de Projecao |
+| `src/components/financeiro/FaturamentoCharts.tsx` | Adicionar grafico Projetado vs Realizado |
 
 ## Detalhes Tecnicos
 
-**Estrutura da tabela:**
+**Novo campo em KPIsFinanceiros:**
 ```text
-opcoes_sistema (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  grupo TEXT NOT NULL,           -- 'origem_lead', 'tipo_processo', 'categoria_despesa', 'categoria_tarefa'
-  valor TEXT NOT NULL,           -- codigo interno (ex: 'google')
-  label TEXT NOT NULL,           -- texto visivel (ex: 'Google')
-  ordem INTEGER DEFAULT 0,
-  ativo BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(grupo, valor)
-)
+projecao: number  // soma das parcelas pendentes de acordos ativos
 ```
 
-**Seed inicial (exemplo):**
+**Calculo da projecao no hook:**
 ```text
-INSERT INTO opcoes_sistema (grupo, valor, label, ordem) VALUES
-  ('origem_lead', 'google', 'Google', 1),
-  ('origem_lead', 'facebook', 'Facebook', 2),
-  ('origem_lead', 'instagram', 'Instagram', 3),
-  ...
-  ('tipo_processo', 'divorcio_consensual', 'Divórcio Consensual', 1),
-  ...
-  ('categoria_despesa', 'aluguel_condominio', 'Aluguel e Condomínio', 1),
-  ...
-  ('categoria_tarefa', 'processos', 'Processos', 1),
-  ...
+projecao = parcelas
+  .filter(p => p.status === 'pendente')
+  .reduce((sum, p) => sum + p.valor, 0)
 ```
 
-**Hook de consumo nos componentes:**
+**Hook useProjetadoVsRealizado:**
 ```text
-const { data: origensLead } = useOpcoesSistema('origem_lead');
-// retorna: [{ valor: 'google', label: 'Google' }, ...]
-// Usado no <SelectItem value={opcao.valor}>{opcao.label}</SelectItem>
+Para cada mes nos ultimos 12 meses:
+  - realizado = parcelas pagas no mes (valor_pago)
+  - projetado = parcelas pendentes com vencimento no mes (valor)
+Retorna: [{ mes: "Jan/25", realizado: 5000, projetado: 12000 }, ...]
 ```
 
-**Interface da pagina:**
+**Novo grafico (barras agrupadas):**
 ```text
-Abas: [Origem de Leads] [Tipo de Processo] [Categoria de Despesas] [Categoria de Tarefas]
-
-Cada aba:
-+--------------------------------------------------+
-| Label              | Codigo    | Ativo | Acoes    |
-|--------------------+-----------+-------+----------|
-| Google             | google    |  [x]  | Editar   |
-| Facebook           | facebook  |  [x]  | Editar   |
-| Instagram          | instagram |  [x]  | Editar   |
-+--------------------------------------------------+
-[+ Adicionar nova opcao]
+[Barra Verde: Realizado] [Barra Azul Pontilhada: Projetado]
+  Jan     Fev     Mar     Abr     Mai
 ```
 
 ## Resultado
 
-- Administradoras podem adicionar, editar e desativar opcoes de dropdowns sem mexer no codigo
-- Novas origens de lead, tipos de processo e categorias aparecem automaticamente em todos os formularios e filtros
-- Opcoes desativadas deixam de aparecer em novos cadastros mas nao afetam registros existentes
-- Dados historicos permanecem integros mesmo apos remocao de opcoes
+- Contratos fechados entram como projecao, nao como receita
+- Confirmacao manual de pagamento transforma projecao em receita realizada
+- KPIs mostram claramente: quanto ja entrou vs quanto se espera receber
+- Grafico visual facilita acompanhar a conversao de projecao em receita real
+- Nenhuma mudanca no fluxo operacional - apenas na visualizacao dos dados
+
