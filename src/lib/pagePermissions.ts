@@ -31,7 +31,6 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
       { key: "gestao_clientes.clientes", label: "Clientes", parent: "gestao_clientes" },
       { key: "gestao_clientes.documentos", label: "Documentos", parent: "gestao_clientes" },
       { key: "gestao_clientes.processos", label: "Processos", parent: "gestao_clientes" },
-      { key: "gestao_clientes.relatorios", label: "Relatórios Vendas", parent: "gestao_clientes" },
     ],
   },
   {
@@ -62,7 +61,15 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
     children: [
       { key: "financeiro.analises", label: "Análises", parent: "financeiro" },
       { key: "financeiro.pagamentos", label: "Pagamentos", parent: "financeiro" },
-      { key: "financeiro.relatorios", label: "Relatórios Financeiros", parent: "financeiro" },
+    ],
+  },
+  {
+    key: "relatorios",
+    label: "Relatórios",
+    description: "Relatórios de vendas e financeiros",
+    children: [
+      { key: "relatorios.vendas", label: "Vendas", parent: "relatorios" },
+      { key: "relatorios.financeiro", label: "Financeiro", parent: "relatorios" },
     ],
   },
   {
@@ -88,7 +95,7 @@ export const ROUTE_TO_PERMISSION: Record<string, string> = {
   "/dashboard/clientes": "gestao_clientes.clientes",
   "/dashboard/documentos": "gestao_clientes.documentos",
   "/dashboard/processos": "gestao_clientes.processos",
-  "/dashboard/vendas/relatorios": "gestao_clientes.relatorios",
+  "/dashboard/vendas/relatorios": "relatorios.vendas",
   "/dashboard/processos/demandas": "gestao_rotinas.tarefas",
   "/dashboard/processos/calendario": "gestao_rotinas.prazos",
   "/dashboard/pesquisas": "pesquisas.visao_geral",
@@ -98,7 +105,7 @@ export const ROUTE_TO_PERMISSION: Record<string, string> = {
   "/dashboard/pesquisas/historico": "pesquisas.historico",
   "/dashboard/financeiro": "financeiro.analises",
   "/dashboard/financeiro/pagamentos": "financeiro.pagamentos",
-  "/dashboard/financeiro/relatorios": "financeiro.relatorios",
+  "/dashboard/financeiro/relatorios": "relatorios.financeiro",
   "/dashboard/configuracoes/perfil": "administrativo.perfil",
   "/dashboard/configuracoes/usuarios": "administrativo.usuarios",
   "/dashboard/configuracoes/whatsapp-templates": "administrativo.modelos_chat",

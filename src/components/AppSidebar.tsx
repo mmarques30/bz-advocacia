@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Search,
   TrendingUp,
+  FileBarChart,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,7 +72,6 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Clientes", url: "/dashboard/clientes" },
       { title: "Documentos", url: "/dashboard/documentos" },
-      { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
     ]
   },
   {
@@ -102,7 +102,15 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Análises", url: "/dashboard/financeiro" },
       { title: "Pagamentos", url: "/dashboard/financeiro/pagamentos" },
-      { title: "Relatórios Financeiros", url: "/dashboard/financeiro/relatorios" },
+    ]
+  },
+  {
+    title: "Relatorios",
+    label: "Relatórios",
+    icon: FileBarChart,
+    submenu: [
+      { title: "Vendas", url: "/dashboard/vendas/relatorios" },
+      { title: "Financeiro", url: "/dashboard/financeiro/relatorios" },
     ]
   },
   {
