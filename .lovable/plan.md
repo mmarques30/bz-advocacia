@@ -1,98 +1,114 @@
 
 
-# Plano: Projecao de Faturamento vs. Realizado
+# Plano: Edicao Individual de Status de Parcelas
 
 ## Resumo
 
-Quando um contrato e fechado, o valor entra no financeiro como **Projecao de Faturamento** (nao como receita confirmada). Somente quando o pagamento e confirmado manualmente (via "Registrar Pagamento" nas parcelas) o valor passa a ser **Receita Realizada**. Isso evita contabilizar como receita o que ainda nao entrou no caixa.
+Melhorar o dialog de detalhes do acordo para permitir edicao completa de cada parcela: alterar status (pendente/pago), editar valor, e filtrar parcelas por status.
 
 ## Situacao Atual
 
-- Ao fechar contrato, o sistema cria um acordo financeiro (`acordos_financeiros`) com parcelas (`parcelas_financeiras`) com status `pendente`
-- Os KPIs ja distinguem parcialmente: "Receita do Mes" soma parcelas pagas + transacoes importadas, e "A Receber" soma parcelas pendentes
-- Porem nao ha conceito explicito de "Projecao" vindo de contratos fechados
-- Os graficos e widgets nao mostram visao separada Projetado vs Realizado
+- `AcordoDetailsDialog` exibe parcelas em tabela com botao "Registrar" para pendentes
+- `RegistrarPagamentoDialog` permite marcar como pago com data, valor e forma de pagamento
+- Nao ha como reverter uma parcela de "pago" para "pendente"
+- Nao ha como editar o valor previsto de uma parcela
+- Nao ha filtro de parcelas por status dentro do dialog
+- Hook `useUpdateParcela` ja existe e suporta atualizacoes parciais
 
-## O que precisa mudar
+## Alteracoes
 
-### 1. KPIs de Faturamento - Adicionar "Projecao" (`FaturamentoKPIs.tsx`)
+### 1. Filtro de parcelas no dialog (`AcordoDetailsDialog.tsx`)
 
-Adicionar um novo KPI card: **"Projecao"** que soma o valor total dos acordos ativos com parcelas pendentes (valores de contratos fechados que ainda nao foram pagos).
+Adicionar barra de filtro acima da tabela de parcelas com 4 opcoes:
+- **Todas** (padrao)
+- **A Receber** (status pendente, nao vencida)
+- **Recebidas** (status pago)
+- **Atrasadas** (status pendente, vencida)
 
-Layout passa de 4 para 5 KPIs:
-- Receita Realizada (parcelas pagas + transacoes importadas - como ja funciona)
-- Projecao (valor total de parcelas pendentes de acordos ativos)
-- A Receber (parcelas pendentes com vencimento no periodo - ja existe)
-- Em Atraso (parcelas vencidas nao pagas - ja existe)
-- Ticket Medio (ja existe)
+Implementar como toggle group ou botoes com contadores.
 
-### 2. Hook `useKPIsFinanceiros` - Calcular projecao (`useFinanceiro.ts`)
+### 2. Edicao inline de valor (`AcordoDetailsDialog.tsx`)
 
-Adicionar campo `projecao` no retorno dos KPIs:
-- Somar `valor_total` de todos os acordos com status `ativo` que possuem parcelas com status `pendente`
-- Ou somar o valor das parcelas pendentes diretamente (mais preciso, pois parcelas parcialmente pagas serao descontadas)
+Na coluna "Valor" da tabela de parcelas:
+- Exibir icone de edicao (lapiz) ao lado do valor
+- Ao clicar, campo se torna editavel (input number)
+- Ao confirmar (Enter ou blur), salva via `useUpdateParcela`
+- Se o valor for diferente do original, exibir indicador visual (tooltip ou texto menor com valor original)
 
-Adicionar ao tipo `KPIsFinanceiros` em `types/financeiro.ts`.
+### 3. Acoes expandidas por parcela (`AcordoDetailsDialog.tsx`)
 
-### 3. Grafico Projetado vs Realizado (`FaturamentoCharts.tsx`)
+Coluna de acoes com dropdown menu:
+- **Parcela pendente**: "Registrar Pagamento" (abre dialog existente) + "Editar Valor"
+- **Parcela paga**: "Desfazer Pagamento" (volta para pendente, limpa data_pagamento e valor_pago) + "Ver Detalhes do Pagamento"
 
-Adicionar um novo grafico de barras agrupadas mostrando por mes:
-- Barra verde: **Realizado** (parcelas pagas no mes)
-- Barra azul tracejada: **Projetado** (parcelas pendentes com vencimento no mes)
+### 4. Mutation para desfazer pagamento (`useParcelas.ts`)
 
-Hook novo `useProjetadoVsRealizado` em `useFinanceiro.ts` que retorna array mensal com ambos os valores.
+Novo hook `useDesfazerPagamento`:
+- Atualiza parcela: status = 'pendente', data_pagamento = null, valor_pago = null
+- Remove entrada correspondente do historico_pagamentos
+- Invalida caches relevantes
 
-### 4. Fluxo de Criacao de Acordo via Contrato
+### 5. Dialog de edicao de valor (`EditParcelaValorDialog.tsx`)
 
-O fluxo atual ja funciona corretamente:
-1. Contrato emitido -> Lead vira "Fechado" (automacao ja implementada)
-2. Acordo criado -> Parcelas criadas com status `pendente` (ja funciona)
-3. Confirmacao manual via "Registrar Pagamento" -> Parcela muda para `pago` (ja funciona)
-
-**Nenhuma mudanca necessaria no fluxo de criacao.** A unica mudanca e na **visualizacao**, para deixar claro que parcelas pendentes sao projecao e nao receita.
+Novo dialog simples:
+- Campo com valor atual
+- Campo com novo valor
+- Motivo da alteracao (opcional)
+- Salva via `useUpdateParcela`
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/types/financeiro.ts` | Adicionar `projecao` ao tipo `KPIsFinanceiros` |
-| `src/hooks/useFinanceiro.ts` | Calcular projecao nos KPIs + novo hook `useProjetadoVsRealizado` |
-| `src/components/financeiro/FaturamentoKPIs.tsx` | Adicionar card de Projecao |
-| `src/components/financeiro/FaturamentoCharts.tsx` | Adicionar grafico Projetado vs Realizado |
+| `src/components/financeiro/AcordoDetailsDialog.tsx` | Adicionar filtro de status + acoes expandidas + edicao inline |
+| `src/hooks/useParcelas.ts` | Adicionar `useDesfazerPagamento` |
+| `src/components/financeiro/EditParcelaValorDialog.tsx` | Novo dialog para editar valor da parcela |
 
 ## Detalhes Tecnicos
 
-**Novo campo em KPIsFinanceiros:**
+**Filtro de parcelas (estado local no dialog):**
 ```text
-projecao: number  // soma das parcelas pendentes de acordos ativos
+const [statusFilter, setStatusFilter] = useState<'todas' | 'a_receber' | 'recebidas' | 'atrasadas'>('todas');
+
+parcelasFiltradas = acordo.parcelas.filter(p => {
+  if (statusFilter === 'recebidas') return p.status === 'pago';
+  if (statusFilter === 'a_receber') return p.status === 'pendente' && new Date(p.data_vencimento) >= new Date();
+  if (statusFilter === 'atrasadas') return p.status !== 'pago' && new Date(p.data_vencimento) < new Date();
+  return true;
+});
 ```
 
-**Calculo da projecao no hook:**
+**useDesfazerPagamento:**
 ```text
-projecao = parcelas
-  .filter(p => p.status === 'pendente')
-  .reduce((sum, p) => sum + p.valor, 0)
+1. UPDATE parcelas_financeiras SET status='pendente', data_pagamento=null, valor_pago=null WHERE id=parcelaId
+2. DELETE FROM historico_pagamentos WHERE parcela_id=parcelaId
+3. Invalidar queries: parcelas, acordo-detalhes, acordos-financeiros, kpis-financeiros, projetado-vs-realizado
 ```
 
-**Hook useProjetadoVsRealizado:**
+**Acoes por status:**
 ```text
-Para cada mes nos ultimos 12 meses:
-  - realizado = parcelas pagas no mes (valor_pago)
-  - projetado = parcelas pendentes com vencimento no mes (valor)
-Retorna: [{ mes: "Jan/25", realizado: 5000, projetado: 12000 }, ...]
+Pendente (nao vencida):
+  - [Registrar Pagamento] (abre RegistrarPagamentoDialog)
+  - [Editar Valor] (abre EditParcelaValorDialog)
+
+Pendente (vencida/atrasada):
+  - [Registrar Pagamento]
+  - [Editar Valor]
+
+Pago:
+  - [Desfazer Pagamento] (com confirmacao)
+  - [Editar Valor]
 ```
 
-**Novo grafico (barras agrupadas):**
+**Contadores nos filtros:**
 ```text
-[Barra Verde: Realizado] [Barra Azul Pontilhada: Projetado]
-  Jan     Fev     Mar     Abr     Mai
+[Todas (12)] [A Receber (5)] [Recebidas (4)] [Atrasadas (3)]
 ```
 
 ## Resultado
 
-- Contratos fechados entram como projecao, nao como receita
-- Confirmacao manual de pagamento transforma projecao em receita realizada
-- KPIs mostram claramente: quanto ja entrou vs quanto se espera receber
-- Grafico visual facilita acompanhar a conversao de projecao em receita real
-- Nenhuma mudanca no fluxo operacional - apenas na visualizacao dos dados
-
+- Visualizacao completa de todas as parcelas de um contrato com filtros por status
+- Edicao individual do valor previsto de cada parcela
+- Marcacao de parcela como recebida com data e valor (ja existia)
+- Possibilidade de desfazer um pagamento registrado por engano
+- Filtros rapidos para ver somente pendentes, recebidas ou atrasadas
