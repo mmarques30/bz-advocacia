@@ -159,12 +159,23 @@ export function useProjetadoVsRealizado(meses: number = 12) {
   return useQuery({
     queryKey: ["projetado-vs-realizado", meses],
     queryFn: async (): Promise<ProjetadoVsRealizado[]> => {
-      const { data: parcelas } = await supabase
-        .from("parcelas_financeiras")
+      // Buscar receitas reais de transacoes_financeiras
+      const { data: transacoes } = await supabase
+        .from("transacoes_financeiras")
         .select("*")
         .limit(10000);
 
-      if (!parcelas) return [];
+      // Buscar parcelas pagas
+      const { data: parcelas } = await supabase
+        .from("parcelas_financeiras")
+        .select("*")
+        .eq("status", "pago")
+        .limit(10000);
+
+      // Buscar metas mensais
+      const { data: metas } = await supabase
+        .from("metas_mensais")
+        .select("*");
 
       const hoje = new Date();
       const resultado: ProjetadoVsRealizado[] = [];
@@ -173,22 +184,33 @@ export function useProjetadoVsRealizado(meses: number = 12) {
         const data = subMonths(hoje, i);
         const inicio = startOfMonth(data);
         const fim = endOfMonth(data);
+        const mesNum = data.getMonth() + 1;
+        const anoNum = data.getFullYear();
 
-        const realizado = parcelas
+        // Realizado: transações de receita + parcelas pagas
+        const receitaTransacoes = (transacoes || [])
+          .filter(t => {
+            if (!t.data_transacao) return false;
+            const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
+            if (!tipoReceita) return false;
+            const dt = new Date(t.data_transacao);
+            return dt >= inicio && dt <= fim;
+          })
+          .reduce((sum, t) => sum + (t.valor || 0), 0);
+
+        const receitaParcelas = (parcelas || [])
           .filter(p => {
-            if (p.status !== 'pago' || !p.data_pagamento) return false;
+            if (!p.data_pagamento) return false;
             const dp = new Date(p.data_pagamento);
             return dp >= inicio && dp <= fim;
           })
           .reduce((sum, p) => sum + (p.valor_pago || 0), 0);
 
-        const projetado = parcelas
-          .filter(p => {
-            if (p.status !== 'pendente') return false;
-            const dv = new Date(p.data_vencimento);
-            return dv >= inicio && dv <= fim;
-          })
-          .reduce((sum, p) => sum + p.valor, 0);
+        const realizado = receitaTransacoes + receitaParcelas;
+
+        // Projetado: buscar da tabela metas_mensais
+        const meta = (metas || []).find(m => m.mes === mesNum && m.ano === anoNum);
+        const projetado = meta ? Number(meta.valor) : 0;
 
         resultado.push({
           mes: format(data, "MMM/yy"),

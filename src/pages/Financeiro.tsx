@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useClearTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
-import { AcordosTable } from "@/components/financeiro/AcordosTable";
 import { FaturamentoTable } from "@/components/financeiro/FaturamentoTable";
 import { NewEntradaFaturamentoDialog } from "@/components/financeiro/NewEntradaFaturamentoDialog";
 import { AcordoDetailsDialog } from "@/components/financeiro/AcordoDetailsDialog";
@@ -41,6 +40,8 @@ import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGl
 import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
 import { HistoricoFilters, getDefaultHistoricoFilters, type HistoricoFiltersState } from "@/components/financeiro/historico/HistoricoFilters";
 import { HistoricoTable } from "@/components/financeiro/historico/HistoricoTable";
+import { FaturamentoProjecaoTab } from "@/components/financeiro/FaturamentoProjecaoTab";
+import { DespesasProjecaoTab } from "@/components/financeiro/DespesasProjecaoTab";
 import type { AcordosFilters } from "@/types/financeiro";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 
@@ -49,33 +50,21 @@ export default function Financeiro() {
   const [selectedAcordoId, setSelectedAcordoId] = useState<string | null>(null);
   const [pagamentoParcelaId, setPagamentoParcelaId] = useState<string | null>(null);
   
-  // Estados para despesas
   const [newDespesaOpen, setNewDespesaOpen] = useState(false);
   const [selectedDespesaId, setSelectedDespesaId] = useState<string | null>(null);
 
-  // Estados para transações (Visão Geral) - SEM FILTRO PADRÃO
   const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
 
-  // Estados para filtros globais e dialogs de importação
   const [faturamentoFilters, setFaturamentoFilters] = useState<FaturamentoFiltersState>(getDefaultFaturamentoFilters());
   const [importFaturamentoOpen, setImportFaturamentoOpen] = useState(false);
   
   const [despesasGlobalFilters, setDespesasGlobalFilters] = useState<DespesasGlobalFiltersState>(getDefaultDespesasGlobalFilters());
   const [importDespesasOpen, setImportDespesasOpen] = useState(false);
 
-  // Estados para Histórico
   const [historicoFilters, setHistoricoFilters] = useState<HistoricoFiltersState>(getDefaultHistoricoFilters());
 
-  // Estado para dialog de limpar dados
   const [clearDataOpen, setClearDataOpen] = useState(false);
   const clearTransacoes = useClearTransacoes();
-
-  // Converter filtros globais para filtros de tabela
-  const acordosFiltersFromGlobal: AcordosFilters = {
-    search: faturamentoFilters.cliente !== "todos" ? faturamentoFilters.cliente : undefined,
-    status: faturamentoFilters.status !== "todos" ? [faturamentoFilters.status as any] : undefined,
-    tipo_servico: faturamentoFilters.tipoServico !== "todos" ? faturamentoFilters.tipoServico : undefined,
-  };
 
   const handleClearData = () => {
     clearTransacoes.mutate();
@@ -141,71 +130,97 @@ export default function Financeiro() {
           <TransacoesTable filters={transacoesFilters} />
         </TabsContent>
 
-        {/* Aba Faturamento - Acordos e Receitas */}
+        {/* Aba Faturamento com sub-abas */}
         <TabsContent value="faturamento" className="space-y-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" onClick={() => setImportFaturamentoOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Importar
-              </Button>
-              <Button onClick={() => setNewEntradaOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Entrada
-              </Button>
-            </div>
-          </div>
-          
-          <FaturamentoKPIs filters={faturamentoFilters} />
-          <FaturamentoCharts filters={faturamentoFilters} />
-          <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
-          
-          <CreditosCondicionaisSection />
-          
-          <FaturamentoTable filters={faturamentoFilters} />
+          <Tabs defaultValue="lancamentos">
+            <TabsList className="mb-4">
+              <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
+              <TabsTrigger value="projecao">Projeção</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="lancamentos" className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button variant="outline" onClick={() => setImportFaturamentoOpen(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Importar
+                  </Button>
+                  <Button onClick={() => setNewEntradaOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Entrada
+                  </Button>
+                </div>
+              </div>
+              
+              <FaturamentoKPIs filters={faturamentoFilters} />
+              <FaturamentoCharts filters={faturamentoFilters} />
+              <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
+              
+              <CreditosCondicionaisSection />
+              
+              <FaturamentoTable filters={faturamentoFilters} />
+            </TabsContent>
+
+            <TabsContent value="projecao" className="space-y-6">
+              <FaturamentoProjecaoTab filters={faturamentoFilters} />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        {/* Aba Despesas */}
+        {/* Aba Despesas com sub-abas */}
         <TabsContent value="despesas" className="space-y-6">
-          <DespesasFixasManager />
-          <DespesasAlerts />
-          
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
-            </div>
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" onClick={() => setImportDespesasOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Importar
-              </Button>
-              <Button onClick={() => setNewDespesaOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Despesa
-              </Button>
-            </div>
-          </div>
-          
-          <DespesasKPIs filters={despesasGlobalFilters} />
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            <DespesasCharts filters={despesasGlobalFilters} />
-            <DespesasWidgets filters={despesasGlobalFilters} />
-          </div>
-          
-          <DespesasTable 
-            filters={{
-              categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
-              status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
-            }}
-            onSelectDespesa={setSelectedDespesaId}
-          />
+          <Tabs defaultValue="lancamentos">
+            <TabsList className="mb-4">
+              <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
+              <TabsTrigger value="projecao">Projeção</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="lancamentos" className="space-y-6">
+              <DespesasFixasManager />
+              <DespesasAlerts />
+              
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button variant="outline" onClick={() => setImportDespesasOpen(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Importar
+                  </Button>
+                  <Button onClick={() => setNewDespesaOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nova Despesa
+                  </Button>
+                </div>
+              </div>
+              
+              <DespesasKPIs filters={despesasGlobalFilters} />
+              
+              <div className="grid gap-6 md:grid-cols-2">
+                <DespesasCharts filters={despesasGlobalFilters} />
+                <DespesasWidgets filters={despesasGlobalFilters} />
+              </div>
+              
+              <DespesasTable 
+                filters={{
+                  categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
+                  status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
+                }}
+                onSelectDespesa={setSelectedDespesaId}
+              />
+            </TabsContent>
+
+            <TabsContent value="projecao" className="space-y-6">
+              <DespesasProjecaoTab />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        {/* Aba Histórico - Todas as transações importadas */}
+        {/* Aba Histórico */}
         <TabsContent value="historico" className="space-y-6">
           <HistoricoFilters filters={historicoFilters} onChange={setHistoricoFilters} />
           
@@ -224,54 +239,14 @@ export default function Financeiro() {
         </TabsContent>
       </Tabs>
 
-      {/* Dialogs de Faturamento */}
-      <NewEntradaFaturamentoDialog 
-        open={newEntradaOpen}
-        onClose={() => setNewEntradaOpen(false)}
-      />
-
-      <AcordoDetailsDialog 
-        acordoId={selectedAcordoId}
-        open={!!selectedAcordoId}
-        onClose={() => setSelectedAcordoId(null)}
-        onRegistrarPagamento={setPagamentoParcelaId}
-      />
-
-      <RegistrarPagamentoDialog 
-        parcelaId={pagamentoParcelaId}
-        open={!!pagamentoParcelaId}
-        onClose={() => setPagamentoParcelaId(null)}
-      />
-
-      <ImportFaturamentoDialog
-        open={importFaturamentoOpen}
-        onClose={() => setImportFaturamentoOpen(false)}
-        onSuccess={(ano) => {
-          setTransacoesFilters(prev => ({ ...prev, anos: [ano], dataInicio: undefined, dataFim: undefined }));
-          setHistoricoFilters(prev => ({ ...prev, ano }));
-        }}
-      />
-
-      {/* Dialogs de Despesas */}
-      <NewDespesaDialog 
-        open={newDespesaOpen}
-        onClose={() => setNewDespesaOpen(false)}
-      />
-
-      <DespesaDetailsDialog 
-        despesaId={selectedDespesaId}
-        open={!!selectedDespesaId}
-        onClose={() => setSelectedDespesaId(null)}
-      />
-
-      <ImportDespesasDialog
-        open={importDespesasOpen}
-        onClose={() => setImportDespesasOpen(false)}
-        onSuccess={(ano) => {
-          setTransacoesFilters(prev => ({ ...prev, anos: [ano], dataInicio: undefined, dataFim: undefined }));
-          setHistoricoFilters(prev => ({ ...prev, ano }));
-        }}
-      />
+      {/* Dialogs */}
+      <NewEntradaFaturamentoDialog open={newEntradaOpen} onClose={() => setNewEntradaOpen(false)} />
+      <AcordoDetailsDialog acordoId={selectedAcordoId} open={!!selectedAcordoId} onClose={() => setSelectedAcordoId(null)} onRegistrarPagamento={setPagamentoParcelaId} />
+      <RegistrarPagamentoDialog parcelaId={pagamentoParcelaId} open={!!pagamentoParcelaId} onClose={() => setPagamentoParcelaId(null)} />
+      <ImportFaturamentoDialog open={importFaturamentoOpen} onClose={() => setImportFaturamentoOpen(false)} onSuccess={(ano) => { setTransacoesFilters(prev => ({ ...prev, anos: [ano], dataInicio: undefined, dataFim: undefined })); setHistoricoFilters(prev => ({ ...prev, ano })); }} />
+      <NewDespesaDialog open={newDespesaOpen} onClose={() => setNewDespesaOpen(false)} />
+      <DespesaDetailsDialog despesaId={selectedDespesaId} open={!!selectedDespesaId} onClose={() => setSelectedDespesaId(null)} />
+      <ImportDespesasDialog open={importDespesasOpen} onClose={() => setImportDespesasOpen(false)} onSuccess={(ano) => { setTransacoesFilters(prev => ({ ...prev, anos: [ano], dataInicio: undefined, dataFim: undefined })); setHistoricoFilters(prev => ({ ...prev, ano })); }} />
     </div>
   );
 }
