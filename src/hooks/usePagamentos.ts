@@ -27,6 +27,7 @@ export interface ItemVencimento {
   descricao: string;
   valor: number;
   data_vencimento: string;
+  origem: "despesas" | "transacoes" | "parcelas";
 }
 
 export function useDespesasAtrasadas() {
@@ -177,6 +178,7 @@ export function useProximosVencimentos(dias: number = 7) {
           descricao: d.descricao,
           valor: Number(d.valor),
           data_vencimento: d.data,
+          origem: "despesas",
         });
       });
 
@@ -207,6 +209,7 @@ export function useProximosVencimentos(dias: number = 7) {
             : `Parcela ${p.numero_parcela}`,
           valor: p.valor,
           data_vencimento: p.data_vencimento,
+          origem: "parcelas",
         });
       });
 
@@ -226,6 +229,7 @@ export function useProximosVencimentos(dias: number = 7) {
           descricao: t.descricao || "Despesa",
           valor: Number(t.valor),
           data_vencimento: t.data_transacao || hojeStr,
+          origem: "transacoes",
         });
       });
 
@@ -245,6 +249,7 @@ export function useProximosVencimentos(dias: number = 7) {
           descricao: t.descricao || t.subcategoria_codigo || "Receita",
           valor: Number(t.valor),
           data_vencimento: t.data_transacao || hojeStr,
+          origem: "transacoes",
         });
       });
 
