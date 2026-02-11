@@ -1,114 +1,66 @@
 
-# Plano: Modelos por Tipo de Acao + Duplicacao + Biblioteca Organizada
+# Plano: Automatizar Status do Lead ao Enviar Proposta
 
 ## Resumo
 
-Reorganizar a tela de Modelos para funcionar como uma biblioteca organizada por categoria/tipo de acao, com filtro por categoria, funcionalidade de duplicar modelos existentes (tanto padrao quanto personalizados) como base para novos, e integracao dos modelos personalizados nos seletores de contrato e proposta.
+Quando uma proposta for gerada pelo sistema (via formulario de Proposta ou Contrato), o status (`estagio`) do lead associado sera automaticamente atualizado para `proposta_enviada`, junto com registro de atividade no historico.
 
-## Situacao Atual
+## Pontos de Integracao
 
-- Modelos padrao sao hardcoded em `contratoTemplates.ts` (3 modelos: divorcio, indenizacao, adendo)
-- Modelos personalizados sao salvos na tabela `templates` via upload com IA
-- `GerarContratoForm` so lista modelos padrao no seletor (nao inclui personalizados)
-- `GerarPropostaForm` ja combina modelos padrao + personalizados
-- `TIPOS_CONTRATO` tem categorias limitadas (proposta, divorcio, indenizacao, curatela, inventario, trabalhista, previdenciario, outro)
-- Nao existe funcao de duplicar modelo
+Existem dois fluxos que geram documentos vinculados a um lead:
+
+1. **GerarPropostaForm** (aba "Proposta") - insere diretamente no banco via `supabase.from('contratos_gerados').insert()`
+2. **GerarContratoForm** (aba "Contrato") - usa o hook `useCreateContrato`
+
+Ambos precisam atualizar o lead apos salvar com sucesso.
 
 ## Alteracoes
 
-### 1. Expandir categorias em `TIPOS_CONTRATO` (`src/types/contratos.ts`)
+### 1. `GerarPropostaForm.tsx` - Atualizar lead apos gerar proposta
 
-Adicionar tipos de acao mais especificos:
-- `execucao_alimentos` - Execucao de Alimentos
-- `revisional_alimentos` - Revisional de Alimentos
-- `guarda` - Guarda/Regulamentacao
-- `saude` - Acao de Saude
-- `consumidor` - Direito do Consumidor
-- `obrigacao_fazer` - Obrigacao de Fazer
+Apos a insercao bem-sucedida na tabela `contratos_gerados` (linha 130-144), adicionar:
 
-### 2. Filtro por categoria na biblioteca de modelos (`ModelosContrato.tsx`)
+- Update no `contact_submissions` setando `estagio = 'proposta_enviada'` e `data_ultima_atividade = now()`
+- Inserir registro na tabela `atividades` com tipo `proposta_enviada` e descricao adequada
+- Apenas atualizar se o estagio atual do lead for anterior a `proposta_enviada` (evitar regredir de `fechado`)
+- Invalidar query de leads para refletir a mudanca
 
-- Adicionar filtro horizontal (chips/tabs) no topo: "Todos", e depois cada categoria
-- Filtrar tanto modelos personalizados quanto padrao pela categoria selecionada
-- Contar quantos modelos existem por categoria
-- Manter layout de grid existente
+### 2. `GerarContratoForm.tsx` - Atualizar lead apos gerar contrato
 
-### 3. Botao "Duplicar" nos modelos (`ModelosContrato.tsx`)
+No callback `onSuccess` da geracao de contrato (apos salvar com sucesso), adicionar a mesma logica:
 
-**Modelos personalizados:**
-- Adicionar botao "Duplicar" (icone Copy) ao lado de Editar e Excluir
-- Ao clicar, cria copia do modelo no banco com nome "{nome} (copia)" via novo hook
+- Update do estagio do lead para `proposta_enviada`
+- Registro de atividade
+- Condicional: so atualiza se estagio atual nao for `fechado` ou `perdido`
 
-**Modelos padrao:**
-- Adicionar botao "Usar como Base" que cria um modelo personalizado a partir do padrao
-- Salva no banco como modelo editavel com o conteudo do template padrao
+### 3. Logica de protecao de status
 
-### 4. Hook `useDuplicarModelo` em `useModelosDocumentos.ts`
-
-Nova mutation que:
-- Recebe o modelo original (personalizado ou dados do padrao)
-- Insere novo registro na tabela `templates` com nome "(copia)" e mesmo conteudo
-- Invalida queries para atualizar listagem
-
-### 5. Incluir modelos personalizados no seletor de contratos (`GerarContratoForm.tsx`)
-
-- Combinar `MODELOS_CONTRATO` (padrao) com modelos personalizados do banco (tipo = 'contrato')
-- Usar `useModelosPersonalizados('contrato')` ja existente
-- No seletor, agrupar: primeiro personalizados, depois padrao
-- Ao selecionar modelo personalizado, usar o `servico_padrao` do JSON como template
-
-### 6. Auto-selecao de modelo por tipo de processo
-
-Quando o usuario seleciona um cliente no `GerarContratoForm`:
-- Verificar o `tipo_processo` do cliente
-- Buscar modelo personalizado que tenha categoria compativel
-- Se encontrar, pre-selecionar o modelo automaticamente
+Para nao regredir um lead que ja esta em estagio mais avancado, a atualizacao so ocorrera se o estagio atual estiver em: `novo`, `contato_inicial`, `em_analise`. Se ja estiver em `proposta_enviada`, `fechado` ou `perdido`, o status nao sera alterado.
 
 ## Arquivos Envolvidos
 
 | Arquivo | Acao |
 |---------|------|
-| `src/types/contratos.ts` | Expandir `TIPOS_CONTRATO` com novos tipos de acao |
-| `src/components/documentos/ModelosContrato.tsx` | Filtro por categoria + botao Duplicar + botao Usar como Base |
-| `src/hooks/useModelosDocumentos.ts` | Novo hook `useDuplicarModelo` |
-| `src/components/documentos/GerarContratoForm.tsx` | Incluir modelos personalizados no seletor |
+| `src/components/documentos/GerarPropostaForm.tsx` | Adicionar update de status do lead e registro de atividade apos salvar proposta |
+| `src/components/documentos/GerarContratoForm.tsx` | Adicionar update de status do lead e registro de atividade apos salvar contrato |
 
 ## Detalhes Tecnicos
 
-**Filtro por categoria:**
+Logica a ser adicionada apos salvar com sucesso (em ambos os formularios):
+
 ```text
-Estado local: categoriaFiltro (string | 'todos')
-Filtragem: modelosPersonalizados.filter(m => categoriaFiltro === 'todos' || m.categoria === categoriaFiltro)
-Mesmo para modelos padrao: MODELOS_CONTRATO.filter(m => categoriaFiltro === 'todos' || m.tipo === categoriaFiltro)
+1. Buscar estagio atual do lead: SELECT estagio FROM contact_submissions WHERE id = clienteId
+2. Se estagio in ('novo', 'contato_inicial', 'em_analise'):
+   - UPDATE contact_submissions SET estagio = 'proposta_enviada', data_ultima_atividade = now() WHERE id = clienteId
+   - INSERT INTO atividades (tipo, descricao, entidade_tipo, entidade_id) VALUES ('proposta_enviada', 'Proposta gerada automaticamente pelo sistema', 'lead', clienteId)
+3. Invalidar queryKey ['leads']
 ```
 
-**Duplicacao de modelo personalizado:**
-```text
-INSERT INTO templates (nome, tipo, categoria, conteudo, descricao, ativo, variaveis)
-VALUES ('{nome} (cópia)', tipo, categoria, conteudo, descricao, true, variaveis)
-```
-
-**Duplicacao de modelo padrao (Usar como Base):**
-```text
-Montar ModeloConteudo com servico_padrao = modelo.template
-INSERT INTO templates com tipo = 'contrato', categoria = modelo.tipo
-```
-
-**Integracao no GerarContratoForm:**
-```text
-const todosModelosContrato = useMemo(() => {
-  const modelosDB = modelosPersonalizados.map(m => ({
-    id: m.id, nome: m.nome, tipo: m.categoria, template: parsed.servico_padrao, isCustom: true
-  }));
-  return [...modelosDB, ...MODELOS_CONTRATO.map(m => ({ ...m, isCustom: false }))];
-}, [modelosPersonalizados]);
-```
+Nenhuma migracao de banco necessaria - as tabelas `contact_submissions` e `atividades` ja existem com os campos necessarios.
 
 ## Resultado
 
-- Biblioteca de modelos organizada por categoria com filtros visuais
-- Novos tipos de acao especificos disponiveis
-- Duplicar qualquer modelo como base para criar variacao
-- Modelos padrao podem ser copiados para edicao
-- Seletor de contratos inclui modelos personalizados
-- Auto-selecao de modelo baseada no tipo de processo do cliente
+- Ao gerar uma proposta, o lead muda automaticamente para "Proposta Enviada"
+- Ao gerar um contrato, o mesmo comportamento se aplica
+- Leads em estagios avancados (fechado/perdido) nao sao regredidos
+- Atividade registrada no historico do lead para rastreabilidade
