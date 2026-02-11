@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { atualizarLeadParaPropostaEnviada } from "@/lib/leadStatusAutomation";
+import { atualizarLeadParaFechado } from "@/lib/leadStatusAutomation";
 import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { useCreateContrato } from "@/hooks/useContratos";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
@@ -220,7 +220,7 @@ export function GerarContratoForm() {
       });
 
       // Atualizar status do lead automaticamente
-      await atualizarLeadParaPropostaEnviada(clienteId, 'contrato', queryClient);
+      await atualizarLeadParaFechado(clienteId, queryClient);
 
       toast.success("PDF gerado e contrato salvo");
     } catch (error) {
