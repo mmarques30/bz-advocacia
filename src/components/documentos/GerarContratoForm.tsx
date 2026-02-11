@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -19,6 +21,7 @@ import { ValoresContrato, DadosContrato, DadosCliente } from "@/types/contratos"
 import { substituirVariaveis, extrairVariaveisFaltantes } from "@/lib/contratoUtils";
 import { ContratoPreview } from "./ContratoPreview";
 import { ComplementarDadosDialog } from "./ComplementarDadosDialog";
+import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
 import { Save, FileDown, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
@@ -44,6 +47,7 @@ export function GerarContratoForm() {
   const { data: leads, isLoading: loadingLeads } = useLeadsSimple();
   const { configuracoes, isLoading: loadingConfig } = useConfiguracoesEscritorio();
   const createContrato = useCreateContrato();
+  const { data: modelosCustom = [] } = useModelosPersonalizados('contrato');
 
   const [modeloId, setModeloId] = useState<string>("");
   const [clienteId, setClienteId] = useState<string>("");
@@ -63,13 +67,40 @@ export function GerarContratoForm() {
     data_contrato: new Date().toISOString().split('T')[0],
   });
 
+  // Combine custom + default models
+  const todosModelos = useMemo(() => {
+    const customFormatted = modelosCustom.map(m => {
+      let parsed: ModeloConteudo = { servico_padrao: '', tipo_modelo: 'contrato', fonte: 'upload_ia' };
+      try { parsed = JSON.parse(m.conteudo); } catch {}
+      return {
+        id: m.id,
+        nome: m.nome,
+        tipo: m.categoria || 'outro',
+        descricao: m.descricao || '',
+        template: parsed.servico_padrao,
+        isCustom: true,
+      };
+    });
+    const defaultFormatted = MODELOS_CONTRATO.map(m => ({ ...m, isCustom: false }));
+    return [...customFormatted, ...defaultFormatted];
+  }, [modelosCustom]);
+
   const clienteSelecionado = useMemo(() => {
     return leads?.find(l => l.id === clienteId);
   }, [leads, clienteId]);
 
   const modeloSelecionado = useMemo(() => {
-    return MODELOS_CONTRATO.find(m => m.id === modeloId);
-  }, [modeloId]);
+    return todosModelos.find(m => m.id === modeloId);
+  }, [modeloId, todosModelos]);
+
+  // Auto-select model based on client's tipo_processo
+  useEffect(() => {
+    if (!clienteSelecionado || modeloId) return;
+    const tipoProcesso = clienteSelecionado.tipo_processo;
+    if (!tipoProcesso) return;
+    const match = todosModelos.find(m => m.tipo === tipoProcesso);
+    if (match) setModeloId(match.id);
+  }, [clienteSelecionado, todosModelos, modeloId]);
 
   const dadosCliente: DadosCliente = useMemo(() => {
     if (!clienteSelecionado) return {} as DadosCliente;
@@ -209,11 +240,24 @@ export function GerarContratoForm() {
                 <SelectValue placeholder="Selecione um modelo" />
               </SelectTrigger>
               <SelectContent>
-                {MODELOS_CONTRATO.map((modelo) => (
-                  <SelectItem key={modelo.id} value={modelo.id}>
-                    {modelo.nome}
-                  </SelectItem>
-                ))}
+                {todosModelos.some(m => m.isCustom) && (
+                  <SelectGroup>
+                    <SelectLabel>Personalizados</SelectLabel>
+                    {todosModelos.filter(m => m.isCustom).map((modelo) => (
+                      <SelectItem key={modelo.id} value={modelo.id}>
+                        {modelo.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                <SelectGroup>
+                  <SelectLabel>Padrão</SelectLabel>
+                  {todosModelos.filter(m => !m.isCustom).map((modelo) => (
+                    <SelectItem key={modelo.id} value={modelo.id}>
+                      {modelo.nome}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>

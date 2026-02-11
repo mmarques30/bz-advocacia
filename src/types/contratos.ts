@@ -77,6 +77,12 @@ export const TIPOS_CONTRATO = [
   { value: 'inventario', label: 'Inventário' },
   { value: 'trabalhista', label: 'Trabalhista' },
   { value: 'previdenciario', label: 'Previdenciário' },
+  { value: 'execucao_alimentos', label: 'Execução de Alimentos' },
+  { value: 'revisional_alimentos', label: 'Revisional de Alimentos' },
+  { value: 'guarda', label: 'Guarda/Regulamentação' },
+  { value: 'saude', label: 'Ação de Saúde' },
+  { value: 'consumidor', label: 'Direito do Consumidor' },
+  { value: 'obrigacao_fazer', label: 'Obrigação de Fazer' },
   { value: 'outro', label: 'Outro' },
 ] as const;
 
