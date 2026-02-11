@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { DateRange } from "react-day-picker";
+import { CONTA_LABELS } from "@/types/financeiro";
 
 interface Props {
   filters: TFilters;
@@ -84,7 +85,8 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
     filters.dataFim ||
     filters.tipo_codigo ||
     filters.categoria_codigo ||
-    filters.subcategoria_codigo;
+    filters.subcategoria_codigo ||
+    filters.conta;
 
   const formatDateRange = () => {
     if (dateRange?.from) {
@@ -248,6 +250,28 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           {subcategorias?.map((sub) => (
             <SelectItem key={sub.codigo} value={sub.codigo}>
               {sub.nome}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filters.conta || "all"}
+        onValueChange={(value) =>
+          onFiltersChange({
+            ...filters,
+            conta: value === "all" ? undefined : value,
+          })
+        }
+      >
+        <SelectTrigger className="w-[160px]">
+          <SelectValue placeholder="Conta" />
+        </SelectTrigger>
+        <SelectContent className="z-50 bg-popover">
+          <SelectItem value="all">Todas as Contas</SelectItem>
+          {Object.entries(CONTA_LABELS).map(([value, label]) => (
+            <SelectItem key={value} value={value}>
+              {label}
             </SelectItem>
           ))}
         </SelectContent>

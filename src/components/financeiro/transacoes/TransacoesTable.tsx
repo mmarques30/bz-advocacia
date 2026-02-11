@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import type { TransacoesFilters, TransacaoFinanceira } from "@/types/transacoes";
+import { CONTA_LABELS } from "@/types/financeiro";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -111,6 +112,7 @@ export function TransacoesTable({ filters }: Props) {
               <TableHead>Tipo</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Subcategoria</TableHead>
+              <TableHead>Conta</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="w-[60px]">Ações</TableHead>
             </TableRow>
@@ -118,7 +120,7 @@ export function TransacoesTable({ filters }: Props) {
           <TableBody>
             {transacoesToShow?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   Nenhuma transação encontrada
                 </TableCell>
               </TableRow>
@@ -146,6 +148,11 @@ export function TransacoesTable({ filters }: Props) {
                   </TableCell>
                   <TableCell className="capitalize">
                     {transacao.subcategoria_codigo}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {CONTA_LABELS[transacao.conta || 'escritorio'] || 'Escritório'}
+                    </Badge>
                   </TableCell>
                   <TableCell
                     className={`text-right font-medium ${

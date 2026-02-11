@@ -19,12 +19,14 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useClientesReceitas } from "@/hooks/useClientesFinanceiros";
 import { DateRange } from "react-day-picker";
+import { CONTA_LABELS } from "@/types/financeiro";
 
 export interface FaturamentoFiltersState {
   cliente: string;
   dateRange: DateRange | undefined;
   status: string;
   tipoServico: string;
+  conta: string;
 }
 
 interface FaturamentoFiltersProps {
@@ -91,6 +93,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
       dateRange: undefined,
       status: "todos",
       tipoServico: "todos",
+      conta: "todos",
     });
   };
 
@@ -101,7 +104,8 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
     filters.dateRange?.from !== undefined || 
     filters.dateRange?.to !== undefined ||
     filters.status !== "todos" || 
-    filters.tipoServico !== "todos";
+    filters.tipoServico !== "todos" ||
+    filters.conta !== "todos";
 
   const getActiveFilterLabels = () => {
     const labels: string[] = [];
@@ -231,6 +235,23 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
           </SelectContent>
         </Select>
 
+        <Select
+          value={filters.conta}
+          onValueChange={(value) => handleChange("conta", value)}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Conta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todas as Contas</SelectItem>
+            {Object.entries(CONTA_LABELS).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4 mr-1" />
@@ -258,4 +279,5 @@ export const getDefaultFaturamentoFilters = (): FaturamentoFiltersState => ({
   dateRange: undefined,
   status: "todos",
   tipoServico: "todos",
+  conta: "todos",
 });

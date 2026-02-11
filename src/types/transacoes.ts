@@ -35,15 +35,17 @@ export interface TransacaoFinanceira {
   data_transacao: string | null;
   valor: number;
   created_at: string;
+  conta: string | null;
 }
 
 export interface TransacoesFilters {
-  anos?: number[];  // Array de anos selecionados (suporta multi-seleção)
+  anos?: number[];
   dataInicio?: Date;
   dataFim?: Date;
   tipo_codigo?: string;
   categoria_codigo?: string;
   subcategoria_codigo?: string;
+  conta?: string;
 }
 
 export interface ResumoMensal {

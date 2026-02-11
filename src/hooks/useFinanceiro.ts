@@ -127,6 +127,9 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
       if (filters?.tipoServico && filters.tipoServico !== "todos") {
         acordosQuery = acordosQuery.eq("tipo_servico", filters.tipoServico);
       }
+      if (filters?.conta && filters.conta !== "todos") {
+        acordosQuery = acordosQuery.eq("conta", filters.conta);
+      }
 
       const { data: acordos } = await acordosQuery;
 
@@ -753,6 +756,7 @@ interface FaturamentoDetalhadoItem {
   categoria: string | null;
   subcategoria: string | null;
   valor: number;
+  conta: string | null;
 }
 
 export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
@@ -792,6 +796,7 @@ export function useFaturamentoDetalhado(filters?: FaturamentoFiltersState) {
         categoria: t.categoria_codigo,
         subcategoria: t.subcategoria_codigo,
         valor: t.valor || 0,
+        conta: t.conta || null,
       }));
     },
   });

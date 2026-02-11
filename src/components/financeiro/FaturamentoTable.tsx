@@ -9,6 +9,7 @@ import { useFaturamentoDetalhado } from "@/hooks/useFinanceiro";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { CONTA_LABELS } from "@/types/financeiro";
 
 interface FaturamentoTableProps {
   filters?: FaturamentoFiltersState;
@@ -96,13 +97,14 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
               <TableHead>Descrição</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Subcategoria</TableHead>
+              <TableHead>Conta</TableHead>
               <TableHead className="text-right">Valor</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   Nenhum registro encontrado
                 </TableCell>
               </TableRow>
@@ -121,6 +123,11 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
                   <TableCell>
                     <Badge variant="secondary">
                       {item.subcategoria || "-"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {CONTA_LABELS[item.conta || 'escritorio'] || 'Escritório'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-semibold text-emerald-600">

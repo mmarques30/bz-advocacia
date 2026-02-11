@@ -12,7 +12,7 @@ import { Eye, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { useDespesas, useDeleteDespesa } from "@/hooks/useDespesas";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -99,6 +99,7 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
               <TableHead>Descrição</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Conta</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -129,6 +130,11 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
                     style: 'currency',
                     currency: 'BRL',
                   }).format(despesa.valor)}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">
+                    {CONTA_LABELS[despesa.conta || 'escritorio'] || 'Escritório'}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant={getStatusBadgeVariant(despesa.status)}>
