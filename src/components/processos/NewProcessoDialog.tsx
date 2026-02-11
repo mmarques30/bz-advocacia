@@ -37,16 +37,17 @@ type ProcessoFormData = z.infer<typeof processoSchema>;
 interface NewProcessoDialogProps {
   open: boolean;
   onClose: () => void;
+  clienteId?: string;
 }
 
-export function NewProcessoDialog({ open, onClose }: NewProcessoDialogProps) {
+export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialogProps) {
   const createProcesso = useCreateProcesso();
   const { data: clientes, isLoading: clientesLoading } = useClientes();
 
   const form = useForm<ProcessoFormData>({
     resolver: zodResolver(processoSchema),
     defaultValues: {
-      lead_id: "",
+      lead_id: clienteId || "",
       data_inicio: new Date(),
     },
   });
@@ -95,7 +96,7 @@ export function NewProcessoDialog({ open, onClose }: NewProcessoDialogProps) {
                     <User className="h-4 w-4" />
                     Cliente *
                   </FormLabel>
-                  <Select onValueChange={handleClienteChange} value={field.value}>
+                  <Select onValueChange={handleClienteChange} value={field.value} disabled={!!clienteId}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o cliente..." />

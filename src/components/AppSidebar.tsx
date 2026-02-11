@@ -72,7 +72,6 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Clientes", url: "/dashboard/clientes" },
       { title: "Documentos", url: "/dashboard/documentos" },
-      { title: "Processos", url: "/dashboard/processos" },
       { title: "Relatórios Vendas", url: "/dashboard/vendas/relatorios" },
     ]
   },
