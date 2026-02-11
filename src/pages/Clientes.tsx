@@ -12,6 +12,7 @@ import { LeadsFilters as LeadsFiltersType, Lead } from "@/types/leads";
 
 export default function Clientes() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
+  const [clienteFilterId, setClienteFilterId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [showNewLead, setShowNewLead] = useState(false);
   const [showImport, setShowImport] = useState(false);
@@ -41,6 +42,10 @@ export default function Clientes() {
   };
 
   const { data: leads, isLoading } = useLeads(leadsFilters);
+
+  const filteredLeads = clienteFilterId
+    ? leads?.filter((l) => l.id === clienteFilterId)
+    : leads;
 
   const activeFiltersCount = [
     clientesFilters.origem.length > 0,
@@ -87,18 +92,20 @@ export default function Clientes() {
         onSearchChange={(search) => setClientesFilters({ ...clientesFilters, search })}
         activeFiltersCount={activeFiltersCount}
         isClienteTab={true}
+        clienteFilterId={clienteFilterId}
+        onClienteFilterChange={setClienteFilterId}
       />
 
       {view === 'table' ? (
         <ClientesTable
-          leads={leads}
+          leads={filteredLeads}
           isLoading={isLoading}
           onViewDetails={handleViewDetails}
           onEdit={handleEdit}
         />
       ) : (
         <ClientesKanban
-          leads={leads}
+          leads={filteredLeads}
           isLoading={isLoading}
           onViewDetails={handleViewDetails}
         />
