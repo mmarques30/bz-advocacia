@@ -2,6 +2,7 @@ export type DemandaTipo = 'melhoria' | 'bug' | 'sugestao' | 'tarefa';
 export type DemandaPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
 export type DemandaStatus = 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';
 export type DemandaCategoria = 'processos' | 'vendas' | 'pagamentos' | 'administrativo' | 'geral';
+export type AdvogadaResponsavel = 'juliana' | 'liziane';
 
 export interface Demanda {
   id: string;
@@ -11,6 +12,7 @@ export interface Demanda {
   prioridade: DemandaPrioridade;
   status: DemandaStatus;
   categoria: DemandaCategoria;
+  advogada_responsavel: AdvogadaResponsavel;
   criado_por: string | null;
   responsavel_id: string | null;
   processo_id: string | null;
@@ -30,6 +32,7 @@ export interface DemandasFilters {
   status?: string;
   prioridade?: string;
   categoria?: string;
+  advogada_responsavel?: string;
   atrasadas?: boolean;
   search?: string;
 }
@@ -61,4 +64,9 @@ export const CATEGORIA_LABELS: Record<DemandaCategoria, string> = {
   pagamentos: 'Pagamentos',
   administrativo: 'Administrativo',
   geral: 'Geral',
+};
+
+export const ADVOGADA_LABELS: Record<AdvogadaResponsavel, string> = {
+  juliana: 'Juliana',
+  liziane: 'Liziane',
 };

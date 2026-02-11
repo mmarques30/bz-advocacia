@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical, Eye, Edit, Trash2, AlertCircle } from "lucide-react";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
 import { cn } from "@/lib/utils";
 
 interface DemandasTableProps {
@@ -57,6 +57,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
             <TableHead>Status</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead>Prazo</TableHead>
+            <TableHead>Advogada</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="w-[50px]"></TableHead>
           </TableRow>
@@ -64,7 +65,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
         <TableBody>
           {demandas.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                 Nenhuma demanda encontrada
               </TableCell>
             </TableRow>
@@ -107,6 +108,9 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                       ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
                       : '-'
                     }
+                  </TableCell>
+                  <TableCell>
+                    {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}
                   </TableCell>
                   <TableCell>
                     {demanda.responsavel?.nome_completo || '-'}

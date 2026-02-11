@@ -12,7 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
-import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
 import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +66,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
         prioridade: demanda.prioridade,
         status: demanda.status,
         categoria: demanda.categoria || 'geral',
+        advogada_responsavel: demanda.advogada_responsavel || 'juliana',
         responsavel_id: demanda.responsavel_id || 'sem_responsavel',
         processo_id: demanda.processo_id || 'sem_processo',
         data_limite: demanda.data_limite || '',
@@ -88,6 +89,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
       prioridade: data.prioridade,
       status: data.status,
       categoria: data.categoria,
+      advogada_responsavel: data.advogada_responsavel,
       responsavel_id: data.responsavel_id === 'sem_responsavel' ? null : data.responsavel_id || null,
       processo_id: data.processo_id === 'sem_processo' ? null : data.processo_id || null,
       data_limite: data.data_limite || null,
@@ -138,6 +140,10 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
             )}
 
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Advogada Responsável</Label>
+                <p className="text-sm mt-1">{ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}</p>
+              </div>
               <div>
                 <Label>Criado por</Label>
                 <p className="text-sm mt-1">{demanda.criador?.nome_completo || '-'}</p>
@@ -261,6 +267,19 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
             <div className="space-y-2">
               <Label htmlFor="data_limite">Data Limite</Label>
               <Input id="data_limite" type="date" {...register('data_limite')} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Advogada Responsável *</Label>
+              <Select onValueChange={(value) => setValue('advogada_responsavel', value)} value={watch('advogada_responsavel')}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="juliana">Juliana</SelectItem>
+                  <SelectItem value="liziane">Liziane</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
