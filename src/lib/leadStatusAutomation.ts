@@ -55,3 +55,49 @@ export async function atualizarLeadParaPropostaEnviada(
     console.error('Erro ao atualizar status do lead:', error);
   }
 }
+
+/**
+ * Atualiza o lead para 'fechado' e status_cliente 'ativo' ao emitir contrato.
+ * Aceita qualquer estágio exceto 'perdido' e 'fechado'.
+ */
+export async function atualizarLeadParaFechado(
+  clienteId: string,
+  queryClient: QueryClient
+) {
+  try {
+    const { data: lead, error: fetchError } = await supabase
+      .from('contact_submissions')
+      .select('estagio')
+      .eq('id', clienteId)
+      .single();
+
+    if (fetchError || !lead) return;
+
+    if (lead.estagio === 'perdido' || lead.estagio === 'fechado') return;
+
+    await supabase
+      .from('contact_submissions')
+      .update({
+        estagio: 'fechado',
+        status_cliente: 'ativo',
+        data_ultima_atividade: new Date().toISOString(),
+      })
+      .eq('id', clienteId);
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    await supabase.from('atividades').insert({
+      tipo: 'lead_convertido',
+      descricao: 'Contrato emitido - lead convertido em cliente',
+      entidade_tipo: 'lead',
+      entidade_id: clienteId,
+      usuario_id: user?.id || null,
+    });
+
+    queryClient.invalidateQueries({ queryKey: ['leads'] });
+    queryClient.invalidateQueries({ queryKey: ['leads-simple'] });
+    queryClient.invalidateQueries({ queryKey: ['lead-activities'] });
+  } catch (error) {
+    console.error('Erro ao atualizar lead para fechado:', error);
+  }
+}
