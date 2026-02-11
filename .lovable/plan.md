@@ -1,61 +1,60 @@
 
-# Plano: Conectar Tarefas aos Processos do Cliente
+# Plano: Corrigir RLS de Demandas para Todos os Usuarios Autenticados
 
-## Resumo
+## Problema Identificado
 
-Ao abrir os detalhes de um processo (via ficha do cliente ou pagina de processos), exibir uma nova aba "Tarefas" com todas as demandas vinculadas ao processo, separadas por status (agendadas, concluidas), e adicionar um resumo de esforco por processo.
+As politicas de RLS (Row Level Security) da tabela `demandas_internas` so permitem INSERT e UPDATE para usuarios com role `admin`. Usuarios sem essa role conseguem ver as demandas, mas recebem erro ao tentar criar ou alterar status.
 
-## Situacao Atual
+Politicas atuais:
+| Operacao | Politica | Quem pode |
+|----------|----------|-----------|
+| SELECT | `true` | Todos autenticados |
+| INSERT | `has_role(auth.uid(), 'admin')` | Somente admins |
+| UPDATE | `has_role(auth.uid(), 'admin')` | Somente admins |
+| DELETE | `has_role(auth.uid(), 'admin')` | Somente admins |
 
-- A tabela `demandas_internas` ja possui coluna `processo_id` (vinculo com processos)
-- O dialog de detalhes do processo (`ProcessoDetailsDialog`) tem 7 abas, mas nenhuma de tarefas
-- A aba "Andamentos" mostra timeline processual (audiencias, decisoes, etc.) -- isto e diferente de tarefas internas
+## Solucao
 
-## Alteracoes
+Ajustar as politicas de INSERT e UPDATE para permitir que qualquer usuario autenticado crie e atualize demandas, mantendo DELETE restrito a admins (ou ao criador da demanda).
 
-### 1. Migracao de Banco de Dados
-
-Adicionar coluna `horas_gastas` na tabela `demandas_internas` para registro de esforco por tarefa:
+### Migracao SQL
 
 ```sql
-ALTER TABLE demandas_internas ADD COLUMN horas_gastas numeric DEFAULT 0;
+-- Remover politicas restritivas
+DROP POLICY "Admins can insert demandas" ON demandas_internas;
+DROP POLICY "Admins can update demandas" ON demandas_internas;
+DROP POLICY "Admins can delete demandas" ON demandas_internas;
+
+-- INSERT: qualquer usuario autenticado
+CREATE POLICY "Authenticated users can insert demandas"
+  ON demandas_internas FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+-- UPDATE: admins ou o criador ou o responsavel
+CREATE POLICY "Users can update own or assigned demandas"
+  ON demandas_internas FOR UPDATE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR criado_por = auth.uid()
+    OR responsavel_id = auth.uid()
+  );
+
+-- DELETE: admins ou o criador
+CREATE POLICY "Admins or creator can delete demandas"
+  ON demandas_internas FOR DELETE
+  USING (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR criado_por = auth.uid()
+  );
 ```
-
-### 2. Novo Componente: `ProcessoTarefasTab.tsx`
-
-Criar `src/components/processos/tabs/ProcessoTarefasTab.tsx` que:
-
-- Recebe `processoId` como prop
-- Busca todas as demandas com `processo_id = processoId` via query direta ao banco
-- Exibe 3 secoes:
-  - **Tarefas Pendentes/Em Andamento**: cards com titulo, prioridade, responsavel, data limite
-  - **Tarefas Concluidas**: lista colapsavel com data de conclusao
-  - **Resumo de Esforco**: total de tarefas, concluidas, horas gastas (somatorio de `horas_gastas`)
-- Botao "Nova Tarefa" que abre o `NewDemandaDialog` com `processo_id` pre-preenchido
-
-### 3. Modificar `ProcessoDetailsDialog.tsx`
-
-- Importar o novo `ProcessoTarefasTab`
-- Adicionar aba "Tarefas" entre "Andamentos" e "Prazos"
-- Ajustar grid de 7 para 8 colunas no `TabsList`
-
-### 4. Modificar `ProcessoAndamentosTab.tsx`
-
-- Melhorar visual da timeline com icones por tipo de andamento (audiencia, decisao, etc.)
-- Adicionar indicador visual de timeline (linha vertical conectando os itens)
-
-## Arquivos Envolvidos
-
-| Arquivo | Acao |
-|---------|------|
-| Migracao SQL | Criar coluna `horas_gastas` |
-| `src/components/processos/tabs/ProcessoTarefasTab.tsx` | Novo componente |
-| `src/components/processos/ProcessoDetailsDialog.tsx` | Adicionar aba Tarefas |
-| `src/components/processos/tabs/ProcessoAndamentosTab.tsx` | Melhorar visual timeline |
 
 ## Resultado
 
-Ao clicar em um processo do cliente, o usuario vera:
-- **Aba Andamentos**: timeline processual (audiencias, decisoes, peticoes)
-- **Aba Tarefas** (nova): tarefas internas pendentes e concluidas vinculadas ao processo, com resumo de horas/esforco
-- Separacao clara entre movimentacao processual e tarefas de trabalho interno
+- Todos os usuarios autenticados poderao criar demandas
+- Usuarios poderao alterar status das demandas que criaram ou sao responsaveis
+- Admins continuam com acesso total
+- DELETE continua restrito a admins e ao criador da demanda
+
+## Detalhamento Tecnico
+
+Nenhuma alteracao de codigo frontend sera necessaria. O problema e exclusivamente de permissao no banco de dados. As funcoes `useCreateDemanda` e `useUpdateDemanda` ja estao corretas -- o erro vem da rejeicao do Supabase via RLS.
