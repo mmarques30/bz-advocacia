@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 interface CreateUserRequest {
@@ -68,6 +68,9 @@ serve(async (req) => {
 
     if (authError) {
       console.error("Auth error:", authError);
+      if ((authError as any).code === "email_exists") {
+        throw new Error("Já existe um usuário cadastrado com este email");
+      }
       throw authError;
     }
     if (!newUser.user) throw new Error("Erro ao criar usuário");
