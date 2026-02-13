@@ -56,7 +56,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       { 
         email, 
         password, 
-        role: isAdmin ? "admin" : "user", 
+        role: isAdmin ? "admin" : "advogado", 
         nome_completo: nomeCompleto 
       },
       {
