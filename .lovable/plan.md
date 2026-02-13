@@ -1,36 +1,47 @@
 
-# Corrigir Salvamento de Consultas em Pesquisas
+
+# Corrigir Criacao de Usuarios
 
 ## Problema
 
-Nenhuma consulta esta sendo salva na tabela `consultas_realizadas` (zero registros). A causa e que os headers CORS das 5 edge functions de consultas estao incompletos -- faltam os headers que o cliente Supabase v2.76.1 envia automaticamente. Isso faz o navegador bloquear a requisicao no preflight (OPTIONS).
+Dois erros ocorriam ao criar usuarios:
 
-## Solucao
+1. **Enum invalido `"user"`** -- ja corrigido no ultimo edit (agora envia `"advogado"`)
+2. **Email duplicado** -- o email `ggiacomini2012@gmail.com` ja existe no sistema (auth + profile + role `advogado`). Ao tentar recria-lo, o Supabase Auth rejeita com "email already registered"
 
-Atualizar o `corsHeaders` em 5 edge functions para incluir os headers adicionais do Supabase client.
+Alem disso, a edge function tem dois problemas remanescentes:
+- **CORS incompleto** -- faltam os headers do Supabase client (mesmo problema corrigido nas outras functions)
+- **Mensagens de erro em ingles** -- o usuario ve "A user with this email address has already been registered" ao inves de uma mensagem em portugues
 
-### Arquivos a alterar
+## Alteracoes
 
-Todos com a mesma alteracao no objeto `corsHeaders`:
+### 1. `supabase/functions/create-user/index.ts`
 
-1. **`supabase/functions/consultas-datajud/index.ts`** (linha 5-6)
-2. **`supabase/functions/consultas-brasilapi/index.ts`** (linha 5-6)
-3. **`supabase/functions/consultas-cpf/index.ts`** (linha 5-6)
-4. **`supabase/functions/consultas-imovel/index.ts`** (linha 5-6)
-5. **`supabase/functions/consultas-veiculo/index.ts`** (linha 5-6)
-
-### Alteracao (identica em todos)
-
-De:
-```text
-"Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+**a) Atualizar CORS headers** (linha 6):
+```
+De: "authorization, x-client-info, apikey, content-type"
+Para: "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version"
 ```
 
-Para:
-```text
-"Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version"
+**b) Traduzir erro de email duplicado** (no catch, linhas 69-72):
+Antes de lancar o `authError`, verificar se o codigo e `email_exists` e lancar uma mensagem amigavel em portugues:
+
+```typescript
+if (authError) {
+  if (authError.code === "email_exists") {
+    throw new Error("Ja existe um usuario cadastrado com este email");
+  }
+  throw authError;
+}
 ```
+
+### 2. Reimplantar a edge function
+
+Apos as alteracoes, reimplantar `create-user` para aplicar as correcoes.
 
 ### Resultado
 
-Apos a correcao, as chamadas do navegador passarao pelo preflight CORS e as edge functions executarao normalmente, salvando cada consulta na tabela `consultas_realizadas` com todos os dados (tipo, parametro, resultado, usuario, custo, status).
+- Criacao de novos usuarios funcionara normalmente com roles validos
+- Tentativas de cadastrar email duplicado mostrarao mensagem em portugues
+- CORS compativel com o Supabase client atual
+
