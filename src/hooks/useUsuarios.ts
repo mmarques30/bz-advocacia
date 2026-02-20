@@ -181,21 +181,12 @@ export const useDeleteUser = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
-      // First delete user roles
-      const { error: rolesError } = await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      const response = await supabase.functions.invoke("delete-user", {
+        body: { userId },
+      });
 
-      if (rolesError) throw rolesError;
-
-      // Then delete profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId);
-
-      if (profileError) throw profileError;
+      if (response.error) throw new Error(response.error.message || "Erro ao excluir usuário");
+      if (response.data?.error) throw new Error(response.data.error);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["usuarios"] });
