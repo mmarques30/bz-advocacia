@@ -1181,6 +1181,87 @@ export type Database = {
           },
         ]
       }
+      leads_geral: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          bem_inventariar: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          contato_whatsapp: string | null
+          created_time: string | null
+          form_id: string | null
+          form_name: string | null
+          full_name: string | null
+          id: string
+          is_converted: boolean | null
+          is_organic: boolean | null
+          is_qualified: boolean | null
+          is_quality: boolean | null
+          lead_status: string | null
+          observacoes: string | null
+          phone_number: string | null
+          platform: string | null
+          preferencia_contato: string | null
+          tipo_servico: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          bem_inventariar?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          contato_whatsapp?: string | null
+          created_time?: string | null
+          form_id?: string | null
+          form_name?: string | null
+          full_name?: string | null
+          id: string
+          is_converted?: boolean | null
+          is_organic?: boolean | null
+          is_qualified?: boolean | null
+          is_quality?: boolean | null
+          lead_status?: string | null
+          observacoes?: string | null
+          phone_number?: string | null
+          platform?: string | null
+          preferencia_contato?: string | null
+          tipo_servico?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          bem_inventariar?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          contato_whatsapp?: string | null
+          created_time?: string | null
+          form_id?: string | null
+          form_name?: string | null
+          full_name?: string | null
+          id?: string
+          is_converted?: boolean | null
+          is_organic?: boolean | null
+          is_qualified?: boolean | null
+          is_quality?: boolean | null
+          lead_status?: string | null
+          observacoes?: string | null
+          phone_number?: string | null
+          platform?: string | null
+          preferencia_contato?: string | null
+          tipo_servico?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       logs_sistema: {
         Row: {
           acao: string
