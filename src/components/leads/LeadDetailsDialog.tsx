@@ -90,14 +90,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className="grid w-full grid-cols-6">
+              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-6' : 'grid-cols-3'}`}>
                 <TabsTrigger value="info">Informações</TabsTrigger>
-                <TabsTrigger value="processos">Processos</TabsTrigger>
-                <TabsTrigger value="contratos">Contratos</TabsTrigger>
-                <TabsTrigger value="tarefas" className="flex items-center gap-1">
-                  <ClipboardList className="h-3.5 w-3.5" />
-                  Tarefas
-                </TabsTrigger>
+                {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
+                {isCliente && <TabsTrigger value="contratos">Contratos</TabsTrigger>}
+                {isCliente && (
+                  <TabsTrigger value="tarefas" className="flex items-center gap-1">
+                    <ClipboardList className="h-3.5 w-3.5" />
+                    Tarefas
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 <TabsTrigger value="notas">Notas</TabsTrigger>
               </TabsList>
@@ -170,7 +172,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     </div>
                   )}
 
-                  {lead.status_cliente && (
+                  {isCliente && lead.status_cliente && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <span className="text-sm font-medium">Status do Cliente</span>
@@ -225,17 +227,23 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 )}
               </TabsContent>
 
-              <TabsContent value="processos" className="mt-4">
-                <ClienteProcessosTab clienteId={lead.id} clienteNome={lead.nome_completo} />
-              </TabsContent>
+              {isCliente && (
+                <TabsContent value="processos" className="mt-4">
+                  <ClienteProcessosTab clienteId={lead.id} clienteNome={lead.nome_completo} />
+                </TabsContent>
+              )}
 
-              <TabsContent value="contratos" className="mt-4">
-                <LeadContratosTab clienteId={lead.id} />
-              </TabsContent>
+              {isCliente && (
+                <TabsContent value="contratos" className="mt-4">
+                  <LeadContratosTab clienteId={lead.id} />
+                </TabsContent>
+              )}
 
-              <TabsContent value="tarefas" className="mt-4">
-                <ClienteTarefasTab leadId={lead.id} />
-              </TabsContent>
+              {isCliente && (
+                <TabsContent value="tarefas" className="mt-4">
+                  <ClienteTarefasTab leadId={lead.id} />
+                </TabsContent>
+              )}
 
               <TabsContent value="documentos" className="mt-4">
                 {lead.documentos && lead.documentos.length > 0 ? (
