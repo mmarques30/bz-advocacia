@@ -7,16 +7,18 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
 } from "@dnd-kit/core";
 import { Badge } from "@/components/ui/badge";
-import { Lead, LEAD_STATUS_LABELS, LeadStatus } from "@/types/leads";
+import { Lead, LeadStatus } from "@/types/leads";
 import { LeadCard } from "./LeadCard";
 import { useUpdateLeadStage } from "@/hooks/useLeads";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
+const VALID_STAGES: string[] = ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada', 'fechado', 'perdido'];
 
 interface LeadsKanbanProps {
   leads: Lead[] | undefined;
@@ -42,6 +44,21 @@ function SortableLeadCard({ lead, onViewDetails }: { lead: Lead; onViewDetails: 
   );
 }
 
+function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)] pr-2 rounded-lg transition-colors ${
+        isOver ? 'bg-accent/50 ring-2 ring-primary/30' : ''
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProps) {
   const updateStage = useUpdateLeadStage();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -60,7 +77,6 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
 
     return leads.reduce((acc, lead) => {
       let estagio = lead.estagio;
-      // Group 'perdido' with 'fechado' in the last column
       if (estagio === "perdido") estagio = "fechado";
 
       if (!acc[estagio]) acc[estagio] = [];
@@ -80,12 +96,31 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
     if (!over) return;
 
     const leadId = active.id as string;
-    const newEstagio = over.id as LeadStatus;
+    const overId = over.id as string;
+
+    let novoEstagio: string;
+
+    if (VALID_STAGES.includes(overId)) {
+      novoEstagio = overId;
+    } else {
+      const leadAlvo = leads?.find((l) => l.id === overId);
+      if (leadAlvo) {
+        novoEstagio = leadAlvo.estagio;
+        if (novoEstagio === 'perdido') novoEstagio = 'fechado';
+      } else {
+        return;
+      }
+    }
 
     const lead = leads?.find((l) => l.id === leadId);
-    if (!lead || lead.estagio === newEstagio) return;
+    if (!lead) return;
 
-    updateStage.mutate({ id: leadId, estagio: newEstagio });
+    let estagioAtual = lead.estagio;
+    if (estagioAtual === 'perdido') estagioAtual = 'fechado';
+
+    if (estagioAtual === novoEstagio) return;
+
+    updateStage.mutate({ id: leadId, estagio: novoEstagio });
   };
 
   const activeLead = activeId ? leads?.find((l) => l.id === activeId) : null;
@@ -112,42 +147,31 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-h-[600px]">
         {columns.map((coluna) => {
           const colLeads = leadsGrouped[coluna.estagio] || [];
-          const isDropZone = coluna.estagio !== 'fechado'; // 'fechado' column is special
 
           return (
-            <SortableContext
-              key={coluna.estagio}
-              id={coluna.estagio}
-              items={colLeads.map((l) => l.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="flex flex-col">
-                <div className="font-medium mb-3 flex items-center justify-between sticky top-0 bg-background pb-2">
-                  <span className="text-sm">{coluna.titulo}</span>
-                  <Badge variant="secondary" className="h-6">
-                    {colLeads.length}
-                  </Badge>
-                </div>
-
-                <div
-                  className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)] pr-2"
-                  data-droppable-id={coluna.estagio}
-                >
-                  {colLeads.map((lead) => (
-                    <SortableLeadCard
-                      key={lead.id}
-                      lead={lead}
-                      onViewDetails={onViewDetails}
-                    />
-                  ))}
-                  {colLeads.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
-                      Nenhum lead
-                    </div>
-                  )}
-                </div>
+            <div key={coluna.estagio} className="flex flex-col">
+              <div className="font-medium mb-3 flex items-center justify-between sticky top-0 bg-background pb-2">
+                <span className="text-sm">{coluna.titulo}</span>
+                <Badge variant="secondary" className="h-6">
+                  {colLeads.length}
+                </Badge>
               </div>
-            </SortableContext>
+
+              <DroppableColumn id={coluna.estagio}>
+                {colLeads.map((lead) => (
+                  <SortableLeadCard
+                    key={lead.id}
+                    lead={lead}
+                    onViewDetails={onViewDetails}
+                  />
+                ))}
+                {colLeads.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
+                    Nenhum lead
+                  </div>
+                )}
+              </DroppableColumn>
+            </div>
           );
         })}
       </div>
