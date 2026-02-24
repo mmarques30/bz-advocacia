@@ -1,47 +1,43 @@
 
 
-# Corrigir Criacao de Usuarios
+# Separar Visao de Lead e Cliente
 
-## Problema
+## Problema Atual
 
-Dois erros ocorriam ao criar usuarios:
+O dialog de detalhes (`LeadDetailsDialog`) mostra as mesmas 6 abas (Informacoes, Processos, Contratos, Tarefas, Documentos, Notas) tanto para Leads quanto para Clientes. Leads nao precisam de Processos, Contratos nem Tarefas -- sao apenas cadastros iniciais.
 
-1. **Enum invalido `"user"`** -- ja corrigido no ultimo edit (agora envia `"advogado"`)
-2. **Email duplicado** -- o email `ggiacomini2012@gmail.com` ja existe no sistema (auth + profile + role `advogado`). Ao tentar recria-lo, o Supabase Auth rejeita com "email already registered"
+## Solucao
 
-Alem disso, a edge function tem dois problemas remanescentes:
-- **CORS incompleto** -- faltam os headers do Supabase client (mesmo problema corrigido nas outras functions)
-- **Mensagens de erro em ingles** -- o usuario ve "A user with this email address has already been registered" ao inves de uma mensagem em portugues
+Condicionar as abas exibidas com base na prop `isCliente`:
 
-## Alteracoes
+### Quando `isCliente = false` (Lead)
 
-### 1. `supabase/functions/create-user/index.ts`
+Exibir apenas 3 abas:
+- **Informacoes** -- dados basicos do cadastro (nome, email, telefone, origem, estagio, tipo de processo, mensagem, valor proposta)
+- **Documentos** -- documentos anexados
+- **Notas** -- notas internas
 
-**a) Atualizar CORS headers** (linha 6):
-```
-De: "authorization, x-client-info, apikey, content-type"
-Para: "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version"
-```
+Remover da visao de Lead:
+- Aba Processos
+- Aba Contratos  
+- Aba Tarefas
 
-**b) Traduzir erro de email duplicado** (no catch, linhas 69-72):
-Antes de lancar o `authError`, verificar se o codigo e `email_exists` e lancar uma mensagem amigavel em portugues:
+O grid de abas passa de `grid-cols-6` para `grid-cols-3`.
 
-```typescript
-if (authError) {
-  if (authError.code === "email_exists") {
-    throw new Error("Ja existe um usuario cadastrado com este email");
-  }
-  throw authError;
-}
-```
+### Quando `isCliente = true` (Cliente)
 
-### 2. Reimplantar a edge function
+Manter todas as 6 abas como esta hoje (hub completo):
+- Informacoes, Processos, Contratos, Tarefas, Documentos, Notas
 
-Apos as alteracoes, reimplantar `create-user` para aplicar as correcoes.
+---
 
-### Resultado
+## Detalhes Tecnicos
 
-- Criacao de novos usuarios funcionara normalmente com roles validos
-- Tentativas de cadastrar email duplicado mostrarao mensagem em portugues
-- CORS compativel com o Supabase client atual
+### Arquivo: `src/components/leads/LeadDetailsDialog.tsx`
 
+1. Alterar o `TabsList` para usar `grid-cols-3` quando nao for cliente e `grid-cols-6` quando for cliente
+2. Renderizar condicionalmente os `TabsTrigger` e `TabsContent` de Processos, Contratos e Tarefas apenas quando `isCliente = true`
+3. Remover imports de `ClienteProcessosTab`, `LeadContratosTab` e `ClienteTarefasTab` do escopo quando nao for cliente (ou simplesmente condicionar a renderizacao)
+4. Na aba Informacoes do Lead, remover campos que so fazem sentido para clientes (como "Status do Cliente") e manter apenas os dados de cadastro
+
+Nenhum outro arquivo precisa ser alterado -- a pagina `Leads.tsx` ja passa `isCliente={false}` (implicitamente) e `Clientes.tsx` ja passa `isCliente={true}`.
