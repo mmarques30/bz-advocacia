@@ -3,12 +3,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-  LineChart, Line,
-  Area, AreaChart,
+  PieChart, Pie, Cell,
+  Area, AreaChart, Legend,
 } from "recharts";
 import { chartColors, chartTheme } from "@/lib/chartConfig";
 import type { MarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   analytics: MarketingCsvAnalytics;
@@ -20,8 +20,17 @@ interface Props {
 
 const PIE_COLORS = [chartColors.primary, chartColors.secondary, chartColors.success, chartColors.warning, chartColors.dark];
 
+const FUNNEL_COLORS: Record<string, string> = {
+  "Novo": chartColors.secondary,
+  "Criado": chartColors.primary,
+  "Enviado": chartColors.success,
+  "Qualificado": chartColors.warning,
+  "Convertido": "hsl(142, 76%, 36%)",
+  "Total Leads": chartColors.primary,
+};
+
 export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform = true, showEvolution = true, showCampaigns = false }: Props) {
-  const { funnel, platformKPIs, dailyLeads, campaigns, isLoading } = analytics;
+  const { funnel, platformKPIs, dailyLeads, campaigns, isLoading, totalLeads } = analytics;
 
   if (isLoading) {
     return (
@@ -33,10 +42,22 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
     );
   }
 
+  const hasData = totalLeads > 0;
+
+  if (!hasData) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center h-48">
+          <p className="text-muted-foreground">Nenhum dado disponível para o período selecionado</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Funil de Status */}
-      {showFunnel && (
+      {showFunnel && funnel.length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Funil de Status</CardTitle></CardHeader>
           <CardContent>
@@ -44,12 +65,18 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
               <BarChart data={funnel} layout="vertical">
                 <CartesianGrid {...chartTheme.grid} horizontal={false} />
                 <XAxis type="number" />
-                <YAxis dataKey="stage" type="category" width={90} tick={{ fontSize: 12 }} />
+                <YAxis dataKey="stage" type="category" width={100} tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={chartTheme.tooltip.contentStyle}
-                  formatter={(value: number, _name: string, props: any) => [`${value} (${props.payload.percentage}%)`, "Leads"]}
+                  formatter={(value: number, _name: string, props: any) => [
+                    `${value} leads (${props.payload.percentage}%)`, "Quantidade"
+                  ]}
                 />
-                <Bar dataKey="count" fill={chartColors.primary} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                  {funnel.map((entry, idx) => (
+                    <Cell key={idx} fill={FUNNEL_COLORS[entry.stage] || chartColors.primary} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -57,7 +84,7 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
       )}
 
       {/* Distribuição por Plataforma */}
-      {showPlatform && (
+      {showPlatform && platformKPIs.length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Distribuição por Plataforma</CardTitle></CardHeader>
           <CardContent>
@@ -67,16 +94,21 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
                   data={platformKPIs}
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  outerRadius={90}
+                  innerRadius={50}
                   dataKey="count"
                   nameKey="label"
                   label={({ label, percentage }) => `${label} ${percentage}%`}
+                  labelLine={{ strokeWidth: 1 }}
                 >
                   {platformKPIs.map((_, idx) => (
                     <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip contentStyle={chartTheme.tooltip.contentStyle} />
+                <Tooltip
+                  contentStyle={chartTheme.tooltip.contentStyle}
+                  formatter={(value: number, name: string) => [`${value} leads`, name]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -109,7 +141,7 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
       {showCampaigns && campaigns.length > 0 && (
         <Card className="md:col-span-2">
           <CardHeader><CardTitle className="text-base">Performance por Campanha</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -124,12 +156,16 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
               <TableBody>
                 {campaigns.slice(0, 10).map((c) => (
                   <TableRow key={c.campaign}>
-                    <TableCell className="font-medium max-w-[200px] truncate">{c.campaign}</TableCell>
+                    <TableCell className="font-medium max-w-[250px] truncate" title={c.campaign}>{c.campaign}</TableCell>
                     <TableCell className="text-right">{c.total}</TableCell>
                     <TableCell className="text-right">{c.enviados}</TableCell>
                     <TableCell className="text-right">{c.qualificados}</TableCell>
                     <TableCell className="text-right">{c.convertidos}</TableCell>
-                    <TableCell className="text-right">{c.taxaConversao}%</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={c.taxaConversao > 0 ? "default" : "secondary"}>
+                        {c.taxaConversao}%
+                      </Badge>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

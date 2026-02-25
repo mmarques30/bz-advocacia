@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useLeadsCsv, CsvLead } from "./useLeadsCsv";
-import { format, subDays, isAfter, parseISO } from "date-fns";
+import { format, subDays, isAfter } from "date-fns";
 
 export interface PlatformKPI {
   key: string;
@@ -34,7 +34,6 @@ export interface CampaignPerformance {
 }
 
 export interface MarketingCsvAnalytics {
-  // KPIs
   totalLeads: number;
   leadsHoje: number;
   leadsSemana: number;
@@ -42,14 +41,26 @@ export interface MarketingCsvAnalytics {
   taxaConversao: number;
   taxaQualificacao: number;
   platformKPIs: PlatformKPI[];
-  // Funnel
   funnel: FunnelStage[];
-  // Evolution
   dailyLeads: DailyLeads[];
-  // Campaigns
   campaigns: CampaignPerformance[];
-  // Loading
   isLoading: boolean;
+}
+
+/**
+ * Derives the effective status combining lead_status and whatsappStatus.
+ * Priority: lead_status > whatsappStatus > default "Novo"
+ */
+function deriveEffectiveStatus(lead: CsvLead): string {
+  // If situacao has a meaningful status (not "Sem status"), use it
+  if (lead.situacao && lead.situacao !== "Sem status") {
+    return lead.situacao;
+  }
+  // Check whatsappStatus for "ENVIADO" pattern
+  const ws = (lead.whatsappStatus || "").toUpperCase().trim();
+  if (ws === "ENVIADO") return "Enviado";
+  // Default: Novo (lead exists but no action taken)
+  return "Novo";
 }
 
 function filterByPeriod(leads: CsvLead[], periodo: string): CsvLead[] {
@@ -57,7 +68,6 @@ function filterByPeriod(leads: CsvLead[], periodo: string): CsvLead[] {
   let daysBack = 30;
   if (periodo === "7d") daysBack = 7;
   else if (periodo === "90d") daysBack = 90;
-  else if (periodo === "30d") daysBack = 30;
 
   const cutoff = subDays(now, daysBack);
   return leads.filter((l) => l.dataRaw && isAfter(l.dataRaw, cutoff));
@@ -67,42 +77,37 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
   const { data, isLoading } = useLeadsCsv();
 
   return useMemo(() => {
-    if (!data?.leads?.length) {
-      return {
-        totalLeads: 0,
-        leadsHoje: 0,
-        leadsSemana: 0,
-        taxaEnvio: 0,
-        taxaConversao: 0,
-        taxaQualificacao: 0,
-        platformKPIs: [],
-        funnel: [],
-        dailyLeads: [],
-        campaigns: [],
-        isLoading,
-      };
-    }
+    const empty: MarketingCsvAnalytics = {
+      totalLeads: 0, leadsHoje: 0, leadsSemana: 0,
+      taxaEnvio: 0, taxaConversao: 0, taxaQualificacao: 0,
+      platformKPIs: [], funnel: [], dailyLeads: [], campaigns: [],
+      isLoading,
+    };
+
+    if (!data?.leads?.length) return empty;
 
     const filtered = filterByPeriod(data.leads, periodo);
     const total = filtered.length;
+    if (total === 0) return { ...empty, totalLeads: 0, isLoading };
 
-    // Today / week
     const now = new Date();
     const todayStr = format(now, "dd/MM/yyyy");
     const weekAgo = subDays(now, 7);
     const leadsHoje = filtered.filter((l) => l.data === todayStr).length;
     const leadsSemana = filtered.filter((l) => l.dataRaw && isAfter(l.dataRaw, weekAgo)).length;
 
-    // Status counts
+    // Derive effective statuses
     const statusCounts: Record<string, number> = {};
     filtered.forEach((l) => {
-      const s = l.situacao || "Sem status";
+      const s = deriveEffectiveStatus(l);
       statusCounts[s] = (statusCounts[s] || 0) + 1;
     });
 
     const enviados = statusCounts["Enviado"] || 0;
     const qualificados = statusCounts["Qualificado"] || 0;
     const convertidos = statusCounts["Convertido"] || 0;
+    const novos = statusCounts["Novo"] || 0;
+    const criados = statusCounts["Criado"] || 0;
 
     const taxaEnvio = total > 0 ? Math.round((enviados / total) * 100) : 0;
     const taxaQualificacao = total > 0 ? Math.round((qualificados / total) * 100) : 0;
@@ -116,9 +121,7 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
     });
 
     const platformLabels: Record<string, string> = {
-      fb: "Facebook",
-      ig: "Instagram",
-      organic: "Orgânico",
+      fb: "Facebook", ig: "Instagram", organic: "Orgânico",
     };
 
     const platformKPIs: PlatformKPI[] = Object.entries(platformCounts)
@@ -130,13 +133,20 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
       }))
       .sort((a, b) => b.count - a.count);
 
-    // Funnel
-    const funnelOrder = ["Criado", "Enviado", "Qualificado", "Convertido"];
-    const funnel: FunnelStage[] = funnelOrder.map((stage) => ({
-      stage,
-      count: statusCounts[stage] || 0,
-      percentage: total > 0 ? Math.round(((statusCounts[stage] || 0) / total) * 100) : 0,
-    }));
+    // Funnel - use stages that actually exist in the data
+    const funnelOrder = ["Novo", "Criado", "Enviado", "Qualificado", "Convertido"];
+    const funnel: FunnelStage[] = funnelOrder
+      .filter((stage) => (statusCounts[stage] || 0) > 0)
+      .map((stage) => ({
+        stage,
+        count: statusCounts[stage] || 0,
+        percentage: total > 0 ? Math.round(((statusCounts[stage] || 0) / total) * 100) : 0,
+      }));
+
+    // If funnel is empty, show all leads as "Total"
+    if (funnel.length === 0) {
+      funnel.push({ stage: "Total Leads", count: total, percentage: 100 });
+    }
 
     // Daily evolution
     const dailyMap: Record<string, { fb: number; ig: number; organic: number; outro: number }> = {};
@@ -153,8 +163,7 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
 
     const dailyLeads: DailyLeads[] = Object.entries(dailyMap)
       .map(([date, counts]) => ({
-        date,
-        ...counts,
+        date, ...counts,
         total: counts.fb + counts.ig + counts.organic + counts.outro,
       }))
       .sort((a, b) => {
@@ -169,31 +178,23 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
       const c = l.campanha || "-";
       if (!campMap[c]) campMap[c] = { total: 0, enviados: 0, qualificados: 0, convertidos: 0 };
       campMap[c].total++;
-      if (l.situacao === "Enviado") campMap[c].enviados++;
-      if (l.situacao === "Qualificado") campMap[c].qualificados++;
-      if (l.situacao === "Convertido") campMap[c].convertidos++;
+      const status = deriveEffectiveStatus(l);
+      if (status === "Enviado") campMap[c].enviados++;
+      if (status === "Qualificado") campMap[c].qualificados++;
+      if (status === "Convertido") campMap[c].convertidos++;
     });
 
     const campaigns: CampaignPerformance[] = Object.entries(campMap)
       .map(([campaign, d]) => ({
-        campaign,
-        ...d,
+        campaign, ...d,
         taxaConversao: d.total > 0 ? Math.round((d.convertidos / d.total) * 100) : 0,
       }))
       .sort((a, b) => b.total - a.total);
 
     return {
-      totalLeads: total,
-      leadsHoje,
-      leadsSemana,
-      taxaEnvio,
-      taxaConversao,
-      taxaQualificacao,
-      platformKPIs,
-      funnel,
-      dailyLeads,
-      campaigns,
-      isLoading,
+      totalLeads: total, leadsHoje, leadsSemana,
+      taxaEnvio, taxaConversao, taxaQualificacao,
+      platformKPIs, funnel, dailyLeads, campaigns, isLoading,
     };
   }, [data, isLoading, periodo]);
 }
