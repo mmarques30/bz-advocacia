@@ -1,77 +1,33 @@
 import { useState } from "react";
-import { LeadsHeader } from "@/components/leads/LeadsHeader";
-import { LeadsFilters } from "@/components/leads/LeadsFilters";
-import { LeadsTable } from "@/components/leads/LeadsTable";
-import { LeadsKanban } from "@/components/leads/LeadsKanban";
-import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
-import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
-import { ImportLeadsDialog } from "@/components/leads/ImportLeadsDialog";
 import { LeadsCsvTable } from "@/components/leads/LeadsCsvTable";
 import { LeadsCsvSummary } from "@/components/leads/LeadsCsvSummary";
-import { useLeads } from "@/hooks/useLeads";
+import { LeadGeralDetailsDialog } from "@/components/leads/LeadGeralDetailsDialog";
 import { useLeadsCsv } from "@/hooks/useLeadsCsv";
-import { LeadsFilters as FiltersType, Lead } from "@/types/leads";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLeadsGeral, LeadGeral } from "@/hooks/useLeadsGeral";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, LayoutGrid, List } from "lucide-react";
 
 export default function Leads() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [showFilters, setShowFilters] = useState(false);
-  const [showNewLead, setShowNewLead] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
-  const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
-  const [nomeFilter, setNomeFilter] = useState<string | null>(null);
-  const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+  const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
+  const { data: leadsGeral, updateObservacoes } = useLeadsGeral();
 
-  const [filters, setFilters] = useState<FiltersType>({
-    search: "",
-    status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada'],
-    origem: [],
-    tipoProcesso: [],
-    dateRange: { start: null, end: null },
-    diasParado: { min: 0, max: null },
-    responsavel: null,
-    statusCliente: [],
+  const selectedLead: LeadGeral | null = leadsGeral?.find(l => l.id === selectedLeadId) ?? null;
+
+  // Filter leads by search
+  const filteredLeads = csvData?.leads?.filter(l => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return l.nome.toLowerCase().includes(q) || l.telefone.includes(q);
   });
 
-  const handleNomeFilterChange = (nome: string | null) => {
-    setNomeFilter(nome);
-    setFilters(prev => ({ ...prev, search: nome || "" }));
-  };
-
-  const handleOrigemFilterChange = (origem: string | null) => {
-    setOrigemFilter(origem);
-    setFilters(prev => ({ ...prev, origem: origem ? [origem as any] : [] }));
-  };
-
-  const { data: leads, isLoading } = useLeads(filters);
-  const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
-
-  const activeFiltersCount = [
-    filters.status.length > 0,
-    filters.origem.length > 0,
-    filters.tipoProcesso.length > 0,
-    filters.dateRange.start !== null,
-    filters.dateRange.end !== null,
-    filters.diasParado.max !== null || filters.diasParado.min > 0,
-    filters.responsavel !== null,
-  ].filter(Boolean).length;
-
-  const handleViewDetails = (lead: Lead) => {
-    setSelectedLead(lead);
-  };
-
-  const handleEdit = (lead: Lead) => {
-    setLeadToEdit(lead);
-    setShowNewLead(true);
-    setSelectedLead(null);
-  };
-
-  const handleCloseNewLead = () => {
-    setShowNewLead(false);
-    setLeadToEdit(null);
+  const handleSaveObservacoes = (id: string, obs: string) => {
+    updateObservacoes.mutate({ id, observacoes: obs });
   };
 
   return (
@@ -83,84 +39,130 @@ export default function Leads() {
         </p>
       </div>
 
-      <Tabs defaultValue="csv" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="csv">Leads Meta Ads</TabsTrigger>
-          <TabsTrigger value="sistema">Leads do Sistema</TabsTrigger>
-        </TabsList>
+      <LeadsCsvSummary summary={csvData?.summary} loading={csvLoading} />
 
-        {/* Aba CSV - Meta Ads */}
-        <TabsContent value="csv" className="space-y-6">
-          <LeadsCsvSummary summary={csvData?.summary} loading={csvLoading} />
-          <TooltipProvider>
-            <LeadsCsvTable leads={csvData?.leads} isLoading={csvLoading} />
-          </TooltipProvider>
-        </TabsContent>
-
-        {/* Aba Sistema - Leads internos */}
-        <TabsContent value="sistema" className="space-y-6">
-          <LeadsHeader
-            view={view}
-            onViewChange={setView}
-            onOpenFilters={() => setShowFilters(true)}
-            onNewLead={() => {
-              setLeadToEdit(null);
-              setShowNewLead(true);
-            }}
-            onImport={() => setShowImport(true)}
-            search={filters.search}
-            onSearchChange={(search) => setFilters({ ...filters, search })}
-            activeFiltersCount={activeFiltersCount}
-            isClienteTab={false}
-            nomeFilter={nomeFilter}
-            onNomeFilterChange={handleNomeFilterChange}
-            origemFilter={origemFilter}
-            onOrigemFilterChange={handleOrigemFilterChange}
+      {/* Header com busca e toggle */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nome ou telefone..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
           />
+        </div>
+        <div className="flex border rounded-md">
+          <Button
+            variant={view === 'table' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('table')}
+            className="gap-1"
+          >
+            <List className="h-4 w-4" /> Tabela
+          </Button>
+          <Button
+            variant={view === 'kanban' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setView('kanban')}
+            className="gap-1"
+          >
+            <LayoutGrid className="h-4 w-4" /> Kanban
+          </Button>
+        </div>
+      </div>
 
-          {view === 'table' ? (
-            <LeadsTable
-              leads={leads}
-              isLoading={isLoading}
-              onViewDetails={handleViewDetails}
-              onEdit={handleEdit}
-            />
-          ) : (
-            <LeadsKanban
-              leads={leads}
-              isLoading={isLoading}
-              onViewDetails={handleViewDetails}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
+      {view === 'table' ? (
+        <TooltipProvider>
+          <LeadsCsvTable
+            leads={filteredLeads}
+            isLoading={csvLoading}
+            onViewDetails={(id) => setSelectedLeadId(id)}
+          />
+        </TooltipProvider>
+      ) : (
+        <KanbanView
+          leads={leadsGeral || []}
+          onViewDetails={(id) => setSelectedLeadId(id)}
+        />
+      )}
 
-      <LeadsFilters
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
-
-      <NewLeadDialog
-        open={showNewLead}
-        onClose={handleCloseNewLead}
-        lead={leadToEdit}
-        isCliente={false}
-      />
-
-      <ImportLeadsDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        isCliente={false}
-      />
-
-      <LeadDetailsDialog
-        open={selectedLead !== null}
-        onClose={() => setSelectedLead(null)}
+      <LeadGeralDetailsDialog
+        open={selectedLeadId !== null}
+        onClose={() => setSelectedLeadId(null)}
         lead={selectedLead}
-        onEdit={handleEdit}
+        onSaveObservacoes={handleSaveObservacoes}
       />
+    </div>
+  );
+}
+
+// Simple Kanban view for leads_geral
+function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetails: (id: string) => void }) {
+  const columns = [
+    { key: "CREATED", label: "Novos", color: "border-t-blue-500" },
+    { key: "ENVIADO", label: "Enviados", color: "border-t-green-500" },
+    { key: "QUALIFICADO", label: "Qualificados", color: "border-t-purple-500" },
+    { key: "CONVERTIDO", label: "Convertidos", color: "border-t-emerald-500" },
+  ];
+
+  const grouped = columns.map(col => ({
+    ...col,
+    leads: leads.filter(l => (l.lead_status || "").toUpperCase() === col.key),
+  }));
+
+  // Leads that don't match any column
+  const knownKeys = columns.map(c => c.key);
+  const others = leads.filter(l => !knownKeys.includes((l.lead_status || "").toUpperCase()));
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {grouped.map((col) => (
+        <div key={col.key} className={`border rounded-lg ${col.color} border-t-4 bg-muted/30`}>
+          <div className="p-3 border-b">
+            <h3 className="font-semibold text-sm">{col.label}</h3>
+            <span className="text-xs text-muted-foreground">{col.leads.length} leads</span>
+          </div>
+          <div className="p-2 space-y-2 max-h-[60vh] overflow-y-auto">
+            {col.leads.map(lead => (
+              <div
+                key={lead.id}
+                className="bg-background border rounded-md p-3 cursor-pointer hover:shadow-sm transition-shadow"
+                onClick={() => onViewDetails(lead.id)}
+              >
+                <p className="font-medium text-sm truncate">{lead.full_name || "Sem nome"}</p>
+                <p className="text-xs text-muted-foreground truncate">{lead.phone_number?.replace("p:", "")}</p>
+                {lead.tipo_servico && (
+                  <p className="text-xs text-muted-foreground mt-1">{lead.tipo_servico.replace(/_/g, " ")}</p>
+                )}
+              </div>
+            ))}
+            {col.leads.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">Nenhum lead</p>
+            )}
+          </div>
+        </div>
+      ))}
+      {others.length > 0 && (
+        <div className="border rounded-lg border-t-4 border-t-gray-400 bg-muted/30">
+          <div className="p-3 border-b">
+            <h3 className="font-semibold text-sm">Outros</h3>
+            <span className="text-xs text-muted-foreground">{others.length} leads</span>
+          </div>
+          <div className="p-2 space-y-2 max-h-[60vh] overflow-y-auto">
+            {others.map(lead => (
+              <div
+                key={lead.id}
+                className="bg-background border rounded-md p-3 cursor-pointer hover:shadow-sm transition-shadow"
+                onClick={() => onViewDetails(lead.id)}
+              >
+                <p className="font-medium text-sm truncate">{lead.full_name || "Sem nome"}</p>
+                <p className="text-xs text-muted-foreground truncate">{lead.phone_number?.replace("p:", "")}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
 interface Props {
   leads: CsvLead[] | undefined;
   isLoading: boolean;
+  onViewDetails?: (leadId: string) => void;
 }
 
 function PlatformIcon({ platform }: { platform: string }) {
@@ -47,7 +48,7 @@ function openWhatsApp(phone: string) {
   window.open(`https://wa.me/${clean}`, "_blank");
 }
 
-export function LeadsCsvTable({ leads, isLoading }: Props) {
+export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -133,9 +134,7 @@ export function LeadsCsvTable({ leads, isLoading }: Props) {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => {
-                          // Could open a detail dialog in the future
-                        }}
+                        onClick={() => onViewDetails?.(lead.id)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
