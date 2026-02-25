@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import Papa from "papaparse";
+
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQEcRKqnsvUsXiq4jmdqLo9zAqtsAwrPQrivVFE1jehceflnM-hliX8goacOyMw4S2LjYSMHbJUOGIF/pub?output=csv";
 
 export interface CsvLead {
   id: string;
@@ -74,14 +77,11 @@ export function useLeadsCsv() {
   return useQuery({
     queryKey: ["leads-csv"],
     queryFn: async (): Promise<{ leads: CsvLead[]; summary: CsvSummary }> => {
-      const { data, error } = await supabase
-        .from("leads_geral")
-        .select("*")
-        .order("created_time", { ascending: false });
+      const res = await fetch(CSV_URL);
+      const text = await res.text();
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true });
+      const rows = parsed.data as Record<string, string>[];
 
-      if (error) throw error;
-
-      const rows = data || [];
       const today = new Date();
       const todayStr = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
 
@@ -90,11 +90,12 @@ export function useLeadsCsv() {
       let semStatus = 0;
       let hoje = 0;
 
-      const leads: CsvLead[] = rows.map((row) => {
-        const platform = parsePlatform(row.platform, row.is_organic);
+      const leads: CsvLead[] = rows.map((row, idx) => {
+        const isOrganic = (row.is_organic || "").toLowerCase() === "true";
+        const platform = parsePlatform(row.platform || null, isOrganic);
         const dateObj = row.created_time ? new Date(row.created_time) : null;
         const dateFormatted = formatDate(dateObj);
-        const situacaoInfo = mapSituacao(row.lead_status);
+        const situacaoInfo = mapSituacao(row.lead_status || null);
 
         const statusUpper = (row.lead_status || "").toUpperCase().trim();
         if (statusUpper === "ENVIADO") enviados++;
@@ -104,20 +105,20 @@ export function useLeadsCsv() {
         if (dateFormatted === todayStr) hoje++;
 
         return {
-          id: row.id,
+          id: row.id || String(idx),
           nome: row.full_name || "Sem nome",
           telefone: (row.phone_number || "").replace("p:", ""),
           plataforma: platform.key,
           plataformaLabel: platform.label,
           campanha: row.campaign_name || "-",
-          estagio: mapEstagio(row.lead_status),
+          estagio: mapEstagio(row.lead_status || null),
           situacao: situacaoInfo.label,
           situacaoCor: situacaoInfo.cor,
           data: dateFormatted,
           dataRaw: dateObj,
           diasParado: calcDiasParado(dateObj),
           whatsappStatus: row.contato_whatsapp || "",
-          tipoServico: mapTipoServico(row.tipo_servico),
+          tipoServico: mapTipoServico(row.tipo_servico || null),
         };
       });
 
