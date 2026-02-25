@@ -1,38 +1,32 @@
 
 
-# Corrigir Dialog de Detalhes do Lead (Lupa/Olho)
+# Corrigir Kanban: Leads nao aparecem na coluna "Novos"
 
-## Problema
+## Problemas Identificados
 
-O botao de detalhes (olho) na tabela passa o `id` do lead CSV para `setSelectedLeadId`. Porem, o dialog busca o lead na tabela `leads_geral` do banco de dados (via `useLeadsGeral`), que esta **vazia** porque o n8n ainda nao foi conectado. Resultado: `selectedLead` e sempre `null` e o dialog nao mostra nada.
+**Problema 1 - Fonte de dados errada (linha 109):**
+O KanbanView recebe `leadsGeral || []` que vem da tabela do banco (vazia). Deveria usar os dados do CSV convertidos.
+
+**Problema 2 - Mismatch de status (linha 127):**
+O CSV mapeia `CREATED` para `"Novo"` (via `mapEstagio`). Quando o Kanban faz `.toUpperCase()`, o resultado e `"NOVO"`, que nunca bate com a chave `"CREATED"` da coluna.
 
 ## Solucao
 
-Usar os dados do CSV diretamente para alimentar o dialog de detalhes, sem depender da tabela `leads_geral`.
+### `src/pages/Leads.tsx`
 
-### Alteracoes em `src/pages/Leads.tsx`
-
-- Ao clicar no olho, em vez de buscar o lead em `leadsGeral`, buscar no array `csvData.leads` (que ja tem os dados do Google Sheets)
-- Converter o `CsvLead` encontrado para o formato `LeadGeral` que o dialog espera (mapeando `nome` → `full_name`, `telefone` → `phone_number`, etc.)
-- Remover a dependencia de `useLeadsGeral` para a tabela view (manter apenas para o kanban, que usa dados do banco)
-
-### Alteracoes em `src/components/leads/LeadGeralDetailsDialog.tsx`
-
-- Nenhuma alteracao necessaria — o dialog ja aceita o tipo `LeadGeral | null` e trata campos opcionais com fallback
-
-### Mapeamento CsvLead → LeadGeral
-
+**Linha 108-111** - Alimentar Kanban com dados do CSV convertidos:
 ```text
-CsvLead.id           → id
-CsvLead.nome         → full_name
-CsvLead.telefone     → phone_number
-CsvLead.plataforma   → platform
-CsvLead.campanha     → campaign_name
-CsvLead.estagio      → lead_status
-CsvLead.data         → created_time (converter de DD/MM/YYYY para ISO)
-CsvLead.tipoServico  → tipo_servico
-CsvLead.whatsappStatus → contato_whatsapp
+Antes:  leads={leadsGeral || []}
+Depois: leads={(filteredLeads || []).map(csvToLeadGeral)}
 ```
 
-Os demais campos de `LeadGeral` que nao existem no CSV (`ad_name`, `form_name`, `bem_inventariar`, etc.) ficarao como `null`, e o dialog ja trata isso corretamente.
+**Linha 127** - Corrigir chave da coluna "Novos":
+```text
+Antes:  { key: "CREATED", label: "Novos", ... }
+Depois: { key: "NOVO", label: "Novos", ... }
+```
+
+As demais colunas (ENVIADO, QUALIFICADO, CONVERTIDO) ja batem corretamente.
+
+Nenhum outro arquivo precisa ser alterado.
 
