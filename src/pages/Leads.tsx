@@ -10,9 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Search, LayoutGrid, List } from "lucide-react";
 
 function csvToLeadGeral(csv: CsvLead): LeadGeral {
-  // Convert DD/MM/YYYY to ISO
   let createdTime: string | null = null;
-  if (csv.dataRaw) {
+  if (csv.dataRaw && !isNaN(csv.dataRaw.getTime())) {
     createdTime = csv.dataRaw.toISOString();
   }
   return {
