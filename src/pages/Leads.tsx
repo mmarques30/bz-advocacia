@@ -106,7 +106,7 @@ export default function Leads() {
         </TooltipProvider>
       ) : (
         <KanbanView
-          leads={leadsGeral || []}
+          leads={(filteredLeads || []).map(csvToLeadGeral)}
           onViewDetails={(id) => setSelectedLeadId(id)}
         />
       )}
@@ -124,7 +124,7 @@ export default function Leads() {
 // Simple Kanban view for leads_geral
 function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetails: (id: string) => void }) {
   const columns = [
-    { key: "CREATED", label: "Novos", color: "border-t-blue-500" },
+    { key: "NOVO", label: "Novos", color: "border-t-blue-500" },
     { key: "ENVIADO", label: "Enviados", color: "border-t-green-500" },
     { key: "QUALIFICADO", label: "Qualificados", color: "border-t-purple-500" },
     { key: "CONVERTIDO", label: "Convertidos", color: "border-t-emerald-500" },
