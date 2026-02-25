@@ -1,55 +1,86 @@
 
-# Corrigir Erro ao Mudar Leads de Etapa (Kanban)
 
-## Problema Identificado
+# Unificar Leads em Uma Unica Aba (leads_geral)
 
-No Kanban de leads, ao arrastar um card para outra coluna, o sistema tenta usar o `over.id` do evento de drag-and-drop como o novo estagio. Porem, o `@dnd-kit/sortable` pode retornar o **ID de outro card** (um UUID) ao inves do ID da coluna (o nome do estagio).
+## Situacao Atual
 
-Quando isso acontece, o sistema tenta gravar um UUID como valor de `estagio` no banco de dados, o que viola a constraint:
-
-```text
-CHECK (estagio IN ('novo', 'contato_inicial', 'em_analise', 'proposta_enviada', 'fechado', 'perdido'))
-```
-
-Resultado: erro 400 do banco.
+- **Aba "Leads Meta Ads"**: Le dados de um CSV do Google Sheets via `useLeadsCsv` (fetch externo)
+- **Aba "Leads do Sistema"**: Le dados da tabela `contact_submissions` via `useLeads`
+- A tabela `leads_geral` existe no banco mas esta vazia — sera populada pelo n8n
+- O layout atual tem Tabs separadas; o usuario quer **uma unica visao**
 
 ## Solucao
 
-### Arquivo: `src/components/leads/LeadsKanban.tsx`
+Remover as duas abas e criar uma visao unificada que:
+1. Le dados da tabela `leads_geral` (banco de dados, integrada via n8n)
+2. Mantém o header com toggle tabela/kanban, busca e filtros
+3. Ao clicar num lead, abre um dialog de detalhes com as informacoes de `leads_geral`
 
-Alterar o `handleDragEnd` para:
+### Arquivos a Criar
 
-1. Quando `over.id` for um UUID de lead (nao um nome de estagio valido), descobrir em qual coluna esse lead de destino esta, e usar o estagio dessa coluna
-2. Adicionar uma lista de estagios validos para validar antes de enviar a mutacao
-3. Usar `useDroppable` nas colunas para garantir que elas sejam alvos de drop identificaveis
+**`src/hooks/useLeadsGeral.ts`**
+- Hook que faz `SELECT * FROM leads_geral` ordenado por `created_time DESC`
+- Suporta filtro de busca por `full_name`, `phone_number`
+- Retorna dados mapeados para um tipo `LeadGeral`
+- Inclui mutation para atualizar `lead_status` (para o kanban)
 
-Concretamente:
+**`src/components/leads/LeadGeralDetailsDialog.tsx`**
+- Dialog que exibe os detalhes de um lead da tabela `leads_geral`
+- Campos: nome, telefone, WhatsApp, plataforma, campanha, tipo de servico, bem a inventariar, preferencia de contato, status, observacoes, datas
+- Botao de WhatsApp integrado
+- Campo de observacoes editavel
 
-- Adicionar `useDroppable` em cada coluna com `id` igual ao estagio (ex: `"novo"`, `"contato_inicial"`)
-- No `handleDragEnd`, verificar se `over.id` e um estagio valido. Se nao for, buscar o lead alvo na lista e usar seu estagio como destino
-- Manter protecao contra atualizar para o mesmo estagio
+### Arquivos a Modificar
+
+**`src/pages/Leads.tsx`**
+- Remover as `Tabs` (csv e sistema)
+- Manter o `LeadsCsvSummary` no topo (agora alimentado pelos dados de `leads_geral`)
+- Manter o header com toggle tabela/kanban
+- Usar `useLeadsGeral` como fonte unica de dados
+- Adaptar a tabela existente (`LeadsCsvTable`) para aceitar callback de clique que abre o `LeadGeralDetailsDialog`
+- Manter os componentes de kanban adaptados para `leads_geral`
+
+**`src/components/leads/LeadsCsvTable.tsx`**
+- Adicionar prop `onViewDetails` para abrir o dialog de detalhes ao clicar no botao "Ver detalhes" (olho)
+- Receber os dados ja no formato `LeadGeral[]` ao inves de `CsvLead[]`
+
+**`src/components/leads/LeadsCsvSummary.tsx`**
+- Manter como esta, recebendo summary calculado a partir de `leads_geral`
+
+**`src/hooks/useLeadsCsv.ts`**
+- Alterar para ler de `leads_geral` (banco) ao inves do CSV externo
+- Manter a interface `CsvLead` e `CsvSummary` para nao quebrar os componentes
 
 ### Detalhes Tecnicos
 
+**Mapeamento leads_geral → CsvLead:**
 ```text
-handleDragEnd(event):
-  leadId = active.id
-  overId = over.id
-
-  SE overId esta em ESTAGIOS_VALIDOS:
-    novoEstagio = overId
-  SENAO:
-    leadAlvo = leads.find(l => l.id === overId)
-    SE leadAlvo:
-      novoEstagio = leadAlvo.estagio
-      SE novoEstagio === 'perdido': novoEstagio = 'fechado'  // agrupados
-    SENAO:
-      return  // nao encontrou destino valido
-
-  SE lead.estagio === novoEstagio: return
-  updateStage.mutate({ id: leadId, estagio: novoEstagio })
+full_name       → nome
+phone_number    → telefone
+platform        → plataforma (fb/ig/organic)
+campaign_name   → campanha
+lead_status     → estagio / situacao
+created_time    → data
+tipo_servico    → tipoServico
+is_organic      → usado no mapeamento de plataforma
+contato_whatsapp → whatsappStatus
 ```
 
-Tambem sera necessario envolver cada coluna em um componente droppable para que o dnd-kit reconheca as colunas como alvos de drop, nao apenas os cards.
+**Kanban com leads_geral:**
+- Colunas baseadas em `lead_status` (ex: CREATED, ENVIADO, QUALIFICADO, CONVERTIDO)
+- Drag-and-drop atualiza `lead_status` na tabela `leads_geral`
+- Nao interfere com `contact_submissions`
 
-Apenas o arquivo `src/components/leads/LeadsKanban.tsx` precisa ser alterado.
+**Dialog de detalhes:**
+- Exibe todos os campos relevantes de `leads_geral`
+- Campos de campanha/anuncio agrupados numa secao "Meta Ads"
+- Botao de WhatsApp funcional
+- Campo de observacoes editavel com save
+
+**RLS:** A tabela `leads_geral` atualmente nao tem RLS. Sera necessario habilitar RLS e criar policy para usuarios autenticados terem acesso completo (SELECT, INSERT, UPDATE, DELETE).
+
+### O que NAO muda
+- Pagina de Clientes (`src/pages/Clientes.tsx`) continua usando `contact_submissions`
+- `LeadDetailsDialog` original permanece para uso na aba de clientes
+- Nenhuma alteracao na conexao n8n ou na estrutura da tabela `leads_geral`
+
