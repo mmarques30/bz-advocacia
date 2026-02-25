@@ -1262,6 +1262,30 @@ export type Database = {
         }
         Relationships: []
       }
+      leads_status_overrides: {
+        Row: {
+          id: string
+          lead_csv_id: string
+          lead_status: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          lead_csv_id: string
+          lead_status: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          lead_csv_id?: string
+          lead_status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       logs_sistema: {
         Row: {
           acao: string
