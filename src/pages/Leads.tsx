@@ -2,12 +2,36 @@ import { useState } from "react";
 import { LeadsCsvTable } from "@/components/leads/LeadsCsvTable";
 import { LeadsCsvSummary } from "@/components/leads/LeadsCsvSummary";
 import { LeadGeralDetailsDialog } from "@/components/leads/LeadGeralDetailsDialog";
-import { useLeadsCsv } from "@/hooks/useLeadsCsv";
+import { useLeadsCsv, CsvLead } from "@/hooks/useLeadsCsv";
 import { useLeadsGeral, LeadGeral } from "@/hooks/useLeadsGeral";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, LayoutGrid, List } from "lucide-react";
+
+function csvToLeadGeral(csv: CsvLead): LeadGeral {
+  // Convert DD/MM/YYYY to ISO
+  let createdTime: string | null = null;
+  if (csv.dataRaw) {
+    createdTime = csv.dataRaw.toISOString();
+  }
+  return {
+    id: csv.id,
+    full_name: csv.nome,
+    phone_number: csv.telefone,
+    platform: csv.plataforma,
+    campaign_name: csv.campanha !== "-" ? csv.campanha : null,
+    lead_status: csv.estagio,
+    created_time: createdTime,
+    tipo_servico: csv.tipoServico !== "-" ? csv.tipoServico : null,
+    contato_whatsapp: csv.whatsappStatus || null,
+    is_organic: csv.plataforma === "organic",
+    ad_id: null, ad_name: null, adset_id: null, adset_name: null,
+    bem_inventariar: null, campaign_id: null, form_id: null, form_name: null,
+    is_converted: null, is_qualified: null, is_quality: null,
+    observacoes: null, preferencia_contato: null, updated_at: null,
+  };
+}
 
 export default function Leads() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
@@ -17,7 +41,8 @@ export default function Leads() {
   const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
   const { data: leadsGeral, updateObservacoes } = useLeadsGeral();
 
-  const selectedLead: LeadGeral | null = leadsGeral?.find(l => l.id === selectedLeadId) ?? null;
+  const selectedCsv = csvData?.leads?.find(l => l.id === selectedLeadId);
+  const selectedLead: LeadGeral | null = selectedCsv ? csvToLeadGeral(selectedCsv) : null;
 
   // Filter leads by search
   const filteredLeads = csvData?.leads?.filter(l => {
