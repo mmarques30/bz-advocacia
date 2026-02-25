@@ -14,12 +14,28 @@ import { PeriodoFiltro } from "@/types/meta-ads";
 import { TrendingUp } from "lucide-react";
 
 export default function MetaAds() {
-  const [periodo, setPeriodo] = useState<PeriodoFiltro>("30d");
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>("90d");
   const { kpis, chartData, isLoading: isLoadingMetrics } = useMetaMetrics(periodo);
   const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns();
   const csvAnalytics = useMarketingCsvAnalytics(periodo);
 
   const hasMetaData = kpis && (kpis.impressoes > 0 || kpis.cliques > 0 || kpis.leads > 0);
+
+  const PeriodFilter = () => (
+    <div className="flex items-center gap-4">
+      <span className="text-sm text-muted-foreground">Período:</span>
+      <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="7d">Últimos 7 dias</SelectItem>
+          <SelectItem value="30d">Últimos 30 dias</SelectItem>
+          <SelectItem value="90d">Últimos 90 dias</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -36,26 +52,9 @@ export default function MetaAds() {
           <TabsTrigger value="analises">Análises</TabsTrigger>
         </TabsList>
 
-        {/* Aba Resumo */}
         <TabsContent value="resumo" className="space-y-6">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Período:</span>
-            <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                <SelectItem value="90d">Últimos 90 dias</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* KPIs do CSV (fonte principal) */}
+          <PeriodFilter />
           <MarketingCsvKPIs analytics={csvAnalytics} />
-
-          {/* Gráficos do CSV: plataforma + evolução */}
           <MarketingCsvCharts
             analytics={csvAnalytics}
             showFunnel={false}
@@ -64,7 +63,6 @@ export default function MetaAds() {
             showCampaigns={false}
           />
 
-          {/* Meta Ads data (se disponível) */}
           {hasMetaData && (
             <>
               <MetaAdsKPIs kpis={kpis} isLoading={isLoadingMetrics} />
@@ -84,23 +82,8 @@ export default function MetaAds() {
           )}
         </TabsContent>
 
-        {/* Aba Análises */}
         <TabsContent value="analises" className="space-y-6">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">Período:</span>
-            <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Últimos 7 dias</SelectItem>
-                <SelectItem value="30d">Últimos 30 dias</SelectItem>
-                <SelectItem value="90d">Últimos 90 dias</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Funil + Plataforma + Evolução + Campanhas */}
+          <PeriodFilter />
           <MarketingCsvCharts
             analytics={csvAnalytics}
             showFunnel={true}
