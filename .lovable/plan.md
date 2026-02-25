@@ -1,63 +1,77 @@
 
 
-# Implementar Drag-and-Drop no Kanban com Persistencia no Banco
+# Integrar dados do Google Sheets no Dashboard de Marketing
 
-## Situacao Atual
+## Problema atual
 
-Os leads vem do Google Sheets (CSV) e a tabela `leads_geral` esta vazia. Nao e possivel fazer `UPDATE` diretamente porque os leads nao existem no banco.
+O dashboard de Marketing (/vendas/meta-ads) tem duas abas:
+
+1. **Resumo**: Usa `useMetaMetrics` que le da tabela `meta_metricas` (vazia se nao houver conexao Meta Ads configurada)
+2. **Analises**: Usa `useConversionAnalytics` / `useChannelPerformance` que leem da tabela `contact_submissions` (leads do formulario do site)
+
+Nenhuma das duas abas consome os dados do Google Sheets (CSV) que e a fonte real de leads via automacao. Resultado: ambas as abas aparecem vazias ou com dados incompletos.
 
 ## Solucao
 
-Criar uma tabela auxiliar `leads_status_overrides` que armazena apenas o status atualizado quando o usuario arrasta um card no Kanban. O sistema prioriza o status do override sobre o status do CSV.
+Criar um hook dedicado `useMarketingCsvAnalytics` que processa os dados do CSV (ja disponivel via `useLeadsCsv`) e gera metricas compatíveis com os componentes existentes. Integrar esses dados em ambas as abas.
 
-### 1. Nova tabela no banco
+### 1. Novo hook `src/hooks/useMarketingCsvAnalytics.ts`
 
-```sql
-CREATE TABLE leads_status_overrides (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  lead_csv_id text UNIQUE NOT NULL,
-  lead_status text NOT NULL,
-  updated_at timestamptz DEFAULT now(),
-  updated_by uuid REFERENCES auth.users(id)
-);
-ALTER TABLE leads_status_overrides ENABLE ROW LEVEL SECURITY;
--- Policies para usuarios autenticados
-```
+Este hook consome `useLeadsCsv` e produz:
 
-### 2. Alteracoes em `src/pages/Leads.tsx`
+- **Para aba Resumo**: KPIs calculados a partir do CSV (total leads, leads por plataforma, leads hoje, distribuicao fb/ig/organic)
+- **Para aba Analises**: Dados de conversao (funil por status), performance por canal (fb/ig/organic), evolucao temporal dos leads
 
-- Importar `@dnd-kit/core` (DndContext, DragEndEvent, DragOverlay, useDroppable, useDraggable)
-- Adicionar drag-and-drop ao KanbanView:
-  - Cada coluna vira um `DroppableColumn` (usando `useDroppable`)
-  - Cada card vira um `DraggableCard` (usando `useDraggable`)
-  - `DragOverlay` para feedback visual durante o arrasto
-- No `handleDragEnd`: chamar mutation para salvar o novo status na tabela `leads_status_overrides`
-
-### 3. Novo hook ou extensao de `useLeadsGeral`
-
-- Criar mutation `upsertStatusOverride` que faz upsert na tabela `leads_status_overrides`
-- Criar query para buscar todos os overrides
-- No componente, ao montar os leads, fazer merge: se existe override para aquele `lead_csv_id`, usar o status do override
-
-### 4. Fluxo completo
-
+Mapeamentos do CSV para analytics:
 ```text
-Usuario arrasta card "Lead X" de "Novos" para "Enviados"
-  → handleDragEnd detecta coluna destino = "ENVIADO"
-  → upsert em leads_status_overrides: { lead_csv_id: "X", lead_status: "Enviado" }
-  → Atualiza estado local (optimistic update)
-  → Na proxima renderizacao, o lead aparece na coluna correta
+platform (fb/ig/organic) → origem do canal
+lead_status (CREATED/ENVIADO/QUALIFICADO/CONVERTIDO) → estagios do funil
+campaign_name → agrupamento por campanha
+created_time → evolucao temporal
 ```
 
-### 5. Detalhes tecnicos
+### 2. Alteracoes em `src/pages/vendas/MetaAds.tsx`
 
-- As dependencias `@dnd-kit/core` e `@dnd-kit/utilities` ja estao instaladas
-- Nao sera necessario `@dnd-kit/sortable` (nao ha reordenacao dentro da coluna, apenas mover entre colunas)
-- O overlay mostra um "fantasma" do card durante o arrasto
-- Feedback visual: coluna destino fica destacada quando o card esta sobre ela
+**Aba Resumo**:
+- Importar `useLeadsCsv` para obter dados do Sheets
+- Adicionar secao de KPIs com dados do CSV (total leads, leads hoje, por plataforma)
+- Manter KPIs do Meta Ads se houver dados, mas adicionar os dados do Sheets como fonte principal de leads
+- Adicionar grafico de leads por plataforma (fb/ig/organic) usando dados do CSV
 
-### Arquivos alterados
-- **Nova migration**: criar tabela `leads_status_overrides` com RLS
-- **`src/pages/Leads.tsx`**: reescrever KanbanView com DnD + merge de overrides
-- **Novo hook `src/hooks/useLeadStatusOverrides.ts`**: query + mutation para a tabela de overrides
+**Aba Analises**:
+- Substituir/complementar `DashboardAnalises` com componente que usa dados do CSV
+- Funil: CREATED → ENVIADO → QUALIFICADO → CONVERTIDO
+- Distribuicao por canal: Facebook / Instagram / Organico
+- Evolucao temporal: leads por dia/semana agrupados por plataforma
+
+### 3. Novo componente `src/components/meta-ads/MarketingCsvKPIs.tsx`
+
+KPIs derivados do CSV:
+- Total de Leads (do Sheets)
+- Leads Hoje
+- Por plataforma (Facebook / Instagram / Organico)
+- Taxa de envio (ENVIADO / total)
+- Taxa de conversao (CONVERTIDO / total)
+
+### 4. Novo componente `src/components/meta-ads/MarketingCsvCharts.tsx`
+
+Graficos:
+- Distribuicao por plataforma (pie chart)
+- Funil de status (bar chart: Criado → Enviado → Qualificado → Convertido)
+- Evolucao de leads ao longo do tempo (line chart por dia)
+
+### Detalhes tecnicos
+
+- O CSV ja e buscado via `useLeadsCsv` com `queryKey: ["leads-csv"]` - reutilizamos o cache
+- Os dados do CSV tem: `plataforma`, `campanha`, `estagio`, `situacao`, `dataRaw`, `tipoServico`
+- Nao precisa de alteracoes no banco - tudo e processado client-side a partir do CSV
+- Os componentes existentes de analytics (`LeadsDistributionChart`, `ChannelComparisonTable`, etc) esperam `ChannelPerformance[]` com campo `origem: LeadOrigem` - precisamos mapear `fb → meta`, `ig → meta`, `organic → indicacao` para compatibilidade, ou criar componentes proprios
+
+**Decisao**: Criar componentes proprios para a aba Marketing e manter os componentes de analytics separados, ja que os tipos de dados sao diferentes (CSV usa status fb/ig/organic vs analytics usa google/meta/indicacao/site).
+
+### Arquivos alterados/criados
+- **Novo**: `src/hooks/useMarketingCsvAnalytics.ts`
+- **Novo**: `src/components/meta-ads/MarketingCsvKPIs.tsx`
+- **Novo**: `src/components/meta-ads/MarketingCsvCharts.tsx`
+- **Editado**: `src/pages/vendas/MetaAds.tsx` (integrar CSV em ambas as abas)
 
