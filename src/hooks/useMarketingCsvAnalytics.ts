@@ -70,6 +70,7 @@ interface UnifiedLead {
   plataforma: string;
   status: string;
   campanha: string;
+  anuncio: string;
   tipoServico: string;
 }
 
@@ -98,6 +99,7 @@ function csvToUnified(lead: CsvLead): UnifiedLead {
     plataforma: lead.plataforma || "outro",
     status: deriveEffectiveStatus(lead),
     campanha: lead.campanha || "-",
+    anuncio: lead.adName || "-",
     tipoServico: lead.tipoServico || "-",
   };
 }
@@ -110,6 +112,7 @@ function organicToUnified(row: { created_at: string; estagio: string | null; tip
     plataforma: "organic",
     status: mapEstagioToStatus(row.estagio),
     campanha: "Orgânico",
+    anuncio: "Orgânico",
     tipoServico: row.tipo_processo || "-",
   };
 }
@@ -193,7 +196,7 @@ function computeAnalytics(allLeads: UnifiedLead[], periodo: string, isLoading: b
   // Campaigns
   const campMap: Record<string, { total: number; enviados: number; qualificados: number; convertidos: number }> = {};
   filtered.forEach((l) => {
-    const c = l.campanha;
+    const c = l.anuncio;
     if (!campMap[c]) campMap[c] = { total: 0, enviados: 0, qualificados: 0, convertidos: 0 };
     campMap[c].total++;
     if (l.status === "Enviado") campMap[c].enviados++;

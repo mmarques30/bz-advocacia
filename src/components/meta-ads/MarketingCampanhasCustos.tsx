@@ -72,8 +72,8 @@ export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoa
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPISummaryCard title="Investimento Total" value={investimentoTotal} subtitle="Gasto acumulado no período" icon={DollarSign} />
-        <KPISummaryCard title="Total de Campanhas" value={String(totalCampanhas)} subtitle="Campanhas ativas" icon={BarChart3} />
-        <KPISummaryCard title="Melhor Campanha" value={melhorCampanha ? `${melhorCampanha.taxaConversao}%` : "-"} subtitle={melhorCampanha ? melhorCampanha.campaign.slice(0, 30) : "Sem dados"} icon={Trophy} />
+        <KPISummaryCard title="Total de Anúncios" value={String(totalCampanhas)} subtitle="Anúncios ativos" icon={BarChart3} />
+        <KPISummaryCard title="Melhor Anúncio" value={melhorCampanha ? `${melhorCampanha.taxaConversao}%` : "-"} subtitle={melhorCampanha ? melhorCampanha.campaign.slice(0, 30) : "Sem dados"} icon={Trophy} />
         <KPISummaryCard title="CPC Médio" value={cpcMedio} subtitle="Custo por clique" icon={MousePointerClick} />
       </div>
 
@@ -105,8 +105,8 @@ export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoa
       {/* Campaign Performance Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Performance por Campanha</CardTitle>
-          <p className="text-sm text-muted-foreground">Métricas detalhadas por campanha</p>
+          <CardTitle>Performance por Anúncio</CardTitle>
+          <p className="text-sm text-muted-foreground">Métricas detalhadas por anúncio</p>
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoadingCampaigns ? (
@@ -117,7 +117,7 @@ export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoa
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Campanha</TableHead>
+                      <TableHead>Anúncio</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Enviados</TableHead>
                       <TableHead className="text-right">Qualif.</TableHead>
@@ -156,7 +156,7 @@ export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoa
               )}
             </>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">Nenhuma campanha encontrada</p>
+            <p className="text-sm text-muted-foreground text-center py-8">Nenhum anúncio encontrado</p>
           )}
         </CardContent>
       </Card>
