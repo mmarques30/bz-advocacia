@@ -130,9 +130,9 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
 
   return (
     <div className="space-y-3 mb-6">
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-2 items-center">
         <Select value={selectedAno} onValueChange={handleAnoChange}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="h-9 text-xs w-[100px]">
             <SelectValue placeholder="Ano" />
           </SelectTrigger>
           <SelectContent>
@@ -154,8 +154,8 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
           value={filters.cliente}
           onValueChange={(value) => handleChange("cliente", value)}
         >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Todos os Clientes" />
+          <SelectTrigger className="h-9 text-xs w-[140px]">
+            <SelectValue placeholder="Cliente" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos os Clientes</SelectItem>
@@ -172,7 +172,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
             <Button
               variant="outline"
               className={cn(
-                "w-[280px] justify-start text-left font-normal",
+                "h-9 text-xs w-[180px] justify-start text-left font-normal",
                 !filters.dateRange?.from && "text-muted-foreground"
               )}
             >
@@ -207,7 +207,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
           value={filters.status}
           onValueChange={(value) => handleChange("status", value)}
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="h-9 text-xs w-[130px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -223,8 +223,8 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
           value={filters.tipoServico}
           onValueChange={(value) => handleChange("tipoServico", value)}
         >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Tipo de Serviço" />
+          <SelectTrigger className="h-9 text-xs w-[130px]">
+            <SelectValue placeholder="Serviço" />
           </SelectTrigger>
           <SelectContent>
             {tipoServicoOptions.map((tipo) => (
@@ -239,7 +239,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
           value={filters.conta}
           onValueChange={(value) => handleChange("conta", value)}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="h-9 text-xs w-[130px]">
             <SelectValue placeholder="Conta" />
           </SelectTrigger>
           <SelectContent>

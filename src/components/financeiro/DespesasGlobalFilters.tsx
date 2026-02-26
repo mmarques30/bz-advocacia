@@ -123,9 +123,9 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 
   return (
     <div className="space-y-3 mb-6">
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-2 items-center">
         <Select value={selectedAno} onValueChange={handleAnoChange}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="h-9 text-xs w-[100px]">
             <SelectValue placeholder="Ano" />
           </SelectTrigger>
           <SelectContent>
@@ -147,7 +147,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           value={filters.tipoDespesa}
           onValueChange={(value) => handleChange("tipoDespesa", value)}
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="h-9 text-xs w-[130px]">
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
@@ -164,7 +164,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
             <Button
               variant="outline"
               className={cn(
-                "w-[280px] justify-start text-left font-normal",
+                "h-9 text-xs w-[180px] justify-start text-left font-normal",
                 !filters.dateRange?.from && "text-muted-foreground"
               )}
             >
@@ -199,7 +199,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           value={filters.categoria}
           onValueChange={(value) => handleChange("categoria", value)}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="h-9 text-xs w-[130px]">
             <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent>
@@ -216,7 +216,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           value={filters.status}
           onValueChange={(value) => handleChange("status", value)}
         >
-          <SelectTrigger className="w-[130px]">
+          <SelectTrigger className="h-9 text-xs w-[130px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -233,7 +233,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           value={filters.conta}
           onValueChange={(value) => handleChange("conta", value)}
         >
-          <SelectTrigger className="w-[160px]">
+          <SelectTrigger className="h-9 text-xs w-[130px]">
             <SelectValue placeholder="Conta" />
           </SelectTrigger>
           <SelectContent>

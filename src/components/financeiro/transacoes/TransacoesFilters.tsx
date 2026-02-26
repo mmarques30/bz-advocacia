@@ -113,14 +113,14 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   };
 
   return (
-    <div className="flex flex-wrap gap-3 items-end">
+    <div className="flex flex-wrap gap-2 items-end">
       {/* Multi-select de anos */}
       <Popover>
         <PopoverTrigger asChild>
           <Button
             variant="outline"
             className={cn(
-              "w-[160px] justify-between text-left font-normal",
+              "h-9 text-xs w-[130px] justify-between text-left font-normal",
               filters.anos && filters.anos.length > 0 && "border-primary"
             )}
           >
@@ -166,7 +166,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           <Button
             variant="outline"
             className={cn(
-              "w-[220px] justify-start text-left font-normal",
+              "h-9 text-xs w-[180px] justify-start text-left font-normal",
               !dateRange && "text-muted-foreground"
             )}
           >
@@ -196,7 +196,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           })
         }
       >
-        <SelectTrigger className="w-[130px]">
+        <SelectTrigger className="h-9 text-xs w-[120px]">
           <SelectValue placeholder="Tipo" />
         </SelectTrigger>
         <SelectContent className="z-50 bg-popover">
@@ -219,7 +219,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           })
         }
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="h-9 text-xs w-[130px]">
           <SelectValue placeholder="Categoria" />
         </SelectTrigger>
         <SelectContent className="z-50 bg-popover">
@@ -241,7 +241,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           })
         }
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="h-9 text-xs w-[130px]">
           <SelectValue placeholder="Subcategoria" />
         </SelectTrigger>
         <SelectContent className="z-50 bg-popover">
@@ -263,7 +263,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
           })
         }
       >
-        <SelectTrigger className="w-[160px]">
+        <SelectTrigger className="h-9 text-xs w-[130px]">
           <SelectValue placeholder="Conta" />
         </SelectTrigger>
         <SelectContent className="z-50 bg-popover">
@@ -277,8 +277,9 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
       </Select>
 
       {hasFilters && (
-        <Button variant="ghost" size="icon" onClick={handleClear}>
-          <X className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className="h-9" onClick={handleClear}>
+          <X className="h-4 w-4 mr-1" />
+          Limpar
         </Button>
       )}
     </div>
