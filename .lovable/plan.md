@@ -1,26 +1,41 @@
 
 
-# Plano: Adicionar ordenação por data nas abas de Leads
+# Plano: Reformular Painel de Produtividade
 
-## Alterações
+## Estrutura nova (de cima para baixo)
 
-### 1. `src/pages/Leads.tsx` — ManualLeadsTab
-- Adicionar estado `sortOrder` com opções: `mais_recente`, `mais_antiga`, `nome_az`, `nome_za`
-- Adicionar um `<Select>` de ordenação ao lado dos filtros existentes
-- Aplicar `useMemo` para ordenar `filteredLeads` conforme `sortOrder` (por `created_at` ou `nome_completo`)
+### 1. KPIs (4 cards) — manter, mas ajustar
+- Concluidas, Tempo Medio, Taxa Conclusao, Top Executor (com medalha)
 
-### 2. `src/pages/Leads.tsx` — CsvLeadsTab
-- Mesmo estado `sortOrder` e `<Select>` de ordenação
-- Ordenar `filteredLeads` por `dataRaw` (Date) ou `nome`
+### 2. Card "Pendentes Aprovação das Advogadas" (NOVO)
+- Buscar demandas com `status = 'em_andamento'` que estão aguardando conclusão (só advogadas podem concluir)
+- Agrupar por advogada_responsavel (Juliana / Liziane)
+- Mostrar contagem e lista resumida dos títulos pendentes
+- Destaque visual com ícone de alerta
 
-### Opções do Select de ordenação
-- "Mais recentes" (padrão) — data desc
-- "Mais antigos" — data asc
-- "Nome A-Z" — nome asc
-- "Nome Z-A" — nome desc
+### 3. Tabela Ranking com Medalhas (reformulada)
+- Posição com medalha (ouro, prata, bronze para top 3, número para demais)
+- Colunas: Posição, Nome, Concluídas, Pendentes, Em Andamento, Tempo Médio
+- Full width (sem o gráfico de Distribuição de Carga ao lado — redundante)
 
-### Detalhes técnicos
-- Ordenação aplicada client-side via `useMemo` sobre os arrays já filtrados
-- Nenhuma alteração em hooks de dados ou componentes de tabela
-- O select terá ícone `ArrowUpDown` e largura `w-[180px]`
+### 4. Gráfico de Barras + Linha — Volume de Trabalho (substituir os 2 gráficos antigos)
+- Um único gráfico ComposedChart full width
+- Barras empilhadas: Concluídas + Em Andamento + Pendentes (por mês, evolução mensal)
+- Linha: total de demandas por mês (volume total)
+- Remover gráfico "Por Advogada" e "Evolução Mensal" separados
+
+## Alterações nos arquivos
+
+### `src/hooks/useProdutividadeEquipe.ts`
+- Adicionar ao retorno: `pendentesAprovacao` — array de demandas `em_andamento` agrupadas por `advogada_responsavel`
+- Adicionar dados de evolução mensal expandidos: incluir `emAndamento` e `pendentes` por mês (além de `concluidas`)
+
+### `src/components/demandas/ProdutividadeDashboard.tsx`
+- Reescrever layout:
+  1. Filtro de período (manter)
+  2. KPIs (manter)
+  3. Card "Pendentes Aprovação" com Badge por advogada
+  4. Tabela Ranking com medalhas (🥇🥈🥉 + números)
+  5. ComposedChart com Bar+Line para volume mensal
+- Remover: gráfico Distribuição de Carga, gráfico Por Advogada (redundantes)
 
