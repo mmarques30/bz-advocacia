@@ -1,21 +1,26 @@
 
-# Fix: Produtividade tab crash — empty SelectItem value
 
-## Problem
-The error is **not** a database query issue. It's a React crash in `ProdutividadeDashboard.tsx` caused by `<SelectItem value="">Todos</SelectItem>`. Radix UI's `Select.Item` does not allow empty string values — it throws: *"A Select.Item must have a value prop that is not an empty string."*
+# Fix: Trocar agrupamento de "Campanha" para "Anúncio"
 
-This happens in two places:
-- **Line 93**: `<SelectItem value="">Todos</SelectItem>` (Responsável filter)
-- **Line 105**: `<SelectItem value="">Todos</SelectItem>` (Tipo filter)
+A tabela "Performance por Campanha" agrupa por `campaign_name`, mas deveria agrupar por `ad_name` (anúncio).
 
-## Fix
-### File: `src/components/demandas/ProdutividadeDashboard.tsx`
+## Alterações
 
-1. **Line 93**: Change `value=""` to `value="all"`
-2. **Line 105**: Change `value=""` to `value="all"`
-3. **Line 46-47**: Update initial state from `''` to `'all'`:
-   - `const [responsavelId, setResponsavelId] = useState<string>('all');`
-   - `const [tipo, setTipo] = useState<string>('all');`
-4. **Lines 50-52**: Update the filter prop mapping:
-   - `responsavelId: responsavelId !== 'all' ? responsavelId : undefined`
-   - `tipo: tipo !== 'all' ? tipo : undefined`
+### 1. `src/hooks/useMarketingCsvAnalytics.ts`
+- **Interface `UnifiedLead` (linha 72)**: Adicionar campo `anuncio: string`
+- **Mapeamento de CSV leads (linha ~107)**: Mapear `anuncio: l.adName || "-"`
+- **Mapeamento de orgânicos (linha ~130)**: Mapear `anuncio: "Orgânico"`
+- **Bloco "Campaigns" (linhas 194-205)**: Trocar agrupamento de `l.campanha` para `l.anuncio`
+
+### 2. `src/components/meta-ads/MarketingCampanhasCustos.tsx`
+- **Linha 108**: `"Performance por Campanha"` → `"Performance por Anúncio"`
+- **Linha 109**: `"Métricas detalhadas por campanha"` → `"Métricas detalhadas por anúncio"`
+- **Linha 120**: TableHead `"Campanha"` → `"Anúncio"`
+- **Linha 75**: KPI subtitle `"Campanhas ativas"` → `"Anúncios ativos"`
+- **Linha 75**: KPI title `"Total de Campanhas"` → `"Total de Anúncios"`
+- **Linha 76**: KPI title `"Melhor Campanha"` → `"Melhor Anúncio"`
+
+### 3. `src/components/meta-ads/MarketingCsvCharts.tsx`
+- Linha 143: `"Performance por Campanha"` → `"Performance por Anúncio"`
+- TableHead `"Campanha"` → `"Anúncio"`
+
