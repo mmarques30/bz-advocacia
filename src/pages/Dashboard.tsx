@@ -8,7 +8,6 @@ import {
 import { KPICard } from "@/components/dashboard/KPICard";
 import { UserPendenciasCards } from "@/components/dashboard/UserPendenciasCards";
 import { VisaoOperacional } from "@/components/dashboard/VisaoOperacional";
-import { PropostasInteligentes } from "@/components/dashboard/PropostasInteligentes";
 import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
 import { useUserPendencias } from "@/hooks/useUserPendencias";
 import { useDashboardCompleto } from "@/hooks/useDashboardCompleto";
@@ -49,12 +48,6 @@ export default function Dashboard() {
           loading={dashboardLoading}
         />
       </div>
-
-      {/* Sugestões de Ação */}
-      <PropostasInteligentes
-        propostas={dashboard?.propostas || []}
-        loading={dashboardLoading}
-      />
 
       {/* Visão Operacional: Processos + Pipeline */}
       <VisaoOperacional
