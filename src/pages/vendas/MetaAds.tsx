@@ -1,17 +1,21 @@
 import { useState } from "react";
-import { MetaAdsKPIs } from "@/components/meta-ads/MetaAdsKPIs";
-import { MetaAdsCampaigns } from "@/components/meta-ads/MetaAdsCampaigns";
-import { MetaAdsChart } from "@/components/meta-ads/MetaAdsChart";
-import { MarketingCsvKPIs } from "@/components/meta-ads/MarketingCsvKPIs";
+import { MarketingDashboardKPIs } from "@/components/meta-ads/MarketingDashboardKPIs";
+import { MarketingPerformanceChart } from "@/components/meta-ads/MarketingPerformanceChart";
+import { MarketingFunnelChart } from "@/components/meta-ads/MarketingFunnelChart";
+import { MarketingServiceDistribution } from "@/components/meta-ads/MarketingServiceDistribution";
 import { MarketingCsvCharts } from "@/components/meta-ads/MarketingCsvCharts";
+import { MetaAdsKPIs } from "@/components/meta-ads/MetaAdsKPIs";
+import { MetaAdsChart } from "@/components/meta-ads/MetaAdsChart";
+import { MetaAdsCampaigns } from "@/components/meta-ads/MetaAdsCampaigns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
 import { useMarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
 import { PeriodoFiltro } from "@/types/meta-ads";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, Users } from "lucide-react";
 
 export default function MetaAds() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("90d");
@@ -21,48 +25,54 @@ export default function MetaAds() {
 
   const hasMetaData = kpis && (kpis.impressoes > 0 || kpis.cliques > 0 || kpis.leads > 0);
 
-  const PeriodFilter = () => (
-    <div className="flex items-center gap-4">
-      <span className="text-sm text-muted-foreground">Período:</span>
-      <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="7d">Últimos 7 dias</SelectItem>
-          <SelectItem value="30d">Últimos 30 dias</SelectItem>
-          <SelectItem value="90d">Últimos 90 dias</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Marketing</h1>
-        <p className="text-muted-foreground">
-          Acompanhe a performance das suas campanhas e análises de conversão
-        </p>
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard de Marketing</h1>
+          <p className="text-muted-foreground">
+            Acompanhe a performance das suas campanhas e análises de conversão
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="text-sm px-3 py-1.5">
+            <Users className="h-4 w-4 mr-1.5" />
+            {csvAnalytics.totalLeads} leads no período
+          </Badge>
+          <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">Últimos 7 dias</SelectItem>
+              <SelectItem value="30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="90d">Últimos 90 dias</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <Tabs defaultValue="resumo" className="space-y-6">
+      <Tabs defaultValue="performance" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="resumo">Resumo</TabsTrigger>
-          <TabsTrigger value="analises">Análises</TabsTrigger>
+          <TabsTrigger value="performance">Performance & ROI</TabsTrigger>
+          <TabsTrigger value="campanhas">Campanhas & Custos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="resumo" className="space-y-6">
-          <PeriodFilter />
-          <MarketingCsvKPIs analytics={csvAnalytics} />
-          <MarketingCsvCharts
-            analytics={csvAnalytics}
-            showFunnel={false}
-            showPlatform={true}
-            showEvolution={true}
-            showCampaigns={false}
-          />
+        <TabsContent value="performance" className="space-y-6">
+          {/* KPI Cards */}
+          <MarketingDashboardKPIs analytics={csvAnalytics} />
 
+          {/* Performance Chart */}
+          <MarketingPerformanceChart data={csvAnalytics.dailyConversions} />
+
+          {/* Funnel + Service Distribution side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <MarketingFunnelChart data={csvAnalytics.funnel} />
+            <MarketingServiceDistribution data={csvAnalytics.serviceDistribution} />
+          </div>
+
+          {/* Meta Ads data if available */}
           {hasMetaData && (
             <>
               <MetaAdsKPIs kpis={kpis} isLoading={isLoadingMetrics} />
@@ -82,11 +92,10 @@ export default function MetaAds() {
           )}
         </TabsContent>
 
-        <TabsContent value="analises" className="space-y-6">
-          <PeriodFilter />
+        <TabsContent value="campanhas" className="space-y-6">
           <MarketingCsvCharts
             analytics={csvAnalytics}
-            showFunnel={true}
+            showFunnel={false}
             showPlatform={true}
             showEvolution={true}
             showCampaigns={true}
