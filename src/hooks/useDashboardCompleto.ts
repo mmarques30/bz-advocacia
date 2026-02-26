@@ -2,6 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import Papa from "papaparse";
+
+const CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQEcRKqnsvUsXiq4jmdqLo9zAqtsAwrPQrivVFE1jehceflnM-hliX8goacOyMw4S2LjYSMHbJUOGIF/pub?output=csv";
 
 export interface ProcessosPorStatus {
   emAndamento: number;
@@ -221,6 +225,28 @@ export function useDashboardCompleto() {
         );
       }
 
+      // Fetch CSV leads for unified counting
+      let csvLeadsByMonth: Record<string, number> = {};
+      let csvLeadsMesAtual = 0;
+      try {
+        const csvRes = await fetch(CSV_URL);
+        const csvText = await csvRes.text();
+        const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+        const csvRows = parsed.data as Record<string, string>[];
+        const mesAtualKey = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+        
+        csvRows.forEach((row) => {
+          if (!row.created_time) return;
+          const d = new Date(row.created_time);
+          if (isNaN(d.getTime())) return;
+          const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+          csvLeadsByMonth[monthKey] = (csvLeadsByMonth[monthKey] || 0) + 1;
+          if (monthKey === mesAtualKey) csvLeadsMesAtual++;
+        });
+      } catch (e) {
+        console.warn("Failed to fetch CSV leads for dashboard:", e);
+      }
+
       // Leads evolution (6 months)
       const leadsEvolution: LeadsEvolutionItem[] = [];
       for (let i = 5; i >= 0; i--) {
@@ -240,10 +266,12 @@ export function useDashboardCompleto() {
             .gte("created_at", startOfMonth(prevYear).toISOString())
             .lte("created_at", endOfMonth(prevYear).toISOString()),
         ]);
+        const monthKey = format(month, "yyyy-MM");
+        const prevYearKey = format(prevYear, "yyyy-MM");
         leadsEvolution.push({
           mes: format(month, "MMM", { locale: ptBR }),
-          atual: atual.count || 0,
-          anterior: anterior.count || 0,
+          atual: (atual.count || 0) + (csvLeadsByMonth[monthKey] || 0),
+          anterior: (anterior.count || 0) + (csvLeadsByMonth[prevYearKey] || 0),
         });
       }
 
@@ -392,10 +420,11 @@ export function useDashboardCompleto() {
         });
       }
 
-      const totalLeadsMes = totalLeadsMesResult.count || 0;
+      const totalLeadsMesOrganicos = totalLeadsMesResult.count || 0;
+      const totalLeadsMes = totalLeadsMesOrganicos + csvLeadsMesAtual;
       const convertidosMes = convertidosMesResult.count || 0;
       const taxaConversao =
-        totalLeadsMes > 0 ? Math.round((convertidosMes / totalLeadsMes) * 1000) / 10 : 0;
+        totalLeadsMesOrganicos > 0 ? Math.round((convertidosMes / totalLeadsMesOrganicos) * 1000) / 10 : 0;
 
       return {
         processos,
