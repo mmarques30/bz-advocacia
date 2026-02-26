@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown } from "lucide-react";
+import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
@@ -420,22 +422,31 @@ function DraggableLeadCard({
 
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
-      <div
-        className="bg-background border rounded-md p-3 hover:shadow-sm transition-shadow space-y-1"
+      <Card
+        className="p-3 cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => onViewDetails(lead.id)}
       >
-        <p className="font-medium text-sm truncate">{lead.full_name || "Sem nome"}</p>
-        {lead.tipo_servico && (
-          <p className="text-xs text-muted-foreground truncate">
-            {lead.tipo_servico.replace(/_/g, " ")}
-          </p>
-        )}
-        {diasDesdeContato !== null && (
-          <p className="text-xs text-muted-foreground">
-            há {diasDesdeContato} {diasDesdeContato === 1 ? 'dia' : 'dias'}
-          </p>
-        )}
-      </div>
+        <div className="space-y-1.5">
+          <p className="font-medium text-sm line-clamp-1">{lead.full_name || "Sem nome"}</p>
+
+          {lead.tipo_servico && (
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Briefcase className="h-3 w-3 flex-shrink-0" />
+              <span className="text-xs truncate">{lead.tipo_servico.replace(/_/g, " ")}</span>
+            </div>
+          )}
+
+          {diasDesdeContato !== null && (
+            <div className={cn(
+              "flex items-center gap-1.5 text-xs",
+              diasDesdeContato > 7 ? "text-destructive" : "text-muted-foreground"
+            )}>
+              <Clock className="h-3 w-3 flex-shrink-0" />
+              <span>há {diasDesdeContato} {diasDesdeContato === 1 ? 'dia' : 'dias'}</span>
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
