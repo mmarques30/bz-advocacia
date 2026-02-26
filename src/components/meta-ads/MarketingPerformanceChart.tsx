@@ -23,6 +23,7 @@ export function MarketingPerformanceChart({ data }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>Performance Diária: Leads vs Conversões</CardTitle>
+        <p className="text-sm text-muted-foreground">Acompanhamento de leads captados e taxa de conversão ao longo do tempo</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={350}>

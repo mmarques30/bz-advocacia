@@ -29,6 +29,7 @@ export function MarketingFunnelChart({ data }: Props) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Funil de Conversão</CardTitle>
+        <p className="text-sm text-muted-foreground">Jornada completa dos leads</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
