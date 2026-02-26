@@ -157,7 +157,7 @@ export function GerarContratoForm() {
       rg: (clienteSelecionado as unknown as { rg?: string }).rg,
       nacionalidade: (clienteSelecionado as unknown as { nacionalidade?: string }).nacionalidade || 'brasileiro(a)',
       profissao: (clienteSelecionado as unknown as { profissao?: string }).profissao,
-      estado_civil: clienteSelecionado.situacao_atual,
+      estado_civil: clienteSelecionado.estado_civil || clienteSelecionado.situacao_atual,
       endereco_completo: (clienteSelecionado as unknown as { endereco_completo?: string }).endereco_completo,
       email: clienteSelecionado.email,
       telefone: clienteSelecionado.telefone,
@@ -223,21 +223,59 @@ export function GerarContratoForm() {
     });
   };
 
-  const handleGerarPDF = async () => {
+  const handleGerarPDF = async (forceRevalidate = false) => {
     if (!clienteId || !modeloSelecionado || !titulo) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
-    if (camposFaltantes.length > 0) {
+    // Always fetch fresh data from backend to avoid stale state
+    const { data: freshCliente, error: fetchError } = await supabase
+      .from('contact_submissions')
+      .select('*')
+      .eq('id', clienteId)
+      .single();
+
+    if (fetchError || !freshCliente) {
+      toast.error("Erro ao buscar dados atualizados do cliente");
+      return;
+    }
+
+    const freshDadosCliente: DadosCliente = {
+      nome_completo: freshCliente.nome_completo,
+      cpf: freshCliente.cpf,
+      rg: freshCliente.rg,
+      nacionalidade: freshCliente.nacionalidade || 'brasileiro(a)',
+      profissao: freshCliente.profissao,
+      estado_civil: freshCliente.estado_civil || freshCliente.situacao_atual,
+      endereco_completo: freshCliente.endereco_completo,
+      email: freshCliente.email,
+      telefone: freshCliente.telefone,
+      endereco_cidade: freshCliente.endereco_cidade,
+      endereco_estado: freshCliente.endereco_estado,
+      endereco_cep: freshCliente.endereco_cep,
+    };
+
+    const freshCamposFaltantes = extrairVariaveisFaltantes(modeloSelecionado.template, freshDadosCliente);
+
+    if (freshCamposFaltantes.length > 0) {
       setShowComplementar(true);
       return;
     }
 
+    // Generate content with fresh data
+    const conteudoFinal = substituirVariaveis(
+      modeloSelecionado.template,
+      freshDadosCliente,
+      dadosEscritorio,
+      valores,
+      dadosContrato
+    );
+
     try {
       const blob = await pdf(
         <ContratoPDF 
-          conteudo={conteudoPreview}
+          conteudo={conteudoFinal}
           titulo={titulo}
           escritorio={dadosEscritorio}
         />
@@ -258,7 +296,7 @@ export function GerarContratoForm() {
         cliente_id: clienteId,
         titulo,
         tipo_contrato: modeloSelecionado.tipo,
-        conteudo_final: conteudoPreview,
+        conteudo_final: conteudoFinal,
         valores: { ...valores },
         dados_contrato: { ...dadosContrato },
         status: 'finalizado',
@@ -266,6 +304,9 @@ export function GerarContratoForm() {
 
       // Atualizar status do lead automaticamente
       await atualizarLeadParaFechado(clienteId, queryClient);
+
+      // Invalidate leads cache to reflect fresh data
+      queryClient.invalidateQueries({ queryKey: ['leads-simple'] });
 
       toast.success("PDF gerado e contrato salvo");
     } catch (error) {
@@ -450,7 +491,7 @@ export function GerarContratoForm() {
             </Button>
             <Button
               className="flex-1"
-              onClick={handleGerarPDF}
+              onClick={() => handleGerarPDF()}
               disabled={createContrato.isPending}
             >
               <FileDown className="h-4 w-4 mr-2" />
@@ -472,9 +513,9 @@ export function GerarContratoForm() {
         onOpenChange={setShowComplementar}
         clienteId={clienteId}
         camposFaltantes={camposFaltantes}
-        onComplete={() => {
+        onComplete={async () => {
           setShowComplementar(false);
-          handleGerarPDF();
+          await handleGerarPDF(true);
         }}
       />
     </div>
