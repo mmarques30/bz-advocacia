@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
+import { MODELOS_PROPOSTA } from "@/lib/propostaTemplates";
 import { TIPOS_CONTRATO } from "@/types/contratos";
-import { FileText, Eye, Sparkles, Pencil, Trash2, Copy } from "lucide-react";
+import { FileText, Eye, Sparkles, Pencil, Trash2, Copy, FileSignature } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -32,16 +33,24 @@ import {
   ModeloPersonalizado,
 } from "@/hooks/useModelosDocumentos";
 
+type TipoFiltro = 'todos' | 'contrato' | 'proposta';
+
 export function ModelosContrato() {
-  const [previewModelo, setPreviewModelo] = useState<typeof MODELOS_CONTRATO[0] | null>(null);
+  const [previewModelo, setPreviewModelo] = useState<{ nome: string; template: string } | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [editModelo, setEditModelo] = useState<ModeloPersonalizado | null>(null);
   const [deleteModelo, setDeleteModelo] = useState<ModeloPersonalizado | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todos");
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
 
-  const { data: modelosPersonalizados = [] } = useModelosPersonalizados('contrato');
+  const { data: modelosContratos = [] } = useModelosPersonalizados('contrato');
+  const { data: modelosPropostas = [] } = useModelosPersonalizados('proposta');
   const deleteModeloMutation = useDeleteModelo();
   const duplicarModeloMutation = useDuplicarModelo();
+
+  const modelosPersonalizados = useMemo(() => {
+    return [...modelosContratos, ...modelosPropostas];
+  }, [modelosContratos, modelosPropostas]);
 
   const getTipoLabel = (tipo: string) => {
     return TIPOS_CONTRATO.find(t => t.value === tipo)?.label || tipo;
@@ -61,35 +70,63 @@ export function ModelosContrato() {
     });
   }, [modelosPersonalizados]);
 
-  // Contagem por categoria para os chips
+  // All default models combined
+  const todosPadrao = useMemo(() => {
+    const contratos = MODELOS_CONTRATO.map(m => ({ ...m, docType: 'contrato' as const }));
+    const propostas = MODELOS_PROPOSTA.map(m => ({ ...m, docType: 'proposta' as const }));
+    return [...contratos, ...propostas];
+  }, []);
+
+  // Category counts
   const categoriasComContagem = useMemo(() => {
     const contagem: Record<string, number> = {};
-    modelosPersonalizadosFormatados.forEach(m => {
+    const filtered = tipoFiltro === 'todos'
+      ? modelosPersonalizadosFormatados
+      : modelosPersonalizadosFormatados.filter(m => m.tipo === tipoFiltro);
+    
+    filtered.forEach(m => {
       const cat = m.categoria || 'outro';
       contagem[cat] = (contagem[cat] || 0) + 1;
     });
-    MODELOS_CONTRATO.forEach(m => {
+
+    const filteredPadrao = tipoFiltro === 'todos'
+      ? todosPadrao
+      : todosPadrao.filter(m => m.docType === tipoFiltro);
+
+    filteredPadrao.forEach(m => {
       contagem[m.tipo] = (contagem[m.tipo] || 0) + 1;
     });
-    const total = modelosPersonalizadosFormatados.length + MODELOS_CONTRATO.length;
-    return { contagem, total };
-  }, [modelosPersonalizadosFormatados]);
 
-  // Categorias ativas (que têm modelos)
+    const total = filtered.length + filteredPadrao.length;
+    return { contagem, total };
+  }, [modelosPersonalizadosFormatados, todosPadrao, tipoFiltro]);
+
   const categoriasAtivas = useMemo(() => {
     return TIPOS_CONTRATO.filter(t => categoriasComContagem.contagem[t.value]);
   }, [categoriasComContagem]);
 
-  // Filtragem
+  // Filtering
   const personalizadosFiltrados = useMemo(() => {
-    if (categoriaFiltro === 'todos') return modelosPersonalizadosFormatados;
-    return modelosPersonalizadosFormatados.filter(m => m.categoria === categoriaFiltro);
-  }, [modelosPersonalizadosFormatados, categoriaFiltro]);
+    let result = modelosPersonalizadosFormatados;
+    if (tipoFiltro !== 'todos') {
+      result = result.filter(m => m.tipo === tipoFiltro);
+    }
+    if (categoriaFiltro !== 'todos') {
+      result = result.filter(m => m.categoria === categoriaFiltro);
+    }
+    return result;
+  }, [modelosPersonalizadosFormatados, categoriaFiltro, tipoFiltro]);
 
   const padraoFiltrados = useMemo(() => {
-    if (categoriaFiltro === 'todos') return MODELOS_CONTRATO;
-    return MODELOS_CONTRATO.filter(m => m.tipo === categoriaFiltro);
-  }, [categoriaFiltro]);
+    let result = todosPadrao;
+    if (tipoFiltro !== 'todos') {
+      result = result.filter(m => m.docType === tipoFiltro);
+    }
+    if (categoriaFiltro !== 'todos') {
+      result = result.filter(m => m.tipo === categoriaFiltro);
+    }
+    return result;
+  }, [todosPadrao, categoriaFiltro, tipoFiltro]);
 
   const handleDelete = () => {
     if (!deleteModelo) return;
@@ -109,16 +146,16 @@ export function ModelosContrato() {
     });
   };
 
-  const handleUsarComoBase = (modelo: typeof MODELOS_CONTRATO[0]) => {
+  const handleUsarComoBase = (modelo: typeof todosPadrao[0]) => {
     const conteudo: ModeloConteudo = {
       servico_padrao: modelo.template,
-      tipo_modelo: 'contrato',
+      tipo_modelo: modelo.docType,
       fonte: 'modelo_padrao',
       tipo_identificado: modelo.tipo,
     };
     duplicarModeloMutation.mutate({
       nome: modelo.nome,
-      tipo: 'contrato',
+      tipo: modelo.docType,
       categoria: modelo.tipo,
       conteudo: JSON.stringify(conteudo),
       descricao: modelo.descricao,
@@ -142,26 +179,55 @@ export function ModelosContrato() {
         </Button>
       </div>
 
-      {/* Filtros por categoria */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      {/* Filtro por tipo (Contrato / Proposta) */}
+      <div className="flex flex-wrap gap-2 mb-3">
         <Button
-          variant={categoriaFiltro === 'todos' ? 'default' : 'outline'}
+          variant={tipoFiltro === 'todos' ? 'default' : 'outline'}
           size="sm"
-          onClick={() => setCategoriaFiltro('todos')}
+          onClick={() => { setTipoFiltro('todos'); setCategoriaFiltro('todos'); }}
         >
-          Todos ({categoriasComContagem.total})
+          Todos
         </Button>
-        {categoriasAtivas.map(cat => (
-          <Button
-            key={cat.value}
-            variant={categoriaFiltro === cat.value ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setCategoriaFiltro(cat.value)}
-          >
-            {cat.label} ({categoriasComContagem.contagem[cat.value]})
-          </Button>
-        ))}
+        <Button
+          variant={tipoFiltro === 'contrato' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setTipoFiltro('contrato'); setCategoriaFiltro('todos'); }}
+        >
+          <FileSignature className="h-4 w-4 mr-1" />
+          Contratos
+        </Button>
+        <Button
+          variant={tipoFiltro === 'proposta' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => { setTipoFiltro('proposta'); setCategoriaFiltro('todos'); }}
+        >
+          <FileText className="h-4 w-4 mr-1" />
+          Propostas
+        </Button>
       </div>
+
+      {/* Filtros por categoria */}
+      {categoriasAtivas.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-6">
+          <Button
+            variant={categoriaFiltro === 'todos' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setCategoriaFiltro('todos')}
+          >
+            Todas categorias
+          </Button>
+          {categoriasAtivas.map(cat => (
+            <Button
+              key={cat.value}
+              variant={categoriaFiltro === cat.value ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setCategoriaFiltro(cat.value)}
+            >
+              {cat.label} ({categoriasComContagem.contagem[cat.value]})
+            </Button>
+          ))}
+        </div>
+      )}
 
       {/* Modelos Personalizados */}
       {personalizadosFiltrados.length > 0 && (
@@ -185,7 +251,9 @@ export function ModelosContrato() {
                           <Badge variant="secondary">
                             {getTipoLabel(modelo.categoria || '')}
                           </Badge>
-                          <Badge variant="outline" className="text-xs">IA</Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {modelo.tipo === 'proposta' ? 'Proposta' : 'Contrato'}
+                          </Badge>
                         </div>
                       </div>
                     </div>
@@ -235,13 +303,22 @@ export function ModelosContrato() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-primary" />
+                        {modelo.docType === 'proposta' ? (
+                          <FileText className="h-5 w-5 text-primary" />
+                        ) : (
+                          <FileSignature className="h-5 w-5 text-primary" />
+                        )}
                       </div>
                       <div>
                         <CardTitle className="text-base">{modelo.nome}</CardTitle>
-                        <Badge variant="secondary" className="mt-1">
-                          {getTipoLabel(modelo.tipo)}
-                        </Badge>
+                        <div className="flex gap-1 mt-1">
+                          <Badge variant="secondary">
+                            {getTipoLabel(modelo.tipo)}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {modelo.docType === 'proposta' ? 'Proposta' : 'Contrato'}
+                          </Badge>
+                        </div>
                       </div>
                     </div>
                   </div>
