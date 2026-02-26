@@ -2340,6 +2340,93 @@ export type Database = {
         }
         Relationships: []
       }
+      sheet_leads_raw: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          bem_inventariar: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          contato_whatsapp: string | null
+          created_time: string | null
+          form_id: string | null
+          form_name: string | null
+          full_name: string | null
+          id: string
+          is_converted: boolean | null
+          is_organic: boolean | null
+          is_qualified: boolean | null
+          is_quality: boolean | null
+          lead_status: string | null
+          observacoes: string | null
+          phone_number: string | null
+          platform: string | null
+          preferencia_contato: string | null
+          raw_json: Json
+          source_hash: string | null
+          synced_at: string
+          tipo_servico: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          bem_inventariar?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          contato_whatsapp?: string | null
+          created_time?: string | null
+          form_id?: string | null
+          form_name?: string | null
+          full_name?: string | null
+          id: string
+          is_converted?: boolean | null
+          is_organic?: boolean | null
+          is_qualified?: boolean | null
+          is_quality?: boolean | null
+          lead_status?: string | null
+          observacoes?: string | null
+          phone_number?: string | null
+          platform?: string | null
+          preferencia_contato?: string | null
+          raw_json?: Json
+          source_hash?: string | null
+          synced_at?: string
+          tipo_servico?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          bem_inventariar?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          contato_whatsapp?: string | null
+          created_time?: string | null
+          form_id?: string | null
+          form_name?: string | null
+          full_name?: string | null
+          id?: string
+          is_converted?: boolean | null
+          is_organic?: boolean | null
+          is_qualified?: boolean | null
+          is_quality?: boolean | null
+          lead_status?: string | null
+          observacoes?: string | null
+          phone_number?: string | null
+          platform?: string | null
+          preferencia_contato?: string | null
+          raw_json?: Json
+          source_hash?: string | null
+          synced_at?: string
+          tipo_servico?: string | null
+        }
+        Relationships: []
+      }
       subcategorias_externas: {
         Row: {
           categoria_id: string | null
@@ -3059,7 +3146,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_auditoria_leads: {
+        Row: {
+          crm_data: string | null
+          crm_id: string | null
+          crm_nome: string | null
+          crm_telefone: string | null
+          platform: string | null
+          raw_data: string | null
+          raw_id: string | null
+          raw_nome: string | null
+          raw_telefone: string | null
+          tipo_divergencia: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_page_access: {
