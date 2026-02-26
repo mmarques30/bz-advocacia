@@ -1,11 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { MarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
 import { MetaKPIs } from "@/types/meta-ads";
-import { Users, DollarSign, Target, TrendingUp, MousePointerClick, BarChart3, UserCheck, LucideIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, DollarSign, Target, TrendingUp, MousePointerClick, BarChart3, UserCheck, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import useEmblaCarousel from "embla-carousel-react";
-import { useCallback, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 
 interface KPICardProps {
   title: string;
@@ -17,7 +14,7 @@ interface KPICardProps {
 
 function KPICard({ title, value, subtitle, icon: Icon, valueClassName }: KPICardProps) {
   return (
-    <Card className="border rounded-xl bg-card p-5 min-w-[200px]">
+    <Card className="border rounded-xl bg-card p-5">
       <div className="flex items-start justify-between">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <div className="rounded-lg bg-muted p-2">
@@ -38,29 +35,6 @@ interface Props {
 }
 
 export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    containScroll: "trimSnaps",
-    slidesToScroll: 1,
-  });
-
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    emblaApi.on("reInit", onSelect);
-    return () => { emblaApi.off("select", onSelect); };
-  }, [emblaApi, onSelect]);
-
   const hasMetaData = metaKpis && (metaKpis.impressoes > 0 || metaKpis.cliques > 0);
 
   const custoLead = hasMetaData && metaKpis.custoLead > 0
@@ -96,38 +70,10 @@ export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
   ];
 
   return (
-    <div className="relative">
-      {canScrollPrev && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full shadow-md bg-background"
-          onClick={() => emblaApi?.scrollPrev()}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-      )}
-
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4">
-          {kpis.map((kpi) => (
-            <div key={kpi.title} className="flex-[0_0_220px]">
-              <KPICard {...kpi} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {canScrollNext && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full shadow-md bg-background"
-          onClick={() => emblaApi?.scrollNext()}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      )}
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {kpis.map((kpi) => (
+        <KPICard key={kpi.title} {...kpi} />
+      ))}
     </div>
   );
 }
