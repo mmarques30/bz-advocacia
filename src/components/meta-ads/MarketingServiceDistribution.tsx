@@ -21,6 +21,7 @@ export function MarketingServiceDistribution({ data }: Props) {
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Distribuição por Serviço</CardTitle>
+        <p className="text-sm text-muted-foreground">Tipos de serviços mais demandados</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>

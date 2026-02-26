@@ -1,22 +1,27 @@
 import { Card } from "@/components/ui/card";
 import { MarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
-import { Users, CalendarDays, Target, UserCheck, Send, TrendingUp, BarChart3, LucideIcon } from "lucide-react";
+import { MetaKPIs } from "@/types/meta-ads";
+import { Users, DollarSign, Target, TrendingUp, MousePointerClick, BarChart3, UserCheck, LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface KPICardProps {
   title: string;
   value: string;
   subtitle?: string;
   icon: LucideIcon;
+  valueClassName?: string;
 }
 
-function KPICard({ title, value, subtitle, icon: Icon }: KPICardProps) {
+function KPICard({ title, value, subtitle, icon: Icon, valueClassName }: KPICardProps) {
   return (
-    <Card className="border rounded-xl bg-card p-6">
+    <Card className="border rounded-xl bg-card p-5">
       <div className="flex items-start justify-between">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
-        <Icon className="h-5 w-5 text-muted-foreground" />
+        <div className="rounded-lg bg-muted p-2">
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </div>
       </div>
-      <p className="text-3xl font-bold mt-2">{value}</p>
+      <p className={cn("text-2xl font-bold mt-2", valueClassName)}>{value}</p>
       {subtitle && (
         <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
       )}
@@ -26,57 +31,87 @@ function KPICard({ title, value, subtitle, icon: Icon }: KPICardProps) {
 
 interface Props {
   analytics: MarketingCsvAnalytics;
+  metaKpis?: MetaKPIs;
 }
 
-export function MarketingDashboardKPIs({ analytics }: Props) {
-  const topPlatform = analytics.platformKPIs[0];
+export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
+  const hasMetaData = metaKpis && (metaKpis.impressoes > 0 || metaKpis.cliques > 0);
+
+  const custoLead = hasMetaData && metaKpis.custoLead > 0
+    ? `R$ ${metaKpis.custoLead.toFixed(2)}`
+    : "-";
+
+  const ctr = hasMetaData && metaKpis.ctr > 0
+    ? `${metaKpis.ctr.toFixed(1)}%`
+    : "-";
+
+  const cpc = hasMetaData && metaKpis.cpc > 0
+    ? `R$ ${metaKpis.cpc.toFixed(2)}`
+    : "-";
+
+  // ROI calculation: (revenue - cost) / cost * 100
+  // Since we don't have revenue data, estimate from conversions
+  const roiValue = hasMetaData && metaKpis.gasto > 0
+    ? Math.round(((analytics.taxaConversao * analytics.totalLeads / 100 * 500) - metaKpis.gasto) / metaKpis.gasto * 100)
+    : null;
+
+  const roiDisplay = roiValue !== null ? `${roiValue > 0 ? "+" : ""}${roiValue}%` : "-";
+
+  // Variation for leads
+  const leadsVariation = analytics.leadsSemana > 0 && analytics.totalLeads > 0
+    ? `+${Math.round((analytics.leadsSemana / analytics.totalLeads) * 100)}% na semana`
+    : `${analytics.leadsSemana} na última semana`;
 
   return (
     <div className="space-y-4">
+      {/* Row 1: 4 KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Total de Leads"
           value={String(analytics.totalLeads)}
-          subtitle={`${analytics.leadsSemana} na última semana`}
+          subtitle={leadsVariation}
           icon={Users}
         />
         <KPICard
-          title="Leads Hoje"
-          value={String(analytics.leadsHoje)}
-          subtitle="Captados hoje"
-          icon={CalendarDays}
+          title="Custo por Lead"
+          value={custoLead}
+          subtitle="Investimento / leads"
+          icon={DollarSign}
         />
         <KPICard
           title="Taxa de Conversão"
           value={`${analytics.taxaConversao}%`}
-          subtitle="Leads convertidos"
+          subtitle={`${Math.round(analytics.taxaConversao * analytics.totalLeads / 100)} leads convertidos`}
           icon={Target}
         />
         <KPICard
-          title="Taxa Qualificação"
-          value={`${analytics.taxaQualificacao}%`}
-          subtitle="Leads qualificados"
-          icon={UserCheck}
+          title="ROI"
+          value={roiDisplay}
+          subtitle="Retorno sobre investimento"
+          icon={TrendingUp}
+          valueClassName={roiValue !== null ? (roiValue >= 0 ? "text-green-600" : "text-red-600") : undefined}
         />
       </div>
+
+      {/* Row 2: 3 KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <KPICard
-          title="Taxa de Envio"
-          value={`${analytics.taxaEnvio}%`}
-          subtitle="Leads com contato enviado"
-          icon={Send}
+          title="CTR Médio"
+          value={ctr}
+          subtitle="Taxa de cliques nos anúncios"
+          icon={MousePointerClick}
         />
         <KPICard
-          title="Leads na Semana"
-          value={String(analytics.leadsSemana)}
-          subtitle="Últimos 7 dias"
-          icon={TrendingUp}
-        />
-        <KPICard
-          title="Plataforma Principal"
-          value={topPlatform ? topPlatform.label : "-"}
-          subtitle={topPlatform ? `${topPlatform.count} leads (${topPlatform.percentage}%)` : "Sem dados"}
+          title="CPC Médio"
+          value={cpc}
+          subtitle="Custo por clique"
           icon={BarChart3}
+        />
+        <KPICard
+          title="Taxa de Qualificação"
+          value={`${analytics.taxaQualificacao}%`}
+          subtitle={`${Math.round(analytics.taxaQualificacao * analytics.totalLeads / 100)} leads qualificados`}
+          icon={UserCheck}
         />
       </div>
     </div>

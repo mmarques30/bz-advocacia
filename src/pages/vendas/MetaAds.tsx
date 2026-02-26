@@ -3,27 +3,23 @@ import { MarketingDashboardKPIs } from "@/components/meta-ads/MarketingDashboard
 import { MarketingPerformanceChart } from "@/components/meta-ads/MarketingPerformanceChart";
 import { MarketingFunnelChart } from "@/components/meta-ads/MarketingFunnelChart";
 import { MarketingServiceDistribution } from "@/components/meta-ads/MarketingServiceDistribution";
-import { MarketingCsvCharts } from "@/components/meta-ads/MarketingCsvCharts";
-import { MetaAdsKPIs } from "@/components/meta-ads/MetaAdsKPIs";
-import { MetaAdsChart } from "@/components/meta-ads/MetaAdsChart";
-import { MetaAdsCampaigns } from "@/components/meta-ads/MetaAdsCampaigns";
+import { MarketingCampanhasCustos } from "@/components/meta-ads/MarketingCampanhasCustos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
 import { useMarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
 import { PeriodoFiltro } from "@/types/meta-ads";
-import { TrendingUp, Users } from "lucide-react";
 
 export default function MetaAds() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("90d");
-  const { kpis, chartData, isLoading: isLoadingMetrics } = useMetaMetrics(periodo);
+  const { kpis, isLoading: isLoadingMetrics } = useMetaMetrics(periodo);
   const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns();
   const csvAnalytics = useMarketingCsvAnalytics(periodo);
 
-  const hasMetaData = kpis && (kpis.impressoes > 0 || kpis.cliques > 0 || kpis.leads > 0);
+  const investimentoTotal = kpis && kpis.gasto > 0
+    ? `R$ ${kpis.gasto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+    : "R$ 0,00";
 
   return (
     <div className="space-y-6">
@@ -35,11 +31,11 @@ export default function MetaAds() {
             Acompanhe a performance das suas campanhas e análises de conversão
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="text-sm px-3 py-1.5">
-            <Users className="h-4 w-4 mr-1.5" />
-            {csvAnalytics.totalLeads} leads no período
-          </Badge>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Período completo</p>
+            <p className="text-2xl font-bold">{investimentoTotal}</p>
+          </div>
           <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
             <SelectTrigger className="w-[180px]">
               <SelectValue />
@@ -61,7 +57,7 @@ export default function MetaAds() {
 
         <TabsContent value="performance" className="space-y-6">
           {/* KPI Cards */}
-          <MarketingDashboardKPIs analytics={csvAnalytics} />
+          <MarketingDashboardKPIs analytics={csvAnalytics} metaKpis={kpis} />
 
           {/* Performance Chart */}
           <MarketingPerformanceChart data={csvAnalytics.dailyConversions} />
@@ -71,34 +67,14 @@ export default function MetaAds() {
             <MarketingFunnelChart data={csvAnalytics.funnel} />
             <MarketingServiceDistribution data={csvAnalytics.serviceDistribution} />
           </div>
-
-          {/* Meta Ads data if available */}
-          {hasMetaData && (
-            <>
-              <MetaAdsKPIs kpis={kpis} isLoading={isLoadingMetrics} />
-              <MetaAdsChart data={chartData} isLoading={isLoadingMetrics} />
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Campanhas Ativas</CardTitle>
-                    <TrendingUp className="h-5 w-5 text-muted-foreground" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <MetaAdsCampaigns campanhas={campanhas} isLoading={isLoadingCampaigns} />
-                </CardContent>
-              </Card>
-            </>
-          )}
         </TabsContent>
 
         <TabsContent value="campanhas" className="space-y-6">
-          <MarketingCsvCharts
+          <MarketingCampanhasCustos
             analytics={csvAnalytics}
-            showFunnel={false}
-            showPlatform={true}
-            showEvolution={true}
-            showCampaigns={true}
+            metaKpis={kpis}
+            campanhas={campanhas}
+            isLoadingCampaigns={isLoadingCampaigns}
           />
         </TabsContent>
       </Tabs>
