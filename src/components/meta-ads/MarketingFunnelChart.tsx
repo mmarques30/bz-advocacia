@@ -1,13 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Progress } from "@/components/ui/progress";
 import { FunnelStage } from "@/hooks/useMarketingCsvAnalytics";
-
-const FUNNEL_COLORS = [
-  "hsl(221, 83%, 53%)",   // blue
-  "hsl(262, 83%, 58%)",   // purple
-  "hsl(25, 95%, 53%)",    // orange
-  "hsl(142, 71%, 45%)",   // green
-  "hsl(346, 77%, 50%)",   // rose
-];
+import { ArrowDown, TrendingDown } from "lucide-react";
 
 interface Props {
   data: FunnelStage[];
@@ -25,44 +20,70 @@ export function MarketingFunnelChart({ data }: Props) {
 
   const maxCount = Math.max(...data.map(d => d.count), 1);
 
+  // Calculate evolution rate between stages
+  const stagesWithEvolution = data.map((stage, index) => {
+    const previousCount = index === 0 ? stage.count : data[index - 1].count;
+    const evolutionRate = previousCount > 0 ? Math.round((stage.count / previousCount) * 100) : 0;
+    return { ...stage, evolutionRate };
+  });
+
+  const isLastStage = (index: number) => index === stagesWithEvolution.length - 1;
+
   return (
     <Card className="h-full">
       <CardHeader>
         <CardTitle>Funil de Conversão</CardTitle>
-        <p className="text-sm text-muted-foreground">Jornada completa dos leads</p>
+        <p className="text-sm text-muted-foreground">Visão estratégica da jornada dos leads</p>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-3">
-          {data.map((stage, index) => {
-            const widthPercent = Math.max((stage.count / maxCount) * 100, 12);
-            const color = FUNNEL_COLORS[index % FUNNEL_COLORS.length];
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[120px]">Etapa</TableHead>
+              <TableHead className="text-right w-[70px]">Leads</TableHead>
+              <TableHead className="w-[200px]">% do Total</TableHead>
+              <TableHead className="text-right w-[110px]">Taxa Evolução</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stagesWithEvolution.map((stage, index) => {
+              const progressValue = (stage.count / maxCount) * 100;
+              const last = isLastStage(index);
 
-            return (
-              <div key={stage.stage} className="flex items-center gap-3">
-                <div className="w-24 text-sm font-medium text-right text-muted-foreground truncate">
-                  {stage.stage}
-                </div>
-                <div className="flex-1 flex items-center">
-                  <div
-                    className="h-10 rounded-md flex items-center justify-center transition-all duration-500"
-                    style={{
-                      width: `${widthPercent}%`,
-                      backgroundColor: color,
-                      minWidth: "60px",
-                    }}
-                  >
-                    <span className="text-white text-sm font-semibold px-2 whitespace-nowrap">
-                      {stage.count}
-                    </span>
-                  </div>
-                  <span className="ml-2 text-xs text-muted-foreground whitespace-nowrap">
-                    {stage.percentage}%
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              return (
+                <TableRow key={stage.stage} className={last ? "bg-[hsl(var(--chart-4))]/5" : ""}>
+                  <TableCell className="font-medium text-sm">{stage.stage}</TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">
+                    {stage.count}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Progress
+                        value={progressValue}
+                        className="h-2 flex-1 bg-muted"
+                      />
+                      <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+                        {stage.percentage}%
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {index === 0 ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        <TrendingDown className="h-3 w-3 text-muted-foreground" />
+                        <span className={`text-xs font-medium tabular-nums ${last ? "text-[hsl(var(--chart-4))]" : "text-primary"}`}>
+                          {stage.evolutionRate}%
+                        </span>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </CardContent>
     </Card>
   );
