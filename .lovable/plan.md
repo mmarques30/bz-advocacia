@@ -1,17 +1,26 @@
 
 
-# Plano: Ajustar gráfico Distribuição por Serviço
-
-## Problema
-- As cores estão repetidas/similares (muitas em tons de marrom/terra cota)
-- Labels com nome+percentual ficam visíveis sempre, poluindo o gráfico
-- "Importado" aparece como 78% dominando visualmente
+# Plano: Adicionar ordenação por data nas abas de Leads
 
 ## Alterações
 
-### `src/components/meta-ads/MarketingServiceDistribution.tsx`
-- Expandir `BRAND_COLORS` para ter cores bem distintas entre si (terra cota, verde, azul, laranja, roxo, amarelo, rosa, cinza escuro, etc.)
-- Remover `label` e `labelLine` do `<Pie>` — informações só aparecem ao passar o mouse (Tooltip)
-- Manter a `Legend` com as cores correspondentes para identificação
-- Ajustar o Tooltip para mostrar nome, quantidade e percentual ao clicar/hover
+### 1. `src/pages/Leads.tsx` — ManualLeadsTab
+- Adicionar estado `sortOrder` com opções: `mais_recente`, `mais_antiga`, `nome_az`, `nome_za`
+- Adicionar um `<Select>` de ordenação ao lado dos filtros existentes
+- Aplicar `useMemo` para ordenar `filteredLeads` conforme `sortOrder` (por `created_at` ou `nome_completo`)
+
+### 2. `src/pages/Leads.tsx` — CsvLeadsTab
+- Mesmo estado `sortOrder` e `<Select>` de ordenação
+- Ordenar `filteredLeads` por `dataRaw` (Date) ou `nome`
+
+### Opções do Select de ordenação
+- "Mais recentes" (padrão) — data desc
+- "Mais antigos" — data asc
+- "Nome A-Z" — nome asc
+- "Nome Z-A" — nome desc
+
+### Detalhes técnicos
+- Ordenação aplicada client-side via `useMemo` sobre os arrays já filtrados
+- Nenhuma alteração em hooks de dados ou componentes de tabela
+- O select terá ícone `ArrowUpDown` e largura `w-[180px]`
 
