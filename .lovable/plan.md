@@ -1,23 +1,32 @@
 
 
-# Corrigir gráfico Distribuição por Plataforma
+# Plano: Carrossel de KPIs + Funil com dados orgânicos
 
-## Problema
-O gráfico de Distribuição por Plataforma na aba "Campanhas & Custos" mostra apenas dados do CSV (Google Sheets), que são predominantemente Instagram. Não inclui os leads orgânicos da tabela `contact_submissions` (182 "outro", 22 "site", 8 "indicação").
+## 1. KPIs em carrossel horizontal (`MarketingDashboardKPIs.tsx`)
+- Substituir os 2 grids (4+3 cards) por uma linha horizontal única com scroll
+- Usar `embla-carousel-react` (já instalado) para carrossel com setas de navegação
+- Todos os 7 KPIs ficam na mesma linha, com setas esquerda/direita para navegar
+- Cada card ocupa largura fixa (~220px) para manter proporção
 
-## Solução
-Combinar dados de plataforma do CSV com dados de origem da tabela `contact_submissions` no mesmo gráfico.
+## 2. Funil de conversão com leads orgânicos
 
-### Alterações
+**Problema**: O funil atual (`csvAnalytics.funnel`) só conta leads do CSV (Google Sheets). Os 212 leads orgânicos da tabela `contact_submissions` não aparecem.
 
-1. **`src/hooks/useServiceDistribution.ts`** → Renomear/expandir para incluir uma função `usePlatformDistribution` que:
-   - Busca `origem` de `contact_submissions` agrupado (COUNT por origem)
-   - Mapeia origens do banco para labels legíveis: `site → Site`, `indicacao → Indicação`, `outro → Orgânico`, `instagram → Instagram`, `facebook → Facebook`
-   - Recebe `platformKPIs` do CSV como parâmetro
-   - Combina CSV (fb→Facebook, ig→Instagram, organic→Orgânico) com banco
-   - Retorna array unificado `{ label, count, percentage }`
+**Dados orgânicos disponíveis**:
+- `estagio`: fechado (185), novo (25), em_analise (1), contato_inicial (1)
+- `status`: todos "novo" (212)
 
-2. **`src/pages/vendas/MetaAds.tsx`** → Importar `usePlatformDistribution`, passar `csvAnalytics.platformKPIs`, passar resultado ao `MarketingCampanhasCustos`
+**Solução**: Criar hook `useFunnelUnificado` que:
+- Busca leads orgânicos de `contact_submissions` agrupados por `estagio`
+- Mapeia estágios orgânicos para labels do funil: `novo → Novo`, `contato_inicial → Enviado`, `em_analise → Qualificado`, `fechado → Convertido`
+- Combina com dados do CSV (`csvAnalytics.funnel`)
+- Recalcula percentuais sobre o total unificado
 
-3. **`src/components/meta-ads/MarketingCampanhasCustos.tsx`** → Receber prop `mergedPlatformData` e usar no PieChart em vez de `analytics.platformKPIs`
+### Alterações por arquivo
+
+| Arquivo | Alteração |
+|---|---|
+| `src/components/meta-ads/MarketingDashboardKPIs.tsx` | Reescrever para usar embla-carousel com 7 cards em linha única + setas |
+| `src/hooks/useServiceDistribution.ts` | Adicionar export `useFunnelUnificado` que busca estágios de `contact_submissions` e combina com funnel do CSV |
+| `src/pages/vendas/MetaAds.tsx` | Importar `useFunnelUnificado`, passar resultado ao `MarketingFunnelChart` em vez de `csvAnalytics.funnel` |
 
