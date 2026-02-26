@@ -147,6 +147,7 @@ export const extrairVariaveisFaltantes = (
   template: string,
   cliente: DadosCliente
 ): string[] => {
+  // Email é opcional - não exigir para gerar contrato
   const variaveisCliente = [
     { var: '{cpf_cliente}', campo: 'cpf', valor: cliente.cpf },
     { var: '{rg_cliente}', campo: 'rg', valor: cliente.rg },

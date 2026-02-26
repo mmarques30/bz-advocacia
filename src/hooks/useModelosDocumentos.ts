@@ -66,6 +66,7 @@ export const useSaveModelo = () => {
       descricao: string;
       variaveis: string[];
     }) => {
+      const { data: user } = await supabase.auth.getUser();
       const conteudo: ModeloConteudo = {
         servico_padrao: modelo.servico_padrao,
         tipo_modelo: modelo.tipo,
@@ -83,6 +84,7 @@ export const useSaveModelo = () => {
           descricao: modelo.descricao,
           ativo: true,
           variaveis: modelo.variaveis,
+          criado_por: user?.user?.id || null,
         })
         .select()
         .single();

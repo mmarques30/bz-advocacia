@@ -26,11 +26,13 @@ const styles = StyleSheet.create({
   page1Left: {
     width: '45%',
     height: '100%',
+    overflow: 'hidden',
   },
   page1Image: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover',
+    objectFit: 'contain',
+    objectPosition: 'center',
   },
   page1Right: {
     width: '55%',

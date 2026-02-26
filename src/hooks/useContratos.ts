@@ -180,6 +180,8 @@ export const useUpdateClienteDados = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['leads-simple'] });
+      queryClient.invalidateQueries({ queryKey: ['contratos'] });
       toast.success('Dados do cliente atualizados');
     },
     onError: (error) => {
