@@ -1,77 +1,35 @@
 
 
-# Plano: Propostas com número de identificação, vínculo ao lead, e aproveitamento no contrato
+# Plano: Número sequencial para contratos + exibição nos documentos do cliente
 
-## Contexto
-Atualmente propostas são salvas em `contratos_gerados` com `tipo_contrato = 'proposta'` mas sem número sequencial, sem status de aprovação vinculado ao contrato, e o formulário de contrato só carrega a última proposta automaticamente sem permitir escolha.
+## Situação atual
+- Propostas já têm `numero_proposta` sequencial via trigger, mas contratos não têm número de identificação
+- A coluna "Nº" no histórico só mostra número para propostas (contratos mostram "-")
+- `LeadContratosTab` já existe e lista contratos/propostas do cliente, mas não mostra número de identificação
+- O `LeadDetailsDialog` de clientes já inclui a aba "Contratos" com `LeadContratosTab`
 
-## 1. Migração de banco — adicionar `numero_proposta` sequencial
+## Alterações
 
-Adicionar coluna `numero_proposta` (integer, auto-incremento via sequence) à tabela `contratos_gerados`. Criar uma sequence e um trigger para atribuir automaticamente o próximo número quando `tipo_contrato = 'proposta'`.
+### 1. Migração — adicionar `numero_contrato` sequencial
+Adicionar coluna `numero_contrato` (integer) à tabela `contratos_gerados`. Criar sequence `contratos_numero_seq` e modificar o trigger existente `set_numero_proposta` para também atribuir número a contratos (quando `tipo_contrato != 'proposta'`).
 
 ```sql
-ALTER TABLE contratos_gerados ADD COLUMN numero_proposta integer;
+ALTER TABLE contratos_gerados ADD COLUMN numero_contrato integer;
+CREATE SEQUENCE contratos_numero_seq START 1;
 
-CREATE SEQUENCE propostas_numero_seq START 1;
-
-CREATE OR REPLACE FUNCTION set_numero_proposta()
-RETURNS trigger AS $$
-BEGIN
-  IF NEW.tipo_contrato = 'proposta' AND NEW.numero_proposta IS NULL THEN
-    NEW.numero_proposta := nextval('propostas_numero_seq');
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_set_numero_proposta
-BEFORE INSERT ON contratos_gerados
-FOR EACH ROW EXECUTE FUNCTION set_numero_proposta();
+-- Atualizar a função para também gerar numero_contrato
+CREATE OR REPLACE FUNCTION public.set_numero_proposta() ...
+  -- Se proposta: atribui numero_proposta
+  -- Se contrato: atribui numero_contrato
 ```
 
-## 2. Edição inline de dados do cliente nos formulários
+### 2. `ContratosHistorico.tsx`
+- Atualizar a coluna "Nº" para mostrar `#P{numero_proposta}` para propostas e `#C{numero_contrato}` para contratos, nunca mais "-"
 
-**Arquivos**: `GerarContratoForm.tsx`, `GerarPropostaForm.tsx`
+### 3. `LeadContratosTab.tsx`
+- Adicionar coluna "Nº" mostrando o número de identificação (proposta ou contrato)
+- Separar visualmente propostas de contratos com headers de seção
 
-Ao selecionar o cliente, exibir um painel colapsável/editável com os campos pessoais (CPF, RG, nacionalidade, profissão, estado civil, endereço). O usuário pode editar diretamente e os dados são salvos na tabela `contact_submissions` ao clicar "Salvar dados" — sem precisar abrir dialog separado.
-
-- Reutilizar `useUpdateClienteDados` para persistir
-- Mostrar campos preenchidos como `defaultValue` editáveis
-- Sync `estado_civil` ↔ `situacao_atual` ao salvar
-
-## 3. GerarPropostaForm — gerar número de identificação
-
-**Arquivo**: `GerarPropostaForm.tsx`
-
-- Ao salvar a proposta, o trigger do banco atribui automaticamente o `numero_proposta`
-- Exibir o número na confirmação: "Proposta #12 gerada com sucesso"
-- Adicionar campo de título automático: `Proposta #N - Nome do Cliente`
-
-## 4. GerarContratoForm — listar e selecionar propostas do cliente
-
-**Arquivo**: `GerarContratoForm.tsx`
-
-Substituir o hook `usePropostaAnterior` (que busca só a última) por `usePropostasCliente` que busca todas as propostas do cliente selecionado.
-
-Quando o cliente for selecionado e houver propostas:
-- Exibir uma lista/select com todas as propostas (número, título, data, valores)
-- Ao selecionar uma proposta, carregar os valores dela no formulário
-- Marcar a proposta como "aprovada" ao finalizar o contrato (atualizar `status` para `'assinado'` na proposta vinculada)
-
-## 5. Histórico — exibir número da proposta
-
-**Arquivo**: `ContratosHistorico.tsx`
-
-- Exibir coluna "Nº" para propostas, mostrando o `numero_proposta`
-- Diferenciar visualmente propostas de contratos na listagem
-
-## Resumo de alterações
-
-| Componente | Alteração |
-|---|---|
-| Banco de dados | Coluna `numero_proposta`, sequence, trigger |
-| `GerarContratoForm.tsx` | Painel edição dados cliente, seletor de propostas do cliente |
-| `GerarPropostaForm.tsx` | Painel edição dados cliente, exibir número ao salvar |
-| `ContratosHistorico.tsx` | Coluna número da proposta |
-| `useContratos.ts` | Novo hook `usePropostasCliente` substituindo `usePropostaAnterior` |
+### 4. Atualizar types (`Contrato` interface)
+- Adicionar `numero_contrato?: number` à interface `Contrato` em `src/types/contratos.ts`
 
