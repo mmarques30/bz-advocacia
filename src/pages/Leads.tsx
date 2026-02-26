@@ -56,18 +56,19 @@ const defaultFilters: FiltersType = {
   statusCliente: [],
 };
 
-function csvToLeadGeral(csv: CsvLead): LeadGeral {
+function csvToLeadGeral(csv: CsvLead, overrides?: Record<string, string>): LeadGeral {
   let createdTime: string | null = null;
   if (csv.dataRaw && !isNaN(csv.dataRaw.getTime())) {
     createdTime = csv.dataRaw.toISOString();
   }
+  const resolvedEstagio = overrides?.[csv.id] || csv.estagio;
   return {
     id: csv.id,
     full_name: csv.nome,
     phone_number: csv.telefone,
     platform: csv.plataforma,
     campaign_name: csv.campanha !== "-" ? csv.campanha : null,
-    lead_status: csv.estagio,
+    lead_status: resolvedEstagio,
     created_time: createdTime,
     tipo_servico: csv.tipoServico !== "-" ? csv.tipoServico : null,
     contato_whatsapp: csv.whatsappStatus || null,
@@ -236,8 +237,10 @@ function CsvLeadsTab() {
   const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
   const { updateObservacoes } = useLeadsGeral();
 
+  const { overrides } = useLeadStatusOverrides();
+
   const selectedCsv = csvData?.leads?.find(l => l.id === selectedLeadId);
-  const selectedLead: LeadGeral | null = selectedCsv ? csvToLeadGeral(selectedCsv) : null;
+  const selectedLead: LeadGeral | null = selectedCsv ? csvToLeadGeral(selectedCsv, overrides) : null;
 
   const uniqueNomes = useMemo(() => {
     if (!csvData?.leads) return [];
@@ -256,14 +259,19 @@ function CsvLeadsTab() {
   }, [csvData?.leads]);
 
   const filteredLeads = useMemo(() => {
-    return csvData?.leads?.filter(l => {
+    const base = csvData?.leads?.filter(l => {
       if (nomeFilter && l.nome !== nomeFilter) return false;
       if (origemFilter && l.plataforma !== origemFilter) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return l.nome.toLowerCase().includes(q) || l.telefone.includes(q);
     });
-  }, [csvData?.leads, search, nomeFilter, origemFilter]);
+    // Apply overrides to estagio
+    return base?.map(l => ({
+      ...l,
+      estagio: overrides[l.id] || l.estagio,
+    }));
+  }, [csvData?.leads, search, nomeFilter, origemFilter, overrides]);
 
   const handleSaveObservacoes = (id: string, obs: string) => {
     updateObservacoes.mutate({ id, observacoes: obs });
@@ -323,7 +331,7 @@ function CsvLeadsTab() {
           <LeadsCsvTable leads={filteredLeads} isLoading={csvLoading} onViewDetails={(id) => setSelectedLeadId(id)} />
         </TooltipProvider>
       ) : (
-        <KanbanView leads={(filteredLeads || []).map(csvToLeadGeral)} onViewDetails={(id) => setSelectedLeadId(id)} />
+        <KanbanView leads={(filteredLeads || []).map(c => csvToLeadGeral(c, overrides))} onViewDetails={(id) => setSelectedLeadId(id)} />
       )}
 
       <LeadGeralDetailsDialog open={selectedLeadId !== null} onClose={() => setSelectedLeadId(null)} lead={selectedLead} onSaveObservacoes={handleSaveObservacoes} />
