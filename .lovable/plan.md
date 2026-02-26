@@ -1,32 +1,34 @@
 
 
-# Plano: Carrossel de KPIs + Funil com dados orgânicos
+# Plano: Ajustes nas abas de Leads
 
-## 1. KPIs em carrossel horizontal (`MarketingDashboardKPIs.tsx`)
-- Substituir os 2 grids (4+3 cards) por uma linha horizontal única com scroll
-- Usar `embla-carousel-react` (já instalado) para carrossel com setas de navegação
-- Todos os 7 KPIs ficam na mesma linha, com setas esquerda/direita para navegar
-- Cada card ocupa largura fixa (~220px) para manter proporção
+## 1. Leads Orgânicos — Remover botão "Importar" e busca por lupa
 
-## 2. Funil de conversão com leads orgânicos
+**Arquivo**: `src/pages/Leads.tsx` (ManualLeadsTab)
+- Remover o componente `LeadsHeader` e substituir por um header simplificado sem botão de importação e sem campo de busca com lupa
+- Manter apenas: botão "Novo Lead", filtros de Nome, Origem, botão Filtros, toggle Tabela/Kanban
 
-**Problema**: O funil atual (`csvAnalytics.funnel`) só conta leads do CSV (Google Sheets). Os 212 leads orgânicos da tabela `contact_submissions` não aparecem.
+## 2. Leads Anúncios — Adicionar filtros de nome e origem
 
-**Dados orgânicos disponíveis**:
-- `estagio`: fechado (185), novo (25), em_analise (1), contato_inicial (1)
-- `status`: todos "novo" (212)
+**Arquivo**: `src/pages/Leads.tsx` (CsvLeadsTab)
+- Adicionar um `Select` de nome (valores únicos extraídos de `csvData.leads`)
+- Adicionar um `Select` de origem/plataforma (fb → Facebook, ig → Instagram, organic → Orgânico)
+- Aplicar filtros ao `filteredLeads`
 
-**Solução**: Criar hook `useFunnelUnificado` que:
-- Busca leads orgânicos de `contact_submissions` agrupados por `estagio`
-- Mapeia estágios orgânicos para labels do funil: `novo → Novo`, `contato_inicial → Enviado`, `em_analise → Qualificado`, `fechado → Convertido`
-- Combina com dados do CSV (`csvAnalytics.funnel`)
-- Recalcula percentuais sobre o total unificado
+## 3. Kanban de Leads Orgânicos — Prévia com dias e tipo de serviço
 
-### Alterações por arquivo
+**Arquivo**: `src/components/leads/LeadCard.tsx`
+- Adicionar linha discreta mostrando "há X dias" (calculado a partir de `created_at`)
+- O tipo de serviço (`tipo_processo`) já aparece no card. Ajustar para exibir de forma mais clean/discreta
+- Remover o badge de origem (reduzir ruído) e manter layout minimalista
 
+**Arquivo**: `src/pages/Leads.tsx` (DraggableLeadCard no KanbanView do CSV)
+- Adicionar `created_time` formatado como "há X dias"
+- Já exibe `tipo_servico`, manter
+
+### Resumo de arquivos alterados
 | Arquivo | Alteração |
 |---|---|
-| `src/components/meta-ads/MarketingDashboardKPIs.tsx` | Reescrever para usar embla-carousel com 7 cards em linha única + setas |
-| `src/hooks/useServiceDistribution.ts` | Adicionar export `useFunnelUnificado` que busca estágios de `contact_submissions` e combina com funnel do CSV |
-| `src/pages/vendas/MetaAds.tsx` | Importar `useFunnelUnificado`, passar resultado ao `MarketingFunnelChart` em vez de `csvAnalytics.funnel` |
+| `src/pages/Leads.tsx` | Simplificar header orgânicos, adicionar filtros nome/origem em anúncios |
+| `src/components/leads/LeadCard.tsx` | Adicionar dias desde contato, layout mais clean |
 
