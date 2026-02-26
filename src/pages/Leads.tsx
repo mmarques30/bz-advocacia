@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Filter, Search, LayoutGrid, List, Table2 } from "lucide-react";
+import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
@@ -122,6 +122,7 @@ function ManualLeadsTab() {
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
   const [nomes, setNomes] = useState<string[]>([]);
+  const [sortOrder, setSortOrder] = useState<string>("mais_recente");
 
   useEffect(() => {
     const fetchNomes = async () => {
@@ -157,9 +158,17 @@ function ManualLeadsTab() {
 
   const filteredLeads = useMemo(() => {
     if (!leads) return undefined;
-    if (!nomeFilter) return leads;
-    return leads.filter(l => l.nome_completo === nomeFilter);
-  }, [leads, nomeFilter]);
+    let result = nomeFilter ? leads.filter(l => l.nome_completo === nomeFilter) : [...leads];
+    result.sort((a, b) => {
+      switch (sortOrder) {
+        case "mais_antiga": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "nome_az": return a.nome_completo.localeCompare(b.nome_completo);
+        case "nome_za": return b.nome_completo.localeCompare(a.nome_completo);
+        default: return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+    });
+    return result;
+  }, [leads, nomeFilter, sortOrder]);
 
   return (
     <div className="space-y-4 mt-4">
@@ -193,6 +202,19 @@ function ManualLeadsTab() {
               {Object.entries(ORIGEM_LABELS).map(([value, label]) => (
                 <SelectItem key={value} value={value}>{label}</SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger className="w-[180px]">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Ordenar por" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mais_recente">Mais recentes</SelectItem>
+              <SelectItem value="mais_antiga">Mais antigos</SelectItem>
+              <SelectItem value="nome_az">Nome A-Z</SelectItem>
+              <SelectItem value="nome_za">Nome Z-A</SelectItem>
             </SelectContent>
           </Select>
 
@@ -233,6 +255,7 @@ function CsvLeadsTab() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<string>("mais_recente");
 
   const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
   const { updateObservacoes } = useLeadsGeral();
@@ -267,11 +290,21 @@ function CsvLeadsTab() {
       return l.nome.toLowerCase().includes(q) || l.telefone.includes(q);
     });
     // Apply overrides to estagio
-    return base?.map(l => ({
+    const withOverrides = base?.map(l => ({
       ...l,
       estagio: overrides[l.id] || l.estagio,
     }));
-  }, [csvData?.leads, search, nomeFilter, origemFilter, overrides]);
+    // Sort
+    withOverrides?.sort((a, b) => {
+      switch (sortOrder) {
+        case "mais_antiga": return (a.dataRaw?.getTime() || 0) - (b.dataRaw?.getTime() || 0);
+        case "nome_az": return a.nome.localeCompare(b.nome);
+        case "nome_za": return b.nome.localeCompare(a.nome);
+        default: return (b.dataRaw?.getTime() || 0) - (a.dataRaw?.getTime() || 0);
+      }
+    });
+    return withOverrides;
+  }, [csvData?.leads, search, nomeFilter, origemFilter, overrides, sortOrder]);
 
   const handleSaveObservacoes = (id: string, obs: string) => {
     updateObservacoes.mutate({ id, observacoes: obs });
@@ -313,6 +346,19 @@ function CsvLeadsTab() {
             {uniqueOrigens.map((key) => (
               <SelectItem key={key} value={key}>{PLATAFORMA_LABELS[key] || key}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={sortOrder} onValueChange={setSortOrder}>
+          <SelectTrigger className="w-[180px]">
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Ordenar por" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mais_recente">Mais recentes</SelectItem>
+            <SelectItem value="mais_antiga">Mais antigos</SelectItem>
+            <SelectItem value="nome_az">Nome A-Z</SelectItem>
+            <SelectItem value="nome_za">Nome Z-A</SelectItem>
           </SelectContent>
         </Select>
 
