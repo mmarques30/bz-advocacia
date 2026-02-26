@@ -1,8 +1,15 @@
 
-# Plano: Mover gráfico "Evolução de Leads" para acima da "Visão Operacional"
 
-## Alteração
+# Plano: Remover Pipeline de Vendas e expandir card de Processos e Prazos
 
-### `src/pages/Dashboard.tsx`
-- Mover o bloco `<LeadsEvolution>` (linhas 62-63) para antes do bloco `<VisaoOperacional>` (linha 52)
-- Ordem final: Pendências → KPIs → **Evolução de Leads** → Visão Operacional (Processos + Pipeline)
+## Alterações
+
+### 1. `src/components/dashboard/VisaoOperacional.tsx`
+- Remover o componente `PipelineVendasCard` completamente (função e uso)
+- Remover props `pipeline` e `leadsRecentes` da interface `VisaoOperacionalProps`
+- Alterar o grid de `md:grid-cols-2` para coluna única (card ocupa largura total)
+- Remover imports não utilizados (`Users`, `ESTAGIO_LABELS`)
+
+### 2. `src/pages/Dashboard.tsx`
+- Remover as props `pipeline` e `leadsRecentes` passadas ao `<VisaoOperacional>`
+
