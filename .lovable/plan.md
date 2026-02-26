@@ -1,13 +1,25 @@
 
+# Plano: Reorganizar layout da aba Campanhas & Custos
 
-# Plano: Diferenciar cores de "Importado" e "Outro" no gráfico
+## Alterações em `src/components/meta-ads/MarketingCampanhasCustos.tsx`
 
-## Problema
-As duas primeiras cores do array `BRAND_COLORS` (`--primary` e `--chart-1`) são ambas terra cota, resultando em cores visualmente idênticas para "Importado" e "Outro".
+### 1. Reordenar seções (nova ordem vertical, tudo full-width)
+1. KPI Cards (mantém)
+2. Evolução de Leads por Dia (mantém)
+3. **Performance por Campanha** — tabela movida para abaixo do gráfico de evolução
+4. **Distribuição por Plataforma** — movida para abaixo da tabela de campanhas
 
-## Alteração
+### 2. Tabela Performance por Campanha
+- Limitar exibição a **5 linhas** (atualmente 8)
+- Adicionar estado `showAllCampaigns` com `useState(false)`
+- Quando `false`, exibe `campaigns.slice(0, 5)`; quando `true`, exibe todas
+- Adicionar botão "Ver mais" abaixo da tabela quando há mais de 5 campanhas (texto muda para "Ver menos" quando expandido)
 
-### `src/components/meta-ads/MarketingServiceDistribution.tsx`
-- Reordenar o array `BRAND_COLORS` para que as cores adjacentes sejam visualmente distintas
-- Nova ordem: `--primary` (terra cota), `--chart-3` (escuro), `--chart-2` (cinza), `--chart-4` (verde), `--chart-5` (amarelo), `--chart-1`, `--secondary`, `--accent`
+### 3. Distribuição por Plataforma
+- Trocar de **PieChart** (rosca) para **BarChart** vertical (colunas)
+- Eixo X: plataformas (label); Eixo Y: quantidade de leads
+- Cada barra com cor distinta via `Cell` + `PIE_COLORS`
+- Card ocupa largura total (remover grid `lg:grid-cols-2`)
 
+### 4. Remover grid `lg:grid-cols-2` que agrupava Platform + Campaign
+- Ambos os cards ficam em coluna única, sequenciais
