@@ -19,6 +19,10 @@ export interface CsvLead {
   diasParado: number;
   whatsappStatus: string;
   tipoServico: string;
+  adName: string;
+  campaignName: string;
+  formName: string;
+  adsetName: string;
 }
 
 export interface CsvSummary {
@@ -119,6 +123,10 @@ export function useLeadsCsv() {
           diasParado: calcDiasParado(dateObj),
           whatsappStatus: row.contato_whatsapp || "",
           tipoServico: mapTipoServico(row.tipo_servico || null),
+          adName: row.ad_name || "-",
+          campaignName: row.campaign_name || "-",
+          formName: row.form_name || "-",
+          adsetName: row.adset_name || "-",
         };
       });
 
