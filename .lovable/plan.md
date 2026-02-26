@@ -1,19 +1,31 @@
 
 
-# Plano: KPIs de Marketing em formato carrossel
+# Plano: Adicionar campos extras na tabela de Leads Anúncios
 
 ## Problema
-Os 7 cards de KPI em `MarketingDashboardKPIs.tsx` são exibidos em grid, ocupando muito espaço vertical na página "Performance & ROI".
+1. A coluna "Tipo" (tipo de serviço) parou de aparecer na tabela — precisa ser verificado e garantido
+2. Campos úteis do CSV como `ad_name` (tipo de anúncio/post), `campaign_name`, `form_name` não são exibidos na tabela
 
 ## Solução
 
-### `MarketingDashboardKPIs.tsx`
-- Substituir o `div` grid por `Carousel` + `CarouselContent` + `CarouselItem` (já disponível em `src/components/ui/carousel.tsx` com `embla-carousel-react`)
-- Cada `CarouselItem` mostra 4 cards lado a lado (`basis-1/4` no desktop, `basis-1/2` no mobile)
-- Adicionar `CarouselPrevious` e `CarouselNext` com posicionamento ajustado para não sair da área visível
-- Configurar `opts={{ align: "start", loop: true }}` para navegação contínua
+### 1. `useLeadsCsv.ts` — Adicionar campos ao `CsvLead`
+- Adicionar `adName`, `campaignName`, `formName`, `adsetName` ao interface `CsvLead`
+- Mapear de `row.ad_name`, `row.campaign_name`, `row.form_name`, `row.adset_name`
 
-### Resultado
-- Desktop: 4 cards visíveis por vez, seta para ver os 3 restantes
-- Mobile: 2 cards visíveis por vez, navega com setas
+### 2. `LeadsCsvTable.tsx` — Adicionar colunas na tabela
+- Garantir que "Tipo" (tipoServico) está renderizando corretamente
+- Adicionar coluna "Anúncio" (`adName`) após "Tipo"
+- Adicionar coluna "Campanha" (`campaignName`)
+- Manter tabela responsiva com `truncate` nos campos longos
+
+### 3. `csvToLeadGeral` em `Leads.tsx` — Passar novos campos
+- Mapear `adName` → `ad_name`, `campaignName` → `campaign_name`, etc. na conversão para `LeadGeral`
+
+## Arquivos alterados
+
+| Arquivo | Alteração |
+|---|---|
+| `src/hooks/useLeadsCsv.ts` | Adicionar `adName`, `campaignName`, `formName` ao CsvLead e mapeamento |
+| `src/components/leads/LeadsCsvTable.tsx` | Adicionar colunas Anúncio e Campanha, garantir Tipo visível |
+| `src/pages/Leads.tsx` | Atualizar `csvToLeadGeral` com novos campos |
 
