@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useClearTransacoes } from "@/hooks/useTransacoesFinanceiras";
+import { useCheckIsAdmin } from "@/hooks/useUsuarios";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { FaturamentoTable } from "@/components/financeiro/FaturamentoTable";
 import { NewEntradaFaturamentoDialog } from "@/components/financeiro/NewEntradaFaturamentoDialog";
@@ -65,6 +66,7 @@ export default function Financeiro() {
 
   const [clearDataOpen, setClearDataOpen] = useState(false);
   const clearTransacoes = useClearTransacoes();
+  const { data: isAdmin } = useCheckIsAdmin();
 
   const handleClearData = () => {
     clearTransacoes.mutate();
@@ -73,21 +75,11 @@ export default function Financeiro() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gestão Financeira</h1>
-          <p className="text-muted-foreground">
-            Acompanhe receitas, acordos e pagamentos
-          </p>
-        </div>
-        <Button 
-          variant="outline" 
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => setClearDataOpen(true)}
-        >
-          <Trash2 className="h-4 w-4 mr-2" />
-          Limpar Dados
-        </Button>
+      <div>
+        <h1 className="text-3xl font-bold">Gestão Financeira</h1>
+        <p className="text-muted-foreground">
+          Acompanhe receitas, acordos e pagamentos
+        </p>
       </div>
 
       <AlertDialog open={clearDataOpen} onOpenChange={setClearDataOpen}>
@@ -124,7 +116,22 @@ export default function Financeiro() {
 
         {/* Aba Visão Geral */}
         <TabsContent value="geral" className="space-y-6">
-          <TransacoesFilters filters={transacoesFilters} onFiltersChange={setTransacoesFilters} />
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <TransacoesFilters filters={transacoesFilters} onFiltersChange={setTransacoesFilters} />
+            </div>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-xs text-muted-foreground shrink-0"
+                onClick={() => setClearDataOpen(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Limpar Dados
+              </Button>
+            )}
+          </div>
           <TransacoesKPIs filters={transacoesFilters} />
           <TransacoesCharts filters={transacoesFilters} />
           <TransacoesTable filters={transacoesFilters} />
