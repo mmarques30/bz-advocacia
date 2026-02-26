@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Calendar,
   AlertTriangle,
-  Users,
   ChevronRight,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,8 +15,6 @@ import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDia
 import type {
   ProcessosPorStatus,
   PrazoProximo,
-  PipelineEstagio,
-  LeadRecente,
   ProcessoSemAtualizacao,
 } from "@/hooks/useDashboardCompleto";
 import { format } from "date-fns";
@@ -27,18 +24,8 @@ interface VisaoOperacionalProps {
   processos: ProcessosPorStatus;
   proximosPrazos: PrazoProximo[];
   processosSemAtualizacao: ProcessoSemAtualizacao[];
-  pipeline: PipelineEstagio[];
-  leadsRecentes: LeadRecente[];
   loading?: boolean;
 }
-
-const ESTAGIO_LABELS: Record<string, string> = {
-  novo: "Novo",
-  contato: "Contato",
-  analise: "Análise",
-  proposta: "Proposta",
-  fechado: "Fechado",
-};
 
 function ProcessosPrazosCard({
   processos,
@@ -194,119 +181,23 @@ function ProcessosPrazosCard({
   );
 }
 
-function PipelineVendasCard({
-  pipeline,
-  leadsRecentes,
-  loading,
-}: {
-  pipeline: PipelineEstagio[];
-  leadsRecentes: LeadRecente[];
-  loading?: boolean;
-}) {
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const totalPipeline = pipeline.reduce((acc, p) => acc + p.count, 0);
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base font-semibold">Pipeline de Vendas</CardTitle>
-          </div>
-          <Link
-            to="/dashboard/leads"
-            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-          >
-            Ver todos <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {/* Mini funnel */}
-        <div className="space-y-2">
-          {pipeline.map((estagio) => {
-            const pct = totalPipeline > 0 ? (estagio.count / totalPipeline) * 100 : 0;
-            return (
-              <div key={estagio.estagio} className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground w-16 text-right">
-                  {estagio.label}
-                </span>
-                <div className="flex-1 h-6 bg-muted rounded-md overflow-hidden">
-                  <div
-                    className="h-full bg-primary/80 rounded-md transition-all duration-500 flex items-center justify-end px-2"
-                    style={{ width: `${Math.max(pct, 8)}%` }}
-                  >
-                    <span className="text-xs font-medium text-primary-foreground">
-                      {estagio.count}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Leads recentes */}
-        <div>
-          <h4 className="text-sm font-medium text-muted-foreground mb-3">Leads Recentes</h4>
-          {leadsRecentes.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">Nenhum lead recente</p>
-          ) : (
-            <div className="space-y-2">
-              {leadsRecentes.map((lead) => (
-                <div
-                  key={lead.id}
-                  className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{lead.nome_completo}</p>
-                    <p className="text-xs text-muted-foreground">{lead.tipo_processo}</p>
-                  </div>
-                  <Badge variant="outline" className="text-xs ml-2">
-                    {ESTAGIO_LABELS[lead.estagio || "novo"] || lead.estagio}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export function VisaoOperacional({
   processos,
   proximosPrazos,
   processosSemAtualizacao,
-  pipeline,
-  leadsRecentes,
   loading,
 }: VisaoOperacionalProps) {
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-2">
-        <ProcessosPrazosCard
-          processos={processos}
-          proximosPrazos={proximosPrazos}
-          processosSemAtualizacao={processosSemAtualizacao}
-          loading={loading}
-          onOpenProcesso={(id) => setSelectedProcessoId(id)}
-        />
-        <PipelineVendasCard pipeline={pipeline} leadsRecentes={leadsRecentes} loading={loading} />
-      </div>
+      <ProcessosPrazosCard
+        processos={processos}
+        proximosPrazos={proximosPrazos}
+        processosSemAtualizacao={processosSemAtualizacao}
+        loading={loading}
+        onOpenProcesso={(id) => setSelectedProcessoId(id)}
+      />
       <ProcessoDetailsDialog
         processoId={selectedProcessoId}
         open={!!selectedProcessoId}
