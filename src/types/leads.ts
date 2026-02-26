@@ -95,10 +95,10 @@ export const STATUS_CLIENTE_LABELS: Record<StatusCliente, string> = {
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   novo: 'Novo',
-  contato_inicial: 'Contato Inicial',
-  em_analise: 'Em Análise',
-  proposta_enviada: 'Proposta Enviada',
-  fechado: 'Fechado',
+  contato_inicial: 'Enviado',
+  em_analise: 'Qualificado',
+  proposta_enviada: 'Qualificado',
+  fechado: 'Convertido',
   perdido: 'Perdido',
 };
 

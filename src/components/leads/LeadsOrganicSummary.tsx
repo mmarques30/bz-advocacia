@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Users, CalendarDays, XCircle, PlusCircle, AlertCircle } from "lucide-react";
+import { Users, CalendarDays, XCircle, Send, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Lead } from "@/types/leads";
@@ -11,26 +11,25 @@ interface Props {
 
 export function LeadsOrganicSummary({ leads, loading }: Props) {
   const summary = useMemo(() => {
-    if (!leads) return { total: 0, hoje: 0, novos: 0, perdidos: 0, emAndamento: 0 };
-    const today = new Date().toISOString().slice(0, 10);
+    if (!leads) return { total: 0, novos: 0, enviados: 0, qualificados: 0, perdidos: 0 };
     return {
       total: leads.length,
-      hoje: leads.filter(l => l.created_at?.slice(0, 10) === today).length,
       novos: leads.filter(l => (l.estagio || "").toLowerCase() === "novo").length,
-      perdidos: leads.filter(l => (l.estagio || "").toLowerCase() === "perdido").length,
-      emAndamento: leads.filter(l => {
+      enviados: leads.filter(l => (l.estagio || "").toLowerCase() === "contato_inicial").length,
+      qualificados: leads.filter(l => {
         const e = (l.estagio || "").toLowerCase();
-        return e === "contato_inicial" || e === "em_analise" || e === "proposta_enviada";
+        return e === "em_analise" || e === "proposta_enviada";
       }).length,
+      perdidos: leads.filter(l => (l.estagio || "").toLowerCase() === "perdido").length,
     };
   }, [leads]);
 
   const cards = [
     { key: "total" as const, label: "Total de Leads", icon: Users, color: "text-primary" },
-    { key: "hoje" as const, label: "Leads do Dia", icon: CalendarDays, color: "text-blue-600" },
-    { key: "novos" as const, label: "Novos", icon: PlusCircle, color: "text-cyan-600" },
+    { key: "novos" as const, label: "Novos", icon: CalendarDays, color: "text-blue-600" },
+    { key: "enviados" as const, label: "Enviados", icon: Send, color: "text-green-600" },
+    { key: "qualificados" as const, label: "Qualificados", icon: CheckCircle2, color: "text-purple-600" },
     { key: "perdidos" as const, label: "Perdidos", icon: XCircle, color: "text-red-600" },
-    { key: "emAndamento" as const, label: "Em Andamento", icon: AlertCircle, color: "text-yellow-600" },
   ];
 
   return (
