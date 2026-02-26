@@ -1,22 +1,27 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceDistribution } from "@/hooks/useMarketingCsvAnalytics";
 import { chartTheme } from "@/lib/chartConfig";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
-const SERVICE_COLORS = [
-  "hsl(221, 83%, 53%)",
-  "hsl(262, 83%, 58%)",
-  "hsl(25, 95%, 53%)",
-  "hsl(142, 71%, 45%)",
-  "hsl(346, 77%, 50%)",
-  "hsl(199, 89%, 48%)",
-  "hsl(43, 96%, 56%)",
-  "hsl(280, 67%, 51%)",
+const BRAND_COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--secondary))",
+  "hsl(var(--accent))",
 ];
 
 interface Props {
   data: ServiceDistribution[];
 }
+
+const renderCustomLabel = ({ name, percent }: { name: string; percent: number }) => {
+  if (percent < 0.05) return null;
+  return `${name} (${(percent * 100).toFixed(0)}%)`;
+};
 
 export function MarketingServiceDistribution({ data }: Props) {
   if (!data.length) {
@@ -28,6 +33,9 @@ export function MarketingServiceDistribution({ data }: Props) {
     );
   }
 
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+  const chartData = data.map((d) => ({ ...d, percentage: total > 0 ? Math.round((d.count / total) * 100) : 0 }));
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -36,17 +44,31 @@ export function MarketingServiceDistribution({ data }: Props) {
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray={chartTheme.grid.strokeDasharray} stroke={chartTheme.grid.stroke} horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 12 }} />
-            <YAxis dataKey="service" type="category" tick={{ fontSize: 12 }} width={120} />
-            <Tooltip contentStyle={chartTheme.tooltip.contentStyle} />
-            <Bar dataKey="count" name="Leads" radius={[0, 4, 4, 0]}>
-              {data.map((_entry, index) => (
-                <Cell key={`cell-${index}`} fill={SERVICE_COLORS[index % SERVICE_COLORS.length]} />
+          <PieChart>
+            <Pie
+              data={chartData}
+              dataKey="count"
+              nameKey="service"
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={100}
+              paddingAngle={2}
+              label={renderCustomLabel}
+              labelLine={false}
+            >
+              {chartData.map((_entry, index) => (
+                <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
               ))}
-            </Bar>
-          </BarChart>
+            </Pie>
+            <Tooltip
+              contentStyle={chartTheme.tooltip.contentStyle}
+              formatter={(value: number, name: string) => [`${value} leads`, name]}
+            />
+            <Legend
+              formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
+            />
+          </PieChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
