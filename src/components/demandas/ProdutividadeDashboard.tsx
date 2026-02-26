@@ -43,13 +43,13 @@ function useProfiles() {
 
 export function ProdutividadeDashboard() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>('este_mes');
-  const [responsavelId, setResponsavelId] = useState<string>('');
-  const [tipo, setTipo] = useState<string>('');
+  const [responsavelId, setResponsavelId] = useState<string>('all');
+  const [tipo, setTipo] = useState<string>('all');
   const { data: profiles } = useProfiles();
   const { data, isLoading } = useProdutividadeEquipe({
     periodo,
-    responsavelId: responsavelId || undefined,
-    tipo: tipo || undefined,
+    responsavelId: responsavelId !== 'all' ? responsavelId : undefined,
+    tipo: tipo !== 'all' ? tipo : undefined,
   });
 
   if (isLoading) {
@@ -90,7 +90,7 @@ export function ProdutividadeDashboard() {
             <SelectValue placeholder="Responsável" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
             {profiles?.map(p => (
               <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
             ))}
@@ -102,7 +102,7 @@ export function ProdutividadeDashboard() {
             <SelectValue placeholder="Tipo de Tarefa" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos</SelectItem>
+            <SelectItem value="all">Todos</SelectItem>
             {Object.entries(TIPO_LABELS).map(([val, label]) => (
               <SelectItem key={val} value={val}>{label}</SelectItem>
             ))}
