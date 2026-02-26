@@ -12,6 +12,7 @@ export interface Contrato {
   created_at: string;
   updated_at: string;
   created_by?: string;
+  numero_contrato?: number;
   cliente?: {
     nome_completo: string;
     email: string;

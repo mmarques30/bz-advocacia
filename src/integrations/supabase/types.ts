@@ -542,6 +542,7 @@ export type Database = {
           created_by: string | null
           dados_contrato: Json | null
           id: string
+          numero_contrato: number | null
           numero_proposta: number | null
           pdf_url: string | null
           status: string
@@ -558,6 +559,7 @@ export type Database = {
           created_by?: string | null
           dados_contrato?: Json | null
           id?: string
+          numero_contrato?: number | null
           numero_proposta?: number | null
           pdf_url?: string | null
           status?: string
@@ -574,6 +576,7 @@ export type Database = {
           created_by?: string | null
           dados_contrato?: Json | null
           id?: string
+          numero_contrato?: number | null
           numero_proposta?: number | null
           pdf_url?: string | null
           status?: string

@@ -65,6 +65,7 @@ export function LeadContratosTab({ clienteId }: LeadContratosTabProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Nº</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Valor</TableHead>
@@ -78,8 +79,18 @@ export function LeadContratosTab({ clienteId }: LeadContratosTabProps) {
               const statusConfig = getStatusConfig(contrato.status);
               const valor = contrato.valores?.valor_total || contrato.valores?.valor_entrada;
 
+              const numeroProposta = contrato.tipo_contrato === 'proposta'
+                ? (contrato as unknown as { numero_proposta?: number }).numero_proposta
+                : null;
+              const numeroContrato = contrato.tipo_contrato !== 'proposta'
+                ? (contrato as unknown as { numero_contrato?: number }).numero_contrato
+                : null;
+
               return (
-                <TableRow key={contrato.id}>
+                 <TableRow key={contrato.id}>
+                  <TableCell className="text-muted-foreground font-mono">
+                    {numeroProposta ? `#P${numeroProposta}` : numeroContrato ? `#C${numeroContrato}` : '-'}
+                  </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4 text-muted-foreground" />
