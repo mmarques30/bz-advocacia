@@ -8,17 +8,56 @@ import { ptBR } from "date-fns/locale";
 import { exportToPDF, exportToCSV } from "@/lib/exportUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { chartColors } from "@/lib/chartConfig";
-import { useRelatoriosVendasPeriodo } from "@/hooks/useRelatoriosVendasPeriodo";
+import { useLeadsCsv } from "@/hooks/useLeadsCsv";
+import { useMemo } from "react";
 
 interface RelatorioPerformanceCampanhaProps {
   dataInicio: Date;
   dataFim: Date;
 }
 
+interface AnuncioAggregated {
+  anuncio: string;
+  totalLeads: number;
+  leadsEnviados: number;
+  leadsConvertidos: number;
+  taxaConversao: number;
+}
+
 const COLORS = [chartColors.primary, chartColors.secondary, chartColors.accent, chartColors.muted, '#8884d8', '#82ca9d'];
 
 export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioPerformanceCampanhaProps) {
-  const { data, isLoading } = useRelatoriosVendasPeriodo(dataInicio, dataFim);
+  const { data, isLoading } = useLeadsCsv();
+
+  const anuncios = useMemo<AnuncioAggregated[]>(() => {
+    if (!data?.leads) return [];
+
+    const filtered = data.leads.filter((lead) => {
+      if (!lead.dataRaw) return false;
+      return lead.dataRaw >= dataInicio && lead.dataRaw <= dataFim;
+    });
+
+    const map = new Map<string, { total: number; enviados: number; convertidos: number }>();
+
+    filtered.forEach((lead) => {
+      const name = lead.adName && lead.adName !== "-" ? lead.adName : "Sem anúncio";
+      const entry = map.get(name) || { total: 0, enviados: 0, convertidos: 0 };
+      entry.total++;
+      if (lead.situacao === "Enviado") entry.enviados++;
+      if (lead.situacao === "Convertido") entry.convertidos++;
+      map.set(name, entry);
+    });
+
+    return Array.from(map.entries())
+      .map(([anuncio, d]) => ({
+        anuncio,
+        totalLeads: d.total,
+        leadsEnviados: d.enviados,
+        leadsConvertidos: d.convertidos,
+        taxaConversao: d.total > 0 ? (d.convertidos / d.total) * 100 : 0,
+      }))
+      .sort((a, b) => b.totalLeads - a.totalLeads);
+  }, [data, dataInicio, dataFim]);
 
   if (isLoading) {
     return (
@@ -34,18 +73,15 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
     );
   }
 
-  const anuncios = data?.anuncios || [];
   const totalLeads = anuncios.reduce((acc, c) => acc + c.totalLeads, 0);
-  const totalConvertidos = anuncios.reduce((acc, c) => acc + c.leadsConvertidos, 0);
   const melhorAnuncio = anuncios.length > 0 ? anuncios[0] : null;
 
   const exportData = anuncios.map(c => ({
     Anúncio: c.anuncio,
     "Total Leads": c.totalLeads,
-    "Leads Contatados": c.leadsContatados,
+    "Leads Enviados": c.leadsEnviados,
     "Leads Convertidos": c.leadsConvertidos,
     "Taxa de Conversão (%)": c.taxaConversao.toFixed(1),
-    "Valor Médio Proposta": c.valorMedioPropostas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
   }));
 
   const handleExportPDF = () => {
@@ -145,10 +181,9 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
               <TableRow>
                 <TableHead>Anúncio</TableHead>
                 <TableHead className="text-right">Leads</TableHead>
-                <TableHead className="text-right">Contatados</TableHead>
+                <TableHead className="text-right">Enviados</TableHead>
                 <TableHead className="text-right">Convertidos</TableHead>
                 <TableHead className="text-right">Taxa Conversão</TableHead>
-                <TableHead className="text-right">Valor Médio</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -156,21 +191,18 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
                 <TableRow key={index}>
                   <TableCell className="font-medium">{anuncio.anuncio}</TableCell>
                   <TableCell className="text-right">{anuncio.totalLeads}</TableCell>
-                  <TableCell className="text-right">{anuncio.leadsContatados}</TableCell>
+                  <TableCell className="text-right">{anuncio.leadsEnviados}</TableCell>
                   <TableCell className="text-right">{anuncio.leadsConvertidos}</TableCell>
                   <TableCell className="text-right">
                     <span className={anuncio.taxaConversao > 10 ? "text-green-600" : "text-muted-foreground"}>
                       {anuncio.taxaConversao.toFixed(1)}%
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {anuncio.valorMedioPropostas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </TableCell>
                 </TableRow>
               ))}
               {anuncios.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Nenhum anúncio encontrado no período
                   </TableCell>
                 </TableRow>
