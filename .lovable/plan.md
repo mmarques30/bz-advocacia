@@ -1,22 +1,22 @@
 
+# Plano: Filtros dropdown em Produtividade
 
-# Plano: Adicionar saudação de boas-vindas no Dashboard
+## Alterações
 
-## Alteração em `src/pages/Dashboard.tsx`
+### 1. `src/components/demandas/ProdutividadeDashboard.tsx`
+- Substituir o `Tabs` de período por um `Select` dropdown
+- Adicionar `Select` de **Responsável** (populado via query de `profiles` ativos)
+- Adicionar `Select` de **Tipo de Tarefa** (melhoria, bug, sugestao, tarefa — dos tipos existentes em `demandas`)
+- Layout: uma linha horizontal com os 3 dropdowns lado a lado, estilo compacto
+- Passar os novos filtros (`responsavelId`, `tipo`) ao hook
 
-1. Importar `useAuth` de `@/hooks/useAuth`
-2. Extrair o nome do usuário via `user?.user_metadata?.full_name` ou fallback para o email
-3. Adicionar acima do `UserPendenciasCards` um bloco com:
-   - Saudação dinâmica por horário: "Bom dia", "Boa tarde", "Boa noite"
-   - Nome do usuário em `text-foreground font-seasons` (fonte serifada da marca)
-   - Subtítulo discreto em `text-muted-foreground text-sm`: "Aqui está o resumo do seu escritório"
-   - Sem card/borda — apenas texto limpo com espaçamento mínimo
+### 2. `src/hooks/useProdutividadeEquipe.ts`
+- Expandir o tipo de parâmetros para aceitar `responsavelId?: string` e `tipo?: string`
+- Aplicar `.eq('responsavel_id', ...)` e `.eq('tipo', ...)` nas queries de `concluidas` e `ativas` quando os filtros estiverem ativos
+- Incluir os novos filtros na `queryKey`
 
-### Layout visual
+### Layout dos filtros
 ```text
-Boa tarde, Dra. Maria                    ← font-seasons text-xl text-foreground
-Aqui está o resumo do seu escritório     ← text-sm text-muted-foreground
+[Período ▼]  [Responsável ▼]  [Tipo de Tarefa ▼]
 ```
-
-Cores: foreground (escuro da marca) para o nome, muted-foreground (cinza) para o subtítulo. Sem emojis, sem ícones — clean e discreto conforme solicitado.
-
+Todos com opção "Todos" como default.
