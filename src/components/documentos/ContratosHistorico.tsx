@@ -145,10 +145,13 @@ export function ContratosHistorico() {
                   const numeroProposta = contrato.tipo_contrato === 'proposta' 
                     ? (contrato as unknown as { numero_proposta?: number }).numero_proposta 
                     : null;
+                  const numeroContrato = contrato.tipo_contrato !== 'proposta'
+                    ? (contrato as unknown as { numero_contrato?: number }).numero_contrato
+                    : null;
                   return (
                     <TableRow key={contrato.id}>
-                      <TableCell className="text-muted-foreground">
-                        {numeroProposta ? `#${numeroProposta}` : '-'}
+                      <TableCell className="text-muted-foreground font-mono">
+                        {numeroProposta ? `#P${numeroProposta}` : numeroContrato ? `#C${numeroContrato}` : '-'}
                       </TableCell>
                       <TableCell className="font-medium">{contrato.titulo}</TableCell>
                       <TableCell>{contrato.cliente?.nome_completo || '-'}</TableCell>
