@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
 import { MODELOS_PROPOSTA } from "@/lib/propostaTemplates";
 import { TIPOS_CONTRATO } from "@/types/contratos";
-import { FileText, Eye, Sparkles, Pencil, Trash2, Copy, FileSignature } from "lucide-react";
+import { FileText, Eye, Sparkles, Pencil, Trash2, Copy, FileSignature, RotateCcw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -32,21 +32,50 @@ import {
   ModeloConteudo,
   ModeloPersonalizado,
 } from "@/hooks/useModelosDocumentos";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 type TipoFiltro = 'todos' | 'contrato' | 'proposta';
+
+const HIDDEN_MODELS_KEY = 'hidden_default_models';
+
+function getHiddenModels(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HIDDEN_MODELS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function hideDefaultModel(id: string) {
+  const hidden = getHiddenModels();
+  if (!hidden.includes(id)) {
+    localStorage.setItem(HIDDEN_MODELS_KEY, JSON.stringify([...hidden, id]));
+  }
+}
+
+function restoreAllDefaultModels() {
+  localStorage.removeItem(HIDDEN_MODELS_KEY);
+}
 
 export function ModelosContrato() {
   const [previewModelo, setPreviewModelo] = useState<{ nome: string; template: string } | null>(null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [editModelo, setEditModelo] = useState<ModeloPersonalizado | null>(null);
   const [deleteModelo, setDeleteModelo] = useState<ModeloPersonalizado | null>(null);
+  const [deletePadraoId, setDeletePadraoId] = useState<string | null>(null);
+  const [deletePadraoNome, setDeletePadraoNome] = useState<string>('');
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todos");
   const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
+  const [hiddenModels, setHiddenModels] = useState<string[]>(getHiddenModels);
+  const [savingPadraoId, setSavingPadraoId] = useState<string | null>(null);
 
   const { data: modelosContratos = [] } = useModelosPersonalizados('contrato');
   const { data: modelosPropostas = [] } = useModelosPersonalizados('proposta');
   const deleteModeloMutation = useDeleteModelo();
   const duplicarModeloMutation = useDuplicarModelo();
+  const queryClient = useQueryClient();
 
   const modelosPersonalizados = useMemo(() => {
     return [...modelosContratos, ...modelosPropostas];
@@ -70,12 +99,12 @@ export function ModelosContrato() {
     });
   }, [modelosPersonalizados]);
 
-  // All default models combined
+  // All default models combined, filtering hidden ones
   const todosPadrao = useMemo(() => {
     const contratos = MODELOS_CONTRATO.map(m => ({ ...m, docType: 'contrato' as const }));
     const propostas = MODELOS_PROPOSTA.map(m => ({ ...m, docType: 'proposta' as const }));
-    return [...contratos, ...propostas];
-  }, []);
+    return [...contratos, ...propostas].filter(m => !hiddenModels.includes(m.id));
+  }, [hiddenModels]);
 
   // Category counts
   const categoriasComContagem = useMemo(() => {
@@ -135,6 +164,67 @@ export function ModelosContrato() {
     });
   };
 
+  const handleDeletePadrao = useCallback(() => {
+    if (!deletePadraoId) return;
+    hideDefaultModel(deletePadraoId);
+    setHiddenModels(getHiddenModels());
+    setDeletePadraoId(null);
+    setDeletePadraoNome('');
+    toast.success('Modelo padrão ocultado com sucesso');
+  }, [deletePadraoId]);
+
+  const handleRestaurarPadrao = useCallback(() => {
+    restoreAllDefaultModels();
+    setHiddenModels([]);
+    toast.success('Modelos padrão restaurados');
+  }, []);
+
+  const handleEditarPadrao = useCallback(async (modelo: typeof todosPadrao[0]) => {
+    setSavingPadraoId(modelo.id);
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const conteudo: ModeloConteudo = {
+        servico_padrao: modelo.template,
+        tipo_modelo: modelo.docType,
+        fonte: 'modelo_padrao',
+        tipo_identificado: modelo.tipo,
+      };
+
+      const { data, error } = await supabase
+        .from('templates')
+        .insert({
+          nome: modelo.nome,
+          tipo: modelo.docType,
+          categoria: modelo.tipo,
+          conteudo: JSON.stringify(conteudo),
+          descricao: modelo.descricao,
+          ativo: true,
+          variaveis: [],
+          criado_por: user?.user?.id || null,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Hide the default model
+      hideDefaultModel(modelo.id);
+      setHiddenModels(getHiddenModels());
+
+      // Invalidate queries to show new personalized model
+      queryClient.invalidateQueries({ queryKey: ['modelos-personalizados'] });
+
+      // Open edit dialog with the newly created model
+      setEditModelo(data as ModeloPersonalizado);
+      toast.success('Modelo salvo para edição');
+    } catch (err) {
+      console.error('Erro ao salvar modelo padrão:', err);
+      toast.error('Erro ao preparar modelo para edição');
+    } finally {
+      setSavingPadraoId(null);
+    }
+  }, [queryClient]);
+
   const handleDuplicarPersonalizado = (modelo: typeof modelosPersonalizadosFormatados[0]) => {
     duplicarModeloMutation.mutate({
       nome: modelo.nome,
@@ -163,6 +253,8 @@ export function ModelosContrato() {
     });
   };
 
+  const hasHiddenModels = hiddenModels.length > 0;
+
   return (
     <>
       {/* Header */}
@@ -173,10 +265,18 @@ export function ModelosContrato() {
             {categoriasComContagem.total} modelo(s) disponível(is)
           </p>
         </div>
-        <Button onClick={() => setUploadDialogOpen(true)}>
-          <Sparkles className="h-4 w-4 mr-2" />
-          Criar Modelo com IA
-        </Button>
+        <div className="flex gap-2">
+          {hasHiddenModels && (
+            <Button variant="outline" size="sm" onClick={handleRestaurarPadrao}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Restaurar padrão
+            </Button>
+          )}
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" />
+            Criar Modelo com IA
+          </Button>
+        </div>
       </div>
 
       {/* Filtro por tipo (Contrato / Proposta) */}
@@ -326,18 +426,27 @@ export function ModelosContrato() {
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">{modelo.descricao}</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => setPreviewModelo(modelo)}>
+                    <Button variant="outline" size="sm" onClick={() => setPreviewModelo(modelo)}>
                       <Eye className="h-4 w-4 mr-2" />
                       Visualizar
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleUsarComoBase(modelo)}
-                      disabled={duplicarModeloMutation.isPending}
+                      className="flex-1"
+                      onClick={() => handleEditarPadrao(modelo)}
+                      disabled={savingPadraoId === modelo.id}
                     >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Usar como Base
+                      <Pencil className="h-4 w-4 mr-2" />
+                      {savingPadraoId === modelo.id ? 'Salvando...' : 'Editar'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => { setDeletePadraoId(modelo.id); setDeletePadraoNome(modelo.nome); }}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -377,6 +486,7 @@ export function ModelosContrato() {
         modelo={editModelo}
       />
 
+      {/* Alert para excluir modelo personalizado */}
       <AlertDialog open={!!deleteModelo} onOpenChange={(open) => { if (!open) setDeleteModelo(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -389,6 +499,24 @@ export function ModelosContrato() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert para excluir modelo padrão */}
+      <AlertDialog open={!!deletePadraoId} onOpenChange={(open) => { if (!open) { setDeletePadraoId(null); setDeletePadraoNome(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ocultar modelo padrão?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O modelo "{deletePadraoNome}" será ocultado da listagem. Você pode restaurá-lo a qualquer momento usando o botão "Restaurar padrão".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePadrao} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Ocultar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
