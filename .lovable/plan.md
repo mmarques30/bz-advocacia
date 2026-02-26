@@ -1,24 +1,22 @@
 
 
-# Plano: Corrigir mapeamento da tabela Leads Anúncios
+# Plano: Incluir prazos de tarefas (demandas) nos "Próximos Prazos" do Dashboard
 
-## Problemas identificados
-
-1. **Tipo de Serviço**: O CSV usa a coluna `qual_tipo_de_serviço_você_procura?` mas o código lê `row.tipo_servico` (inexistente) — por isso "Tipo" aparece sempre "-"
-2. **Estágio**: Atualmente deriva do `lead_status` do CSV. O correto é: todos começam como "Novo" e só mudam via Kanban (tabela `leads_status_overrides`)
-3. **Situação**: Deve ficar oculta na tabela CSV
+## Problema
+A seção "Próximos Prazos" no card "Processos e Prazos" do Dashboard só consulta a tabela `processos_prazos`. Tarefas criadas em `demandas_internas` com `data_limite` definida não aparecem ali.
 
 ## Alterações
 
-### 1. `src/hooks/useLeadsCsv.ts`
-- Linha 125: trocar `row.tipo_servico` por `row["qual_tipo_de_serviço_você_procura?"]` para mapear corretamente a coluna M do CSV
-- Linha 118: alterar `mapEstagio` para sempre retornar "Novo" como padrão (o estágio real será resolvido via overrides no componente pai)
+### 1. `src/hooks/useDashboardCompleto.ts`
+- Adicionar query paralela para buscar `demandas_internas` com `data_limite` nos próximos 14 dias e status `pendente` ou `em_andamento`
+- Selecionar campos: `id, titulo, data_limite, prioridade, processo_id, lead_id`
+- Mesclar os resultados de `processos_prazos` e `demandas_internas` em um único array `proximosPrazos`, ordenado por data
+- Diferenciar a origem com um campo `origem: "prazo" | "tarefa"` no tipo `PrazoProximo`
 
-### 2. `src/components/leads/LeadsCsvTable.tsx`
-- Remover a coluna "Situação" (cabeçalho e célula) — linhas 81, 111-114
-- A tabela ficará: Nome, Origem, Tipo, Anúncio, Campanha, Estágio, Data, Dias Parado, Ação
+### 2. `src/hooks/useDashboardCompleto.ts` (tipo `PrazoProximo`)
+- Adicionar campo opcional `origem?: "prazo" | "tarefa"` ao interface `PrazoProximo`
 
-### 3. `src/pages/Leads.tsx` (CsvLeadsTab)
-- Integrar `useLeadStatusOverrides` na aba CSV para que o estágio exibido na tabela respeite os overrides do Kanban
-- Passar os overrides para `LeadsCsvTable` e `csvToLeadGeral` para que o estágio do lead use o override quando existir, caso contrário "Novo"
+### 3. `src/components/dashboard/VisaoOperacional.tsx`
+- Exibir um indicador visual para diferenciar prazos processuais de tarefas (ex: badge "Tarefa" vs "Prazo" na linha do item)
+- Manter o mesmo layout, apenas adicionar contexto de origem
 
