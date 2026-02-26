@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, TrendingUp, Trophy, AlertTriangle, Medal } from "lucide-react";
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { useProdutividadeEquipe, PeriodoFiltro } from "@/hooks/useProdutividadeEquipe";
+import { TIPO_LABELS } from "@/types/demandas";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const COLORS = {
   concluidas: "hsl(var(--chart-2))",
@@ -21,14 +24,38 @@ const MEDAL_MAP: Record<number, string> = {
   2: "🥉",
 };
 
+const PERIODO_LABELS: Record<PeriodoFiltro, string> = {
+  este_mes: "Este Mês",
+  "30d": "Últimos 30d",
+  "90d": "Últimos 90d",
+  todos: "Todos",
+};
+
+function useProfiles() {
+  return useQuery({
+    queryKey: ['profiles-ativos'],
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('id, nome_completo').eq('ativo', true).order('nome_completo');
+      return data || [];
+    },
+  });
+}
+
 export function ProdutividadeDashboard() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>('este_mes');
-  const { data, isLoading } = useProdutividadeEquipe(periodo);
+  const [responsavelId, setResponsavelId] = useState<string>('');
+  const [tipo, setTipo] = useState<string>('');
+  const { data: profiles } = useProfiles();
+  const { data, isLoading } = useProdutividadeEquipe({
+    periodo,
+    responsavelId: responsavelId || undefined,
+    tipo: tipo || undefined,
+  });
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-10 w-80" />
+        <Skeleton className="h-10 w-full max-w-xl" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28" />)}
         </div>
@@ -45,15 +72,43 @@ export function ProdutividadeDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Filtro de período */}
-      <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}>
-        <TabsList>
-          <TabsTrigger value="este_mes">Este Mês</TabsTrigger>
-          <TabsTrigger value="30d">Últimos 30d</TabsTrigger>
-          <TabsTrigger value="90d">Últimos 90d</TabsTrigger>
-          <TabsTrigger value="todos">Todos</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3">
+        <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}>
+          <SelectTrigger className="w-[160px] h-9 text-sm">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(PERIODO_LABELS).map(([val, label]) => (
+              <SelectItem key={val} value={val}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={responsavelId} onValueChange={setResponsavelId}>
+          <SelectTrigger className="w-[180px] h-9 text-sm">
+            <SelectValue placeholder="Responsável" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos</SelectItem>
+            {profiles?.map(p => (
+              <SelectItem key={p.id} value={p.id}>{p.nome_completo}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={tipo} onValueChange={setTipo}>
+          <SelectTrigger className="w-[170px] h-9 text-sm">
+            <SelectValue placeholder="Tipo de Tarefa" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Todos</SelectItem>
+            {Object.entries(TIPO_LABELS).map(([val, label]) => (
+              <SelectItem key={val} value={val}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
