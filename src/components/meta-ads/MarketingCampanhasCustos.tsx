@@ -40,9 +40,10 @@ interface Props {
   metaKpis?: MetaKPIs;
   campanhas?: MetaCampanha[];
   isLoadingCampaigns?: boolean;
+  mergedPlatformData?: { key: string; label: string; count: number; percentage: number }[];
 }
 
-export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoadingCampaigns }: Props) {
+export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoadingCampaigns, mergedPlatformData }: Props) {
   const hasMetaData = metaKpis && metaKpis.gasto > 0;
 
   const investimentoTotal = hasMetaData
@@ -117,17 +118,17 @@ export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoa
       {/* Platform Distribution + Campaign Table */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Platform Pie Chart */}
-        {analytics.platformKPIs.length > 0 && (
+        {(mergedPlatformData && mergedPlatformData.length > 0 ? mergedPlatformData : analytics.platformKPIs).length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Distribuição por Plataforma</CardTitle>
-              <p className="text-sm text-muted-foreground">Origem dos leads por canal</p>
+              <p className="text-sm text-muted-foreground">Origem dos leads por canal (CSV + orgânico)</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={analytics.platformKPIs}
+                    data={mergedPlatformData && mergedPlatformData.length > 0 ? mergedPlatformData : analytics.platformKPIs}
                     cx="50%"
                     cy="50%"
                     outerRadius={100}
@@ -137,7 +138,7 @@ export function MarketingCampanhasCustos({ analytics, metaKpis, campanhas, isLoa
                     label={({ label, percentage }) => `${label} ${percentage}%`}
                     labelLine={{ strokeWidth: 1 }}
                   >
-                    {analytics.platformKPIs.map((_, idx) => (
+                    {(mergedPlatformData && mergedPlatformData.length > 0 ? mergedPlatformData : analytics.platformKPIs).map((_, idx) => (
                       <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
                     ))}
                   </Pie>
