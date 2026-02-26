@@ -18,9 +18,9 @@ const relatoriosDisponiveis = [
     icon: TrendingUp,
   },
   {
-    tipo: "performance_campanha" as TipoRelatorioVendas,
-    titulo: "Performance por Campanha",
-    descricao: "Análise detalhada por fonte/campanha",
+    tipo: "performance_anuncio" as TipoRelatorioVendas,
+    titulo: "Performance por Anúncio",
+    descricao: "Análise detalhada por anúncio",
     icon: BarChart3,
   },
   {
@@ -66,7 +66,7 @@ export default function RelatoriosVendas() {
     switch (tipoRelatorio) {
       case "comparativo_conversao":
         return <RelatorioComparativoConversao dataInicio={dataInicio} dataFim={dataFim} />;
-      case "performance_campanha":
+      case "performance_anuncio":
         return <RelatorioPerformanceCampanha dataInicio={dataInicio} dataFim={dataFim} />;
       case "funil_vendas":
         return <RelatorioFunilVendas dataInicio={dataInicio} dataFim={dataFim} />;

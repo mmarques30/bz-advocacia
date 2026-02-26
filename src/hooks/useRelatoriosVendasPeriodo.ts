@@ -29,8 +29,8 @@ export interface KPIsData {
   valorTotalPropostas: number;
 }
 
-export interface CampanhaData {
-  campanha: string;
+export interface AnuncioData {
+  anuncio: string;
   totalLeads: number;
   leadsContatados: number;
   leadsConvertidos: number;
@@ -94,18 +94,18 @@ function calculateKPIs(leads: LeadData[]): KPIsData {
   };
 }
 
-function calculateCampanhas(leads: LeadData[]): CampanhaData[] {
-  const campanhasMap = new Map<string, LeadData[]>();
+function calculateAnuncios(leads: LeadData[]): AnuncioData[] {
+  const anunciosMap = new Map<string, LeadData[]>();
   
   leads.forEach(lead => {
-    const campanha = lead.utm_campaign || lead.canal_especifico || "Sem campanha";
-    if (!campanhasMap.has(campanha)) {
-      campanhasMap.set(campanha, []);
+    const anuncio = lead.canal_especifico || lead.utm_campaign || "Sem anúncio";
+    if (!anunciosMap.has(anuncio)) {
+      anunciosMap.set(anuncio, []);
     }
-    campanhasMap.get(campanha)!.push(lead);
+    anunciosMap.get(anuncio)!.push(lead);
   });
   
-  return Array.from(campanhasMap.entries()).map(([campanha, leadsGrupo]) => {
+  return Array.from(anunciosMap.entries()).map(([anuncio, leadsGrupo]) => {
     const totalLeads = leadsGrupo.length;
     const leadsContatados = leadsGrupo.filter(l => l.estagio && l.estagio !== 'novo').length;
     const leadsConvertidos = leadsGrupo.filter(l => l.estagio === 'fechado').length;
@@ -117,7 +117,7 @@ function calculateCampanhas(leads: LeadData[]): CampanhaData[] {
       : 0;
     
     return {
-      campanha,
+      anuncio,
       totalLeads,
       leadsContatados,
       leadsConvertidos,
@@ -238,7 +238,7 @@ export function useRelatoriosVendasPeriodo(dataInicio: Date, dataFim: Date) {
           : 0
       };
       
-      const campanhas = calculateCampanhas(leadsAtuais || []);
+      const anuncios = calculateAnuncios(leadsAtuais || []);
       const funil = calculateFunil(leadsAtuais || []);
       const status = calculateStatus(leadsAtuais || []);
       const contato = calculateContato(leadsAtuais || []);
@@ -247,7 +247,7 @@ export function useRelatoriosVendasPeriodo(dataInicio: Date, dataFim: Date) {
         kpis: kpisAtuais,
         kpisAnteriores,
         comparativo,
-        campanhas,
+        anuncios,
         funil,
         status,
         contato,

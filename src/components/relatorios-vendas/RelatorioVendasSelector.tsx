@@ -44,7 +44,7 @@ export function RelatorioVendasSelector({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="comparativo_conversao">Comparativo de Conversão</SelectItem>
-                <SelectItem value="performance_campanha">Performance por Campanha</SelectItem>
+                <SelectItem value="performance_anuncio">Performance por Anúncio</SelectItem>
                 <SelectItem value="funil_vendas">Funil de Vendas</SelectItem>
                 <SelectItem value="leads_status">Leads por Status</SelectItem>
                 <SelectItem value="performance_contato">Performance de Contato</SelectItem>
