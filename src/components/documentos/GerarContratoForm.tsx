@@ -23,7 +23,7 @@ import { substituirVariaveis, extrairVariaveisFaltantes } from "@/lib/contratoUt
 import { ContratoPreview } from "./ContratoPreview";
 import { ComplementarDadosDialog } from "./ComplementarDadosDialog";
 import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
-import { Save, FileDown, AlertCircle } from "lucide-react";
+import { Save, FileDown, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
 import { ContratoPDF } from "./ContratoPDF";
@@ -44,6 +44,27 @@ const useLeadsSimple = () => {
   });
 };
 
+// Hook para buscar proposta anterior do cliente
+const usePropostaAnterior = (clienteId: string) => {
+  return useQuery({
+    queryKey: ['proposta-anterior', clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contratos_gerados')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .eq('tipo_contrato', 'proposta')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clienteId,
+  });
+};
+
 export function GerarContratoForm() {
   const { data: leads, isLoading: loadingLeads } = useLeadsSimple();
   const { configuracoes, isLoading: loadingConfig } = useConfiguracoesEscritorio();
@@ -55,6 +76,9 @@ export function GerarContratoForm() {
   const [clienteId, setClienteId] = useState<string>("");
   const [titulo, setTitulo] = useState("");
   const [showComplementar, setShowComplementar] = useState(false);
+  const [propostaAplicada, setPropostaAplicada] = useState(false);
+
+  const { data: propostaAnterior } = usePropostaAnterior(clienteId);
   
   const [valores, setValores] = useState<ValoresContrato>({
     valor_entrada: 0,
@@ -103,6 +127,27 @@ export function GerarContratoForm() {
     const match = todosModelos.find(m => m.tipo === tipoProcesso);
     if (match) setModeloId(match.id);
   }, [clienteSelecionado, todosModelos, modeloId]);
+
+  // Auto-preencher valores da proposta anterior
+  useEffect(() => {
+    if (!propostaAnterior || propostaAplicada) return;
+    const vals = propostaAnterior.valores as Record<string, unknown> | null;
+    if (vals) {
+      setValores({
+        valor_entrada: Number(vals.valor_entrada) || 0,
+        valor_parcelas: Number(vals.valor_parcelas) || 0,
+        num_parcelas: Number(vals.num_parcelas) || 1,
+        percentual_exito: Number(vals.percentual_exito) || 0,
+      });
+      setPropostaAplicada(true);
+      toast.info('Valores da proposta anterior foram carregados automaticamente');
+    }
+  }, [propostaAnterior, propostaAplicada]);
+
+  // Reset proposta flag when client changes
+  useEffect(() => {
+    setPropostaAplicada(false);
+  }, [clienteId]);
 
   const dadosCliente: DadosCliente = useMemo(() => {
     if (!clienteSelecionado) return {} as DadosCliente;
@@ -283,6 +328,17 @@ export function GerarContratoForm() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Info proposta anterior */}
+          {propostaAnterior && propostaAplicada && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800">
+              <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium">Valores carregados da proposta</p>
+                <p>Os valores foram preenchidos automaticamente com base na proposta "{propostaAnterior.titulo}"</p>
+              </div>
+            </div>
+          )}
 
           {/* Alerta de campos faltantes */}
           {camposFaltantes.length > 0 && (

@@ -178,7 +178,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email *</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="email@exemplo.com" {...field} />
                     </FormControl>
