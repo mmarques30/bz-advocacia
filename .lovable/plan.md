@@ -1,41 +1,25 @@
 
 
-# Plano: Reformular Painel de Produtividade
+# Plano: Igualar layout dos cards de Leads Anúncios ao de Leads Orgânicos
 
-## Estrutura nova (de cima para baixo)
+## Problema
+O `DraggableLeadCard` (Kanban de Anúncios, `src/pages/Leads.tsx` linhas 401-441) usa um layout simples sem ícones. O `LeadCard` dos orgânicos usa ícones `Briefcase` e `Clock` com estilização do componente `Card`.
 
-### 1. KPIs (4 cards) — manter, mas ajustar
-- Concluidas, Tempo Medio, Taxa Conclusao, Top Executor (com medalha)
+## Alteração
 
-### 2. Card "Pendentes Aprovação das Advogadas" (NOVO)
-- Buscar demandas com `status = 'em_andamento'` que estão aguardando conclusão (só advogadas podem concluir)
-- Agrupar por advogada_responsavel (Juliana / Liziane)
-- Mostrar contagem e lista resumida dos títulos pendentes
-- Destaque visual com ícone de alerta
+### `src/pages/Leads.tsx` — `DraggableLeadCard`
+Substituir o conteúdo interno do card (linhas 424-438) para usar o mesmo layout do `LeadCard`:
+- Importar `Clock` e `Briefcase` de lucide-react (já importados no arquivo)
+- Usar o componente `Card` com `p-3 cursor-pointer hover:shadow-md transition-shadow`
+- Exibir `tipo_servico` com ícone `Briefcase` (mesma formatação)
+- Exibir `há X dias` com ícone `Clock` e cor condicional (vermelho se > 7 dias)
 
-### 3. Tabela Ranking com Medalhas (reformulada)
-- Posição com medalha (ouro, prata, bronze para top 3, número para demais)
-- Colunas: Posição, Nome, Concluídas, Pendentes, Em Andamento, Tempo Médio
-- Full width (sem o gráfico de Distribuição de Carga ao lado — redundante)
+Layout final do card interno:
+```
+Nome do Lead
+📁 Tipo de Serviço
+🕐 há X dias
+```
 
-### 4. Gráfico de Barras + Linha — Volume de Trabalho (substituir os 2 gráficos antigos)
-- Um único gráfico ComposedChart full width
-- Barras empilhadas: Concluídas + Em Andamento + Pendentes (por mês, evolução mensal)
-- Linha: total de demandas por mês (volume total)
-- Remover gráfico "Por Advogada" e "Evolução Mensal" separados
-
-## Alterações nos arquivos
-
-### `src/hooks/useProdutividadeEquipe.ts`
-- Adicionar ao retorno: `pendentesAprovacao` — array de demandas `em_andamento` agrupadas por `advogada_responsavel`
-- Adicionar dados de evolução mensal expandidos: incluir `emAndamento` e `pendentes` por mês (além de `concluidas`)
-
-### `src/components/demandas/ProdutividadeDashboard.tsx`
-- Reescrever layout:
-  1. Filtro de período (manter)
-  2. KPIs (manter)
-  3. Card "Pendentes Aprovação" com Badge por advogada
-  4. Tabela Ranking com medalhas (🥇🥈🥉 + números)
-  5. ComposedChart com Bar+Line para volume mensal
-- Remover: gráfico Distribuição de Carga, gráfico Por Advogada (redundantes)
+Mesmo padrão visual do `LeadCard` orgânico (screenshot do usuário).
 
