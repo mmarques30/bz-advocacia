@@ -3,6 +3,7 @@ import { MarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
 import { MetaKPIs } from "@/types/meta-ads";
 import { Users, DollarSign, Target, TrendingUp, MousePointerClick, BarChart3, UserCheck, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
 interface KPICardProps {
   title: string;
@@ -70,10 +71,18 @@ export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {kpis.map((kpi) => (
-        <KPICard key={kpi.title} {...kpi} />
-      ))}
+    <div className="relative px-12">
+      <Carousel opts={{ align: "start", loop: true }}>
+        <CarouselContent>
+          {kpis.map((kpi) => (
+            <CarouselItem key={kpi.title} className="basis-1/2 md:basis-1/4">
+              <KPICard {...kpi} />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="-left-2" />
+        <CarouselNext className="-right-2" />
+      </Carousel>
     </div>
   );
 }
