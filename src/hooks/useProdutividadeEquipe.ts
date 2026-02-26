@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, subMonths, startOfMonth, endOfMonth, format, isBefore } from "date-fns";
+import { differenceInDays, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export type PeriodoFiltro = 'este_mes' | '30d' | '90d' | 'todos';
 
-interface ExecutorRanking {
+export interface ExecutorRanking {
   nome: string;
   concluidas: number;
   pendentes: number;
@@ -13,19 +13,29 @@ interface ExecutorRanking {
   tempoMedio: number;
 }
 
-interface AdvogadaData {
-  advogada: string;
-  concluidas: number;
-  pendentes: number;
-  emAndamento: number;
+interface PendenteDemanda {
+  id: string;
+  titulo: string;
+  advogada_responsavel: string;
+  responsavel_nome: string;
+  data_limite: string | null;
 }
 
-interface EvolucaoMensal {
+interface PendentesAgrupado {
+  advogada: string;
+  total: number;
+  demandas: PendenteDemanda[];
+}
+
+export interface EvolucaoMensalExpanded {
   mes: string;
   concluidas: number;
+  emAndamento: number;
+  pendentes: number;
+  total: number;
 }
 
-interface ProdutividadeData {
+export interface ProdutividadeData {
   kpis: {
     totalConcluidas: number;
     tempoMedio: number;
@@ -33,9 +43,8 @@ interface ProdutividadeData {
     topExecutor: string;
   };
   rankingExecutores: ExecutorRanking[];
-  distribuicaoCarga: ExecutorRanking[];
-  porAdvogada: AdvogadaData[];
-  evolucaoMensal: EvolucaoMensal[];
+  pendentesAprovacao: PendentesAgrupado[];
+  evolucaoMensal: EvolucaoMensalExpanded[];
 }
 
 function getDateRange(periodo: PeriodoFiltro) {
@@ -83,7 +92,6 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
       // Fetch all profiles
       const { data: profiles } = await supabase.from('profiles').select('id, nome_completo').eq('ativo', true);
 
-      // Build profile name map
       const nameMap = new Map<string, string>();
       profiles?.forEach(p => nameMap.set(p.id, p.nome_completo?.split(' ')[0] || 'Sem nome'));
 
@@ -105,8 +113,9 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
       });
       const tempoMedio = countTempo > 0 ? Math.round((tempoTotal / countTempo) * 10) / 10 : 0;
 
-      // --- Ranking por Executor (responsavel_id) ---
+      // --- Ranking por Executor ---
       const executorMap = new Map<string, ExecutorRanking>();
+      const temposPorExecutor = new Map<string, number[]>();
 
       const getOrCreate = (id: string, nome?: string): ExecutorRanking => {
         if (!executorMap.has(id)) {
@@ -117,8 +126,6 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
         }
         return executorMap.get(id)!;
       };
-
-      const temposPorExecutor = new Map<string, number[]>();
 
       concluidas?.forEach(d => {
         if (!d.responsavel_id) return;
@@ -138,7 +145,6 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
         if (d.status === 'em_andamento') exec.emAndamento++;
       });
 
-      // Calc tempo medio por executor
       executorMap.forEach((exec, id) => {
         const tempos = temposPorExecutor.get(id);
         if (tempos && tempos.length > 0) {
@@ -152,40 +158,41 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
 
       const topExecutor = rankingExecutores.length > 0 ? rankingExecutores[0].nome : '-';
 
-      // --- Por Advogada Responsável ---
-      const advMap = new Map<string, AdvogadaData>();
+      // --- Pendentes Aprovação (em_andamento, agrupadas por advogada) ---
+      const emAndamento = ativas?.filter(d => d.status === 'em_andamento') || [];
+      const pendentesMap = new Map<string, PendenteDemanda[]>();
 
-      const getOrCreateAdv = (adv: string): AdvogadaData => {
-        if (!advMap.has(adv)) {
-          advMap.set(adv, { advogada: adv, concluidas: 0, pendentes: 0, emAndamento: 0 });
-        }
-        return advMap.get(adv)!;
-      };
-
-      concluidas?.forEach(d => {
-        if (!d.advogada_responsavel) return;
-        getOrCreateAdv(d.advogada_responsavel).concluidas++;
+      emAndamento.forEach(d => {
+        const adv = d.advogada_responsavel || 'Sem advogada';
+        if (!pendentesMap.has(adv)) pendentesMap.set(adv, []);
+        pendentesMap.get(adv)!.push({
+          id: d.id,
+          titulo: d.titulo,
+          advogada_responsavel: adv,
+          responsavel_nome: d.responsavel?.nome_completo?.split(' ')[0] || 'Sem responsável',
+          data_limite: d.data_limite,
+        });
       });
 
-      ativas?.forEach(d => {
-        if (!d.advogada_responsavel) return;
-        const a = getOrCreateAdv(d.advogada_responsavel);
-        if (d.status === 'pendente') a.pendentes++;
-        if (d.status === 'em_andamento') a.emAndamento++;
-      });
+      const ADVOGADA_LABELS: Record<string, string> = { juliana: 'Juliana', liziane: 'Liziane' };
+      const pendentesAprovacao: PendentesAgrupado[] = Array.from(pendentesMap.entries())
+        .map(([adv, demandas]) => ({
+          advogada: ADVOGADA_LABELS[adv] || adv,
+          total: demandas.length,
+          demandas,
+        }))
+        .sort((a, b) => b.total - a.total);
 
-      const porAdvogada = Array.from(advMap.values()).sort((a, b) => b.concluidas - a.concluidas);
-
-      // --- Evolução Mensal (últimos 6 meses) ---
+      // --- Evolução Mensal Expandida (últimos 6 meses) ---
       const now = new Date();
-      const evolucaoMensal: EvolucaoMensal[] = [];
+      const evolucaoMensal: EvolucaoMensalExpanded[] = [];
       for (let i = 5; i >= 0; i--) {
         const monthDate = subMonths(now, i);
         const mStart = startOfMonth(monthDate);
         const mEnd = endOfMonth(monthDate);
         const label = format(monthDate, 'MMM/yy', { locale: ptBR });
 
-        const { data: monthData } = await supabase
+        const { data: monthConcluidas } = await supabase
           .from('demandas_internas')
           .select('id')
           .eq('status', 'concluido')
@@ -193,14 +200,30 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
           .gte('data_conclusao', mStart.toISOString().split('T')[0])
           .lte('data_conclusao', mEnd.toISOString().split('T')[0]);
 
-        evolucaoMensal.push({ mes: label, concluidas: monthData?.length || 0 });
+        const { data: monthCriadas } = await supabase
+          .from('demandas_internas')
+          .select('id, status')
+          .is('parent_id', null)
+          .gte('created_at', mStart.toISOString())
+          .lte('created_at', mEnd.toISOString());
+
+        const conc = monthConcluidas?.length || 0;
+        const emAnd = monthCriadas?.filter(d => d.status === 'em_andamento').length || 0;
+        const pend = monthCriadas?.filter(d => d.status === 'pendente').length || 0;
+
+        evolucaoMensal.push({
+          mes: label,
+          concluidas: conc,
+          emAndamento: emAnd,
+          pendentes: pend,
+          total: conc + emAnd + pend,
+        });
       }
 
       return {
         kpis: { totalConcluidas, tempoMedio, taxaConclusao, topExecutor },
         rankingExecutores,
-        distribuicaoCarga: rankingExecutores,
-        porAdvogada,
+        pendentesAprovacao,
         evolucaoMensal,
       };
     },
