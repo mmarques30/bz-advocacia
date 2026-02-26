@@ -1,8 +1,11 @@
 import { Card } from "@/components/ui/card";
 import { MarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
 import { MetaKPIs } from "@/types/meta-ads";
-import { Users, DollarSign, Target, TrendingUp, MousePointerClick, BarChart3, UserCheck, LucideIcon } from "lucide-react";
+import { Users, DollarSign, Target, TrendingUp, MousePointerClick, BarChart3, UserCheck, LucideIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import useEmblaCarousel from "embla-carousel-react";
+import { useCallback, useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface KPICardProps {
   title: string;
@@ -14,7 +17,7 @@ interface KPICardProps {
 
 function KPICard({ title, value, subtitle, icon: Icon, valueClassName }: KPICardProps) {
   return (
-    <Card className="border rounded-xl bg-card p-5">
+    <Card className="border rounded-xl bg-card p-5 min-w-[200px]">
       <div className="flex items-start justify-between">
         <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <div className="rounded-lg bg-muted p-2">
@@ -35,6 +38,29 @@ interface Props {
 }
 
 export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "start",
+    containScroll: "trimSnaps",
+    slidesToScroll: 1,
+  });
+
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+    return () => { emblaApi.off("select", onSelect); };
+  }, [emblaApi, onSelect]);
+
   const hasMetaData = metaKpis && (metaKpis.impressoes > 0 || metaKpis.cliques > 0);
 
   const custoLead = hasMetaData && metaKpis.custoLead > 0
@@ -49,71 +75,59 @@ export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
     ? `R$ ${metaKpis.cpc.toFixed(2)}`
     : "-";
 
-  // ROI calculation: (revenue - cost) / cost * 100
-  // Since we don't have revenue data, estimate from conversions
   const roiValue = hasMetaData && metaKpis.gasto > 0
     ? Math.round(((analytics.taxaConversao * analytics.totalLeads / 100 * 500) - metaKpis.gasto) / metaKpis.gasto * 100)
     : null;
 
   const roiDisplay = roiValue !== null ? `${roiValue > 0 ? "+" : ""}${roiValue}%` : "-";
 
-  // Variation for leads
   const leadsVariation = analytics.leadsSemana > 0 && analytics.totalLeads > 0
     ? `+${Math.round((analytics.leadsSemana / analytics.totalLeads) * 100)}% na semana`
     : `${analytics.leadsSemana} na última semana`;
 
+  const kpis = [
+    { title: "Total de Leads", value: String(analytics.totalLeads), subtitle: leadsVariation, icon: Users },
+    { title: "Custo por Lead", value: custoLead, subtitle: "Investimento / leads", icon: DollarSign },
+    { title: "Taxa de Conversão", value: `${analytics.taxaConversao}%`, subtitle: `${Math.round(analytics.taxaConversao * analytics.totalLeads / 100)} leads convertidos`, icon: Target },
+    { title: "ROI", value: roiDisplay, subtitle: "Retorno sobre investimento", icon: TrendingUp, valueClassName: roiValue !== null ? (roiValue >= 0 ? "text-green-600" : "text-red-600") : undefined },
+    { title: "CTR Médio", value: ctr, subtitle: "Taxa de cliques nos anúncios", icon: MousePointerClick },
+    { title: "CPC Médio", value: cpc, subtitle: "Custo por clique", icon: BarChart3 },
+    { title: "Taxa de Qualificação", value: `${analytics.taxaQualificacao}%`, subtitle: `${Math.round(analytics.taxaQualificacao * analytics.totalLeads / 100)} leads qualificados`, icon: UserCheck },
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* Row 1: 4 KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard
-          title="Total de Leads"
-          value={String(analytics.totalLeads)}
-          subtitle={leadsVariation}
-          icon={Users}
-        />
-        <KPICard
-          title="Custo por Lead"
-          value={custoLead}
-          subtitle="Investimento / leads"
-          icon={DollarSign}
-        />
-        <KPICard
-          title="Taxa de Conversão"
-          value={`${analytics.taxaConversao}%`}
-          subtitle={`${Math.round(analytics.taxaConversao * analytics.totalLeads / 100)} leads convertidos`}
-          icon={Target}
-        />
-        <KPICard
-          title="ROI"
-          value={roiDisplay}
-          subtitle="Retorno sobre investimento"
-          icon={TrendingUp}
-          valueClassName={roiValue !== null ? (roiValue >= 0 ? "text-green-600" : "text-red-600") : undefined}
-        />
+    <div className="relative">
+      {canScrollPrev && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute -left-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full shadow-md bg-background"
+          onClick={() => emblaApi?.scrollPrev()}
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      )}
+
+      <div className="overflow-hidden" ref={emblaRef}>
+        <div className="flex gap-4">
+          {kpis.map((kpi) => (
+            <div key={kpi.title} className="flex-[0_0_220px]">
+              <KPICard {...kpi} />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Row 2: 3 KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard
-          title="CTR Médio"
-          value={ctr}
-          subtitle="Taxa de cliques nos anúncios"
-          icon={MousePointerClick}
-        />
-        <KPICard
-          title="CPC Médio"
-          value={cpc}
-          subtitle="Custo por clique"
-          icon={BarChart3}
-        />
-        <KPICard
-          title="Taxa de Qualificação"
-          value={`${analytics.taxaQualificacao}%`}
-          subtitle={`${Math.round(analytics.taxaQualificacao * analytics.totalLeads / 100)} leads qualificados`}
-          icon={UserCheck}
-        />
-      </div>
+      {canScrollNext && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-8 w-8 rounded-full shadow-md bg-background"
+          onClick={() => emblaApi?.scrollNext()}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

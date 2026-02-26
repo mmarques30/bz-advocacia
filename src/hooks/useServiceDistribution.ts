@@ -95,3 +95,50 @@ export function usePlatformDistribution(csvPlatformKPIs: PlatformKPI[]) {
       .sort((a, b) => b.count - a.count);
   }, [csvPlatformKPIs, dbOrigins]);
 }
+
+const ESTAGIO_FUNNEL_MAP: Record<string, string> = {
+  novo: "Novo",
+  contato_inicial: "Enviado",
+  em_analise: "Qualificado",
+  fechado: "Convertido",
+};
+
+export function useFunnelUnificado(csvFunnel: { stage: string; count: number; percentage: number }[]) {
+  const { data: organicStages } = useQuery({
+    queryKey: ["funnel-organic-stages"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .select("estagio");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  return useMemo(() => {
+    const merged: Record<string, number> = {};
+
+    csvFunnel.forEach((s) => {
+      merged[s.stage] = (merged[s.stage] || 0) + s.count;
+    });
+
+    organicStages?.forEach((row) => {
+      const estagio = (row.estagio || "novo").toLowerCase().trim();
+      const label = ESTAGIO_FUNNEL_MAP[estagio];
+      if (label) {
+        merged[label] = (merged[label] || 0) + 1;
+      }
+    });
+
+    const order = ["Novo", "Enviado", "Qualificado", "Convertido"];
+    const total = Object.values(merged).reduce((s, c) => s + c, 0);
+
+    return order
+      .filter((stage) => merged[stage] && merged[stage] > 0)
+      .map((stage) => ({
+        stage,
+        count: merged[stage],
+        percentage: total > 0 ? Math.round((merged[stage] / total) * 100) : 0,
+      }));
+  }, [csvFunnel, organicStages]);
+}
