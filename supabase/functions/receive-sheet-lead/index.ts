@@ -53,6 +53,20 @@ function cleanPhone(phone: string | undefined): string {
   return phone.replace(/\D/g, '');
 }
 
+// Map platform value to normalized origin
+function mapPlatformToOrigem(platform: string | undefined, isOrganic: string | undefined): string {
+  const p = (platform || '').toLowerCase().trim();
+  if (p === 'fb' || p === 'facebook') return 'facebook';
+  if (p === 'ig' || p === 'instagram') return 'instagram';
+  if (p === 'tiktok') return 'tiktok';
+  if (p === 'linkedin') return 'linkedin';
+  if (p === 'google') return 'google';
+  if (isOrganic === 'true') return 'outro';
+  // Default to 'meta' for any Meta Ads platform
+  if (p) return 'meta';
+  return 'meta';
+}
+
 // Parse Brazilian date format (DD/MM/YYYY HH:MM:SS or DD/MM/YYYY)
 function parseBrazilianDate(dateStr: string | undefined): string {
   if (!dateStr) return new Date().toISOString();
@@ -140,18 +154,19 @@ serve(async (req) => {
       phone = cleanPhone(payload['Telefone'] || payload['WhatsApp']);
       createdTime = parseBrazilianDate(payload['Data da entrada']);
       tipoServico = payload['Serviço'] || 'A definir';
-      origem = 'google_sheets';
+      // Derive origin from actual source, not ingestion channel
+      origem = 'meta'; // Default for Google Sheets imports (mostly Meta Ads)
       utmSource = 'google_sheets';
       
       const tipoInventario = payload['Tipo de inventário'] || '';
       const tipoAtendimento = payload['Tipo de atendimento'] || '';
       
-      mensagem = `Lead importado via Google Sheets`;
+      mensagem = `Lead capturado via campanha`;
       if (tipoInventario) mensagem += ` - Tipo de inventário: ${tipoInventario}`;
       if (tipoAtendimento) mensagem += ` - Tipo de atendimento: ${tipoAtendimento}`;
       
       metaAdsData = {
-        source: 'google_sheets',
+        source: 'google_sheets_import',
         imported_at: new Date().toISOString(),
         original_date: payload['Data da entrada'],
         respostas_formulario: {
@@ -171,7 +186,7 @@ serve(async (req) => {
       
       const tipoServicoMeta = payload['qual_tipo_de_serviço_você_procura?'] || 'A definir';
       tipoServico = tipoServicoMeta;
-      origem = 'meta';
+      origem = mapPlatformToOrigem(payload.platform, payload.is_organic);
       utmSource = payload.platform || 'meta';
       utmCampaign = payload.campaign_name;
       canalEspecifico = payload.adset_name;
