@@ -1,43 +1,59 @@
 
 
-# Corrigir: Excluir Clientes da aba "Leads Orgânicos"
+# Padronizar etapas: Leads Orgânicos = Leads Anúncios
 
-## Problema
+## Situação atual
 
-A aba "Leads Orgânicos" exibe **todos** os registros da tabela `contact_submissions`, incluindo aqueles com `estagio = 'fechado'` que são **clientes** (já gerenciados na página de Clientes). Muitos foram importados de uma planilha e não deveriam aparecer como leads.
+| Leads Orgânicos (Kanban) | Leads Anúncios (Kanban) |
+|---|---|
+| Novo | Novo |
+| Contato Inicial | Enviado |
+| Em Análise | Qualificado |
+| Proposta | Convertido |
+| Fechado (excluído) | Perdido |
+| Perdido | |
 
-## Diagnóstico
+## O que será feito
 
-- A página **Clientes** filtra `estagio = 'fechado'` — esses são clientes
-- A aba **Leads Orgânicos** não exclui esses registros, mostrando clientes misturados com leads ativos
-- Dos 212 registros, 185 têm `estagio = 'fechado'` (são clientes), inflando os números
+Padronizar o Kanban de Leads Orgânicos para ter as mesmas 5 colunas dos Leads Anúncios: **Novo, Enviado, Qualificado, Convertido, Perdido**.
 
-## Solução
+### Mapeamento de estágios (DB → Visual)
 
-Excluir registros com `estagio = 'fechado'` da aba de Leads Orgânicos. Leads com estágio "perdido" continuam visíveis (são leads que não converteram, diferente de clientes).
+O banco de dados mantém os valores atuais do enum (`novo`, `contato_inicial`, `em_analise`, `proposta_enviada`, `fechado`, `perdido`). O Kanban fará o mapeamento visual:
 
-## Alterações
+| Coluna visual | Valor(es) do DB agrupados | Cor |
+|---|---|---|
+| Novo | `novo` | blue-500 |
+| Enviado | `contato_inicial` | green-500 |
+| Qualificado | `em_analise`, `proposta_enviada` | purple-500 |
+| Convertido | `fechado` (não aparece pois está excluído do filtro) | emerald-500 |
+| Perdido | `perdido` | red-500 |
 
-### `src/hooks/useLeads.ts`
-- Adicionar um parâmetro opcional `excludeEstagios` ao filtro, ou aplicar a exclusão diretamente
-- Antes do retorno, filtrar `estagio !== 'fechado'` quando chamado da aba de Leads (não da página de Clientes)
+### Ao arrastar (drag-and-drop)
 
-**Abordagem mais simples**: no `ManualLeadsTab` em `src/pages/Leads.tsx`, passar o filtro de status excluindo "fechado", alterando o `defaultFilters` para a aba de leads.
+| Coluna destino | Salva no DB como |
+|---|---|
+| Novo | `novo` |
+| Enviado | `contato_inicial` |
+| Qualificado | `em_analise` |
+| Convertido | `fechado` |
+| Perdido | `perdido` |
 
-### `src/pages/Leads.tsx` (ManualLeadsTab)
-- Alterar `queryFilters` para incluir exclusão de `estagio = 'fechado'`
-- Usar o hook `useLeads` com filtro que exclui clientes: adicionar `status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada', 'perdido']` como default
+## Arquivos alterados
+
+### `src/components/leads/LeadsKanban.tsx`
+- Alterar `columns` para as 5 etapas unificadas: Novo, Enviado, Qualificado, Convertido, Perdido
+- Alterar `VALID_STAGES` para incluir todos os valores do DB que mapeiam para essas colunas
+- Alterar o agrupamento (`leadsGrouped`) para mapear `contato_inicial` → "enviado", `em_analise`/`proposta_enviada` → "qualificado", `fechado` → "convertido"
+- No `handleDragEnd`, mapear a coluna destino para o valor correto do DB
+- Alterar grid de 6 para 5 colunas (`lg:grid-cols-5`)
+
+### `src/pages/Leads.tsx` (defaultFilters)
+- Atualizar `defaultFilters.status` para incluir `proposta_enviada` (para que leads existentes nesse estágio ainda sejam buscados e exibidos na coluna "Qualificado")
+
+### `src/types/leads.ts` (labels)
+- Atualizar `LEAD_STATUS_LABELS` para refletir os nomes unificados: `contato_inicial` → "Enviado", `em_analise` → "Qualificado", `proposta_enviada` → "Qualificado", `fechado` → "Convertido"
 
 ### `src/components/leads/LeadsOrganicSummary.tsx`
-- Remover o card "Fechados" (já que não haverá mais leads fechados nessa aba)
-- Substituir por outro KPI relevante, como "Perdidos"
-- Os cálculos de KPI refletirão automaticamente apenas os leads reais
-
-## Resumo do impacto
-
-| Antes | Depois |
-|-------|--------|
-| 212 registros na aba | ~27 registros (apenas leads ativos) |
-| Card "Fechados: 185" | Removido (clientes estão na página Clientes) |
-| Clientes misturados | Apenas leads no funil |
+- Atualizar os cards de KPI para refletir as novas etapas: Novos, Enviados, Qualificados, Perdidos, Em Andamento
 
