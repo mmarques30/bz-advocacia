@@ -8,7 +8,8 @@ import { ptBR } from "date-fns/locale";
 import { exportToPDF, exportToCSV } from "@/lib/exportUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { chartColors } from "@/lib/chartConfig";
-import { useLeadsCsv } from "@/hooks/useLeadsCsv";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
 
 interface RelatorioPerformanceCampanhaProps {
@@ -27,24 +28,32 @@ interface AnuncioAggregated {
 const COLORS = [chartColors.primary, chartColors.secondary, chartColors.accent, chartColors.muted, '#8884d8', '#82ca9d'];
 
 export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioPerformanceCampanhaProps) {
-  const { data, isLoading } = useLeadsCsv();
+  const { data: dbLeads, isLoading } = useQuery({
+    queryKey: ["leads-ads-report", dataInicio.toISOString(), dataFim.toISOString()],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contact_submissions")
+        .select("created_at, estagio, canal_especifico, origem")
+        .in("origem", ["google_sheets", "meta"])
+        .gte("created_at", dataInicio.toISOString())
+        .lte("created_at", dataFim.toISOString())
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const anuncios = useMemo<AnuncioAggregated[]>(() => {
-    if (!data?.leads) return [];
-
-    const filtered = data.leads.filter((lead) => {
-      if (!lead.dataRaw) return false;
-      return lead.dataRaw >= dataInicio && lead.dataRaw <= dataFim;
-    });
+    if (!dbLeads) return [];
 
     const map = new Map<string, { total: number; enviados: number; convertidos: number }>();
 
-    filtered.forEach((lead) => {
-      const name = lead.adName && lead.adName !== "-" ? lead.adName : "Sem anúncio";
+    dbLeads.forEach((lead) => {
+      const name = lead.canal_especifico || "Sem anúncio";
       const entry = map.get(name) || { total: 0, enviados: 0, convertidos: 0 };
       entry.total++;
-      if (lead.situacao === "Enviado") entry.enviados++;
-      if (lead.situacao === "Convertido") entry.convertidos++;
+      if (lead.estagio === "contato_inicial") entry.enviados++;
+      if (lead.estagio === "fechado") entry.convertidos++;
       map.set(name, entry);
     });
 
@@ -57,7 +66,7 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
         taxaConversao: d.total > 0 ? (d.convertidos / d.total) * 100 : 0,
       }))
       .sort((a, b) => b.totalLeads - a.totalLeads);
-  }, [data, dataInicio, dataFim]);
+  }, [dbLeads]);
 
   if (isLoading) {
     return (

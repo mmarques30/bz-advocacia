@@ -2,10 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import Papa from "papaparse";
-
-const CSV_URL =
-  "https://docs.google.com/spreadsheets/d/e/2PACX-1vQEcRKqnsvUsXiq4jmdqLo9zAqtsAwrPQrivVFE1jehceflnM-hliX8goacOyMw4S2LjYSMHbJUOGIF/pub?output=csv";
 
 export interface ProcessosPorStatus {
   emAndamento: number;
@@ -101,7 +97,6 @@ export function useDashboardCompleto() {
       const inicioMes = startOfMonth(hoje).toISOString();
       const fimMes = endOfMonth(hoje).toISOString();
 
-      // Execute all queries in parallel
       const [
         processosResult,
         prazosResult,
@@ -116,10 +111,7 @@ export function useDashboardCompleto() {
         convertidosMesResult,
         demandasPendentesResult,
       ] = await Promise.all([
-        // 1. Processos por status
         supabase.from("processos").select("status"),
-
-        // 2. Próximos prazos (14 dias)
         supabase
           .from("processos_prazos")
           .select("id, processo_id, tipo_prazo, descricao, data_prazo, prioridade, status")
@@ -128,8 +120,6 @@ export function useDashboardCompleto() {
           .lte("data_prazo", em14DiasISO)
           .order("data_prazo", { ascending: true })
           .limit(8),
-
-        // 2b. Tarefas com data_limite nos próximos 14 dias
         supabase
           .from("demandas_internas")
           .select("id, titulo, data_limite, prioridade, processo_id, lead_id")
@@ -139,23 +129,17 @@ export function useDashboardCompleto() {
           .lte("data_limite", em14DiasISO)
           .order("data_limite", { ascending: true })
           .limit(8),
-
-        // 3. Leads por estágio (pipeline) - excluir importados
         supabase
           .from("contact_submissions")
           .select("estagio")
           .neq("como_conheceu", "importacao")
           .neq("estagio", "fechado"),
-
-        // 4. Leads recentes
         supabase
           .from("contact_submissions")
           .select("id, nome_completo, tipo_processo, estagio, created_at")
           .neq("como_conheceu", "importacao")
           .order("created_at", { ascending: false })
           .limit(5),
-
-        // 5. Processos sem atualização há 30+ dias (dados completos) - inclui NULL
         supabase
           .from("processos")
           .select("id, numero_processo, tipo, autor, reu, data_ultima_atualizacao")
@@ -163,8 +147,6 @@ export function useDashboardCompleto() {
           .or(`data_ultima_atualizacao.lt.${ha30Dias.toISOString()},data_ultima_atualizacao.is.null`)
           .order("data_ultima_atualizacao", { ascending: true, nullsFirst: true })
           .limit(5),
-
-        // 6. Leads parados há 7+ dias
         supabase
           .from("contact_submissions")
           .select("id", { count: "exact", head: true })
@@ -172,30 +154,23 @@ export function useDashboardCompleto() {
           .neq("status", "cliente")
           .neq("status", "perdido")
           .neq("como_conheceu", "importacao"),
-
-        // 7. Demandas atrasadas
         supabase
           .from("demandas_internas")
           .select("id", { count: "exact", head: true })
           .in("status", ["pendente", "em_andamento"])
           .lt("data_limite", hojeISO),
-
-        // 8. Total clientes ativos (estagio fechado E status_cliente ativo)
         supabase
           .from("contact_submissions")
           .select("id", { count: "exact", head: true })
           .eq("estagio", "fechado")
           .eq("status_cliente", "ativo"),
-
-        // 9. Total leads do mês
+        // Total leads do mês — ALL sources from DB (no more CSV)
         supabase
           .from("contact_submissions")
           .select("id", { count: "exact", head: true })
           .neq("como_conheceu", "importacao")
           .gte("created_at", inicioMes)
           .lte("created_at", fimMes),
-
-        // 10. Convertidos no mês (para taxa de conversão)
         supabase
           .from("contact_submissions")
           .select("id", { count: "exact", head: true })
@@ -203,8 +178,6 @@ export function useDashboardCompleto() {
           .neq("como_conheceu", "importacao")
           .gte("created_at", inicioMes)
           .lte("created_at", fimMes),
-
-        // 11. Demandas pendentes total
         supabase
           .from("demandas_internas")
           .select("id", { count: "exact", head: true })
@@ -225,29 +198,7 @@ export function useDashboardCompleto() {
         );
       }
 
-      // Fetch CSV leads for unified counting
-      let csvLeadsByMonth: Record<string, number> = {};
-      let csvLeadsMesAtual = 0;
-      try {
-        const csvRes = await fetch(CSV_URL);
-        const csvText = await csvRes.text();
-        const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-        const csvRows = parsed.data as Record<string, string>[];
-        const mesAtualKey = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-        
-        csvRows.forEach((row) => {
-          if (!row.created_time) return;
-          const d = new Date(row.created_time);
-          if (isNaN(d.getTime())) return;
-          const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-          csvLeadsByMonth[monthKey] = (csvLeadsByMonth[monthKey] || 0) + 1;
-          if (monthKey === mesAtualKey) csvLeadsMesAtual++;
-        });
-      } catch (e) {
-        console.warn("Failed to fetch CSV leads for dashboard:", e);
-      }
-
-      // Leads evolution (6 months)
+      // Leads evolution (6 months) — ALL from DB, no CSV
       const leadsEvolution: LeadsEvolutionItem[] = [];
       for (let i = 5; i >= 0; i--) {
         const month = subMonths(hoje, i);
@@ -266,12 +217,10 @@ export function useDashboardCompleto() {
             .gte("created_at", startOfMonth(prevYear).toISOString())
             .lte("created_at", endOfMonth(prevYear).toISOString()),
         ]);
-        const monthKey = format(month, "yyyy-MM");
-        const prevYearKey = format(prevYear, "yyyy-MM");
         leadsEvolution.push({
           mes: format(month, "MMM", { locale: ptBR }),
-          atual: (atual.count || 0) + (csvLeadsByMonth[monthKey] || 0),
-          anterior: (anterior.count || 0) + (csvLeadsByMonth[prevYearKey] || 0),
+          atual: atual.count || 0,
+          anterior: anterior.count || 0,
         });
       }
 
@@ -420,11 +369,10 @@ export function useDashboardCompleto() {
         });
       }
 
-      const totalLeadsMesOrganicos = totalLeadsMesResult.count || 0;
-      const totalLeadsMes = totalLeadsMesOrganicos + csvLeadsMesAtual;
+      const totalLeadsMes = totalLeadsMesResult.count || 0;
       const convertidosMes = convertidosMesResult.count || 0;
       const taxaConversao =
-        totalLeadsMesOrganicos > 0 ? Math.round((convertidosMes / totalLeadsMesOrganicos) * 1000) / 10 : 0;
+        totalLeadsMes > 0 ? Math.round((convertidosMes / totalLeadsMes) * 1000) / 10 : 0;
 
       return {
         processos,
@@ -440,6 +388,6 @@ export function useDashboardCompleto() {
         leadsEvolution,
       };
     },
-    refetchInterval: 5 * 60 * 1000, // Refresh every 5 min
+    refetchInterval: 5 * 60 * 1000,
   });
 }

@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { useLeadsCsv, CsvLead } from "./useLeadsCsv";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, isAfter } from "date-fns";
@@ -74,13 +73,6 @@ interface UnifiedLead {
   tipoServico: string;
 }
 
-function deriveEffectiveStatus(lead: CsvLead): string {
-  if (lead.situacao && lead.situacao !== "Sem status") return lead.situacao;
-  const ws = (lead.whatsappStatus || "").toUpperCase().trim();
-  if (ws === "ENVIADO") return "Enviado";
-  return "Novo";
-}
-
 function mapEstagioToStatus(estagio: string | null): string {
   switch (estagio) {
     case "contato_inicial": return "Enviado";
@@ -92,27 +84,35 @@ function mapEstagioToStatus(estagio: string | null): string {
   }
 }
 
-function csvToUnified(lead: CsvLead): UnifiedLead {
-  return {
-    dataRaw: lead.dataRaw,
-    data: lead.data,
-    plataforma: lead.plataforma || "outro",
-    status: deriveEffectiveStatus(lead),
-    campanha: lead.campanha || "-",
-    anuncio: lead.adName || "-",
-    tipoServico: lead.tipoServico || "-",
-  };
+function mapOrigemToPlataforma(origem: string | null, utmSource: string | null): string {
+  if (origem === 'meta' || origem === 'facebook') return 'fb';
+  if (origem === 'instagram') return 'ig';
+  if (origem === 'google_sheets') {
+    // Check utm_source for platform info
+    if (utmSource === 'fb' || utmSource === 'facebook') return 'fb';
+    if (utmSource === 'ig' || utmSource === 'instagram') return 'ig';
+    return 'google_sheets';
+  }
+  return 'organic';
 }
 
-function organicToUnified(row: { created_at: string; estagio: string | null; tipo_processo: string }): UnifiedLead {
+function dbLeadToUnified(row: {
+  created_at: string;
+  estagio: string | null;
+  tipo_processo: string;
+  origem: string | null;
+  utm_source: string | null;
+  utm_campaign: string | null;
+  canal_especifico: string | null;
+}): UnifiedLead {
   const d = new Date(row.created_at);
   return {
     dataRaw: d,
     data: format(d, "dd/MM/yyyy"),
-    plataforma: "organic",
+    plataforma: mapOrigemToPlataforma(row.origem, row.utm_source),
     status: mapEstagioToStatus(row.estagio),
-    campanha: "Orgânico",
-    anuncio: "Orgânico",
+    campanha: row.utm_campaign || "Orgânico",
+    anuncio: row.canal_especifico || "Orgânico",
     tipoServico: row.tipo_processo || "-",
   };
 }
@@ -161,7 +161,7 @@ function computeAnalytics(allLeads: UnifiedLead[], periodo: string, isLoading: b
   // Platform KPIs
   const platformCounts: Record<string, number> = {};
   filtered.forEach((l) => { platformCounts[l.plataforma] = (platformCounts[l.plataforma] || 0) + 1; });
-  const platformLabels: Record<string, string> = { fb: "Facebook", ig: "Instagram", organic: "Orgânico" };
+  const platformLabels: Record<string, string> = { fb: "Facebook", ig: "Instagram", organic: "Orgânico", google_sheets: "Google Sheets" };
   const platformKPIs: PlatformKPI[] = Object.entries(platformCounts)
     .map(([key, count]) => ({ key, label: platformLabels[key] || key, count, percentage: Math.round((count / total) * 100) }))
     .sort((a, b) => b.count - a.count);
@@ -236,26 +236,22 @@ function computeAnalytics(allLeads: UnifiedLead[], periodo: string, isLoading: b
 }
 
 export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvAnalytics {
-  const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
-
-  const { data: organicData, isLoading: organicLoading } = useQuery({
-    queryKey: ["organic-leads-marketing"],
+  // Now reads ALL leads from DB instead of CSV
+  const { data: allLeadsData, isLoading } = useQuery({
+    queryKey: ["all-leads-marketing"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contact_submissions")
-        .select("created_at, estagio, tipo_processo")
+        .select("created_at, estagio, tipo_processo, origem, utm_source, utm_campaign, canal_especifico")
+        .neq("como_conheceu", "importacao")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
-  const isLoading = csvLoading || organicLoading;
-
   return useMemo(() => {
-    const csvUnified = (csvData?.leads || []).map(csvToUnified);
-    const organicUnified = (organicData || []).map(organicToUnified);
-    const allLeads = [...csvUnified, ...organicUnified];
+    const allLeads = (allLeadsData || []).map(dbLeadToUnified);
     return computeAnalytics(allLeads, periodo, isLoading);
-  }, [csvData, organicData, isLoading, periodo]);
+  }, [allLeadsData, isLoading, periodo]);
 }
