@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -9,11 +9,9 @@ import {
   useSensors,
   useDroppable,
 } from "@dnd-kit/core";
-import { Badge } from "@/components/ui/badge";
 import { Lead, LeadStatus } from "@/types/leads";
 import { LeadCard } from "./LeadCard";
 import { useUpdateLeadStage } from "@/hooks/useLeads";
-import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -50,7 +48,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)] pr-2 rounded-lg transition-colors ${
+      className={`p-2 space-y-2 max-h-[60vh] overflow-y-auto rounded-lg transition-colors ${
         isOver ? 'bg-accent/50 ring-2 ring-primary/30' : ''
       }`}
     >
@@ -59,26 +57,25 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   );
 }
 
+const columns: { estagio: LeadStatus; titulo: string; color: string }[] = [
+  { estagio: "novo", titulo: "Novo", color: "border-t-blue-500" },
+  { estagio: "contato_inicial", titulo: "Contato Inicial", color: "border-t-cyan-500" },
+  { estagio: "em_analise", titulo: "Em Análise", color: "border-t-purple-500" },
+  { estagio: "proposta_enviada", titulo: "Proposta", color: "border-t-yellow-500" },
+  { estagio: "fechado", titulo: "Fechado", color: "border-t-emerald-500" },
+  { estagio: "perdido", titulo: "Perdido", color: "border-t-red-500" },
+];
+
 export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProps) {
   const updateStage = useUpdateLeadStage();
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
 
-  const columns: { estagio: LeadStatus; titulo: string }[] = [
-    { estagio: "novo", titulo: "Novo" },
-    { estagio: "contato_inicial", titulo: "Contato Inicial" },
-    { estagio: "em_analise", titulo: "Em Análise" },
-    { estagio: "proposta_enviada", titulo: "Proposta" },
-    { estagio: "fechado", titulo: "Fechado/Perdido" },
-  ];
-
   const leadsGrouped = useMemo(() => {
     if (!leads) return {};
 
     return leads.reduce((acc, lead) => {
-      let estagio = lead.estagio;
-      if (estagio === "perdido") estagio = "fechado";
-
+      const estagio = lead.estagio;
       if (!acc[estagio]) acc[estagio] = [];
       acc[estagio].push(lead);
       return acc;
@@ -106,7 +103,6 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
       const leadAlvo = leads?.find((l) => l.id === overId);
       if (leadAlvo) {
         novoEstagio = leadAlvo.estagio;
-        if (novoEstagio === 'perdido') novoEstagio = 'fechado';
       } else {
         return;
       }
@@ -115,10 +111,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
     const lead = leads?.find((l) => l.id === leadId);
     if (!lead) return;
 
-    let estagioAtual = lead.estagio;
-    if (estagioAtual === 'perdido') estagioAtual = 'fechado';
-
-    if (estagioAtual === novoEstagio) return;
+    if (lead.estagio === novoEstagio) return;
 
     updateStage.mutate({ id: leadId, estagio: novoEstagio });
   };
@@ -127,7 +120,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-5 gap-4 min-h-[600px]">
+      <div className="grid grid-cols-6 gap-4 min-h-[600px]">
         {columns.map((col) => (
           <div key={col.estagio}>
             <Skeleton className="h-8 w-full mb-3" />
@@ -144,17 +137,15 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-h-[600px]">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {columns.map((coluna) => {
           const colLeads = leadsGrouped[coluna.estagio] || [];
 
           return (
-            <div key={coluna.estagio} className="flex flex-col">
-              <div className="font-medium mb-3 flex items-center justify-between sticky top-0 bg-background pb-2">
-                <span className="text-sm">{coluna.titulo}</span>
-                <Badge variant="secondary" className="h-6">
-                  {colLeads.length}
-                </Badge>
+            <div key={coluna.estagio} className={`border rounded-lg ${coluna.color} border-t-4 bg-muted/30`}>
+              <div className="p-3 border-b">
+                <h3 className="font-semibold text-sm">{coluna.titulo}</h3>
+                <span className="text-xs text-muted-foreground">{colLeads.length} leads</span>
               </div>
 
               <DroppableColumn id={coluna.estagio}>
@@ -166,9 +157,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
                   />
                 ))}
                 {colLeads.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm border-2 border-dashed rounded-lg">
-                    Nenhum lead
-                  </div>
+                  <p className="text-xs text-muted-foreground text-center py-4">Nenhum lead</p>
                 )}
               </DroppableColumn>
             </div>

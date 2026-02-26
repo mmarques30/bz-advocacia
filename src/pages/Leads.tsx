@@ -337,6 +337,7 @@ function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetail
     { key: "ENVIADO", label: "Enviados", color: "border-t-green-500" },
     { key: "QUALIFICADO", label: "Qualificados", color: "border-t-purple-500" },
     { key: "CONVERTIDO", label: "Convertidos", color: "border-t-emerald-500" },
+    { key: "PERDIDO", label: "Perdidos", color: "border-t-red-500" },
   ];
 
   const mergedLeads = useMemo(() => {
@@ -395,6 +396,7 @@ function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetail
       ENVIADO: "Enviado",
       QUALIFICADO: "Qualificado",
       CONVERTIDO: "Convertido",
+      PERDIDO: "Perdido",
     };
     const newStatus = statusMap[targetKey];
     if (!newStatus) return;
@@ -404,7 +406,7 @@ function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetail
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {grouped.map((col) => (
           <div key={col.key} className={`border rounded-lg ${col.color} border-t-4 bg-muted/30`}>
             <div className="p-3 border-b">
