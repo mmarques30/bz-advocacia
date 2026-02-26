@@ -1,56 +1,38 @@
 
 
-# Corrigir layout de Marketing para replicar fielmente o dashboard de referencia
+# Corrigir Funil de Conversao e Distribuicao por Servico
 
-## Diferenças identificadas entre referencia e implementacao atual
+## Problema 1: Funil de Conversao
+O grafico atual e um BarChart horizontal com uma unica barra ("Criado"). Precisa ser um funil visual com barras verticais decrescentes mostrando todas as etapas, ou um layout de funil estilizado com barras de largura decrescente.
 
-### Header
-- **Ref**: "Período completo" (label pequeno) + "R$ 5.500" (valor grande bold) no canto direito
-- **Atual**: Badge com "X leads no período" + Select de periodo
+**Solucao**: Transformar em um funil visual com barras horizontais centralizadas de largura decrescente (estilo trapezio/funil), mostrando cada etapa com cor distinta, contagem e percentual. Usar divs estilizados em vez do Recharts BarChart, que nao consegue representar bem um funil.
 
-### KPI Cards - Performance & ROI
-- **Ref**: Linha 1 (4 cards): Total de Leads (com variacao %), Custo por Lead (R$), Taxa de Conversao (%), ROI (% em verde)
-- **Ref**: Linha 2 (3 cards): CTR Medio (%), CPC Medio (R$), Taxa Qualificacao (%)
-- **Atual**: Dados diferentes (Leads Hoje, Leads na Semana, Plataforma Principal) - nao replica o layout
+## Problema 2: Distribuicao por Servico
+O campo `tipo_servico` vem do CSV (Google Sheets) e esta vazio para a maioria dos leads. Mas a tabela `contact_submissions` tem o campo `tipo_processo` com dados reais (Inventario, Divorcio Consensual, Guarda, Outro).
 
-### Graficos
-- **Ref**: Chart tem subtitulo descritivo abaixo do titulo
-- **Ref**: Funil tem subtitulo "Jornada completa dos leads"
-- **Ref**: Distribuicao tem subtitulo "Tipos de servicos mais demandados"
-- **Atual**: Sem subtitulos nos graficos
-
-### Aba Campanhas & Custos
-- **Atual**: Usa MarketingCsvCharts com pie chart + area chart stacked + tabela - layout diferente do padrao do dashboard de referencia
-- **Ref**: Deve seguir o mesmo estilo limpo e estruturado
+**Solucao**: Alimentar o grafico de distribuicao tambem com dados da tabela `contact_submissions` (leads organicos), usando o campo `tipo_processo`. Combinar dados do CSV + organicos.
 
 ## Alteracoes
 
-### `src/components/meta-ads/MarketingDashboardKPIs.tsx` (reescrever)
-- Linha 1 (4 cards): Total de Leads (com variacao % vs semana), Custo por Lead (R$, derivado de meta_metricas se disponivel ou "-"), Taxa de Conversao (%), ROI (% em verde se positivo)
-- Linha 2 (3 cards): CTR Medio (%), CPC Medio (R$), Taxa Qualificacao (%)
-- Manter dados CSV para Total de Leads, Taxa de Conversao, Taxa Qualificacao
-- Para Custo por Lead, CTR, CPC, ROI: usar dados do hook useMetaMetrics se disponiveis, senao mostrar "-"
-- ROI positivo: valor em text-green-600, negativo em text-red-600
-- Cada card com subtitulo descritivo (ex: "Investimento / Leads", "X leads convertidos", "Retorno sobre investimento")
-
-### `src/pages/vendas/MetaAds.tsx` (ajustar)
-- Header: trocar Badge por "Periodo completo" (label) + valor de investimento (R$) do kpis.gasto se disponivel
-- Manter Select de periodo
-- Passar kpis do useMetaMetrics para MarketingDashboardKPIs
-- Remover secao separada de MetaAdsKPIs/MetaAdsChart (integrar os dados nos KPI cards unificados)
-
-### `src/components/meta-ads/MarketingPerformanceChart.tsx` (ajustar)
-- Adicionar subtitulo: "Acompanhamento de leads captados e taxa de conversao ao longo do tempo"
-
-### `src/components/meta-ads/MarketingFunnelChart.tsx` (ajustar)
-- Adicionar subtitulo: "Jornada completa dos leads"
+### `src/components/meta-ads/MarketingFunnelChart.tsx` (reescrever)
+- Substituir BarChart horizontal por um funil visual com divs
+- Cada etapa e uma barra horizontal centralizada com largura proporcional ao percentual
+- Cores distintas por etapa (azul, verde, roxo, emerald, vermelho)
+- Mostrar contagem + percentual ao lado de cada barra
+- Se nao houver dados, mostrar "Sem dados"
 
 ### `src/components/meta-ads/MarketingServiceDistribution.tsx` (ajustar)
-- Adicionar subtitulo: "Tipos de servicos mais demandados"
+- Aceitar prop adicional `organicData` com dados de `tipo_processo` de `contact_submissions`
+- Combinar dados CSV + organicos no grafico
+- Cada barra com cor distinta por servico (usar Cell com cores diferentes)
+- Adicionar subtitulo descritivo
 
-### Aba "Campanhas & Custos" (restruturar no MetaAds.tsx)
-- Linha 1: 4 KPI cards resumo (Investimento Total, Total Campanhas, Melhor Campanha, CPC Medio) - mesmo estilo visual dos cards da aba Performance
-- Linha 2: Grafico full-width "Evolucao de Leads por Dia" (area chart stacked por plataforma - ja existe em MarketingCsvCharts)
-- Linha 3: Grid 2 colunas: Distribuicao por Plataforma (pie chart) + Tabela de Performance por Campanha
-- Extrair componentes inline ou reutilizar MarketingCsvCharts com props adequadas
+### `src/pages/vendas/MetaAds.tsx` (ajustar)
+- Buscar dados de `tipo_processo` da tabela `contact_submissions` agrupados
+- Passar para `MarketingServiceDistribution` como prop adicional
+
+### `src/hooks/useMarketingCsvAnalytics.ts` (ajustar)
+- Adicionar ao retorno o `serviceDistribution` combinado com dados organicos (ou manter separado e combinar no componente)
+
+**Abordagem alternativa mais simples para servico**: Criar um hook `useServiceDistribution` que busca `tipo_processo` de `contact_submissions` e combina com CSV, passando resultado unico ao componente.
 
