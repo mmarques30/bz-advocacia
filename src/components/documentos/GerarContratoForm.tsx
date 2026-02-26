@@ -373,31 +373,40 @@ export function GerarContratoForm() {
           )}
 
           {/* Propostas do cliente */}
-          {propostasCliente.length > 0 && (
+          {clienteId && (
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <FileText className="h-4 w-4" />
-                Propostas do Cliente ({propostasCliente.length})
+                Propostas do Cliente {propostasCliente.length > 0 && `(${propostasCliente.length})`}
               </Label>
-              <Select value={propostaSelecionadaId} onValueChange={setPropostaSelecionadaId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma proposta para carregar valores" />
-                </SelectTrigger>
-                <SelectContent>
-                  {propostasCliente.map((proposta) => {
-                    const np = (proposta as unknown as { numero_proposta?: number }).numero_proposta;
-                    return (
-                      <SelectItem key={proposta.id} value={proposta.id}>
-                        {np ? `#${np} - ` : ''}{proposta.titulo} — {format(new Date(proposta.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {propostaSelecionadaId && (
-                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300">
+              {propostasCliente.length > 0 ? (
+                <>
+                  <Select value={propostaSelecionadaId} onValueChange={setPropostaSelecionadaId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma proposta para carregar valores" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {propostasCliente.map((proposta) => {
+                        const np = (proposta as unknown as { numero_proposta?: number }).numero_proposta;
+                        return (
+                          <SelectItem key={proposta.id} value={proposta.id}>
+                            {np ? `#${np} - ` : ''}{proposta.titulo} — {format(new Date(proposta.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {propostaSelecionadaId && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300">
+                      <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <p className="text-sm">Valores carregados da proposta selecionada. Ao gerar o contrato, a proposta será marcada como aprovada.</p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50 border border-border text-muted-foreground">
                   <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm">Valores carregados da proposta selecionada. Ao gerar o contrato, a proposta será marcada como aprovada.</p>
+                  <p className="text-sm">Nenhuma proposta gerada para este cliente. Você pode gerar uma na aba "Proposta".</p>
                 </div>
               )}
             </div>
