@@ -1,25 +1,13 @@
 
 
-# Plano: Igualar layout dos cards de Leads Anúncios ao de Leads Orgânicos
+# Plano: Remover busca (lupinha) em Leads Anúncios
 
-## Problema
-O `DraggableLeadCard` (Kanban de Anúncios, `src/pages/Leads.tsx` linhas 401-441) usa um layout simples sem ícones. O `LeadCard` dos orgânicos usa ícones `Briefcase` e `Clock` com estilização do componente `Card`.
+## Alteração em `src/pages/Leads.tsx`
 
-## Alteração
+1. **Remover o estado `search`** (linha 256): `const [search, setSearch] = useState("");`
+2. **Remover o bloco do input de busca** (linhas 320-328): o `div` com o ícone `Search` e o `Input` de busca
+3. **Remover a lógica de filtro por `search`** no `useMemo` de `filteredLeads` (linhas 290-292): remover as linhas que filtram por `search.trim()` e comparação com `q`
+4. **Remover `search` da lista de dependências** do `useMemo` (linha 309)
 
-### `src/pages/Leads.tsx` — `DraggableLeadCard`
-Substituir o conteúdo interno do card (linhas 424-438) para usar o mesmo layout do `LeadCard`:
-- Importar `Clock` e `Briefcase` de lucide-react (já importados no arquivo)
-- Usar o componente `Card` com `p-3 cursor-pointer hover:shadow-md transition-shadow`
-- Exibir `tipo_servico` com ícone `Briefcase` (mesma formatação)
-- Exibir `há X dias` com ícone `Clock` e cor condicional (vermelho se > 7 dias)
-
-Layout final do card interno:
-```
-Nome do Lead
-📁 Tipo de Serviço
-🕐 há X dias
-```
-
-Mesmo padrão visual do `LeadCard` orgânico (screenshot do usuário).
+Resultado: os filtros de nome, origem e ordenação permanecem, apenas o campo de busca com lupinha é removido.
 
