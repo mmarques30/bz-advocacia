@@ -33,6 +33,18 @@ export interface CampaignPerformance {
   taxaConversao: number;
 }
 
+export interface ServiceDistribution {
+  service: string;
+  count: number;
+}
+
+export interface DailyConversion {
+  date: string;
+  leads: number;
+  conversoes: number;
+  taxa: number;
+}
+
 export interface MarketingCsvAnalytics {
   totalLeads: number;
   leadsHoje: number;
@@ -44,6 +56,8 @@ export interface MarketingCsvAnalytics {
   funnel: FunnelStage[];
   dailyLeads: DailyLeads[];
   campaigns: CampaignPerformance[];
+  serviceDistribution: ServiceDistribution[];
+  dailyConversions: DailyConversion[];
   isLoading: boolean;
 }
 
@@ -81,6 +95,7 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
       totalLeads: 0, leadsHoje: 0, leadsSemana: 0,
       taxaEnvio: 0, taxaConversao: 0, taxaQualificacao: 0,
       platformKPIs: [], funnel: [], dailyLeads: [], campaigns: [],
+      serviceDistribution: [], dailyConversions: [],
       isLoading,
     };
 
@@ -191,10 +206,40 @@ export function useMarketingCsvAnalytics(periodo: string = "30d"): MarketingCsvA
       }))
       .sort((a, b) => b.total - a.total);
 
+    // Service distribution
+    const serviceMap: Record<string, number> = {};
+    filtered.forEach((l) => {
+      const s = l.tipoServico || "-";
+      if (s !== "-") serviceMap[s] = (serviceMap[s] || 0) + 1;
+    });
+    const serviceDistribution: ServiceDistribution[] = Object.entries(serviceMap)
+      .map(([service, count]) => ({ service, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Daily conversions for performance chart
+    const dailyConvMap: Record<string, { leads: number; conversoes: number }> = {};
+    filtered.forEach((l) => {
+      if (!l.dataRaw) return;
+      const day = format(l.dataRaw, "yyyy-MM-dd");
+      if (!dailyConvMap[day]) dailyConvMap[day] = { leads: 0, conversoes: 0 };
+      dailyConvMap[day].leads++;
+      const status = deriveEffectiveStatus(l);
+      if (status === "Convertido") dailyConvMap[day].conversoes++;
+    });
+    const dailyConversions: DailyConversion[] = Object.entries(dailyConvMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, d]) => ({
+        date: format(new Date(date), "dd/MM"),
+        leads: d.leads,
+        conversoes: d.conversoes,
+        taxa: d.leads > 0 ? Math.round((d.conversoes / d.leads) * 100) : 0,
+      }));
+
     return {
       totalLeads: total, leadsHoje, leadsSemana,
       taxaEnvio, taxaConversao, taxaQualificacao,
-      platformKPIs, funnel, dailyLeads, campaigns, isLoading,
+      platformKPIs, funnel, dailyLeads, campaigns,
+      serviceDistribution, dailyConversions, isLoading,
     };
   }, [data, isLoading, periodo]);
 }
