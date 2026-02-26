@@ -286,7 +286,7 @@ export const GerarPropostaForm = () => {
           <Button 
             onClick={handleGerarPDF} 
             className="w-full" 
-            size="lg"
+            size="default"
             disabled={isGenerating || !clienteSelecionado || !descricaoServico}
           >
             {isGenerating ? (

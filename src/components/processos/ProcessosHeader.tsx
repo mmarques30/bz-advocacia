@@ -38,7 +38,7 @@ export function ProcessosHeader({
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <Button onClick={onNewProcesso} className="gap-2">
+      <Button size="sm" onClick={onNewProcesso} className="gap-2">
         <Plus className="h-4 w-4" />
         Novo Processo
       </Button>
@@ -72,7 +72,7 @@ export function ProcessosHeader({
         </SelectContent>
       </Select>
 
-      <Button variant="outline" onClick={onOpenFilters} className="gap-2">
+      <Button variant="outline" size="sm" onClick={onOpenFilters} className="gap-2">
         <Filter className="h-4 w-4" />
         Filtros
         {activeFiltersCount > 0 && (
@@ -82,7 +82,7 @@ export function ProcessosHeader({
         )}
       </Button>
 
-      <Button variant="outline" onClick={onViewPrazos} className="gap-2">
+      <Button variant="outline" size="sm" onClick={onViewPrazos} className="gap-2">
         <Calendar className="h-4 w-4" />
         Ver Prazos
       </Button>

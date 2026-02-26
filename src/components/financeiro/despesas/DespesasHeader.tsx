@@ -19,7 +19,7 @@ export function DespesasHeader({ onNewDespesa, filters, onFiltersChange }: Despe
             Gerencie todas as despesas do escritório
           </p>
         </div>
-        <Button onClick={onNewDespesa}>
+        <Button size="sm" onClick={onNewDespesa}>
           <Plus className="h-4 w-4" />
           Nova Despesa
         </Button>

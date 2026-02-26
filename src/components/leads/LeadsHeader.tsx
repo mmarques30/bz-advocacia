@@ -95,14 +95,14 @@ export function LeadsHeader({
   return (
     <div className="flex items-center justify-between gap-4 flex-wrap">
       <div className="flex items-center gap-3 flex-1 min-w-[300px]">
-        <Button onClick={onNewLead}>
+        <Button size="sm" onClick={onNewLead}>
           <Plus className="h-4 w-4" />
           {isClienteTab ? "Novo Cliente" : "Novo Lead"}
         </Button>
         
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">
+            <Button variant="outline" size="sm">
               <Upload className="h-4 w-4 mr-2" />
               Importar
               <ChevronDown className="h-4 w-4 ml-1" />
@@ -191,7 +191,7 @@ export function LeadsHeader({
             className="pl-10"
           />
         </div>
-        <Button variant="outline" onClick={onOpenFilters} className="relative">
+        <Button variant="outline" size="sm" onClick={onOpenFilters} className="relative">
           <Filter className="h-4 w-4" />
           Filtros
           {activeFiltersCount > 0 && (

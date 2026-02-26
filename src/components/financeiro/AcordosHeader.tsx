@@ -32,7 +32,7 @@ export function AcordosHeader({ onNewAcordo, filters, onFiltersChange }: Acordos
           <Download className="h-4 w-4 mr-2" />
           Exportar
         </Button>
-        <Button onClick={onNewAcordo}>
+        <Button size="sm" onClick={onNewAcordo}>
           <Plus className="h-4 w-4 mr-2" />
           Novo Acordo
         </Button>
