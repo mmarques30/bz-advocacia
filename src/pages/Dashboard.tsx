@@ -30,10 +30,10 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Saudação */}
       <div>
-        <h1 className="text-xl font-seasons text-foreground">
+        <h1 className="text-3xl md:text-4xl font-seasons text-primary">
           {getGreeting()}, {userName}
         </h1>
-        <p className="text-sm text-muted-foreground">Aqui está o resumo do seu escritório</p>
+        <p className="text-base text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
       </div>
 
       {/* Pendências do Usuário */}
