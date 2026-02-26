@@ -61,9 +61,17 @@ function getDateRange(periodo: PeriodoFiltro) {
   return { start: null, end: null };
 }
 
-export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
+export interface ProdutividadeFiltros {
+  periodo?: PeriodoFiltro;
+  responsavelId?: string;
+  tipo?: string;
+}
+
+export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
+  const { periodo = 'este_mes', responsavelId, tipo } = filtros;
+
   return useQuery({
-    queryKey: ['produtividade-equipe', periodo],
+    queryKey: ['produtividade-equipe', periodo, responsavelId, tipo],
     queryFn: async (): Promise<ProdutividadeData> => {
       const { start, end } = getDateRange(periodo);
 
@@ -77,16 +85,23 @@ export const useProdutividadeEquipe = (periodo: PeriodoFiltro = 'este_mes') => {
       if (start && end) {
         concluidasQuery = concluidasQuery.gte('data_conclusao', start.split('T')[0]).lte('data_conclusao', end.split('T')[0]);
       }
+      if (responsavelId) concluidasQuery = concluidasQuery.eq('responsavel_id', responsavelId);
+      if (tipo) concluidasQuery = concluidasQuery.eq('tipo', tipo);
 
       const { data: concluidas, error: e1 } = await concluidasQuery;
       if (e1) throw e1;
 
       // Fetch ativas (pendentes + em_andamento)
-      const { data: ativas, error: e2 } = await supabase
+      let ativasQuery = supabase
         .from('demandas_internas')
         .select('*, responsavel:profiles!demandas_internas_responsavel_id_fkey(id, nome_completo)')
         .in('status', ['pendente', 'em_andamento'])
         .is('parent_id', null);
+
+      if (responsavelId) ativasQuery = ativasQuery.eq('responsavel_id', responsavelId);
+      if (tipo) ativasQuery = ativasQuery.eq('tipo', tipo);
+
+      const { data: ativas, error: e2 } = await ativasQuery;
       if (e2) throw e2;
 
       // Fetch all profiles
