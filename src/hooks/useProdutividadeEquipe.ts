@@ -78,7 +78,7 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
       // Fetch concluídas no período
       let concluidasQuery = supabase
         .from('demandas_internas')
-        .select('*, responsavel:profiles!demandas_internas_responsavel_id_fkey(id, nome_completo)')
+        .select('*')
         .eq('status', 'concluido')
         .is('parent_id', null);
 
@@ -94,7 +94,7 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
       // Fetch ativas (pendentes + em_andamento)
       let ativasQuery = supabase
         .from('demandas_internas')
-        .select('*, responsavel:profiles!demandas_internas_responsavel_id_fkey(id, nome_completo)')
+        .select('*')
         .in('status', ['pendente', 'em_andamento'])
         .is('parent_id', null);
 
@@ -144,7 +144,7 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
 
       concluidas?.forEach(d => {
         if (!d.responsavel_id) return;
-        const exec = getOrCreate(d.responsavel_id, d.responsavel?.nome_completo?.split(' ')[0]);
+        const exec = getOrCreate(d.responsavel_id, nameMap.get(d.responsavel_id));
         exec.concluidas++;
         if (d.data_conclusao && d.created_at) {
           const dias = differenceInDays(new Date(d.data_conclusao), new Date(d.created_at));
@@ -155,7 +155,7 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
 
       ativas?.forEach(d => {
         if (!d.responsavel_id) return;
-        const exec = getOrCreate(d.responsavel_id, d.responsavel?.nome_completo?.split(' ')[0]);
+        const exec = getOrCreate(d.responsavel_id, nameMap.get(d.responsavel_id));
         if (d.status === 'pendente') exec.pendentes++;
         if (d.status === 'em_andamento') exec.emAndamento++;
       });
@@ -184,7 +184,7 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
           id: d.id,
           titulo: d.titulo,
           advogada_responsavel: adv,
-          responsavel_nome: d.responsavel?.nome_completo?.split(' ')[0] || 'Sem responsável',
+          responsavel_nome: nameMap.get(d.responsavel_id) || 'Sem responsável',
           data_limite: d.data_limite,
         });
       });
