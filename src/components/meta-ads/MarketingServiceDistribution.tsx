@@ -4,14 +4,16 @@ import { chartTheme } from "@/lib/chartConfig";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
 const BRAND_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(var(--chart-1))",
-  "hsl(var(--secondary))",
-  "hsl(var(--accent))",
+  "hsl(var(--chart-1))",      // Terra cota
+  "hsl(142, 76%, 36%)",       // Verde
+  "hsl(217, 91%, 60%)",       // Azul
+  "hsl(32, 95%, 55%)",        // Laranja
+  "hsl(270, 70%, 55%)",       // Roxo
+  "hsl(var(--chart-5))",      // Amarelo
+  "hsl(340, 75%, 55%)",       // Rosa
+  "hsl(var(--chart-3))",      // Escuro
+  "hsl(180, 60%, 45%)",       // Teal
+  "hsl(0, 84%, 60%)",         // Vermelho
 ];
 
 interface Props {
@@ -54,8 +56,6 @@ export function MarketingServiceDistribution({ data }: Props) {
               innerRadius={60}
               outerRadius={100}
               paddingAngle={2}
-              label={renderCustomLabel}
-              labelLine={false}
             >
               {chartData.map((_entry, index) => (
                 <Cell key={`cell-${index}`} fill={BRAND_COLORS[index % BRAND_COLORS.length]} />
@@ -63,7 +63,9 @@ export function MarketingServiceDistribution({ data }: Props) {
             </Pie>
             <Tooltip
               contentStyle={chartTheme.tooltip.contentStyle}
-              formatter={(value: number, name: string) => [`${value} leads`, name]}
+              formatter={(value: number, name: string, props: any) => [
+                `${value} leads (${props.payload.percentage}%)`, name
+              ]}
             />
             <Legend
               formatter={(value: string) => <span className="text-xs text-muted-foreground">{value}</span>}
