@@ -1,59 +1,56 @@
 
 
-# Padronizar etapas: Leads Orgânicos = Leads Anúncios
+# Corrigir layout de Marketing para replicar fielmente o dashboard de referencia
 
-## Situação atual
+## Diferenças identificadas entre referencia e implementacao atual
 
-| Leads Orgânicos (Kanban) | Leads Anúncios (Kanban) |
-|---|---|
-| Novo | Novo |
-| Contato Inicial | Enviado |
-| Em Análise | Qualificado |
-| Proposta | Convertido |
-| Fechado (excluído) | Perdido |
-| Perdido | |
+### Header
+- **Ref**: "Período completo" (label pequeno) + "R$ 5.500" (valor grande bold) no canto direito
+- **Atual**: Badge com "X leads no período" + Select de periodo
 
-## O que será feito
+### KPI Cards - Performance & ROI
+- **Ref**: Linha 1 (4 cards): Total de Leads (com variacao %), Custo por Lead (R$), Taxa de Conversao (%), ROI (% em verde)
+- **Ref**: Linha 2 (3 cards): CTR Medio (%), CPC Medio (R$), Taxa Qualificacao (%)
+- **Atual**: Dados diferentes (Leads Hoje, Leads na Semana, Plataforma Principal) - nao replica o layout
 
-Padronizar o Kanban de Leads Orgânicos para ter as mesmas 5 colunas dos Leads Anúncios: **Novo, Enviado, Qualificado, Convertido, Perdido**.
+### Graficos
+- **Ref**: Chart tem subtitulo descritivo abaixo do titulo
+- **Ref**: Funil tem subtitulo "Jornada completa dos leads"
+- **Ref**: Distribuicao tem subtitulo "Tipos de servicos mais demandados"
+- **Atual**: Sem subtitulos nos graficos
 
-### Mapeamento de estágios (DB → Visual)
+### Aba Campanhas & Custos
+- **Atual**: Usa MarketingCsvCharts com pie chart + area chart stacked + tabela - layout diferente do padrao do dashboard de referencia
+- **Ref**: Deve seguir o mesmo estilo limpo e estruturado
 
-O banco de dados mantém os valores atuais do enum (`novo`, `contato_inicial`, `em_analise`, `proposta_enviada`, `fechado`, `perdido`). O Kanban fará o mapeamento visual:
+## Alteracoes
 
-| Coluna visual | Valor(es) do DB agrupados | Cor |
-|---|---|---|
-| Novo | `novo` | blue-500 |
-| Enviado | `contato_inicial` | green-500 |
-| Qualificado | `em_analise`, `proposta_enviada` | purple-500 |
-| Convertido | `fechado` (não aparece pois está excluído do filtro) | emerald-500 |
-| Perdido | `perdido` | red-500 |
+### `src/components/meta-ads/MarketingDashboardKPIs.tsx` (reescrever)
+- Linha 1 (4 cards): Total de Leads (com variacao % vs semana), Custo por Lead (R$, derivado de meta_metricas se disponivel ou "-"), Taxa de Conversao (%), ROI (% em verde se positivo)
+- Linha 2 (3 cards): CTR Medio (%), CPC Medio (R$), Taxa Qualificacao (%)
+- Manter dados CSV para Total de Leads, Taxa de Conversao, Taxa Qualificacao
+- Para Custo por Lead, CTR, CPC, ROI: usar dados do hook useMetaMetrics se disponiveis, senao mostrar "-"
+- ROI positivo: valor em text-green-600, negativo em text-red-600
+- Cada card com subtitulo descritivo (ex: "Investimento / Leads", "X leads convertidos", "Retorno sobre investimento")
 
-### Ao arrastar (drag-and-drop)
+### `src/pages/vendas/MetaAds.tsx` (ajustar)
+- Header: trocar Badge por "Periodo completo" (label) + valor de investimento (R$) do kpis.gasto se disponivel
+- Manter Select de periodo
+- Passar kpis do useMetaMetrics para MarketingDashboardKPIs
+- Remover secao separada de MetaAdsKPIs/MetaAdsChart (integrar os dados nos KPI cards unificados)
 
-| Coluna destino | Salva no DB como |
-|---|---|
-| Novo | `novo` |
-| Enviado | `contato_inicial` |
-| Qualificado | `em_analise` |
-| Convertido | `fechado` |
-| Perdido | `perdido` |
+### `src/components/meta-ads/MarketingPerformanceChart.tsx` (ajustar)
+- Adicionar subtitulo: "Acompanhamento de leads captados e taxa de conversao ao longo do tempo"
 
-## Arquivos alterados
+### `src/components/meta-ads/MarketingFunnelChart.tsx` (ajustar)
+- Adicionar subtitulo: "Jornada completa dos leads"
 
-### `src/components/leads/LeadsKanban.tsx`
-- Alterar `columns` para as 5 etapas unificadas: Novo, Enviado, Qualificado, Convertido, Perdido
-- Alterar `VALID_STAGES` para incluir todos os valores do DB que mapeiam para essas colunas
-- Alterar o agrupamento (`leadsGrouped`) para mapear `contato_inicial` → "enviado", `em_analise`/`proposta_enviada` → "qualificado", `fechado` → "convertido"
-- No `handleDragEnd`, mapear a coluna destino para o valor correto do DB
-- Alterar grid de 6 para 5 colunas (`lg:grid-cols-5`)
+### `src/components/meta-ads/MarketingServiceDistribution.tsx` (ajustar)
+- Adicionar subtitulo: "Tipos de servicos mais demandados"
 
-### `src/pages/Leads.tsx` (defaultFilters)
-- Atualizar `defaultFilters.status` para incluir `proposta_enviada` (para que leads existentes nesse estágio ainda sejam buscados e exibidos na coluna "Qualificado")
-
-### `src/types/leads.ts` (labels)
-- Atualizar `LEAD_STATUS_LABELS` para refletir os nomes unificados: `contato_inicial` → "Enviado", `em_analise` → "Qualificado", `proposta_enviada` → "Qualificado", `fechado` → "Convertido"
-
-### `src/components/leads/LeadsOrganicSummary.tsx`
-- Atualizar os cards de KPI para refletir as novas etapas: Novos, Enviados, Qualificados, Perdidos, Em Andamento
+### Aba "Campanhas & Custos" (restruturar no MetaAds.tsx)
+- Linha 1: 4 KPI cards resumo (Investimento Total, Total Campanhas, Melhor Campanha, CPC Medio) - mesmo estilo visual dos cards da aba Performance
+- Linha 2: Grafico full-width "Evolucao de Leads por Dia" (area chart stacked por plataforma - ja existe em MarketingCsvCharts)
+- Linha 3: Grid 2 colunas: Distribuicao por Plataforma (pie chart) + Tabela de Performance por Campanha
+- Extrair componentes inline ou reutilizar MarketingCsvCharts com props adequadas
 
