@@ -47,10 +47,12 @@ export function ComplementarDadosDialog({
   const updateCliente = useUpdateClienteDados();
 
   const handleSubmit = async () => {
-    await updateCliente.mutateAsync({
-      id: clienteId,
-      ...dados,
-    });
+    const updatePayload: { id: string; [key: string]: unknown } = { id: clienteId, ...dados };
+    // Sync estado_civil to situacao_atual for legacy compatibility
+    if (dados.estado_civil) {
+      updatePayload.situacao_atual = dados.estado_civil;
+    }
+    await updateCliente.mutateAsync(updatePayload);
     onComplete();
   };
 
