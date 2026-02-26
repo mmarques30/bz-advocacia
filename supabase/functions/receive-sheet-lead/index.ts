@@ -1,31 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Clean phone number - UNIQUE KEY
+// ── Helpers ──────────────────────────────────────────────
+
 function cleanPhone(phone: string | undefined): string {
   if (!phone) return '';
   return phone.replace(/\D/g, '');
 }
 
-// Map platform value to normalized origin
-function mapPlatformToOrigem(platform: string | undefined, isOrganic: string | undefined): string {
+/** Resolve a origem REAL a partir do campo platform — nunca "meta" genérico */
+function resolveOrigem(platform: string | undefined, isOrganic: boolean): string {
   const p = (platform || '').toLowerCase().trim();
   if (p === 'fb' || p === 'facebook') return 'facebook';
   if (p === 'ig' || p === 'instagram') return 'instagram';
+  if (p === 'wa' || p === 'whatsapp') return 'whatsapp';
+  if (p === 'google') return 'google';
   if (p === 'tiktok') return 'tiktok';
   if (p === 'linkedin') return 'linkedin';
-  if (p === 'google') return 'google';
-  if (isOrganic === 'true') return 'outro';
-  if (p) return 'meta';
-  return 'meta';
+  if (isOrganic) return 'organico';
+  if (p) return p; // preservar valor original se não mapeado
+  return 'desconhecido';
 }
 
-// Parse Brazilian date format (DD/MM/YYYY HH:MM:SS or DD/MM/YYYY)
 function parseBrazilianDate(dateStr: string | undefined): string {
   if (!dateStr) return new Date().toISOString();
   try {
@@ -47,86 +49,127 @@ function parseBrazilianDate(dateStr: string | undefined): string {
       }
       return new Date(year, month, day, hours, minutes, seconds).toISOString();
     }
-  } catch (e) {
-    console.warn('Failed to parse date:', dateStr, e);
-  }
+  } catch (_e) { /* fall through */ }
   return new Date().toISOString();
 }
 
-// Detect if payload is from Google Sheets (Portuguese columns)
-function isGoogleSheetsPayload(payload: any): boolean {
+/** Hash determinístico para detectar alterações na linha da planilha */
+async function computeHash(payload: Record<string, unknown>): Promise<string> {
+  const ordered = JSON.stringify(payload, Object.keys(payload).sort());
+  const encoded = new TextEncoder().encode(ordered);
+  const buf = await crypto.subtle.digest('SHA-256', encoded);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ── Detecção de formato (Sheets PT-BR vs n8n EN) ────────
+
+function isGoogleSheetsPayload(payload: Record<string, unknown>): boolean {
   return 'Nome' in payload || 'Telefone' in payload || 'Serviço' in payload || 'Data da entrada' in payload;
 }
 
-// Extract normalized fields from any payload format
-function extractFields(payload: any) {
-  const isSheets = isGoogleSheetsPayload(payload);
-  
-  if (isSheets) {
-    const phone = cleanPhone(payload['Telefone'] || payload['WhatsApp']);
-    const platform = payload['platform'] || '';
-    const isOrganic = payload['is_organic'] || '';
-    return {
-      fullName: payload['Nome'] || 'Lead sem nome',
-      phone,
-      createdTime: parseBrazilianDate(payload['Data da entrada']),
-      tipoServico: payload['Serviço'] || 'A definir',
-      origem: mapPlatformToOrigem(platform, isOrganic),
-      ingestionChannel: 'google_sheets',
-      // Marketing fields (may come from sheets that have Meta columns too)
-      sourcePlatform: platform || null,
-      isOrganic: isOrganic === 'true',
-      campaignId: payload['campaign_id'] || null,
-      campaignName: payload['campaign_name'] || null,
-      adsetId: payload['adset_id'] || null,
-      adsetName: payload['adset_name'] || null,
-      adId: payload['ad_id'] || null,
-      adName: payload['ad_name'] || null,
-      formId: payload['form_id'] || null,
-      formName: payload['form_name'] || null,
-      mensagem: buildMessage(payload, isSheets),
-    };
-  } else {
-    const phone = cleanPhone(payload.phone_number || payload['Contato no WhatsApp']);
-    return {
-      fullName: payload.full_name || 'Lead sem nome',
-      phone,
-      createdTime: payload.created_time || new Date().toISOString(),
-      tipoServico: payload['qual_tipo_de_serviço_você_procura?'] || 'A definir',
-      origem: mapPlatformToOrigem(payload.platform, payload.is_organic),
-      ingestionChannel: 'n8n',
-      sourcePlatform: payload.platform || null,
-      isOrganic: payload.is_organic === 'true',
-      campaignId: payload.campaign_id || null,
-      campaignName: payload.campaign_name || null,
-      adsetId: payload.adset_id || null,
-      adsetName: payload.adset_name || null,
-      adId: payload.ad_id || null,
-      adName: payload.ad_name || null,
-      formId: payload.form_id || null,
-      formName: payload.form_name || null,
-      mensagem: buildMessage(payload, false),
-    };
-  }
+interface NormalizedRow {
+  id: string;
+  fullName: string;
+  phone: string;
+  phoneRaw: string;
+  createdTime: string;
+  platform: string;
+  isOrganic: boolean;
+  tipoServico: string;
+  bemInventariar: string;
+  preferenciaContato: string;
+  contatoWhatsapp: string;
+  campaignId: string;
+  campaignName: string;
+  adsetId: string;
+  adsetName: string;
+  adId: string;
+  adName: string;
+  formId: string;
+  formName: string;
+  leadStatus: string;
+  isQualified: boolean;
+  isQuality: boolean;
+  isConverted: boolean;
+  observacoes: string;
+  origem: string;
+  ingestionChannel: string;
+  mensagem: string;
 }
 
-function buildMessage(payload: any, isSheets: boolean): string {
-  if (isSheets) {
-    let msg = 'Lead capturado via campanha';
-    const inv = payload['Tipo de inventário'] || '';
-    const atend = payload['Tipo de atendimento'] || '';
-    if (inv) msg += ` - Tipo de inventário: ${inv}`;
-    if (atend) msg += ` - Tipo de atendimento: ${atend}`;
-    return msg;
-  } else {
-    let msg = 'Lead capturado via Meta Ads';
-    const bem = payload['qual_bem_você_deseja_inventariar?_'] || '';
-    const contato = payload['qual_o_melhor_tipo_de_contato_para_você?'] || '';
-    if (bem) msg += ` - Bem a inventariar: ${bem}`;
-    if (contato) msg += ` - Contato preferido: ${contato}`;
-    return msg;
-  }
+function extractFields(payload: Record<string, unknown>): NormalizedRow {
+  const isSheets = isGoogleSheetsPayload(payload);
+
+  const rawPlatform = String(payload['platform'] || payload['Platform'] || '');
+  const rawIsOrganic = isSheets
+    ? String(payload['is_organic'] || '') === 'true'
+    : String(payload['is_organic'] || '') === 'true';
+
+  const phone = isSheets
+    ? cleanPhone(String(payload['Telefone'] || payload['WhatsApp'] || ''))
+    : cleanPhone(String(payload['phone_number'] || payload['Contato no WhatsApp'] || ''));
+
+  const phoneRaw = isSheets
+    ? String(payload['Telefone'] || payload['WhatsApp'] || '')
+    : String(payload['phone_number'] || payload['Contato no WhatsApp'] || '');
+
+  const fullName = isSheets
+    ? String(payload['Nome'] || 'Lead sem nome')
+    : String(payload['full_name'] || 'Lead sem nome');
+
+  const createdTime = isSheets
+    ? parseBrazilianDate(String(payload['Data da entrada'] || ''))
+    : String(payload['created_time'] || new Date().toISOString());
+
+  const tipoServico = isSheets
+    ? String(payload['Serviço'] || 'A definir')
+    : String(payload['qual_tipo_de_serviço_você_procura?'] || payload['tipo_servico'] || 'A definir');
+
+  const bemInventariar = String(payload['qual_bem_você_deseja_inventariar?_'] || payload['bem_inventariar'] || '');
+  const preferenciaContato = String(payload['qual_o_melhor_tipo_de_contato_para_você?'] || payload['preferencia_contato'] || '');
+  const contatoWhatsapp = String(payload['contato_whatsapp'] || payload['Contato no WhatsApp'] || '');
+
+  // Build message
+  let mensagem = isSheets ? 'Lead capturado via campanha' : 'Lead capturado via Meta Ads';
+  const inv = String(payload['Tipo de inventário'] || '');
+  const atend = String(payload['Tipo de atendimento'] || '');
+  if (inv) mensagem += ` - Tipo de inventário: ${inv}`;
+  if (atend) mensagem += ` - Tipo de atendimento: ${atend}`;
+  if (bemInventariar) mensagem += ` - Bem a inventariar: ${bemInventariar}`;
+  if (preferenciaContato) mensagem += ` - Contato preferido: ${preferenciaContato}`;
+
+  return {
+    id: String(payload['id'] || payload['Id'] || ''),
+    fullName,
+    phone,
+    phoneRaw,
+    createdTime,
+    platform: rawPlatform,
+    isOrganic: rawIsOrganic,
+    tipoServico,
+    bemInventariar,
+    preferenciaContato,
+    contatoWhatsapp,
+    campaignId: String(payload['campaign_id'] || ''),
+    campaignName: String(payload['campaign_name'] || ''),
+    adsetId: String(payload['adset_id'] || ''),
+    adsetName: String(payload['adset_name'] || ''),
+    adId: String(payload['ad_id'] || ''),
+    adName: String(payload['ad_name'] || ''),
+    formId: String(payload['form_id'] || ''),
+    formName: String(payload['form_name'] || ''),
+    leadStatus: String(payload['lead_status'] || ''),
+    isQualified: payload['is_qualified'] === true || payload['is_qualified'] === 'true',
+    isQuality: payload['is_quality'] === true || payload['is_quality'] === 'true',
+    isConverted: payload['is_converted'] === true || payload['is_converted'] === 'true',
+    observacoes: String(payload['observacoes'] || ''),
+    origem: resolveOrigem(rawPlatform, rawIsOrganic),
+    ingestionChannel: isSheets ? 'google_sheets' : 'n8n',
+    mensagem,
+  };
 }
+
+// ── Main handler ────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -138,120 +181,149 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    let payload: any;
+    // Parse body
+    const text = await req.text();
+    if (!text || text.trim() === '') {
+      return new Response(JSON.stringify({ success: false, error: 'Request body is empty' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    let payload: Record<string, unknown>;
     try {
-      const text = await req.text();
-      console.log('Raw request body:', text);
-      if (!text || text.trim() === '') {
-        return new Response(
-          JSON.stringify({ success: false, error: 'Request body is empty' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
       payload = JSON.parse(text);
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid JSON in request body' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    } catch (_e) {
+      return new Response(JSON.stringify({ success: false, error: 'Invalid JSON' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log('Received lead payload:', JSON.stringify(payload, null, 2));
+    console.log('Received payload:', JSON.stringify(payload, null, 2));
 
-    const fields = extractFields(payload);
+    const f = extractFields(payload);
 
-    if (!fields.phone) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Telefone é obrigatório' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!f.phone) {
+      return new Response(JSON.stringify({ success: false, error: 'Telefone é obrigatório' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ===== 1. ALWAYS insert acquisition event (marketing table) =====
+    const sourceHash = await computeHash(payload);
+
+    // ═══════════════════════════════════════════════════════
+    // STEP 1 — INSERT no sheet_leads_raw (espelho imutável)
+    // ═══════════════════════════════════════════════════════
+    const rawId = f.id || `auto_${f.phone}_${Date.now()}`;
+
+    const { error: rawError } = await supabase
+      .from('sheet_leads_raw')
+      .upsert({
+        id: rawId,
+        full_name: f.fullName,
+        phone_number: f.phoneRaw,
+        created_time: f.createdTime,
+        platform: f.platform || null,
+        is_organic: f.isOrganic,
+        tipo_servico: f.tipoServico,
+        bem_inventariar: f.bemInventariar || null,
+        preferencia_contato: f.preferenciaContato || null,
+        contato_whatsapp: f.contatoWhatsapp || null,
+        campaign_id: f.campaignId || null,
+        campaign_name: f.campaignName || null,
+        adset_id: f.adsetId || null,
+        adset_name: f.adsetName || null,
+        ad_id: f.adId || null,
+        ad_name: f.adName || null,
+        form_id: f.formId || null,
+        form_name: f.formName || null,
+        lead_status: f.leadStatus || null,
+        is_qualified: f.isQualified,
+        is_quality: f.isQuality,
+        is_converted: f.isConverted,
+        observacoes: f.observacoes || null,
+        raw_json: payload,
+        source_hash: sourceHash,
+      }, { onConflict: 'id', ignoreDuplicates: true });
+
+    if (rawError) {
+      console.error('Error inserting RAW:', rawError);
+      // Non-blocking — continue with CRM derivation even if RAW insert fails
+      // (could be a duplicate with same id, which is fine)
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // STEP 2 — INSERT em lead_acquisition_events (marketing)
+    // ═══════════════════════════════════════════════════════
     const { error: eventError } = await supabase
       .from('lead_acquisition_events')
       .insert({
-        phone_normalized: fields.phone,
-        occurred_at: fields.createdTime,
-        source_platform: fields.sourcePlatform,
-        is_organic: fields.isOrganic,
-        origem_resolved: fields.origem,
-        ingestion_channel: fields.ingestionChannel,
-        campaign_id: fields.campaignId,
-        campaign_name: fields.campaignName,
-        adset_id: fields.adsetId,
-        adset_name: fields.adsetName,
-        ad_id: fields.adId,
-        ad_name: fields.adName,
-        form_id: fields.formId,
-        form_name: fields.formName,
+        phone_normalized: f.phone,
+        occurred_at: f.createdTime,
+        source_platform: f.platform || null,
+        is_organic: f.isOrganic,
+        origem_resolved: f.origem,
+        ingestion_channel: f.ingestionChannel,
+        campaign_id: f.campaignId || null,
+        campaign_name: f.campaignName || null,
+        adset_id: f.adsetId || null,
+        adset_name: f.adsetName || null,
+        ad_id: f.adId || null,
+        ad_name: f.adName || null,
+        form_id: f.formId || null,
+        form_name: f.formName || null,
         raw_payload: payload,
       });
 
-    if (eventError) {
-      console.error('Error inserting acquisition event:', eventError);
-    }
+    if (eventError) console.error('Error inserting acquisition event:', eventError);
 
-    // ===== 2. UPSERT CRM (contact_submissions) =====
+    // ═══════════════════════════════════════════════════════
+    // STEP 3 — UPSERT no CRM (contact_submissions)
+    // ═══════════════════════════════════════════════════════
     const { data: existingLead } = await supabase
       .from('contact_submissions')
       .select('id')
-      .eq('telefone', fields.phone)
+      .eq('telefone', f.phone)
       .maybeSingle();
 
     if (existingLead) {
-      // Only update technical fields, NEVER CRM-editable fields
-      const { error: updateError } = await supabase
+      // Lead já existe — NÃO sobrescrever campos editáveis
+      await supabase
         .from('contact_submissions')
         .update({ ultimo_contato_em: new Date().toISOString() })
         .eq('id', existingLead.id);
 
-      if (updateError) {
-        console.error('Error updating existing lead:', updateError);
-        return new Response(
-          JSON.stringify({ success: false, error: updateError.message }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Link event to CRM record
+      // Link events
       await supabase
         .from('lead_acquisition_events')
         .update({ contact_submission_id: existingLead.id })
-        .eq('phone_normalized', fields.phone)
+        .eq('phone_normalized', f.phone)
         .is('contact_submission_id', null);
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          action: 'existing_lead_event_recorded',
-          message: 'Lead já existe — evento de aquisição registrado, CRM intocado',
-          leadId: existingLead.id,
-          phone: fields.phone,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({
+        success: true,
+        action: 'existing_lead_event_recorded',
+        message: 'Lead já existe — evento de aquisição registrado, CRM intocado',
+        leadId: existingLead.id,
+        phone: f.phone,
+        origem: f.origem,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // ===== INSERT NEW LEAD =====
+    // ── Novo lead ────────────────────────────────────────
     const { data: newLead, error: insertError } = await supabase
       .from('contact_submissions')
       .insert({
-        nome_completo: fields.fullName,
-        telefone: fields.phone,
+        nome_completo: f.fullName,
+        telefone: f.phone,
         email: '',
-        tipo_processo: fields.tipoServico,
+        tipo_processo: f.tipoServico,
         como_conheceu: 'Meta Ads',
-        mensagem: fields.mensagem,
+        mensagem: f.mensagem,
         lgpd_consent: true,
-        origem: fields.origem,
+        origem: f.origem,
         estagio: 'novo',
         prioridade: 'media',
-        utm_source: fields.sourcePlatform || 'meta',
-        utm_campaign: fields.campaignName,
-        canal_especifico: fields.adsetName,
-        primeiro_contato_em: fields.createdTime,
+        utm_source: f.platform || null,
+        utm_campaign: f.campaignName || null,
+        canal_especifico: f.adsetName || null,
+        primeiro_contato_em: f.createdTime,
         ultimo_contato_em: new Date().toISOString(),
       })
       .select()
@@ -259,56 +331,50 @@ serve(async (req) => {
 
     if (insertError) {
       console.error('Error inserting lead:', insertError);
-      return new Response(
-        JSON.stringify({ success: false, error: insertError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: false, error: insertError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Link acquisition events to the new CRM record
+    // Link events
     await supabase
       .from('lead_acquisition_events')
       .update({ contact_submission_id: newLead.id })
-      .eq('phone_normalized', fields.phone)
+      .eq('phone_normalized', f.phone)
       .is('contact_submission_id', null);
 
-    console.log('Lead created successfully:', newLead.id);
+    // Notificação + Atividade
+    const sourceLabel = `${f.origem} (${f.campaignName || 'Campanha não identificada'})`;
 
-    // Create notification
-    const sourceLabel = `Meta Ads (${fields.campaignName || 'Campanha não identificada'})`;
     await supabase.from('notificacoes').insert({
       tipo: 'novo_lead',
       titulo: 'Novo lead recebido',
-      descricao: `${fields.fullName} - via ${sourceLabel}`,
+      descricao: `${f.fullName} - via ${sourceLabel}`,
       link: `/dashboard/leads?id=${newLead.id}`,
-      metadata: { leadId: newLead.id, origem: fields.origem },
+      metadata: { leadId: newLead.id, origem: f.origem },
     });
 
     await supabase.from('atividades').insert({
       tipo: 'lead_criado',
       entidade_tipo: 'lead',
       entidade_id: newLead.id,
-      descricao: `Lead ${fields.fullName} capturado via ${sourceLabel}`,
+      descricao: `Lead ${f.fullName} capturado via ${sourceLabel}`,
     });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        action: 'insert',
-        message: 'Lead criado com sucesso',
-        leadId: newLead.id,
-        phone: fields.phone,
-        origem: fields.origem,
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    console.log('Lead created:', newLead.id, 'origem:', f.origem);
+
+    return new Response(JSON.stringify({
+      success: true,
+      action: 'insert',
+      message: 'Lead criado com sucesso',
+      leadId: newLead.id,
+      phone: f.phone,
+      origem: f.origem,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const msg = error instanceof Error ? error.message : 'Unknown error';
     console.error('Error processing lead:', error);
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: msg }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
