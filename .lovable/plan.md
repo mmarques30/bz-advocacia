@@ -1,13 +1,22 @@
 
 
-# Plano: Remover busca (lupinha) em Leads Anúncios
+# Plano: Adicionar saudação de boas-vindas no Dashboard
 
-## Alteração em `src/pages/Leads.tsx`
+## Alteração em `src/pages/Dashboard.tsx`
 
-1. **Remover o estado `search`** (linha 256): `const [search, setSearch] = useState("");`
-2. **Remover o bloco do input de busca** (linhas 320-328): o `div` com o ícone `Search` e o `Input` de busca
-3. **Remover a lógica de filtro por `search`** no `useMemo` de `filteredLeads` (linhas 290-292): remover as linhas que filtram por `search.trim()` e comparação com `q`
-4. **Remover `search` da lista de dependências** do `useMemo` (linha 309)
+1. Importar `useAuth` de `@/hooks/useAuth`
+2. Extrair o nome do usuário via `user?.user_metadata?.full_name` ou fallback para o email
+3. Adicionar acima do `UserPendenciasCards` um bloco com:
+   - Saudação dinâmica por horário: "Bom dia", "Boa tarde", "Boa noite"
+   - Nome do usuário em `text-foreground font-seasons` (fonte serifada da marca)
+   - Subtítulo discreto em `text-muted-foreground text-sm`: "Aqui está o resumo do seu escritório"
+   - Sem card/borda — apenas texto limpo com espaçamento mínimo
 
-Resultado: os filtros de nome, origem e ordenação permanecem, apenas o campo de busca com lupinha é removido.
+### Layout visual
+```text
+Boa tarde, Dra. Maria                    ← font-seasons text-xl text-foreground
+Aqui está o resumo do seu escritório     ← text-sm text-muted-foreground
+```
+
+Cores: foreground (escuro da marca) para o nome, muted-foreground (cinza) para o subtítulo. Sem emojis, sem ícones — clean e discreto conforme solicitado.
 
