@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { AppHeader } from "./AppHeader";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AIChatBox } from "./AIChatBox";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -17,6 +18,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <main className="flex-1 p-6">{children}</main>
         </SidebarInset>
       </div>
+      <AIChatBox />
     </SidebarProvider>
   );
 }
