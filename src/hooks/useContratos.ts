@@ -128,6 +128,24 @@ export const useDeleteContrato = () => {
   });
 };
 
+export const usePropostasCliente = (clienteId: string) => {
+  return useQuery({
+    queryKey: ['propostas-cliente', clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contratos_gerados')
+        .select('*')
+        .eq('cliente_id', clienteId)
+        .eq('tipo_contrato', 'proposta')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clienteId,
+  });
+};
+
 export const useUploadContratoPDF = () => {
   const queryClient = useQueryClient();
 

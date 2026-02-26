@@ -10,6 +10,7 @@ import { useLeads } from "@/hooks/useLeads";
 import { MODELOS_PROPOSTA } from "@/lib/propostaTemplates";
 import { PropostaPreview } from "./PropostaPreview";
 import { PropostaPDF } from "./PropostaPDF";
+import { ClienteDataPanel } from "./ClienteDataPanel";
 import { pdf } from '@react-pdf/renderer';
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,6 @@ export const GerarPropostaForm = () => {
   const [condicoesAdicionais, setCondicoesAdicionais] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Buscar leads (clientes potenciais)
   const { data: leads = [], isLoading: leadsLoading } = useLeads({
     search: '',
     status: [],
@@ -40,10 +40,8 @@ export const GerarPropostaForm = () => {
     statusCliente: [],
   });
 
-  // Buscar modelos personalizados do banco
   const { data: modelosPersonalizados = [] } = useModelosPersonalizados('proposta');
 
-  // Combinar modelos estáticos com personalizados
   const todosModelos = useMemo(() => {
     const modelosDB = modelosPersonalizados.map(m => {
       let conteudo: ModeloConteudo = { servico_padrao: '', tipo_modelo: 'proposta', fonte: 'upload_ia' };
@@ -66,14 +64,11 @@ export const GerarPropostaForm = () => {
 
   const clienteData = useMemo(() => {
     const cliente = leads.find(l => l.id === clienteSelecionado);
-    return {
-      nome: cliente?.nome_completo || '',
-      cpf: cliente?.cpf || '',
-    };
+    return cliente;
   }, [leads, clienteSelecionado]);
 
-  const clienteNome = clienteData.nome;
-  const clienteCPF = clienteData.cpf;
+  const clienteNome = clienteData?.nome_completo || '';
+  const clienteCPF = clienteData?.cpf || '';
 
   const handleModeloChange = (modeloId: string) => {
     setModeloSelecionado(modeloId);
@@ -87,7 +82,6 @@ export const GerarPropostaForm = () => {
     setClienteSelecionado(clienteId);
     const cliente = leads.find(l => l.id === clienteId);
     if (cliente) {
-      // Tentar determinar o modelo baseado no tipo de processo
       const tipoProcesso = cliente.tipo_processo?.toLowerCase() || '';
       if (tipoProcesso.includes('divórcio') || tipoProcesso.includes('divorcio')) {
         handleModeloChange('proposta-divorcio');
@@ -119,7 +113,6 @@ export const GerarPropostaForm = () => {
         />
       ).toBlob();
 
-      // Download do PDF
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -129,8 +122,8 @@ export const GerarPropostaForm = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Salvar proposta no banco de dados
-      const { error: saveError } = await supabase.from('contratos_gerados').insert({
+      // Salvar proposta no banco — o trigger atribui numero_proposta automaticamente
+      const { data: savedProposta, error: saveError } = await supabase.from('contratos_gerados').insert({
         cliente_id: clienteSelecionado,
         titulo: `Proposta - ${clienteNome}`,
         tipo_contrato: 'proposta',
@@ -144,15 +137,18 @@ export const GerarPropostaForm = () => {
           condicoes_adicionais: condicoesAdicionais,
         },
         status: 'finalizado',
-      });
+      }).select('numero_proposta').single();
 
       if (saveError) {
         console.error('Erro ao salvar proposta:', saveError);
         toast.warning("Proposta gerada, mas houve erro ao salvar no histórico");
       } else {
-        // Atualizar status do lead automaticamente
+        const numeroProposta = savedProposta?.numero_proposta;
         await atualizarLeadParaPropostaEnviada(clienteSelecionado, 'proposta', queryClient);
-        toast.success("Proposta gerada e salva com sucesso!");
+        toast.success(numeroProposta 
+          ? `Proposta #${numeroProposta} gerada e salva com sucesso!`
+          : "Proposta gerada e salva com sucesso!"
+        );
       }
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -164,7 +160,6 @@ export const GerarPropostaForm = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Formulário */}
       <Card className="flex flex-col">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -189,6 +184,24 @@ export const GerarPropostaForm = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Painel de dados do cliente */}
+          {clienteData && (
+            <ClienteDataPanel
+              cliente={{
+                id: clienteData.id,
+                cpf: clienteData.cpf,
+                rg: clienteData.rg,
+                nacionalidade: clienteData.nacionalidade,
+                profissao: clienteData.profissao,
+                estado_civil: clienteData.estado_civil || clienteData.situacao_atual,
+                endereco_completo: clienteData.endereco_completo,
+                endereco_cep: (clienteData as unknown as { endereco_cep?: string }).endereco_cep,
+                endereco_cidade: (clienteData as unknown as { endereco_cidade?: string }).endereco_cidade,
+                endereco_estado: (clienteData as unknown as { endereco_estado?: string }).endereco_estado,
+              }}
+            />
+          )}
 
           {/* Modelo */}
           <div className="space-y-2">
