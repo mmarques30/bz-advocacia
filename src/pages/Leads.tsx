@@ -1,14 +1,27 @@
 import { useState, useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, LayoutGrid, List } from "lucide-react";
+
+// Manual leads (contact_submissions)
+import { useLeads } from "@/hooks/useLeads";
+import { LeadsHeader } from "@/components/leads/LeadsHeader";
+import { LeadsTable } from "@/components/leads/LeadsTable";
+import { LeadsKanban } from "@/components/leads/LeadsKanban";
+import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
+import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
+import { LeadsFilters } from "@/components/leads/LeadsFilters";
+import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
+
+// CSV leads (Google Sheets)
 import { LeadsCsvTable } from "@/components/leads/LeadsCsvTable";
 import { LeadsCsvSummary } from "@/components/leads/LeadsCsvSummary";
 import { LeadGeralDetailsDialog } from "@/components/leads/LeadGeralDetailsDialog";
 import { useLeadsCsv, CsvLead } from "@/hooks/useLeadsCsv";
 import { useLeadsGeral, LeadGeral } from "@/hooks/useLeadsGeral";
 import { useLeadStatusOverrides } from "@/hooks/useLeadStatusOverrides";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, LayoutGrid, List } from "lucide-react";
 import {
   DndContext,
   DragEndEvent,
@@ -20,6 +33,17 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
+
+const defaultFilters: FiltersType = {
+  search: "",
+  status: [],
+  origem: [],
+  tipoProcesso: [],
+  dateRange: { start: null, end: null },
+  diasParado: { min: 0, max: null },
+  responsavel: null,
+  statusCliente: [],
+};
 
 function csvToLeadGeral(csv: CsvLead): LeadGeral {
   let createdTime: string | null = null;
@@ -45,17 +69,142 @@ function csvToLeadGeral(csv: CsvLead): LeadGeral {
 }
 
 export default function Leads() {
+  const [activeTab, setActiveTab] = useState("leads");
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Gestão de Leads</h1>
+        <p className="text-muted-foreground">
+          Gerencie seus leads manuais e de anúncios
+        </p>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="anuncios">Leads Anúncios</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="leads">
+          <ManualLeadsTab />
+        </TabsContent>
+
+        <TabsContent value="anuncios">
+          <CsvLeadsTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ===================== TAB 1: Manual Leads (contact_submissions) =====================
+function ManualLeadsTab() {
+  const [view, setView] = useState<'table' | 'kanban'>('table');
+  const [search, setSearch] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filters, setFilters] = useState<FiltersType>(defaultFilters);
+  const [newLeadOpen, setNewLeadOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [editLead, setEditLead] = useState<Lead | null>(null);
+  const [nomeFilter, setNomeFilter] = useState<string | null>(null);
+  const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+
+  const activeFilters = useMemo(() => {
+    let count = 0;
+    if (filters.status.length > 0) count++;
+    if (filters.origem.length > 0) count++;
+    if (filters.tipoProcesso.length > 0) count++;
+    if (filters.dateRange.start || filters.dateRange.end) count++;
+    if (filters.diasParado.min > 0 || filters.diasParado.max !== null) count++;
+    if (filters.responsavel) count++;
+    if (filters.statusCliente && filters.statusCliente.length > 0) count++;
+    return count;
+  }, [filters]);
+
+  const queryFilters: FiltersType = useMemo(() => ({
+    ...filters,
+    search,
+    origem: origemFilter ? [origemFilter as any] : filters.origem,
+  }), [filters, search, origemFilter]);
+
+  const { data: leads, isLoading } = useLeads(queryFilters);
+
+  const filteredLeads = useMemo(() => {
+    if (!leads) return undefined;
+    if (!nomeFilter) return leads;
+    return leads.filter(l => l.nome_completo === nomeFilter);
+  }, [leads, nomeFilter]);
+
+  return (
+    <div className="space-y-4 mt-4">
+      <LeadsHeader
+        view={view}
+        onViewChange={setView}
+        onOpenFilters={() => setFiltersOpen(true)}
+        onNewLead={() => setNewLeadOpen(true)}
+        onImport={() => {}}
+        search={search}
+        onSearchChange={setSearch}
+        activeFiltersCount={activeFilters}
+        nomeFilter={nomeFilter}
+        onNomeFilterChange={setNomeFilter}
+        origemFilter={origemFilter}
+        onOrigemFilterChange={setOrigemFilter}
+      />
+
+      {view === 'table' ? (
+        <TooltipProvider>
+          <LeadsTable
+            leads={filteredLeads}
+            isLoading={isLoading}
+            onViewDetails={setSelectedLead}
+            onEdit={setEditLead}
+          />
+        </TooltipProvider>
+      ) : (
+        <LeadsKanban
+          leads={filteredLeads}
+          isLoading={isLoading}
+          onViewDetails={setSelectedLead}
+        />
+      )}
+
+      <LeadsFilters
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
+
+      <NewLeadDialog
+        open={newLeadOpen || editLead !== null}
+        onClose={() => { setNewLeadOpen(false); setEditLead(null); }}
+        lead={editLead}
+      />
+
+      <LeadDetailsDialog
+        open={selectedLead !== null}
+        onClose={() => setSelectedLead(null)}
+        lead={selectedLead}
+        onEdit={(lead) => { setSelectedLead(null); setEditLead(lead); }}
+      />
+    </div>
+  );
+}
+
+// ===================== TAB 2: CSV Leads (Google Sheets) =====================
+function CsvLeadsTab() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [search, setSearch] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
-  const { data: leadsGeral, updateObservacoes } = useLeadsGeral();
+  const { updateObservacoes } = useLeadsGeral();
 
   const selectedCsv = csvData?.leads?.find(l => l.id === selectedLeadId);
   const selectedLead: LeadGeral | null = selectedCsv ? csvToLeadGeral(selectedCsv) : null;
 
-  // Filter leads by search
   const filteredLeads = csvData?.leads?.filter(l => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
@@ -67,17 +216,9 @@ export default function Leads() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Gestão de Vendas</h1>
-        <p className="text-muted-foreground">
-          Gerencie seus leads e oportunidades de vendas
-        </p>
-      </div>
-
+    <div className="space-y-4 mt-4">
       <LeadsCsvSummary summary={csvData?.summary} loading={csvLoading} />
 
-      {/* Header com busca e toggle */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -133,7 +274,7 @@ export default function Leads() {
   );
 }
 
-// Droppable column wrapper
+// ===================== Kanban DnD Components for CSV =====================
 function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -148,7 +289,6 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   );
 }
 
-// Draggable card wrapper
 function DraggableLeadCard({
   lead,
   onViewDetails,
@@ -185,7 +325,6 @@ function DraggableLeadCard({
   );
 }
 
-// Kanban view with drag-and-drop
 function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetails: (id: string) => void }) {
   const { overrides, upsertStatus } = useLeadStatusOverrides();
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -198,7 +337,6 @@ function KanbanView({ leads, onViewDetails }: { leads: LeadGeral[]; onViewDetail
     { key: "CONVERTIDO", label: "Convertidos", color: "border-t-emerald-500" },
   ];
 
-  // Merge overrides into leads
   const mergedLeads = useMemo(() => {
     return leads.map((lead) => {
       const override = overrides[lead.id];
