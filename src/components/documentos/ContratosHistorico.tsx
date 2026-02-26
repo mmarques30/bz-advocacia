@@ -118,6 +118,7 @@ export function ContratosHistorico() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Nº</TableHead>
                 <TableHead>Titulo</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Tipo</TableHead>
@@ -129,55 +130,63 @@ export function ContratosHistorico() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : contratos?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhum contrato encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                contratos?.map((contrato) => (
-                  <TableRow key={contrato.id}>
-                    <TableCell className="font-medium">{contrato.titulo}</TableCell>
-                    <TableCell>{contrato.cliente?.nome_completo || '-'}</TableCell>
-                    <TableCell>{getTipoLabel(contrato.tipo_contrato)}</TableCell>
-                    <TableCell>{getStatusBadge(contrato.status)}</TableCell>
-                    <TableCell>
-                      {format(new Date(contrato.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" title="Visualizar">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {contrato.pdf_url && (
+                contratos?.map((contrato) => {
+                  const numeroProposta = contrato.tipo_contrato === 'proposta' 
+                    ? (contrato as unknown as { numero_proposta?: number }).numero_proposta 
+                    : null;
+                  return (
+                    <TableRow key={contrato.id}>
+                      <TableCell className="text-muted-foreground">
+                        {numeroProposta ? `#${numeroProposta}` : '-'}
+                      </TableCell>
+                      <TableCell className="font-medium">{contrato.titulo}</TableCell>
+                      <TableCell>{contrato.cliente?.nome_completo || '-'}</TableCell>
+                      <TableCell>{getTipoLabel(contrato.tipo_contrato)}</TableCell>
+                      <TableCell>{getStatusBadge(contrato.status)}</TableCell>
+                      <TableCell>
+                        {format(new Date(contrato.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="icon" title="Visualizar">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {contrato.pdf_url && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              title="Baixar PDF"
+                              asChild
+                            >
+                              <a href={contrato.pdf_url} target="_blank" rel="noopener noreferrer">
+                                <FileDown className="h-4 w-4" />
+                              </a>
+                            </Button>
+                          )}
                           <Button 
                             variant="ghost" 
-                            size="icon" 
-                            title="Baixar PDF"
-                            asChild
+                            size="icon"
+                            title="Excluir"
+                            onClick={() => setDeleteId(contrato.id)}
                           >
-                            <a href={contrato.pdf_url} target="_blank" rel="noopener noreferrer">
-                              <FileDown className="h-4 w-4" />
-                            </a>
+                            <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          title="Excluir"
-                          onClick={() => setDeleteId(contrato.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

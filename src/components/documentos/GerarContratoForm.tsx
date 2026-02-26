@@ -16,17 +16,20 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { atualizarLeadParaFechado } from "@/lib/leadStatusAutomation";
 import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
-import { useCreateContrato } from "@/hooks/useContratos";
+import { useCreateContrato, usePropostasCliente, useUpdateContrato } from "@/hooks/useContratos";
 import { MODELOS_CONTRATO } from "@/lib/contratoTemplates";
 import { ValoresContrato, DadosContrato, DadosCliente } from "@/types/contratos";
 import { substituirVariaveis, extrairVariaveisFaltantes } from "@/lib/contratoUtils";
 import { ContratoPreview } from "./ContratoPreview";
 import { ComplementarDadosDialog } from "./ComplementarDadosDialog";
+import { ClienteDataPanel } from "./ClienteDataPanel";
 import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
-import { Save, FileDown, AlertCircle, Info } from "lucide-react";
+import { Save, FileDown, AlertCircle, Info, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { pdf } from "@react-pdf/renderer";
 import { ContratoPDF } from "./ContratoPDF";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 // Hook simples para buscar leads para o seletor
 const useLeadsSimple = () => {
@@ -44,41 +47,21 @@ const useLeadsSimple = () => {
   });
 };
 
-// Hook para buscar proposta anterior do cliente
-const usePropostaAnterior = (clienteId: string) => {
-  return useQuery({
-    queryKey: ['proposta-anterior', clienteId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contratos_gerados')
-        .select('*')
-        .eq('cliente_id', clienteId)
-        .eq('tipo_contrato', 'proposta')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!clienteId,
-  });
-};
-
 export function GerarContratoForm() {
   const { data: leads, isLoading: loadingLeads } = useLeadsSimple();
   const { configuracoes, isLoading: loadingConfig } = useConfiguracoesEscritorio();
   const queryClient = useQueryClient();
   const createContrato = useCreateContrato();
+  const updateContrato = useUpdateContrato();
   const { data: modelosCustom = [] } = useModelosPersonalizados('contrato');
 
   const [modeloId, setModeloId] = useState<string>("");
   const [clienteId, setClienteId] = useState<string>("");
   const [titulo, setTitulo] = useState("");
   const [showComplementar, setShowComplementar] = useState(false);
-  const [propostaAplicada, setPropostaAplicada] = useState(false);
+  const [propostaSelecionadaId, setPropostaSelecionadaId] = useState<string>("");
 
-  const { data: propostaAnterior } = usePropostaAnterior(clienteId);
+  const { data: propostasCliente = [] } = usePropostasCliente(clienteId);
   
   const [valores, setValores] = useState<ValoresContrato>({
     valor_entrada: 0,
@@ -128,42 +111,43 @@ export function GerarContratoForm() {
     if (match) setModeloId(match.id);
   }, [clienteSelecionado, todosModelos, modeloId]);
 
-  // Auto-preencher valores da proposta anterior
+  // Reset proposal selection when client changes
   useEffect(() => {
-    if (!propostaAnterior || propostaAplicada) return;
-    const vals = propostaAnterior.valores as Record<string, unknown> | null;
+    setPropostaSelecionadaId("");
+  }, [clienteId]);
+
+  // Load proposal data when selected
+  useEffect(() => {
+    if (!propostaSelecionadaId) return;
+    const proposta = propostasCliente.find(p => p.id === propostaSelecionadaId);
+    if (!proposta) return;
+    const vals = proposta.valores as Record<string, unknown> | null;
     if (vals) {
       setValores({
         valor_entrada: Number(vals.valor_entrada) || 0,
-        valor_parcelas: Number(vals.valor_parcelas) || 0,
+        valor_parcelas: Number(vals.valor_parcelas) || Number(vals.desconto_avista) || 0,
         num_parcelas: Number(vals.num_parcelas) || 1,
         percentual_exito: Number(vals.percentual_exito) || 0,
       });
-      setPropostaAplicada(true);
-      toast.info('Valores da proposta anterior foram carregados automaticamente');
     }
-  }, [propostaAnterior, propostaAplicada]);
-
-  // Reset proposta flag when client changes
-  useEffect(() => {
-    setPropostaAplicada(false);
-  }, [clienteId]);
+    toast.info(`Valores da proposta "${proposta.titulo}" carregados`);
+  }, [propostaSelecionadaId, propostasCliente]);
 
   const dadosCliente: DadosCliente = useMemo(() => {
     if (!clienteSelecionado) return {} as DadosCliente;
     return {
       nome_completo: clienteSelecionado.nome_completo,
-      cpf: (clienteSelecionado as unknown as { cpf?: string }).cpf,
-      rg: (clienteSelecionado as unknown as { rg?: string }).rg,
-      nacionalidade: (clienteSelecionado as unknown as { nacionalidade?: string }).nacionalidade || 'brasileiro(a)',
-      profissao: (clienteSelecionado as unknown as { profissao?: string }).profissao,
+      cpf: clienteSelecionado.cpf,
+      rg: clienteSelecionado.rg,
+      nacionalidade: clienteSelecionado.nacionalidade || 'brasileiro(a)',
+      profissao: clienteSelecionado.profissao,
       estado_civil: clienteSelecionado.estado_civil || clienteSelecionado.situacao_atual,
-      endereco_completo: (clienteSelecionado as unknown as { endereco_completo?: string }).endereco_completo,
+      endereco_completo: clienteSelecionado.endereco_completo,
       email: clienteSelecionado.email,
       telefone: clienteSelecionado.telefone,
-      endereco_cidade: (clienteSelecionado as unknown as { endereco_cidade?: string }).endereco_cidade,
-      endereco_estado: (clienteSelecionado as unknown as { endereco_estado?: string }).endereco_estado,
-      endereco_cep: (clienteSelecionado as unknown as { endereco_cep?: string }).endereco_cep,
+      endereco_cidade: clienteSelecionado.endereco_cidade,
+      endereco_estado: clienteSelecionado.endereco_estado,
+      endereco_cep: clienteSelecionado.endereco_cep,
     };
   }, [clienteSelecionado]);
 
@@ -229,7 +213,6 @@ export function GerarContratoForm() {
       return;
     }
 
-    // Always fetch fresh data from backend to avoid stale state
     const { data: freshCliente, error: fetchError } = await supabase
       .from('contact_submissions')
       .select('*')
@@ -263,7 +246,6 @@ export function GerarContratoForm() {
       return;
     }
 
-    // Generate content with fresh data
     const conteudoFinal = substituirVariaveis(
       modeloSelecionado.template,
       freshDadosCliente,
@@ -281,7 +263,6 @@ export function GerarContratoForm() {
         />
       ).toBlob();
 
-      // Download direto
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -291,7 +272,6 @@ export function GerarContratoForm() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Salvar contrato
       await createContrato.mutateAsync({
         cliente_id: clienteId,
         titulo,
@@ -302,10 +282,15 @@ export function GerarContratoForm() {
         status: 'finalizado',
       });
 
-      // Atualizar status do lead automaticamente
-      await atualizarLeadParaFechado(clienteId, queryClient);
+      // Mark selected proposal as approved
+      if (propostaSelecionadaId) {
+        await updateContrato.mutateAsync({
+          id: propostaSelecionadaId,
+          status: 'assinado',
+        });
+      }
 
-      // Invalidate leads cache to reflect fresh data
+      await atualizarLeadParaFechado(clienteId, queryClient);
       queryClient.invalidateQueries({ queryKey: ['leads-simple'] });
 
       toast.success("PDF gerado e contrato salvo");
@@ -317,7 +302,6 @@ export function GerarContratoForm() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Formulário */}
       <Card className="flex flex-col">
         <CardHeader>
           <CardTitle>Configurar Contrato</CardTitle>
@@ -370,20 +354,58 @@ export function GerarContratoForm() {
             </Select>
           </div>
 
-          {/* Info proposta anterior */}
-          {propostaAnterior && propostaAplicada && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800">
-              <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium">Valores carregados da proposta</p>
-                <p>Os valores foram preenchidos automaticamente com base na proposta "{propostaAnterior.titulo}"</p>
-              </div>
+          {/* Painel de dados do cliente */}
+          {clienteSelecionado && (
+            <ClienteDataPanel
+              cliente={{
+                id: clienteSelecionado.id,
+                cpf: clienteSelecionado.cpf,
+                rg: clienteSelecionado.rg,
+                nacionalidade: clienteSelecionado.nacionalidade,
+                profissao: clienteSelecionado.profissao,
+                estado_civil: clienteSelecionado.estado_civil || clienteSelecionado.situacao_atual,
+                endereco_completo: clienteSelecionado.endereco_completo,
+                endereco_cep: clienteSelecionado.endereco_cep,
+                endereco_cidade: clienteSelecionado.endereco_cidade,
+                endereco_estado: clienteSelecionado.endereco_estado,
+              }}
+            />
+          )}
+
+          {/* Propostas do cliente */}
+          {propostasCliente.length > 0 && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Propostas do Cliente ({propostasCliente.length})
+              </Label>
+              <Select value={propostaSelecionadaId} onValueChange={setPropostaSelecionadaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma proposta para carregar valores" />
+                </SelectTrigger>
+                <SelectContent>
+                  {propostasCliente.map((proposta) => {
+                    const np = (proposta as unknown as { numero_proposta?: number }).numero_proposta;
+                    return (
+                      <SelectItem key={proposta.id} value={proposta.id}>
+                        {np ? `#${np} - ` : ''}{proposta.titulo} — {format(new Date(proposta.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              {propostaSelecionadaId && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-800 dark:text-blue-300">
+                  <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm">Valores carregados da proposta selecionada. Ao gerar o contrato, a proposta será marcada como aprovada.</p>
+                </div>
+              )}
             </div>
           )}
 
           {/* Alerta de campos faltantes */}
           {camposFaltantes.length > 0 && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-300">
               <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
               <div className="text-sm">
                 <p className="font-medium">Dados incompletos do cliente</p>

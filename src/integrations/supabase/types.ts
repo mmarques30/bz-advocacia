@@ -542,6 +542,7 @@ export type Database = {
           created_by: string | null
           dados_contrato: Json | null
           id: string
+          numero_proposta: number | null
           pdf_url: string | null
           status: string
           template_id: string | null
@@ -557,6 +558,7 @@ export type Database = {
           created_by?: string | null
           dados_contrato?: Json | null
           id?: string
+          numero_proposta?: number | null
           pdf_url?: string | null
           status?: string
           template_id?: string | null
@@ -572,6 +574,7 @@ export type Database = {
           created_by?: string | null
           dados_contrato?: Json | null
           id?: string
+          numero_proposta?: number | null
           pdf_url?: string | null
           status?: string
           template_id?: string | null
