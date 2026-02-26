@@ -64,11 +64,11 @@ export default function Leads() {
         </TabsList>
 
         <TabsContent value="leads">
-          <LeadsTab filterOrigins={null} excludeOrigins={['google_sheets', 'meta']} />
+          <LeadsTab filterOrigins={null} excludeOrigins={['facebook', 'instagram', 'meta', 'tiktok', 'linkedin', 'google']} />
         </TabsContent>
 
         <TabsContent value="anuncios">
-          <LeadsTab filterOrigins={['google_sheets', 'meta']} excludeOrigins={null} isAdsTab />
+          <LeadsTab filterOrigins={['facebook', 'instagram', 'meta', 'tiktok', 'linkedin', 'google']} excludeOrigins={null} isAdsTab />
         </TabsContent>
       </Tabs>
     </div>

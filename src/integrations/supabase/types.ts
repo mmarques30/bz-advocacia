@@ -1097,6 +1097,80 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_acquisition_events: {
+        Row: {
+          ad_id: string | null
+          ad_name: string | null
+          adset_id: string | null
+          adset_name: string | null
+          campaign_id: string | null
+          campaign_name: string | null
+          contact_submission_id: string | null
+          created_at: string
+          form_id: string | null
+          form_name: string | null
+          id: string
+          ingested_at: string
+          ingestion_channel: string | null
+          is_organic: boolean | null
+          occurred_at: string
+          origem_resolved: string | null
+          phone_normalized: string
+          raw_payload: Json | null
+          source_platform: string | null
+        }
+        Insert: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          contact_submission_id?: string | null
+          created_at?: string
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          ingested_at?: string
+          ingestion_channel?: string | null
+          is_organic?: boolean | null
+          occurred_at?: string
+          origem_resolved?: string | null
+          phone_normalized: string
+          raw_payload?: Json | null
+          source_platform?: string | null
+        }
+        Update: {
+          ad_id?: string | null
+          ad_name?: string | null
+          adset_id?: string | null
+          adset_name?: string | null
+          campaign_id?: string | null
+          campaign_name?: string | null
+          contact_submission_id?: string | null
+          created_at?: string
+          form_id?: string | null
+          form_name?: string | null
+          id?: string
+          ingested_at?: string
+          ingestion_channel?: string | null
+          is_organic?: boolean | null
+          occurred_at?: string
+          origem_resolved?: string | null
+          phone_normalized?: string
+          raw_payload?: Json | null
+          source_platform?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_acquisition_events_contact_submission_id_fkey"
+            columns: ["contact_submission_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_comunicacoes: {
         Row: {
           created_at: string
