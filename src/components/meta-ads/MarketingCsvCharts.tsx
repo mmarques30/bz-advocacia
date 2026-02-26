@@ -139,13 +139,13 @@ export function MarketingCsvCharts({ analytics, showFunnel = true, showPlatform 
 
       {/* Performance por Campanha */}
       {showCampaigns && campaigns.length > 0 && (
-        <Card className="md:col-span-2">
-          <CardHeader><CardTitle className="text-base">Performance por Campanha</CardTitle></CardHeader>
+         <Card className="md:col-span-2">
+          <CardHeader><CardTitle className="text-base">Performance por Anúncio</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Campanha</TableHead>
+                  <TableHead>Anúncio</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Enviados</TableHead>
                   <TableHead className="text-right">Qualificados</TableHead>
