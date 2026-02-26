@@ -6,6 +6,7 @@ import {
   Calendar,
   AlertTriangle,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +102,15 @@ function ProcessosPrazosCard({
                   className="flex items-center justify-between py-2 px-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{prazo.descricao}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium truncate">{prazo.descricao}</p>
+                      {prazo.origem === "tarefa" && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 shrink-0 border-primary/30 text-primary">
+                          <ClipboardList className="h-2.5 w-2.5 mr-0.5" />
+                          Tarefa
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {prazo.numero_processo || "Sem número"} · {prazo.tipo_prazo}
                     </p>
