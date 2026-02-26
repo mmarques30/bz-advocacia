@@ -49,6 +49,9 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Evolução de Leads */}
+      <LeadsEvolution data={dashboard?.leadsEvolution || []} loading={dashboardLoading} />
+
       {/* Visão Operacional: Processos + Pipeline */}
       <VisaoOperacional
         processos={dashboard?.processos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
@@ -58,9 +61,6 @@ export default function Dashboard() {
         leadsRecentes={dashboard?.leadsRecentes || []}
         loading={dashboardLoading}
       />
-
-      {/* Evolução de Leads */}
-      <LeadsEvolution data={dashboard?.leadsEvolution || []} loading={dashboardLoading} />
     </div>
   );
 }
