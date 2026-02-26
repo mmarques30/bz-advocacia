@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
 import { useMarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
-import { useServiceDistribution } from "@/hooks/useServiceDistribution";
+import { useServiceDistribution, usePlatformDistribution } from "@/hooks/useServiceDistribution";
 import { PeriodoFiltro } from "@/types/meta-ads";
 
 export default function MetaAds() {
@@ -18,6 +18,7 @@ export default function MetaAds() {
   const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns();
   const csvAnalytics = useMarketingCsvAnalytics(periodo);
   const mergedServices = useServiceDistribution(csvAnalytics.serviceDistribution);
+  const mergedPlatforms = usePlatformDistribution(csvAnalytics.platformKPIs);
 
   const investimentoTotal = kpis && kpis.gasto > 0
     ? `R$ ${kpis.gasto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
@@ -77,6 +78,7 @@ export default function MetaAds() {
             metaKpis={kpis}
             campanhas={campanhas}
             isLoadingCampaigns={isLoadingCampaigns}
+            mergedPlatformData={mergedPlatforms}
           />
         </TabsContent>
       </Tabs>
