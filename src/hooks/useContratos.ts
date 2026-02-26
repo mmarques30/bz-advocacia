@@ -136,7 +136,6 @@ export const usePropostasCliente = (clienteId: string) => {
         .from('contratos_gerados')
         .select('*')
         .eq('cliente_id', clienteId)
-        .eq('tipo_contrato', 'proposta')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
