@@ -57,7 +57,7 @@ export function HistoricoFilters({ filters, onChange }: Props) {
     filters.ano !== null;
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       <Select
         value={filters.ano?.toString() || "all"}
         onValueChange={(value) => onChange({ 
@@ -67,8 +67,8 @@ export function HistoricoFilters({ filters, onChange }: Props) {
           dataFim: null,
         })}
       >
-        <SelectTrigger className="w-[120px]">
-          <SelectValue placeholder="Todos Anos" />
+        <SelectTrigger className="h-9 text-xs w-[100px]">
+          <SelectValue placeholder="Ano" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos Anos</SelectItem>
@@ -85,7 +85,7 @@ export function HistoricoFilters({ filters, onChange }: Props) {
           <Button
             variant="outline"
             className={cn(
-              "w-[140px] justify-start text-left font-normal",
+              "h-9 text-xs w-[140px] justify-start text-left font-normal",
               !filters.dataInicio && "text-muted-foreground"
             )}
           >
@@ -114,7 +114,7 @@ export function HistoricoFilters({ filters, onChange }: Props) {
           <Button
             variant="outline"
             className={cn(
-              "w-[140px] justify-start text-left font-normal",
+              "h-9 text-xs w-[140px] justify-start text-left font-normal",
               !filters.dataFim && "text-muted-foreground"
             )}
           >
@@ -144,7 +144,7 @@ export function HistoricoFilters({ filters, onChange }: Props) {
           onChange({ ...filters, tipo: value === "all" ? null : value })
         }
       >
-        <SelectTrigger className="w-[130px]">
+        <SelectTrigger className="h-9 text-xs w-[120px]">
           <SelectValue placeholder="Tipo" />
         </SelectTrigger>
         <SelectContent>
@@ -160,7 +160,7 @@ export function HistoricoFilters({ filters, onChange }: Props) {
           onChange({ ...filters, categoria: value === "all" ? null : value })
         }
       >
-        <SelectTrigger className="w-[130px]">
+        <SelectTrigger className="h-9 text-xs w-[120px]">
           <SelectValue placeholder="Categoria" />
         </SelectTrigger>
         <SelectContent>
