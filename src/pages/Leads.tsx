@@ -26,6 +26,7 @@ import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsOrganicSummary } from "@/components/leads/LeadsOrganicSummary";
+import { LeadSearchAutocomplete } from "@/components/leads/LeadSearchAutocomplete";
 import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
 
 const defaultFilters: FiltersType = {
@@ -92,35 +93,8 @@ function LeadsTab({
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [editLead, setEditLead] = useState<Lead | null>(null);
-  const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
-  const [nomes, setNomes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>("mais_recente");
-
-  useEffect(() => {
-    const fetchNomes = async () => {
-      let query = supabase
-        .from('contact_submissions')
-        .select('nome_completo')
-        .order('nome_completo');
-      
-      if (filterOrigins) {
-        query = query.in('origem', filterOrigins);
-      }
-      if (excludeOrigins) {
-        for (const o of excludeOrigins) {
-          query = query.neq('origem', o);
-        }
-      }
-      if (!isAdsTab) {
-        query = query.neq('estagio', 'fechado');
-      }
-
-      const { data } = await query;
-      if (data) setNomes([...new Set(data.map(d => d.nome_completo))]);
-    };
-    fetchNomes();
-  }, [filterOrigins, excludeOrigins, isAdsTab]);
 
   const activeFilters = useMemo(() => {
     let count = 0;
@@ -140,10 +114,8 @@ function LeadsTab({
     origem: origemFilter ? [origemFilter as any] : filters.origem,
   }), [filters, search, origemFilter]);
 
-  // Use the standard useLeads hook, which queries contact_submissions
   const { data: leads, isLoading } = useLeads(queryFilters);
 
-  // Filter by origin (ads vs organic) client-side
   const originFilteredLeads = useMemo(() => {
     if (!leads) return undefined;
     let result = leads;
@@ -158,7 +130,7 @@ function LeadsTab({
 
   const filteredLeads = useMemo(() => {
     if (!originFilteredLeads) return undefined;
-    let result = nomeFilter ? originFilteredLeads.filter(l => l.nome_completo === nomeFilter) : [...originFilteredLeads];
+    let result = [...originFilteredLeads];
     result.sort((a, b) => {
       switch (sortOrder) {
         case "mais_antiga": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
@@ -168,7 +140,7 @@ function LeadsTab({
       }
     });
     return result;
-  }, [originFilteredLeads, nomeFilter, sortOrder]);
+  }, [originFilteredLeads, sortOrder]);
 
   return (
     <div className="space-y-4 mt-4">
@@ -183,17 +155,12 @@ function LeadsTab({
             </Button>
           )}
 
-          <Select value={nomeFilter || "all"} onValueChange={(v) => setNomeFilter(v === "all" ? null : v)}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Todos os nomes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os nomes</SelectItem>
-              {nomes.map((nome) => (
-                <SelectItem key={nome} value={nome}>{nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <LeadSearchAutocomplete
+            leads={originFilteredLeads}
+            onSelect={(lead) => setSelectedLead(lead)}
+            onSearchChange={setSearch}
+            className="flex-1 max-w-sm"
+          />
 
           {!isAdsTab && (
             <Select value={origemFilter || "all"} onValueChange={(v) => setOrigemFilter(v === "all" ? null : v)}>
