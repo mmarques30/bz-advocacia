@@ -240,7 +240,6 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
             subcategoria_codigo: value === "all" ? undefined : value,
           })
         }
-        disabled={!filters.categoria_codigo}
       >
         <SelectTrigger className="w-[150px]">
           <SelectValue placeholder="Subcategoria" />
