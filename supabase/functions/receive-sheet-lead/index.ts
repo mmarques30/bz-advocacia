@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // Original Meta Ads format
@@ -47,19 +47,7 @@ function isGoogleSheetsPayload(payload: any): payload is GoogleSheetsPayload {
   return 'Nome' in payload || 'Telefone' in payload || 'Serviço' in payload || 'Data da entrada' in payload;
 }
 
-// Generate a simple hash for unique ID
-function generateLeadId(createdTime: string, phone: string, source: string): string {
-  const str = `${createdTime}-${phone}-${source}`;
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return `${source}-${Math.abs(hash).toString(36)}`;
-}
-
-// Clean phone number
+// Clean phone number - UNIQUE KEY
 function cleanPhone(phone: string | undefined): string {
   if (!phone) return '';
   return phone.replace(/\D/g, '');
@@ -70,12 +58,10 @@ function parseBrazilianDate(dateStr: string | undefined): string {
   if (!dateStr) return new Date().toISOString();
   
   try {
-    // Check if it's already ISO format
     if (dateStr.includes('T') || dateStr.includes('-')) {
       return new Date(dateStr).toISOString();
     }
     
-    // Parse DD/MM/YYYY HH:MM:SS or DD/MM/YYYY
     const parts = dateStr.split(' ');
     const dateParts = parts[0].split('/');
     
@@ -103,7 +89,6 @@ function parseBrazilianDate(dateStr: string | undefined): string {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -120,7 +105,6 @@ serve(async (req) => {
       console.log('Raw request body:', text);
       
       if (!text || text.trim() === '') {
-        console.error('Empty request body received');
         return new Response(
           JSON.stringify({ success: false, error: 'Request body is empty' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -149,9 +133,7 @@ serve(async (req) => {
     let utmCampaign: string | undefined;
     let canalEspecifico: string | undefined;
 
-    // Detect source and extract fields accordingly
     if (isGoogleSheetsPayload(payload)) {
-      // Google Sheets format (Portuguese columns)
       console.log('Detected Google Sheets payload format');
       
       fullName = payload['Nome'] || 'Lead sem nome';
@@ -165,12 +147,8 @@ serve(async (req) => {
       const tipoAtendimento = payload['Tipo de atendimento'] || '';
       
       mensagem = `Lead importado via Google Sheets`;
-      if (tipoInventario) {
-        mensagem += ` - Tipo de inventário: ${tipoInventario}`;
-      }
-      if (tipoAtendimento) {
-        mensagem += ` - Tipo de atendimento: ${tipoAtendimento}`;
-      }
+      if (tipoInventario) mensagem += ` - Tipo de inventário: ${tipoInventario}`;
+      if (tipoAtendimento) mensagem += ` - Tipo de atendimento: ${tipoAtendimento}`;
       
       metaAdsData = {
         source: 'google_sheets',
@@ -185,7 +163,6 @@ serve(async (req) => {
       };
       
     } else {
-      // Original Meta Ads format
       console.log('Detected Meta Ads payload format');
       
       fullName = payload.full_name || payload['full_name'] || 'Lead sem nome';
@@ -203,12 +180,8 @@ serve(async (req) => {
       const tipoContato = payload['qual_o_melhor_tipo_de_contato_para_você?'] || '';
 
       mensagem = `Lead capturado via Meta Ads`;
-      if (bemInventariar) {
-        mensagem += ` - Bem a inventariar: ${bemInventariar}`;
-      }
-      if (tipoContato) {
-        mensagem += ` - Contato preferido: ${tipoContato}`;
-      }
+      if (bemInventariar) mensagem += ` - Bem a inventariar: ${bemInventariar}`;
+      if (tipoContato) mensagem += ` - Contato preferido: ${tipoContato}`;
       
       metaAdsData = {
         source: 'meta_ads',
@@ -240,39 +213,67 @@ serve(async (req) => {
       );
     }
 
-    // Generate unique ID from created_time + phone + source
-    const leadId = generateLeadId(createdTime, phone, origem);
-    console.log('Generated lead ID:', leadId);
-
-    // Check if lead already exists by generated ID or phone in last 24h
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    
+    // ===== UPSERT BY NORMALIZED PHONE =====
+    // Check if lead already exists by phone (permanent unique key)
     const { data: existingLead } = await supabase
       .from('contact_submissions')
-      .select('id, whatsapp_id, telefone')
-      .or(`whatsapp_id.eq.${leadId},and(telefone.eq.${phone},created_at.gte.${twentyFourHoursAgo})`)
+      .select('id, telefone, conversa_bot_completa')
+      .eq('telefone', phone)
       .maybeSingle();
 
     if (existingLead) {
-      console.log('Lead already exists:', existingLead.id);
+      // PARTIAL UPDATE: only technical/metadata fields, NEVER overwrite dashboard-editable fields
+      console.log('Lead already exists (phone match):', existingLead.id, '- partial update only');
+
+      // Append new import event to metadata history
+      const existingMeta = (existingLead.conversa_bot_completa as Record<string, any>) || {};
+      const importHistory = Array.isArray(existingMeta.import_history) ? existingMeta.import_history : [];
+      importHistory.push({
+        ...metaAdsData,
+        seen_at: new Date().toISOString(),
+      });
+
+      const { error: updateError } = await supabase
+        .from('contact_submissions')
+        .update({
+          ultimo_contato_em: new Date().toISOString(),
+          conversa_bot_completa: {
+            ...existingMeta,
+            last_seen_at: new Date().toISOString(),
+            last_source: origem,
+            import_history: importHistory,
+          },
+        })
+        .eq('id', existingLead.id);
+
+      if (updateError) {
+        console.error('Error updating existing lead:', updateError);
+        return new Response(
+          JSON.stringify({ success: false, error: updateError.message }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
-          duplicate: true, 
-          message: 'Lead já existe no sistema',
-          leadId: existingLead.id 
+          action: 'partial_update',
+          message: 'Lead já existe — apenas campos técnicos atualizados (ultimo_contato_em, metadata)',
+          leadId: existingLead.id,
+          unique_key: 'telefone',
+          phone: phone,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Insert new lead
+    // ===== INSERT NEW LEAD =====
     const { data: newLead, error: insertError } = await supabase
       .from('contact_submissions')
       .insert({
         nome_completo: fullName,
         telefone: phone,
-        email: `lead-${leadId}@placeholder.com`,
+        email: '',
         tipo_processo: tipoServico,
         como_conheceu: origem === 'google_sheets' ? 'Google Sheets' : 'Meta Ads',
         mensagem: mensagem,
@@ -280,11 +281,13 @@ serve(async (req) => {
         origem: origem,
         estagio: 'novo',
         prioridade: 'media',
-        whatsapp_id: leadId,
         utm_source: utmSource,
         utm_campaign: utmCampaign,
         canal_especifico: canalEspecifico,
-        conversa_bot_completa: metaAdsData,
+        conversa_bot_completa: {
+          ...metaAdsData,
+          import_history: [{ ...metaAdsData, seen_at: new Date().toISOString() }],
+        },
         primeiro_contato_em: createdTime,
         ultimo_contato_em: new Date().toISOString(),
       })
@@ -301,9 +304,9 @@ serve(async (req) => {
 
     console.log('Lead created successfully:', newLead.id);
 
-    // Create notification for new lead
+    // Create notification
     const sourceLabel = origem === 'google_sheets' ? 'Google Sheets' : `Meta Ads (${utmCampaign || 'Campanha não identificada'})`;
-    const { error: notifError } = await supabase
+    await supabase
       .from('notificacoes')
       .insert({
         tipo: 'novo_lead',
@@ -312,10 +315,6 @@ serve(async (req) => {
         link: `/dashboard/leads?id=${newLead.id}`,
         metadata: { leadId: newLead.id, origem: origem },
       });
-
-    if (notifError) {
-      console.warn('Error creating notification:', notifError);
-    }
 
     // Create activity log
     await supabase
@@ -330,10 +329,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        duplicate: false,
+        action: 'insert',
         message: 'Lead criado com sucesso',
         leadId: newLead.id,
-        origem: origem
+        unique_key: 'telefone',
+        phone: phone,
+        origem: origem,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
