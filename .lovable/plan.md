@@ -1,22 +1,27 @@
 
 
-# Plano: Incluir prazos de tarefas (demandas) nos "Próximos Prazos" do Dashboard
+# Plano: Unificar dados de leads no Painel B&Z
 
 ## Problema
-A seção "Próximos Prazos" no card "Processos e Prazos" do Dashboard só consulta a tabela `processos_prazos`. Tarefas criadas em `demandas_internas` com `data_limite` definida não aparecem ali.
+O Dashboard principal (`useDashboardCompleto`) busca leads apenas da tabela `contact_submissions` (orgânicos). Os leads do CSV (anúncios) são ignorados nos KPIs "Leads no Mês" e no gráfico "Evolução de Leads". O marketing dashboard já faz a unificação corretamente via `useMarketingCsvAnalytics`.
 
 ## Alterações
 
 ### 1. `src/hooks/useDashboardCompleto.ts`
-- Adicionar query paralela para buscar `demandas_internas` com `data_limite` nos próximos 14 dias e status `pendente` ou `em_andamento`
-- Selecionar campos: `id, titulo, data_limite, prioridade, processo_id, lead_id`
-- Mesclar os resultados de `processos_prazos` e `demandas_internas` em um único array `proximosPrazos`, ordenado por data
-- Diferenciar a origem com um campo `origem: "prazo" | "tarefa"` no tipo `PrazoProximo`
+- Importar `useLeadsCsv` ou consumir o CSV diretamente via fetch+PapaParse dentro da queryFn
+- Na contagem "Leads no Mês" (query 9): somar leads orgânicos do banco + leads CSV do mês atual
+- Na "Evolução de Leads" (loop de 6 meses): para cada mês, contar leads CSV daquele mês e somar ao count orgânico
+- Na taxa de conversão: manter apenas orgânicos (conversão só acontece no banco)
 
-### 2. `src/hooks/useDashboardCompleto.ts` (tipo `PrazoProximo`)
-- Adicionar campo opcional `origem?: "prazo" | "tarefa"` ao interface `PrazoProximo`
+### 2. `src/pages/Dashboard.tsx`
+- Sem alterações necessárias (já consome os dados do hook)
 
-### 3. `src/components/dashboard/VisaoOperacional.tsx`
-- Exibir um indicador visual para diferenciar prazos processuais de tarefas (ex: badge "Tarefa" vs "Prazo" na linha do item)
-- Manter o mesmo layout, apenas adicionar contexto de origem
+### Detalhes técnicos
+
+Como `useDashboardCompleto` usa `useQuery` com `queryFn` async, não pode chamar hooks internamente. A solução é:
+- Fazer fetch do CSV dentro da `queryFn` usando `Papa.parse` com download (mesmo padrão do `useLeadsCsv`)
+- Parsear as datas do CSV e agrupar por mês
+- Somar aos counts do banco para `totalLeadsMes` e `leadsEvolution`
+
+O CSV já está cacheado pelo React Query em `["leads-csv"]`, mas como estamos dentro de outra queryFn, faremos o fetch direto (leve, pois o CSV é pequeno).
 
