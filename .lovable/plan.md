@@ -1,40 +1,31 @@
 
 
-# Adicionar cards de resumo na aba "Leads" (renomear para "Leads Orgânicos")
+# Adicionar etapa "Perdido" no Kanban Anúncios + Unificar visual dos Kanbans
 
-## O que sera feito
+## Alterações
 
-1. **Renomear** a aba "Leads" para **"Leads Orgânicos"**
-2. **Criar** um componente `LeadsOrganicSummary` com a mesma estrutura visual do `LeadsCsvSummary`, mas com KPIs calculados a partir dos dados da tabela `contact_submissions`
-3. **Inserir** os cards acima da tabela/kanban na aba de Leads Orgânicos
+### 1. Kanban Leads Anúncios (`src/pages/Leads.tsx` - KanbanView)
+- Adicionar coluna **PERDIDO** (border-t-red-500) após CONVERTIDO
+- Atualizar `statusMap` e grid para 5 colunas (`lg:grid-cols-5`)
+- Permitir drag-and-drop para/de "Perdido"
 
-## Dados disponíveis (contact_submissions)
+### 2. Kanban Leads Orgânicos (`src/components/leads/LeadsKanban.tsx`)
+- Substituir o visual atual (simples com Badge) pelo mesmo layout do Kanban de Anúncios: cards com `border-t-4` colorido, header com contagem, fundo `bg-muted/30`
+- Separar "Fechado" e "Perdido" em colunas distintas (6 colunas: Novo, Contato Inicial, Em Análise, Proposta, Fechado, Perdido)
+- Remover merge de "perdido" → "fechado" no agrupamento
+- Atualizar grid para `lg:grid-cols-6`
 
-| Metrica | Valor atual |
-|---------|-------------|
-| Total | 212 |
-| Novos | 25 |
-| Contato Inicial | 1 |
-| Em Análise | 1 |
-| Fechados | 185 |
-| Perdidos | 0 |
+### Cores das colunas (Orgânicos)
+| Coluna | Cor |
+|--------|-----|
+| Novo | blue-500 |
+| Contato Inicial | cyan-500 |
+| Em Análise | purple-500 |
+| Proposta Enviada | yellow-500 |
+| Fechado | emerald-500 |
+| Perdido | red-500 |
 
-## Cards propostos (5, mesmo layout do LeadsCsvSummary)
-
-| Card | Dado | Icone |
-|------|------|-------|
-| Total de Leads | total de leads retornados | Users |
-| Leads do Dia | criados hoje | CalendarDays |
-| Novos | estagio = "novo" | PlusCircle |
-| Fechados | estagio = "fechado" | CheckCircle2 |
-| Em Andamento | contato_inicial + em_analise + proposta_enviada | AlertCircle |
-
-## Arquivos
-
-- **Novo**: `src/components/leads/LeadsOrganicSummary.tsx` -- componente de cards, recebe array de leads e calcula os KPIs client-side (sem query extra)
-- **Editado**: `src/pages/Leads.tsx` -- renomear tab trigger de "Leads" para "Leads Orgânicos", importar e renderizar `LeadsOrganicSummary` no topo da `ManualLeadsTab`
-
-## Detalhes tecnicos
-
-O componente recebe `leads: Lead[] | undefined` e `loading: boolean`. Os KPIs sao calculados via `useMemo` sobre o array de leads ja carregado pelo `useLeads`, sem necessidade de queries adicionais. Isso mantém o mesmo pattern do `LeadsCsvSummary` que recebe dados ja processados.
+### Arquivos alterados
+- `src/pages/Leads.tsx` — KanbanView: +1 coluna PERDIDO, grid 5 cols
+- `src/components/leads/LeadsKanban.tsx` — Novo visual com border-t colorido, 6 colunas separadas, sem merge perdido/fechado
 
