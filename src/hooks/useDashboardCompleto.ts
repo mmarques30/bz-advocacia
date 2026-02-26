@@ -18,6 +18,7 @@ export interface PrazoProximo {
   data_prazo: string;
   dias_restantes: number;
   prioridade: string;
+  origem: "prazo" | "tarefa";
 }
 
 export interface PipelineEstagio {
@@ -100,6 +101,7 @@ export function useDashboardCompleto() {
       const [
         processosResult,
         prazosResult,
+        tarefasPrazosResult,
         leadsResult,
         leadsRecentesResult,
         processosAtrasadosResult,
@@ -121,6 +123,17 @@ export function useDashboardCompleto() {
           .gte("data_prazo", hojeISO)
           .lte("data_prazo", em14DiasISO)
           .order("data_prazo", { ascending: true })
+          .limit(8),
+
+        // 2b. Tarefas com data_limite nos próximos 14 dias
+        supabase
+          .from("demandas_internas")
+          .select("id, titulo, data_limite, prioridade, processo_id, lead_id")
+          .in("status", ["pendente", "em_andamento"])
+          .not("data_limite", "is", null)
+          .gte("data_limite", hojeISO)
+          .lte("data_limite", em14DiasISO)
+          .order("data_limite", { ascending: true })
           .limit(8),
 
         // 3. Leads por estágio (pipeline) - excluir importados
@@ -242,7 +255,7 @@ export function useDashboardCompleto() {
         arquivados: processosData.filter((p) => p.status === "arquivado").length,
       };
 
-      const proximosPrazos: PrazoProximo[] = (prazosResult.data || []).map((p) => {
+      const prazosProcessuais: PrazoProximo[] = (prazosResult.data || []).map((p) => {
         const diasRestantes = Math.ceil(
           (new Date(p.data_prazo).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
         );
@@ -255,8 +268,30 @@ export function useDashboardCompleto() {
           data_prazo: p.data_prazo,
           dias_restantes: diasRestantes,
           prioridade: p.prioridade || "media",
+          origem: "prazo" as const,
         };
       });
+
+      const prazosTarefas: PrazoProximo[] = (tarefasPrazosResult.data || []).map((t) => {
+        const diasRestantes = Math.ceil(
+          (new Date(t.data_limite).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        return {
+          id: t.id,
+          processo_id: t.processo_id || "",
+          numero_processo: t.processo_id ? (processosMap[t.processo_id] || null) : null,
+          tipo_prazo: "Tarefa",
+          descricao: t.titulo,
+          data_prazo: t.data_limite,
+          dias_restantes: diasRestantes,
+          prioridade: t.prioridade || "media",
+          origem: "tarefa" as const,
+        };
+      });
+
+      const proximosPrazos: PrazoProximo[] = [...prazosProcessuais, ...prazosTarefas]
+        .sort((a, b) => a.dias_restantes - b.dias_restantes)
+        .slice(0, 10);
 
       // Pipeline
       const estagioLabels: Record<string, string> = {
