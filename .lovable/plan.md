@@ -1,40 +1,29 @@
 
-Objetivo: corrigir o bloqueio na emissão de contrato quando o estado civil já foi preenchido.
 
-Implementação
+# Plano: Modelos editáveis de contratos e propostas na aba Modelos
 
-1) Corrigir origem do campo de estado civil no formulário de contrato
-- Arquivo: `src/components/documentos/GerarContratoForm.tsx`
-- Ajustar `dadosCliente.estado_civil` para usar prioridade:
-  - `clienteSelecionado.estado_civil`
-  - fallback: `clienteSelecionado.situacao_atual`
-- Isso elimina o falso “campo faltante” quando o dado está salvo na coluna correta.
+## Problema atual
+- `ModelosContrato.tsx` só busca modelos personalizados do tipo `'contrato'` via `useModelosPersonalizados('contrato')`
+- Os modelos padrão de proposta (`MODELOS_PROPOSTA`) não aparecem na aba Modelos
+- Não há como criar/editar modelos de proposta nessa aba
 
-2) Validar com dados atualizados do backend antes de emitir contrato
-- Arquivo: `src/components/documentos/GerarContratoForm.tsx`
-- Em `handleGerarPDF`, buscar o cliente direto no backend (`contact_submissions`) antes de validar `camposFaltantes`.
-- Recalcular `dadosCliente` e `camposFaltantes` com esse snapshot atualizado.
-- Só abrir `ComplementarDadosDialog` se ainda houver faltantes após essa leitura atual.
-- Gerar `conteudo_final` usando os dados atualizados (não só o estado React em memória).
+## Alterações
 
-3) Evitar loop após “Salvar e Continuar”
-- Arquivo: `src/components/documentos/ComplementarDadosDialog.tsx`
-- No submit de `estado_civil`, salvar em:
-  - `estado_civil` (campo principal)
-  - `situacao_atual` (compatibilidade com dados legados, enquanto existir uso histórico)
-- Garantir `await` completo do update antes de chamar `onComplete`.
+### 1. `src/components/documentos/ModelosContrato.tsx`
+- Buscar também `useModelosPersonalizados('proposta')` e combinar ambos os resultados
+- Incluir `MODELOS_PROPOSTA` ao lado de `MODELOS_CONTRATO` nos modelos padrão
+- Adicionar filtro de tipo (Contrato / Proposta) nos chips de categoria
+- No `UploadModeloDialog`, permitir selecionar se é contrato ou proposta
+- No `handleUsarComoBase`, mapear corretamente propostas padrão (tipo `'proposta'`)
 
-4) Ajustar callback de continuação
-- Arquivo: `src/components/documentos/GerarContratoForm.tsx`
-- No `onComplete` do dialog, chamar emissão com revalidação forçada (passo 2), para não depender de refetch assíncrono de query cache.
+### 2. `src/components/documentos/UploadModeloDialog.tsx`
+- Adicionar campo de seleção de tipo do modelo (contrato vs proposta) para que o usuário possa criar modelos de proposta com IA
 
-5) Critérios de aceite
-- Ao preencher estado civil no dialog e clicar “Salvar e Continuar”, o contrato deve avançar sem reabrir o modal.
-- Se estado civil já estiver salvo previamente no lead, o dialog não deve abrir.
-- Emissão deve funcionar tanto para registros antigos (`situacao_atual`) quanto novos (`estado_civil`).
+### 3. `src/lib/propostaTemplates.ts`
+- Adicionar campo `template` aos modelos de proposta padrão com o texto completo do modelo, similar ao que já existe em `contratoTemplates.ts`, para que possam ser visualizados e usados como base
 
-Detalhes técnicos
-- Causa raiz identificada:
-  - mismatch de campos: validação usa `situacao_atual`, salvamento do dialog usa `estado_civil`.
-  - corrida de estado: emissão é reexecutada com dados React possivelmente desatualizados logo após salvar.
-- Evidência no banco: existem registros com `estado_civil` preenchido e `situacao_atual` vazio, confirmando o desalinhamento.
+### Detalhes técnicos
+- `useModelosPersonalizados` já aceita `'proposta'` como parâmetro, sem necessidade de alteração no hook
+- `EditModeloDialog` já funciona para ambos os tipos (usa a mesma estrutura `ModeloPersonalizado`)
+- `TIPOS_CONTRATO` já inclui `{ value: 'proposta', label: 'Proposta' }`, então os filtros de categoria já contemplam propostas
+
