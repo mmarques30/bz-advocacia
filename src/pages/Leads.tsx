@@ -1,13 +1,23 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, LayoutGrid, List } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Filter, Search, LayoutGrid, List, Table2 } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ORIGEM_LABELS, LeadOrigem } from "@/types/leads";
+import { supabase } from "@/integrations/supabase/client";
 
 // Manual leads (contact_submissions)
 import { useLeads } from "@/hooks/useLeads";
-import { LeadsHeader } from "@/components/leads/LeadsHeader";
 import { LeadsTable } from "@/components/leads/LeadsTable";
 import { LeadsKanban } from "@/components/leads/LeadsKanban";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
@@ -110,6 +120,19 @@ function ManualLeadsTab() {
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+  const [nomes, setNomes] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchNomes = async () => {
+      const { data } = await supabase
+        .from('contact_submissions')
+        .select('nome_completo')
+        .neq('estagio', 'fechado')
+        .order('nome_completo');
+      if (data) setNomes([...new Set(data.map(d => d.nome_completo))]);
+    };
+    fetchNomes();
+  }, []);
 
   const activeFilters = useMemo(() => {
     let count = 0;
@@ -140,57 +163,64 @@ function ManualLeadsTab() {
   return (
     <div className="space-y-4 mt-4">
       <LeadsOrganicSummary leads={filteredLeads} loading={isLoading} />
-      <LeadsHeader
-        view={view}
-        onViewChange={setView}
-        onOpenFilters={() => setFiltersOpen(true)}
-        onNewLead={() => setNewLeadOpen(true)}
-        onImport={() => {}}
-        search={search}
-        onSearchChange={setSearch}
-        activeFiltersCount={activeFilters}
-        nomeFilter={nomeFilter}
-        onNomeFilterChange={setNomeFilter}
-        origemFilter={origemFilter}
-        onOrigemFilterChange={setOrigemFilter}
-      />
+
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3 flex-1 min-w-[300px]">
+          <Button onClick={() => setNewLeadOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" />
+            Novo Lead
+          </Button>
+
+          <Select value={nomeFilter || "all"} onValueChange={(v) => setNomeFilter(v === "all" ? null : v)}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Todos os nomes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os nomes</SelectItem>
+              {nomes.map((nome) => (
+                <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={origemFilter || "all"} onValueChange={(v) => setOrigemFilter(v === "all" ? null : v)}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Todas as origens" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as origens</SelectItem>
+              {Object.entries(ORIGEM_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Button variant="outline" onClick={() => setFiltersOpen(true)} className="relative">
+            <Filter className="h-4 w-4" />
+            Filtros
+            {activeFilters > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 min-w-[20px] px-1">{activeFilters}</Badge>
+            )}
+          </Button>
+        </div>
+
+        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as 'table' | 'kanban')}>
+          <ToggleGroupItem value="table" aria-label="Tabela"><Table2 className="h-4 w-4" /></ToggleGroupItem>
+          <ToggleGroupItem value="kanban" aria-label="Kanban"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+        </ToggleGroup>
+      </div>
 
       {view === 'table' ? (
         <TooltipProvider>
-          <LeadsTable
-            leads={filteredLeads}
-            isLoading={isLoading}
-            onViewDetails={setSelectedLead}
-            onEdit={setEditLead}
-          />
+          <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} />
         </TooltipProvider>
       ) : (
-        <LeadsKanban
-          leads={filteredLeads}
-          isLoading={isLoading}
-          onViewDetails={setSelectedLead}
-        />
+        <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
       )}
 
-      <LeadsFilters
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
-
-      <NewLeadDialog
-        open={newLeadOpen || editLead !== null}
-        onClose={() => { setNewLeadOpen(false); setEditLead(null); }}
-        lead={editLead}
-      />
-
-      <LeadDetailsDialog
-        open={selectedLead !== null}
-        onClose={() => setSelectedLead(null)}
-        lead={selectedLead}
-        onEdit={(lead) => { setSelectedLead(null); setEditLead(lead); }}
-      />
+      <LeadsFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} filters={filters} onFiltersChange={setFilters} />
+      <NewLeadDialog open={newLeadOpen || editLead !== null} onClose={() => { setNewLeadOpen(false); setEditLead(null); }} lead={editLead} />
+      <LeadDetailsDialog open={selectedLead !== null} onClose={() => setSelectedLead(null)} lead={selectedLead} onEdit={(lead) => { setSelectedLead(null); setEditLead(lead); }} />
     </div>
   );
 }
@@ -200,6 +230,8 @@ function CsvLeadsTab() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
   const [search, setSearch] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [nomeFilter, setNomeFilter] = useState<string | null>(null);
+  const [origemFilter, setOrigemFilter] = useState<string | null>(null);
 
   const { data: csvData, isLoading: csvLoading } = useLeadsCsv();
   const { updateObservacoes } = useLeadsGeral();
@@ -207,11 +239,31 @@ function CsvLeadsTab() {
   const selectedCsv = csvData?.leads?.find(l => l.id === selectedLeadId);
   const selectedLead: LeadGeral | null = selectedCsv ? csvToLeadGeral(selectedCsv) : null;
 
-  const filteredLeads = csvData?.leads?.filter(l => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return l.nome.toLowerCase().includes(q) || l.telefone.includes(q);
-  });
+  const uniqueNomes = useMemo(() => {
+    if (!csvData?.leads) return [];
+    return [...new Set(csvData.leads.map(l => l.nome).filter(Boolean))].sort();
+  }, [csvData?.leads]);
+
+  const PLATAFORMA_LABELS: Record<string, string> = {
+    fb: "Facebook",
+    ig: "Instagram",
+    organic: "Orgânico",
+  };
+
+  const uniqueOrigens = useMemo(() => {
+    if (!csvData?.leads) return [];
+    return [...new Set(csvData.leads.map(l => l.plataforma))].sort();
+  }, [csvData?.leads]);
+
+  const filteredLeads = useMemo(() => {
+    return csvData?.leads?.filter(l => {
+      if (nomeFilter && l.nome !== nomeFilter) return false;
+      if (origemFilter && l.plataforma !== origemFilter) return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return l.nome.toLowerCase().includes(q) || l.telefone.includes(q);
+    });
+  }, [csvData?.leads, search, nomeFilter, origemFilter]);
 
   const handleSaveObservacoes = (id: string, obs: string) => {
     updateObservacoes.mutate({ id, observacoes: obs });
@@ -221,7 +273,7 @@ function CsvLeadsTab() {
     <div className="space-y-4 mt-4">
       <LeadsCsvSummary summary={csvData?.summary} loading={csvLoading} />
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -231,21 +283,36 @@ function CsvLeadsTab() {
             className="pl-9"
           />
         </div>
+
+        <Select value={nomeFilter || "all"} onValueChange={(v) => setNomeFilter(v === "all" ? null : v)}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Todos os nomes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os nomes</SelectItem>
+            {uniqueNomes.map((nome) => (
+              <SelectItem key={nome} value={nome}>{nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={origemFilter || "all"} onValueChange={(v) => setOrigemFilter(v === "all" ? null : v)}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Todas as origens" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as origens</SelectItem>
+            {uniqueOrigens.map((key) => (
+              <SelectItem key={key} value={key}>{PLATAFORMA_LABELS[key] || key}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <div className="flex border rounded-md">
-          <Button
-            variant={view === 'table' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setView('table')}
-            className="gap-1"
-          >
+          <Button variant={view === 'table' ? 'default' : 'ghost'} size="sm" onClick={() => setView('table')} className="gap-1">
             <List className="h-4 w-4" /> Tabela
           </Button>
-          <Button
-            variant={view === 'kanban' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => setView('kanban')}
-            className="gap-1"
-          >
+          <Button variant={view === 'kanban' ? 'default' : 'ghost'} size="sm" onClick={() => setView('kanban')} className="gap-1">
             <LayoutGrid className="h-4 w-4" /> Kanban
           </Button>
         </div>
@@ -253,30 +320,16 @@ function CsvLeadsTab() {
 
       {view === 'table' ? (
         <TooltipProvider>
-          <LeadsCsvTable
-            leads={filteredLeads}
-            isLoading={csvLoading}
-            onViewDetails={(id) => setSelectedLeadId(id)}
-          />
+          <LeadsCsvTable leads={filteredLeads} isLoading={csvLoading} onViewDetails={(id) => setSelectedLeadId(id)} />
         </TooltipProvider>
       ) : (
-        <KanbanView
-          leads={(filteredLeads || []).map(csvToLeadGeral)}
-          onViewDetails={(id) => setSelectedLeadId(id)}
-        />
+        <KanbanView leads={(filteredLeads || []).map(csvToLeadGeral)} onViewDetails={(id) => setSelectedLeadId(id)} />
       )}
 
-      <LeadGeralDetailsDialog
-        open={selectedLeadId !== null}
-        onClose={() => setSelectedLeadId(null)}
-        lead={selectedLead}
-        onSaveObservacoes={handleSaveObservacoes}
-      />
+      <LeadGeralDetailsDialog open={selectedLeadId !== null} onClose={() => setSelectedLeadId(null)} lead={selectedLead} onSaveObservacoes={handleSaveObservacoes} />
     </div>
   );
 }
-
-// ===================== Kanban DnD Components for CSV =====================
 function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -307,19 +360,25 @@ function DraggableLeadCard({
     cursor: "grab",
   };
 
+  const diasDesdeContato = lead.created_time
+    ? Math.max(0, Math.floor((Date.now() - new Date(lead.created_time).getTime()) / (1000 * 60 * 60 * 24)))
+    : null;
+
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
       <div
-        className="bg-background border rounded-md p-3 hover:shadow-sm transition-shadow"
+        className="bg-background border rounded-md p-3 hover:shadow-sm transition-shadow space-y-1"
         onClick={() => onViewDetails(lead.id)}
       >
         <p className="font-medium text-sm truncate">{lead.full_name || "Sem nome"}</p>
-        <p className="text-xs text-muted-foreground truncate">
-          {lead.phone_number?.replace("p:", "")}
-        </p>
         {lead.tipo_servico && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground truncate">
             {lead.tipo_servico.replace(/_/g, " ")}
+          </p>
+        )}
+        {diasDesdeContato !== null && (
+          <p className="text-xs text-muted-foreground">
+            há {diasDesdeContato} {diasDesdeContato === 1 ? 'dia' : 'dias'}
           </p>
         )}
       </div>
