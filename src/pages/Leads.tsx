@@ -72,8 +72,8 @@ function csvToLeadGeral(csv: CsvLead): LeadGeral {
     tipo_servico: csv.tipoServico !== "-" ? csv.tipoServico : null,
     contato_whatsapp: csv.whatsappStatus || null,
     is_organic: csv.plataforma === "organic",
-    ad_id: null, ad_name: null, adset_id: null, adset_name: null,
-    bem_inventariar: null, campaign_id: null, form_id: null, form_name: null,
+    ad_id: null, ad_name: csv.adName !== "-" ? csv.adName : null, adset_id: null, adset_name: csv.adsetName !== "-" ? csv.adsetName : null,
+    bem_inventariar: null, campaign_id: null, form_id: null, form_name: csv.formName !== "-" ? csv.formName : null,
     is_converted: null, is_qualified: null, is_quality: null,
     observacoes: null, preferencia_contato: null, updated_at: null,
   };

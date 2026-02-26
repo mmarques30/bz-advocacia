@@ -75,6 +75,8 @@ export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
             <TableHead>Nome</TableHead>
             <TableHead>Origem</TableHead>
             <TableHead>Tipo</TableHead>
+            <TableHead>Anúncio</TableHead>
+            <TableHead>Campanha</TableHead>
             <TableHead>Estágio</TableHead>
             <TableHead>Situação</TableHead>
             <TableHead>Data</TableHead>
@@ -95,6 +97,12 @@ export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
                 </div>
               </TableCell>
               <TableCell className="text-sm">{lead.tipoServico}</TableCell>
+              <TableCell className="text-sm">
+                <span className="truncate max-w-[150px] block" title={lead.adName}>{lead.adName}</span>
+              </TableCell>
+              <TableCell className="text-sm">
+                <span className="truncate max-w-[150px] block" title={lead.campaignName}>{lead.campaignName}</span>
+              </TableCell>
               <TableCell>
                 <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
                   {lead.estagio}
