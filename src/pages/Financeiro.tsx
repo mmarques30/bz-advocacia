@@ -151,11 +151,11 @@ export default function Financeiro() {
                   <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <Button variant="outline" onClick={() => setImportFaturamentoOpen(true)}>
+                  <Button variant="outline" size="sm" onClick={() => setImportFaturamentoOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Importar
                   </Button>
-                  <Button onClick={() => setNewEntradaOpen(true)}>
+                  <Button size="sm" onClick={() => setNewEntradaOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Nova Entrada
                   </Button>
@@ -196,11 +196,11 @@ export default function Financeiro() {
                   <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <Button variant="outline" onClick={() => setImportDespesasOpen(true)}>
+                  <Button variant="outline" size="sm" onClick={() => setImportDespesasOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Importar
                   </Button>
-                  <Button onClick={() => setNewDespesaOpen(true)}>
+                  <Button size="sm" onClick={() => setNewDespesaOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
                     Nova Despesa
                   </Button>

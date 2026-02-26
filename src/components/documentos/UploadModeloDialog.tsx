@@ -276,7 +276,7 @@ export const UploadModeloDialog = ({ open, onOpenChange }: UploadModeloDialogPro
                 onClick={handleAnalyze}
                 disabled={!fileContent || !nome || state === 'analyzing'}
                 className="w-full"
-                size="lg"
+                size="default"
               >
                 {state === 'analyzing' ? (
                   <>

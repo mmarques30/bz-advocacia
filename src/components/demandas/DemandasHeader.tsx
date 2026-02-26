@@ -14,7 +14,7 @@ export const DemandasHeader = ({ onNewDemanda }: DemandasHeaderProps) => {
           Acompanhe a evolução e melhorias do sistema
         </p>
       </div>
-      <Button onClick={onNewDemanda}>
+      <Button size="sm" onClick={onNewDemanda}>
         <Plus className="mr-2 h-4 w-4" />
         Nova Demanda
       </Button>
