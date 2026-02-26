@@ -34,13 +34,13 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
     );
   }
 
-  const campanhas = data?.campanhas || [];
-  const totalLeads = campanhas.reduce((acc, c) => acc + c.totalLeads, 0);
-  const totalConvertidos = campanhas.reduce((acc, c) => acc + c.leadsConvertidos, 0);
-  const melhorCampanha = campanhas.length > 0 ? campanhas[0] : null;
+  const anuncios = data?.anuncios || [];
+  const totalLeads = anuncios.reduce((acc, c) => acc + c.totalLeads, 0);
+  const totalConvertidos = anuncios.reduce((acc, c) => acc + c.leadsConvertidos, 0);
+  const melhorAnuncio = anuncios.length > 0 ? anuncios[0] : null;
 
-  const exportData = campanhas.map(c => ({
-    Campanha: c.campanha,
+  const exportData = anuncios.map(c => ({
+    Anúncio: c.anuncio,
     "Total Leads": c.totalLeads,
     "Leads Contatados": c.leadsContatados,
     "Leads Convertidos": c.leadsConvertidos,
@@ -49,11 +49,11 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
   }));
 
   const handleExportPDF = () => {
-    exportToPDF(exportData, "Relatório Performance por Campanha");
+    exportToPDF(exportData, "Relatório Performance por Anúncio");
   };
 
   const handleExportCSV = () => {
-    exportToCSV(exportData, "relatorio-performance-campanha");
+    exportToCSV(exportData, "relatorio-performance-anuncio");
   };
 
   return (
@@ -65,7 +65,7 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
               <BarChart3 className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle className="text-2xl">Performance por Campanha</CardTitle>
+              <CardTitle className="text-2xl">Performance por Anúncio</CardTitle>
               <CardDescription>
                 {format(dataInicio, "dd 'de' MMMM", { locale: ptBR })} até {format(dataFim, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
               </CardDescription>
@@ -88,8 +88,8 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Total de Campanhas</CardDescription>
-              <CardTitle className="text-2xl">{campanhas.length}</CardTitle>
+              <CardDescription>Total de Anúncios</CardDescription>
+              <CardTitle className="text-2xl">{anuncios.length}</CardTitle>
             </CardHeader>
           </Card>
           <Card>
@@ -100,10 +100,10 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
           </Card>
           <Card>
             <CardHeader className="pb-3">
-              <CardDescription>Melhor Campanha</CardDescription>
-              <CardTitle className="text-xl truncate">{melhorCampanha?.campanha || "-"}</CardTitle>
+              <CardDescription>Melhor Anúncio</CardDescription>
+              <CardTitle className="text-xl truncate">{melhorAnuncio?.anuncio || "-"}</CardTitle>
               <div className="text-sm text-muted-foreground">
-                {melhorCampanha?.totalLeads} leads ({melhorCampanha?.taxaConversao.toFixed(1)}% conversão)
+                {melhorAnuncio?.totalLeads} leads ({melhorAnuncio?.taxaConversao.toFixed(1)}% conversão)
               </div>
             </CardHeader>
           </Card>
@@ -112,11 +112,11 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
         {/* Gráfico */}
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={campanhas.slice(0, 10)} layout="vertical">
+            <BarChart data={anuncios.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
               <YAxis 
-                dataKey="campanha" 
+                dataKey="anuncio" 
                 type="category" 
                 width={150} 
                 stroke="hsl(var(--muted-foreground))"
@@ -130,7 +130,7 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
                 }}
               />
               <Bar dataKey="totalLeads" name="Total Leads">
-                {campanhas.slice(0, 10).map((_, index) => (
+                {anuncios.slice(0, 10).map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Bar>
@@ -143,7 +143,7 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Campanha</TableHead>
+                <TableHead>Anúncio</TableHead>
                 <TableHead className="text-right">Leads</TableHead>
                 <TableHead className="text-right">Contatados</TableHead>
                 <TableHead className="text-right">Convertidos</TableHead>
@@ -152,26 +152,26 @@ export function RelatorioPerformanceCampanha({ dataInicio, dataFim }: RelatorioP
               </TableRow>
             </TableHeader>
             <TableBody>
-              {campanhas.map((campanha, index) => (
+              {anuncios.map((anuncio, index) => (
                 <TableRow key={index}>
-                  <TableCell className="font-medium">{campanha.campanha}</TableCell>
-                  <TableCell className="text-right">{campanha.totalLeads}</TableCell>
-                  <TableCell className="text-right">{campanha.leadsContatados}</TableCell>
-                  <TableCell className="text-right">{campanha.leadsConvertidos}</TableCell>
+                  <TableCell className="font-medium">{anuncio.anuncio}</TableCell>
+                  <TableCell className="text-right">{anuncio.totalLeads}</TableCell>
+                  <TableCell className="text-right">{anuncio.leadsContatados}</TableCell>
+                  <TableCell className="text-right">{anuncio.leadsConvertidos}</TableCell>
                   <TableCell className="text-right">
-                    <span className={campanha.taxaConversao > 10 ? "text-green-600" : "text-muted-foreground"}>
-                      {campanha.taxaConversao.toFixed(1)}%
+                    <span className={anuncio.taxaConversao > 10 ? "text-green-600" : "text-muted-foreground"}>
+                      {anuncio.taxaConversao.toFixed(1)}%
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    {campanha.valorMedioPropostas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    {anuncio.valorMedioPropostas.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                   </TableCell>
                 </TableRow>
               ))}
-              {campanhas.length === 0 && (
+              {anuncios.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                    Nenhuma campanha encontrada no período
+                    Nenhum anúncio encontrado no período
                   </TableCell>
                 </TableRow>
               )}
