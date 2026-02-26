@@ -1,35 +1,37 @@
 
 
-# Plano: Número sequencial para contratos + exibição nos documentos do cliente
+# Plano: Corrigir carrossel KPIs + Unificar dados orgânicos e anúncios no Marketing
 
-## Situação atual
-- Propostas já têm `numero_proposta` sequencial via trigger, mas contratos não têm número de identificação
-- A coluna "Nº" no histórico só mostra número para propostas (contratos mostram "-")
-- `LeadContratosTab` já existe e lista contratos/propostas do cliente, mas não mostra número de identificação
-- O `LeadDetailsDialog` de clientes já inclui a aba "Contratos" com `LeadContratosTab`
+## Problema 1: Cards KPI extrapolando a página
+O componente `MarketingDashboardKPIs` usa Embla Carousel com `flex-[0_0_220px]` fixo, mas sem `overflow-hidden` correto no container pai, fazendo os cards ultrapassarem os limites da página.
 
-## Alterações
+**Correção em `MarketingDashboardKPIs.tsx`:**
+- Trocar layout para grid responsivo em vez de carrossel horizontal (mais consistente com o resto do sistema)
+- Grid de 2 colunas em mobile, 3 em tablet, 4 em desktop — sem overflow
 
-### 1. Migração — adicionar `numero_contrato` sequencial
-Adicionar coluna `numero_contrato` (integer) à tabela `contratos_gerados`. Criar sequence `contratos_numero_seq` e modificar o trigger existente `set_numero_proposta` para também atribuir número a contratos (quando `tipo_contrato != 'proposta'`).
+## Problema 2: Unificar leads orgânicos + anúncios
 
-```sql
-ALTER TABLE contratos_gerados ADD COLUMN numero_contrato integer;
-CREATE SEQUENCE contratos_numero_seq START 1;
+Atualmente `useMarketingCsvAnalytics` só consome dados do CSV (anúncios). Os leads orgânicos estão na tabela `contact_submissions` e não aparecem no dashboard de marketing.
 
--- Atualizar a função para também gerar numero_contrato
-CREATE OR REPLACE FUNCTION public.set_numero_proposta() ...
-  -- Se proposta: atribui numero_proposta
-  -- Se contrato: atribui numero_contrato
-```
+**Correção em `useMarketingCsvAnalytics.ts`:**
+- Importar `supabase` e buscar leads de `contact_submissions` em paralelo
+- Mapear leads orgânicos para o mesmo formato de métricas (plataforma = "organic", status derivado do `estagio`)
+- Combinar os dois conjuntos antes de calcular KPIs, funil, distribuição por canal e conversões diárias
+- Aplicar o mesmo filtro de período aos orgânicos
 
-### 2. `ContratosHistorico.tsx`
-- Atualizar a coluna "Nº" para mostrar `#P{numero_proposta}` para propostas e `#C{numero_contrato}` para contratos, nunca mais "-"
+**Mapeamento de estágio orgânico → status unificado:**
+| `estagio` (contact_submissions) | Status unificado |
+|---|---|
+| `novo` | Novo |
+| `contato_inicial` | Enviado |
+| `em_analise`, `proposta_enviada` | Qualificado |
+| `fechado` | Convertido |
+| `perdido` | Perdido |
 
-### 3. `LeadContratosTab.tsx`
-- Adicionar coluna "Nº" mostrando o número de identificação (proposta ou contrato)
-- Separar visualmente propostas de contratos com headers de seção
+## Arquivos alterados
 
-### 4. Atualizar types (`Contrato` interface)
-- Adicionar `numero_contrato?: number` à interface `Contrato` em `src/types/contratos.ts`
+| Arquivo | Alteração |
+|---|---|
+| `MarketingDashboardKPIs.tsx` | Substituir Embla por grid responsivo |
+| `useMarketingCsvAnalytics.ts` | Buscar e unificar contact_submissions + CSV |
 
