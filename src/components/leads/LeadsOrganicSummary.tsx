@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Users, CalendarDays, CheckCircle2, PlusCircle, AlertCircle } from "lucide-react";
+import { Users, CalendarDays, XCircle, PlusCircle, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Lead } from "@/types/leads";
@@ -11,13 +11,13 @@ interface Props {
 
 export function LeadsOrganicSummary({ leads, loading }: Props) {
   const summary = useMemo(() => {
-    if (!leads) return { total: 0, hoje: 0, novos: 0, fechados: 0, emAndamento: 0 };
+    if (!leads) return { total: 0, hoje: 0, novos: 0, perdidos: 0, emAndamento: 0 };
     const today = new Date().toISOString().slice(0, 10);
     return {
       total: leads.length,
       hoje: leads.filter(l => l.created_at?.slice(0, 10) === today).length,
       novos: leads.filter(l => (l.estagio || "").toLowerCase() === "novo").length,
-      fechados: leads.filter(l => (l.estagio || "").toLowerCase() === "fechado").length,
+      perdidos: leads.filter(l => (l.estagio || "").toLowerCase() === "perdido").length,
       emAndamento: leads.filter(l => {
         const e = (l.estagio || "").toLowerCase();
         return e === "contato_inicial" || e === "em_analise" || e === "proposta_enviada";
@@ -29,7 +29,7 @@ export function LeadsOrganicSummary({ leads, loading }: Props) {
     { key: "total" as const, label: "Total de Leads", icon: Users, color: "text-primary" },
     { key: "hoje" as const, label: "Leads do Dia", icon: CalendarDays, color: "text-blue-600" },
     { key: "novos" as const, label: "Novos", icon: PlusCircle, color: "text-cyan-600" },
-    { key: "fechados" as const, label: "Fechados", icon: CheckCircle2, color: "text-green-600" },
+    { key: "perdidos" as const, label: "Perdidos", icon: XCircle, color: "text-red-600" },
     { key: "emAndamento" as const, label: "Em Andamento", icon: AlertCircle, color: "text-yellow-600" },
   ];
 

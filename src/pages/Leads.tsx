@@ -37,7 +37,7 @@ import {
 
 const defaultFilters: FiltersType = {
   search: "",
-  status: [],
+  status: ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada', 'perdido'],
   origem: [],
   tipoProcesso: [],
   dateRange: { start: null, end: null },
