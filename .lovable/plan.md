@@ -1,52 +1,40 @@
 
 
-# Corrigir leads manuais desaparecidos e reorganizar abas
+# Adicionar cards de resumo na aba "Leads" (renomear para "Leads Orgânicos")
 
-## Diagnostico
+## O que sera feito
 
-Os 20 leads que a Juliana cadastrou hoje estao salvos no banco (tabela `contact_submissions`) -- confirmei 24 registros de 25/02/2026. O problema e que a pagina `/dashboard/leads` atualmente **so mostra dados do CSV do Google Sheets** (`useLeadsCsv`). Ela nao consulta `contact_submissions` em nenhum momento. Os leads manuais estao la, mas a interface ignora eles.
+1. **Renomear** a aba "Leads" para **"Leads Orgânicos"**
+2. **Criar** um componente `LeadsOrganicSummary` com a mesma estrutura visual do `LeadsCsvSummary`, mas com KPIs calculados a partir dos dados da tabela `contact_submissions`
+3. **Inserir** os cards acima da tabela/kanban na aba de Leads Orgânicos
 
-## Solucao
+## Dados disponíveis (contact_submissions)
 
-Reorganizar a pagina de Leads com **duas abas**:
+| Metrica | Valor atual |
+|---------|-------------|
+| Total | 212 |
+| Novos | 25 |
+| Contato Inicial | 1 |
+| Em Análise | 1 |
+| Fechados | 185 |
+| Perdidos | 0 |
 
-### Aba 1: "Leads" (leads manuais - `contact_submissions`)
-- Reutiliza os componentes ja existentes: `LeadsTable`, `LeadsHeader`, `LeadsKanban`, `NewLeadDialog`, `LeadsFilters`
-- Consome o hook `useLeads` que le da tabela `contact_submissions`
-- Inclui botao "Novo Lead", importacao, filtros por origem, estagio, prioridade
-- Mostra os 20+ leads da Juliana imediatamente
+## Cards propostos (5, mesmo layout do LeadsCsvSummary)
 
-### Aba 2: "Leads Anuncios" (leads do Google Sheets/CSV)
-- Conteudo atual da pagina: `LeadsCsvTable`, `LeadsCsvSummary`, KanbanView com DnD
-- Consome `useLeadsCsv` como ja faz hoje
-- Mantem drag-and-drop com `leads_status_overrides`
+| Card | Dado | Icone |
+|------|------|-------|
+| Total de Leads | total de leads retornados | Users |
+| Leads do Dia | criados hoje | CalendarDays |
+| Novos | estagio = "novo" | PlusCircle |
+| Fechados | estagio = "fechado" | CheckCircle2 |
+| Em Andamento | contato_inicial + em_analise + proposta_enviada | AlertCircle |
 
-## Arquivos alterados
+## Arquivos
 
-### `src/pages/Leads.tsx`
-- Adicionar `Tabs` / `TabsList` / `TabsTrigger` / `TabsContent` do Radix
-- **Tab "Leads"**: Renderizar `LeadsHeader` + `LeadsTable` / `LeadsKanban` + `NewLeadDialog` + `LeadDetailsDialog` (componentes que ja existem e consomem `contact_submissions`)
-- **Tab "Leads Anuncios"**: Mover o conteudo atual (CSV table + kanban DnD) para dentro desta aba
-- Importar `useLeads`, `LeadsTable`, `LeadsHeader`, `NewLeadDialog`, `LeadDetailsDialog`, `LeadsFilters`
+- **Novo**: `src/components/leads/LeadsOrganicSummary.tsx` -- componente de cards, recebe array de leads e calcula os KPIs client-side (sem query extra)
+- **Editado**: `src/pages/Leads.tsx` -- renomear tab trigger de "Leads" para "Leads Orgânicos", importar e renderizar `LeadsOrganicSummary` no topo da `ManualLeadsTab`
 
-### `src/components/AppSidebar.tsx`
-- Nenhuma alteracao necessaria - a rota `/dashboard/leads` ja existe no menu
+## Detalhes tecnicos
 
-### Nenhuma alteracao no banco
-- Os dados ja estao la. Nao precisa de migration.
-
-## Fluxo apos a implementacao
-
-```text
-/dashboard/leads
-├── Tab "Leads" (default)
-│   ├── Header com botao Novo Lead + filtros de origem
-│   ├── Tabela com 24 leads de contact_submissions
-│   └── Toggle Kanban (estagios: novo, contato_inicial, em_analise, proposta_enviada, fechado, perdido)
-│
-└── Tab "Leads Anuncios"
-    ├── Summary cards (CSV)
-    ├── Tabela CSV com leads do Sheets
-    └── Toggle Kanban com drag-and-drop
-```
+O componente recebe `leads: Lead[] | undefined` e `loading: boolean`. Os KPIs sao calculados via `useMemo` sobre o array de leads ja carregado pelo `useLeads`, sem necessidade de queries adicionais. Isso mantém o mesmo pattern do `LeadsCsvSummary` que recebe dados ja processados.
 
