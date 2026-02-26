@@ -1,36 +1,21 @@
 
 
-# Plano: Editar e excluir modelos padrão de contratos e propostas
+# Plano: Sempre mostrar seção de propostas no formulário de contrato
 
-## Problema atual
-Os modelos padrão (hardcoded em `contratoTemplates.ts` e `propostaTemplates.ts`) só têm botões "Visualizar" e "Usar como Base". Não é possível editá-los nem excluí-los.
+## Problema
+A seção "Propostas do Cliente" no `GerarContratoForm.tsx` só aparece quando o cliente selecionado já tem propostas geradas (`propostasCliente.length > 0`). Quando não há propostas, a seção fica invisível e o usuário não percebe que essa funcionalidade existe.
 
 ## Solução
 
-### `ModelosContrato.tsx` — Adicionar botões Editar e Excluir nos cards padrão
+### `GerarContratoForm.tsx` — Sempre exibir a seção de propostas após selecionar cliente
+- Remover a condição `propostasCliente.length > 0` do render
+- Mostrar a seção sempre que um cliente estiver selecionado (`clienteId`)
+- Quando houver propostas: exibir o dropdown normalmente
+- Quando não houver propostas: exibir mensagem informativa "Nenhuma proposta gerada para este cliente"
+- Mover a seção para uma posição mais visível (logo após o seletor de cliente, antes do painel de dados)
 
-**Editar modelo padrão:**
-- Ao clicar "Editar", o sistema salva automaticamente o modelo padrão no banco como modelo personalizado (via `useDuplicarModelo`, sem sufixo "cópia")
-- Abre o `EditModeloDialog` com o modelo recém-criado
-- O modelo padrão original é ocultado (ID salvo em `localStorage`)
-
-**Excluir modelo padrão:**
-- Ao clicar "Excluir", mostra o `AlertDialog` de confirmação
-- Salva o ID do modelo padrão em `localStorage` como oculto
-- O modelo não aparece mais na listagem
-
-**Lógica de ocultação:**
-- `localStorage.getItem('hidden_default_models')` → array de IDs de modelos padrão ocultos
-- Filtrar `padraoFiltrados` para excluir IDs ocultos
-- Botão opcional "Restaurar modelos padrão" na interface
-
-### Novo hook auxiliar: `useSalvarModeloPadraoComoDB`
-- Mutation que salva modelo padrão no banco sem sufixo "(cópia)", retornando o modelo personalizado criado
-- Após sucesso, oculta o modelo padrão original
-
-## Arquivos alterados
-
+### Arquivos alterados
 | Arquivo | Alteração |
 |---|---|
-| `ModelosContrato.tsx` | Adicionar Edit/Delete nos cards padrão + lógica de ocultação via localStorage |
+| `GerarContratoForm.tsx` | Sempre mostrar seção de propostas ao selecionar cliente, com estado vazio quando não há propostas |
 
