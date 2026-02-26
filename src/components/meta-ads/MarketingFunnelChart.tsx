@@ -1,14 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FunnelStage } from "@/hooks/useMarketingCsvAnalytics";
-import { chartColors, chartTheme } from "@/lib/chartConfig";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const FUNNEL_COLORS = [
-  chartColors.primary,
-  chartColors.secondary,
-  chartColors.warning,
-  chartColors.success,
-  chartColors.dark,
+  "hsl(221, 83%, 53%)",   // blue
+  "hsl(262, 83%, 58%)",   // purple
+  "hsl(25, 95%, 53%)",    // orange
+  "hsl(142, 71%, 45%)",   // green
+  "hsl(346, 77%, 50%)",   // rose
 ];
 
 interface Props {
@@ -25,6 +23,8 @@ export function MarketingFunnelChart({ data }: Props) {
     );
   }
 
+  const maxCount = Math.max(...data.map(d => d.count), 1);
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -32,25 +32,37 @@ export function MarketingFunnelChart({ data }: Props) {
         <p className="text-sm text-muted-foreground">Jornada completa dos leads</p>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray={chartTheme.grid.strokeDasharray} stroke={chartTheme.grid.stroke} horizontal={false} />
-            <XAxis type="number" tick={{ fontSize: 12 }} />
-            <YAxis dataKey="stage" type="category" tick={{ fontSize: 12 }} width={100} />
-            <Tooltip
-              contentStyle={chartTheme.tooltip.contentStyle}
-              formatter={(value: number, _name: string, props: any) => [
-                `${value} (${props.payload.percentage}%)`,
-                "Leads",
-              ]}
-            />
-            <Bar dataKey="count" name="Leads" radius={[0, 4, 4, 0]}>
-              {data.map((_entry, index) => (
-                <Cell key={`cell-${index}`} fill={FUNNEL_COLORS[index % FUNNEL_COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <div className="flex flex-col gap-3">
+          {data.map((stage, index) => {
+            const widthPercent = Math.max((stage.count / maxCount) * 100, 12);
+            const color = FUNNEL_COLORS[index % FUNNEL_COLORS.length];
+
+            return (
+              <div key={stage.stage} className="flex items-center gap-3">
+                <div className="w-24 text-sm font-medium text-right text-muted-foreground truncate">
+                  {stage.stage}
+                </div>
+                <div className="flex-1 flex items-center">
+                  <div
+                    className="h-10 rounded-md flex items-center justify-center transition-all duration-500"
+                    style={{
+                      width: `${widthPercent}%`,
+                      backgroundColor: color,
+                      minWidth: "60px",
+                    }}
+                  >
+                    <span className="text-white text-sm font-semibold px-2 whitespace-nowrap">
+                      {stage.count}
+                    </span>
+                  </div>
+                  <span className="ml-2 text-xs text-muted-foreground whitespace-nowrap">
+                    {stage.percentage}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </CardContent>
     </Card>
   );

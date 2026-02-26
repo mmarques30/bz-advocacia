@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
 import { useMarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
+import { useServiceDistribution } from "@/hooks/useServiceDistribution";
 import { PeriodoFiltro } from "@/types/meta-ads";
 
 export default function MetaAds() {
@@ -16,6 +17,7 @@ export default function MetaAds() {
   const { kpis, isLoading: isLoadingMetrics } = useMetaMetrics(periodo);
   const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns();
   const csvAnalytics = useMarketingCsvAnalytics(periodo);
+  const mergedServices = useServiceDistribution(csvAnalytics.serviceDistribution);
 
   const investimentoTotal = kpis && kpis.gasto > 0
     ? `R$ ${kpis.gasto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
@@ -65,7 +67,7 @@ export default function MetaAds() {
           {/* Funnel + Service Distribution side by side */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <MarketingFunnelChart data={csvAnalytics.funnel} />
-            <MarketingServiceDistribution data={csvAnalytics.serviceDistribution} />
+            <MarketingServiceDistribution data={mergedServices} />
           </div>
         </TabsContent>
 
