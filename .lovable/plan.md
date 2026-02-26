@@ -1,33 +1,29 @@
 
 
-# Plano: Renomear "Performance por Campanha" para "Performance por Anúncio"
+# Plano: Corrigir "Performance por Anúncio" para usar dados do CSV
 
-## Contexto
-O relatório atual agrupa leads por `utm_campaign || canal_especifico` da tabela `contact_submissions`. O dado de anúncio (`ad_name`) vem dos leads CSV (Google Sheets) e já está disponível via `useLeadsCsv`. A alteração precisa mudar o agrupamento para `ad_name` em vez de `utm_campaign`, e renomear todos os textos.
+## Problema
+O relatório busca dados apenas da tabela `contact_submissions` (leads orgânicos), que não possui campo `ad_name`. Os dados reais de anúncios vêm do Google Sheets (CSV) via `useLeadsCsv`, onde cada lead tem `adName`, `campaignName`, `situacao`, etc.
 
 ## Alterações
 
-### 1. `src/types/relatorios-vendas.ts`
-- Renomear o tipo `"performance_campanha"` para `"performance_anuncio"`
+### 1. `src/components/relatorios-vendas/RelatorioPerformanceCampanha.tsx`
+- Importar `useLeadsCsv` em vez de (ou além de) `useRelatoriosVendasPeriodo`
+- Agrupar os leads CSV por `adName` para gerar a tabela de anúncios
+- Filtrar por período (`dataRaw` entre `dataInicio` e `dataFim`)
+- Calcular por anúncio: total leads, leads por situação (Enviado, Qualificado, Convertido), taxa de conversão
+- Manter o layout atual (KPIs, gráfico de barras, tabela)
+- Ajustar colunas da tabela: "Contatados" → "Enviados", "Convertidos" mantém (baseado em `situacao === 'Convertido'`)
 
-### 2. `src/hooks/useRelatoriosVendasPeriodo.ts`
-- Renomear `CampanhaData` para `AnuncioData` (campo `campanha` → `anuncio`)
-- Na função `calculateCampanhas` → `calculateAnuncios`: agrupar por `canal_especifico` (que já recebe o nome do anúncio nos leads convertidos) ou manter `utm_campaign` como fallback
-- Adicionar campo `ad_name` na interface `LeadData` para buscar esse dado quando disponível
+### 2. Sem alteração no hook `useRelatoriosVendasPeriodo`
+- Ele continua servindo os outros relatórios (funil, status, contato)
+- O relatório de anúncios passa a consumir diretamente o `useLeadsCsv`
 
-### 3. `src/components/relatorios-vendas/RelatorioPerformanceCampanha.tsx`
-- Renomear arquivo conceitualmente (ou manter e ajustar internamente)
-- Trocar todos os textos: "Performance por Campanha" → "Performance por Anúncio", "Melhor Campanha" → "Melhor Anúncio", "Total de Campanhas" → "Total de Anúncios", "Nenhuma campanha encontrada" → "Nenhum anúncio encontrado"
-- Ajustar dataKeys e labels no gráfico/tabela
-
-### 4. `src/pages/vendas/RelatoriosVendas.tsx`
-- Renomear card: título "Performance por Anúncio", descrição "Análise detalhada por anúncio"
-- Atualizar o tipo de `"performance_campanha"` para `"performance_anuncio"`
-
-### 5. `src/components/relatorios-vendas/RelatorioVendasSelector.tsx`
-- Renomear `SelectItem` de "Performance por Campanha" para "Performance por Anúncio"
-- Atualizar value de `"performance_campanha"` para `"performance_anuncio"`
-
-### Abordagem para dados
-Como `contact_submissions` não tem `ad_name`, mas possui `canal_especifico` e `utm_campaign`, o agrupamento usará `canal_especifico || utm_campaign || "Sem anúncio"` — que é o campo onde o nome do anúncio/canal já é armazenado para leads vindos de ads.
+### Lógica de agrupamento
+```text
+CSV leads filtrados por período
+  → agrupar por adName (excluindo "-" como "Sem anúncio")
+  → para cada grupo: totalLeads, enviados (situacao=Enviado), convertidos (situacao=Convertido)
+  → taxa conversão = convertidos / total * 100
+```
 
