@@ -222,6 +222,16 @@ function LeadsTab({
             </SelectContent>
           </Select>
 
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CPF, email ou telefone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
           <Button variant="outline" onClick={() => setFiltersOpen(true)} className="relative">
             <Filter className="h-4 w-4" />
             Filtros
