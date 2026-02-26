@@ -253,7 +253,6 @@ function ManualLeadsTab() {
 // ===================== TAB 2: CSV Leads (Google Sheets) =====================
 function CsvLeadsTab() {
   const [view, setView] = useState<'table' | 'kanban'>('table');
-  const [search, setSearch] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
@@ -287,9 +286,7 @@ function CsvLeadsTab() {
     const base = csvData?.leads?.filter(l => {
       if (nomeFilter && l.nome !== nomeFilter) return false;
       if (origemFilter && l.plataforma !== origemFilter) return false;
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      return l.nome.toLowerCase().includes(q) || l.telefone.includes(q);
+      return true;
     });
     // Apply overrides to estagio
     const withOverrides = base?.map(l => ({
@@ -306,7 +303,7 @@ function CsvLeadsTab() {
       }
     });
     return withOverrides;
-  }, [csvData?.leads, search, nomeFilter, origemFilter, overrides, sortOrder]);
+  }, [csvData?.leads, nomeFilter, origemFilter, overrides, sortOrder]);
 
   const handleSaveObservacoes = (id: string, obs: string) => {
     updateObservacoes.mutate({ id, observacoes: obs });
@@ -317,15 +314,6 @@ function CsvLeadsTab() {
       <LeadsCsvSummary summary={csvData?.summary} loading={csvLoading} />
 
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou telefone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
 
         <Select value={nomeFilter || "all"} onValueChange={(v) => setNomeFilter(v === "all" ? null : v)}>
           <SelectTrigger className="w-[200px]">
