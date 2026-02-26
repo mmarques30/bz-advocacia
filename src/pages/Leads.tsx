@@ -13,6 +13,7 @@ import { LeadsKanban } from "@/components/leads/LeadsKanban";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
+import { LeadsOrganicSummary } from "@/components/leads/LeadsOrganicSummary";
 import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
 
 // CSV leads (Google Sheets)
@@ -82,7 +83,7 @@ export default function Leads() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="leads">Leads</TabsTrigger>
+          <TabsTrigger value="leads">Leads Orgânicos</TabsTrigger>
           <TabsTrigger value="anuncios">Leads Anúncios</TabsTrigger>
         </TabsList>
 
@@ -138,6 +139,7 @@ function ManualLeadsTab() {
 
   return (
     <div className="space-y-4 mt-4">
+      <LeadsOrganicSummary leads={filteredLeads} loading={isLoading} />
       <LeadsHeader
         view={view}
         onViewChange={setView}
