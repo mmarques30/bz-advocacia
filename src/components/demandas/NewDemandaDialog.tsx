@@ -36,6 +36,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
       tipo: 'tarefa',
       prioridade: 'media',
       categoria: 'geral',
+      advogada_responsavel: 'juliana',
       processo_id: defaultProcessoId || '',
     }
   });
