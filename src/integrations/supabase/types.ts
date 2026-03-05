@@ -1465,6 +1465,33 @@ export type Database = {
         }
         Relationships: []
       }
+      melhorias_registro: {
+        Row: {
+          created_at: string
+          data_implementacao: string
+          descricao: string
+          id: string
+          tipo: Database["public"]["Enums"]["tipo_melhoria"]
+          titulo: string
+        }
+        Insert: {
+          created_at?: string
+          data_implementacao?: string
+          descricao: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["tipo_melhoria"]
+          titulo: string
+        }
+        Update: {
+          created_at?: string
+          data_implementacao?: string
+          descricao?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["tipo_melhoria"]
+          titulo?: string
+        }
+        Relationships: []
+      }
       meta_campanhas: {
         Row: {
           atualizado_em: string | null
@@ -3210,6 +3237,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "advogado" | "assistente" | "financeiro"
+      tipo_melhoria: "correcao" | "melhoria" | "nova_funcionalidade"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3338,6 +3366,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "advogado", "assistente", "financeiro"],
+      tipo_melhoria: ["correcao", "melhoria", "nova_funcionalidade"],
     },
   },
 } as const
