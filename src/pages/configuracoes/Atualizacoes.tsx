@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Textarea } from "@/components/ui/textarea";
 import { CalendarDays, CalendarRange, Calendar, Copy, Check, Loader2, ChevronDown, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -27,6 +28,7 @@ export default function Atualizacoes() {
   const [historico, setHistorico] = useState<Atualizacao[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [openItems, setOpenItems] = useState<string[]>([]);
+  const [descricaoManual, setDescricaoManual] = useState("");
 
   const fetchHistorico = async () => {
     setLoadingHistorico(true);
@@ -52,7 +54,7 @@ export default function Atualizacoes() {
 
     try {
       const { data, error } = await supabase.functions.invoke("analyze-updates", {
-        body: { periodo },
+        body: { periodo, descricao_manual: descricaoManual || undefined },
       });
 
       if (error) throw error;
@@ -109,10 +111,22 @@ export default function Atualizacoes() {
                 Analisar Melhorias
               </CardTitle>
               <CardDescription>
-                Selecione o período e a IA irá analisar todas as mudanças no sistema, gerando um texto pronto para enviar aos clientes.
+                Descreva as melhorias feitas e selecione o período. A IA irá gerar um texto profissional para enviar aos clientes.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Melhorias realizadas</label>
+                <Textarea
+                  placeholder="Descreva as melhorias, correções e novidades implementadas. Ex:&#10;- Corrigido envio de WhatsApp&#10;- Adicionada página de atualizações&#10;- Valores do contrato agora são pré-preenchidos"
+                  value={descricaoManual}
+                  onChange={(e) => setDescricaoManual(e.target.value)}
+                  rows={5}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  A IA também analisará os logs automáticos do sistema no período selecionado.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-3">
                 <Button
                   onClick={() => gerarAtualizacao("dia")}
