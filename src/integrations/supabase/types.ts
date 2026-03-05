@@ -140,6 +140,36 @@ export type Database = {
         }
         Relationships: []
       }
+      atualizacoes_sistema: {
+        Row: {
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          periodo: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          periodo: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          periodo?: string
+        }
+        Relationships: []
+      }
       categorias_externas: {
         Row: {
           created_at: string | null
