@@ -182,6 +182,8 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
                       <TableHead>Nº</TableHead>
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Valor</TableHead>
+                      <TableHead>Valor Pago</TableHead>
+                      <TableHead>Data Pgto</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
@@ -193,6 +195,16 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
                         <TableCell>{format(new Date(parcela.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                         <TableCell>
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}
+                        </TableCell>
+                        <TableCell>
+                          {parcela.status === "pago" && parcela.valor_pago != null
+                            ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor_pago)
+                            : "—"}
+                        </TableCell>
+                        <TableCell>
+                          {parcela.status === "pago" && parcela.data_pagamento
+                            ? format(new Date(parcela.data_pagamento), "dd/MM/yyyy")
+                            : "—"}
                         </TableCell>
                         <TableCell>
                           <Badge variant={getStatusParcelaVariant(parcela)}>{getStatusParcelaLabel(parcela)}</Badge>
@@ -212,14 +224,20 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
                                 </DropdownMenuItem>
                               )}
                               {parcela.status === "pago" && (
-                                <DropdownMenuItem onClick={() => setDesfazerParcelaId(parcela.id)}>
-                                  <Undo2 className="h-4 w-4 mr-2" />
-                                  Desfazer Pagamento
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem onClick={() => onRegistrarPagamento(parcela.id)}>
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Editar Pagamento
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setDesfazerParcelaId(parcela.id)}>
+                                    <Undo2 className="h-4 w-4 mr-2" />
+                                    Desfazer Pagamento
+                                  </DropdownMenuItem>
+                                </>
                               )}
                               <DropdownMenuItem onClick={() => setEditParcela({ id: parcela.id, valor: parcela.valor, numero_parcela: parcela.numero_parcela })}>
                                 <Pencil className="h-4 w-4 mr-2" />
-                                Editar Valor
+                                Editar Valor Esperado
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
