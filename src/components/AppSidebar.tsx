@@ -123,6 +123,7 @@ const menuItems: MenuItem[] = [
       { title: "Modelos Chat", url: "/dashboard/configuracoes/whatsapp-templates" },
       { title: "Automações", url: "/dashboard/configuracoes/automacoes" },
       { title: "Listas do Sistema", url: "/dashboard/configuracoes/listas" },
+      { title: "Atualizações", url: "/dashboard/configuracoes/atualizacoes" },
       { title: "Guia de Uso", url: "/dashboard/configuracoes/guia" },
     ]
   },

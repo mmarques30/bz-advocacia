@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Users, BookOpen, MessageSquare, Zap, List } from "lucide-react";
+import { User, Users, BookOpen, MessageSquare, Zap, List, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Configuracoes() {
@@ -38,6 +38,13 @@ export default function Configuracoes() {
       icon: List,
       href: "/dashboard/configuracoes/listas",
       color: "text-secondary-foreground",
+    },
+    {
+      title: "Atualizações",
+      description: "Gere relatórios de melhorias do sistema para enviar aos clientes",
+      icon: Sparkles,
+      href: "/dashboard/configuracoes/atualizacoes",
+      color: "text-primary",
     },
     {
       title: "Guia de Uso",
