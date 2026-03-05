@@ -1,0 +1,1 @@
+ALTER TABLE public.atualizacoes_sistema ADD COLUMN descricao_manual text;
