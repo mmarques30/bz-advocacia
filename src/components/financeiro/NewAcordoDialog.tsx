@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateAcordo } from "@/hooks/useFinanceiro";
 import { useLeads } from "@/hooks/useLeads";
+import { useClienteContratos } from "@/hooks/useClienteContratos";
 import { format, addMonths } from "date-fns";
 import { FORMA_PAGAMENTO_RECEBIDO_LABELS } from "@/types/financeiro";
 import type { FormaPagamento } from "@/types/financeiro";
@@ -28,6 +31,7 @@ interface NewAcordoDialogProps {
 export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const { data: leads } = useLeads({ search: "", status: [], origem: [], tipoProcesso: [], dateRange: { start: null, end: null }, diasParado: { min: 0, max: null }, responsavel: null, statusCliente: [] });
   const createAcordo = useCreateAcordo();
+  const { data: contratos } = useClienteContratos(clienteId);
 
   const [clienteId, setClienteId] = useState("");
   const [tipoServico, setTipoServico] = useState("");
