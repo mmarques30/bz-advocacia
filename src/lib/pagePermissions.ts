@@ -75,12 +75,9 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
     label: "Administrativo",
     description: "Configurações do sistema",
     children: [
-      { key: "administrativo.perfil", label: "Meu Perfil", parent: "administrativo" },
-      { key: "administrativo.usuarios", label: "Usuários", parent: "administrativo" },
-      { key: "administrativo.modelos_chat", label: "Modelos Chat", parent: "administrativo" },
-      { key: "administrativo.automacoes", label: "Automações", parent: "administrativo" },
-      { key: "administrativo.listas", label: "Listas do Sistema", parent: "administrativo" },
-      { key: "administrativo.guia", label: "Guia de Uso", parent: "administrativo" },
+      { key: "administrativo.cadastros", label: "Cadastros", parent: "administrativo" },
+      { key: "administrativo.modelos", label: "Modelos", parent: "administrativo" },
+      { key: "administrativo.controle", label: "Controle", parent: "administrativo" },
     ],
   },
 ];
@@ -103,12 +100,9 @@ export const ROUTE_TO_PERMISSION: Record<string, string> = {
   "/dashboard/financeiro": "financeiro.analises",
   "/dashboard/financeiro/pagamentos": "financeiro.pagamentos",
   "/dashboard/financeiro/relatorios": "relatorios.financeiro",
-  "/dashboard/configuracoes/perfil": "administrativo.perfil",
-  "/dashboard/configuracoes/usuarios": "administrativo.usuarios",
-  "/dashboard/configuracoes/whatsapp-templates": "administrativo.modelos_chat",
-  "/dashboard/configuracoes/automacoes": "administrativo.automacoes",
-  "/dashboard/configuracoes/listas": "administrativo.listas",
-  "/dashboard/configuracoes/guia": "administrativo.guia",
+  "/dashboard/configuracoes/cadastros": "administrativo.cadastros",
+  "/dashboard/configuracoes/modelos": "administrativo.modelos",
+  "/dashboard/configuracoes/controle": "administrativo.controle",
 };
 
 // Obter todas as chaves de permissão em formato flat

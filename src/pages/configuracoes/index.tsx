@@ -1,57 +1,29 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Users, BookOpen, MessageSquare, Zap, List, Sparkles } from "lucide-react";
+import { Users, MessageSquare, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Configuracoes() {
   const configSections = [
     {
-      title: "Meu Perfil",
-      description: "Gerencie suas informações pessoais e preferências",
-      icon: User,
-      href: "/dashboard/configuracoes/perfil",
-      color: "text-primary",
-    },
-    {
-      title: "Usuários",
-      description: "Gerencie usuários e permissões do escritório",
+      title: "Cadastros",
+      description: "Gerencie seu perfil e os usuários do escritório",
       icon: Users,
-      href: "/dashboard/configuracoes/usuarios",
-      color: "text-secondary-foreground",
+      href: "/dashboard/configuracoes/cadastros",
+      color: "text-primary",
     },
     {
-      title: "Modelos Chat",
-      description: "Configure modelos de mensagens do WhatsApp",
+      title: "Modelos",
+      description: "Configure modelos de mensagens e listas do sistema",
       icon: MessageSquare,
-      href: "/dashboard/configuracoes/whatsapp-templates",
-      color: "text-primary",
-    },
-    {
-      title: "Automações",
-      description: "Gerencie integrações e APIs conectadas ao sistema",
-      icon: Zap,
-      href: "/dashboard/configuracoes/automacoes",
-      color: "text-primary",
-    },
-    {
-      title: "Listas do Sistema",
-      description: "Gerencie origens de leads, tipos de processo e categorias",
-      icon: List,
-      href: "/dashboard/configuracoes/listas",
+      href: "/dashboard/configuracoes/modelos",
       color: "text-secondary-foreground",
     },
     {
-      title: "Atualizações",
-      description: "Gere relatórios de melhorias do sistema para enviar aos clientes",
-      icon: Sparkles,
-      href: "/dashboard/configuracoes/atualizacoes",
+      title: "Controle",
+      description: "Guia de uso, atualizações e automações",
+      icon: Settings,
+      href: "/dashboard/configuracoes/controle",
       color: "text-primary",
-    },
-    {
-      title: "Guia de Uso",
-      description: "Aprenda a utilizar todas as funcionalidades do sistema",
-      icon: BookOpen,
-      href: "/dashboard/configuracoes/guia",
-      color: "text-muted-foreground",
     },
   ];
 
