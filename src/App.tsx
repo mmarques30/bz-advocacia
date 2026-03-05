@@ -21,12 +21,9 @@ import Documentos from "./pages/Documentos";
 
 // Configurações
 import Configuracoes from "./pages/configuracoes/index";
-import Perfil from "./pages/configuracoes/Perfil";
-import Usuarios from "./pages/configuracoes/Usuarios";
-import GuiaDeUso from "./pages/configuracoes/GuiaDeUso";
-import Automacoes from "./pages/configuracoes/Automacoes";
-import ListasSuspensas from "./pages/configuracoes/ListasSuspensas";
-import Atualizacoes from "./pages/configuracoes/Atualizacoes";
+import Cadastros from "./pages/configuracoes/Cadastros";
+import Modelos from "./pages/configuracoes/Modelos";
+import Controle from "./pages/configuracoes/Controle";
 
 // Processos
 import ProcessosCalendario from "./pages/processos/Calendario";
