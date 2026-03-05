@@ -156,6 +156,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
           setObservacoes("");
           setComEntrada(false);
           setValorEntrada("");
+          setPrefilledFromContrato(false);
         },
       }
     );
