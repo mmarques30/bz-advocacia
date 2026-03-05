@@ -5,7 +5,7 @@ import { UserPlus, Search } from "lucide-react";
 import { useUsuarios, useToggleUserStatus, useCheckIsAdmin } from "@/hooks/useUsuarios";
 import { UsuariosTable } from "@/components/usuarios/UsuariosTable";
 import { CreateUserDialog } from "@/components/usuarios/CreateUserDialog";
-import { InvitesPendentesCard } from "@/components/usuarios/InvitesPendentesCard";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -84,7 +84,7 @@ export default function Usuarios() {
         onToggleStatus={(userId, ativo) => toggleStatus({ userId, ativo })}
       />
 
-      <InvitesPendentesCard />
+      
 
       <CreateUserDialog
         open={inviteDialogOpen}
