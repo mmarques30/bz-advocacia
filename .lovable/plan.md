@@ -1,24 +1,12 @@
 
 
-## Diagnóstico
+## Plano: Remover card "Convites Pendentes" da página Usuários
 
-O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
+O card `InvitesPendentesCard` será removido da página `Usuarios.tsx`, já que não haverá fluxo de convites — os usuários são cadastrados diretamente.
 
-## Correção
+### Mudança
 
-**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
-
-Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
-
-```typescript
-defaultValues: {
-  tipo: 'tarefa',
-  prioridade: 'media',
-  categoria: 'geral',
-  advogada_responsavel: 'juliana',  // <-- adicionar
-  processo_id: defaultProcessoId || '',
-}
-```
-
-Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
+**`src/pages/configuracoes/Usuarios.tsx`**:
+- Remover o import de `InvitesPendentesCard`
+- Remover o componente `<InvitesPendentesCard />` do JSX
 
