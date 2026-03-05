@@ -31,9 +31,10 @@ interface NewAcordoDialogProps {
 export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const { data: leads } = useLeads({ search: "", status: [], origem: [], tipoProcesso: [], dateRange: { start: null, end: null }, diasParado: { min: 0, max: null }, responsavel: null, statusCliente: [] });
   const createAcordo = useCreateAcordo();
-  const { data: contratos } = useClienteContratos(clienteId);
 
   const [clienteId, setClienteId] = useState("");
+  const { data: contratos } = useClienteContratos(clienteId);
+  const [prefilledFromContrato, setPrefilledFromContrato] = useState(false);
   const [tipoServico, setTipoServico] = useState("");
   const [valorTotal, setValorTotal] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>("a_vista");
@@ -42,6 +43,36 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const [formaPagamentoRecebido, setFormaPagamentoRecebido] = useState("pix");
   const [observacoes, setObservacoes] = useState("");
   const [conta, setConta] = useState("escritorio");
+  const [comEntrada, setComEntrada] = useState(false);
+  const [valorEntrada, setValorEntrada] = useState("");
+
+  // Pre-fill from generated contract when client is selected
+  useEffect(() => {
+    if (clienteId && contratos && contratos.length > 0) {
+      const contrato = contratos[0]; // most recent
+      const valores = contrato.valores;
+
+      setTipoServico(contrato.tipo_contrato || "");
+
+      if (valores?.valor_total) {
+        setValorTotal(valores.valor_total.toString());
+      }
+
+      if (valores?.valor_entrada && valores.valor_entrada > 0) {
+        setComEntrada(true);
+        setValorEntrada(valores.valor_entrada.toString());
+      }
+
+      if (valores?.num_parcelas && valores.num_parcelas > 1) {
+        setFormaPagamento("parcelado");
+        setNumeroParcelas(valores.num_parcelas.toString());
+      }
+
+      setPrefilledFromContrato(true);
+    } else if (!clienteId) {
+      setPrefilledFromContrato(false);
+    }
+  }, [clienteId, contratos]);
   const [comEntrada, setComEntrada] = useState(false);
   const [valorEntrada, setValorEntrada] = useState("");
 
