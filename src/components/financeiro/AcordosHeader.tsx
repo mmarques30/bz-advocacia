@@ -34,7 +34,7 @@ export function AcordosHeader({ onNewAcordo, filters, onFiltersChange }: Acordos
         </Button>
         <Button size="sm" onClick={onNewAcordo}>
           <Plus className="h-4 w-4 mr-2" />
-          Novo Acordo
+          Novo Contrato
         </Button>
       </div>
     </div>
