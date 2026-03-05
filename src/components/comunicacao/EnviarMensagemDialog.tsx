@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEnviarWhatsApp } from "@/hooks/useWhatsAppEnvio";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
+import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { TemplateCategoria } from "@/types/whatsapp";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AlertTriangle } from "lucide-react";
 
 interface EnviarMensagemDialogProps {
   open: boolean;
@@ -29,8 +32,12 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
   const [categoriaSelected, setCategoriaSelected] = useState<TemplateCategoria | "">("");
   const [templateId, setTemplateId] = useState<string>("");
   const enviarWhatsApp = useEnviarWhatsApp();
+  const { data: whatsAppConfig } = useWhatsAppConfig();
+  const { configuracoes } = useConfiguracoesEscritorio();
 
   const { data: allTemplates = [] } = useWhatsAppTemplates({ ativo: true });
+  
+  const hasActiveConfig = !!whatsAppConfig?.active;
 
   // Filter templates by selected category
   const templatesFiltered = useMemo(() => {
@@ -59,6 +66,8 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
       "{{vara}}": processo.vara || "N/A",
       "{{comarca}}": processo.comarca || "N/A",
       "{{data_inicio}}": processo.data_inicio ? new Date(processo.data_inicio).toLocaleDateString("pt-BR") : "N/A",
+      "{{nome_escritorio}}": configuracoes?.nome_escritorio || "BZ Advocacia",
+      "{{nome_advogado}}": processo.responsavel?.nome_completo || "Advogado(a) Responsável",
     };
 
     Object.entries(variables).forEach(([key, value]) => {
@@ -66,7 +75,7 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
     });
 
     return message;
-  }, [selectedTemplate, processo]);
+  }, [selectedTemplate, processo, configuracoes]);
 
   const handleCategoriaChange = (value: string) => {
     setCategoriaSelected(value as TemplateCategoria);
@@ -171,6 +180,14 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
             </div>
           )}
 
+          {/* WhatsApp config warning */}
+          {!hasActiveConfig && (
+            <div className="flex items-center gap-2 text-sm text-destructive p-3 bg-destructive/10 rounded-lg">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>Integração WhatsApp não configurada. Configure em Configurações → Automações antes de enviar.</span>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={handleClose}>
@@ -178,7 +195,7 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
             </Button>
             <Button 
               onClick={handleEnviar} 
-              disabled={!selectedTemplate || !processedMessage || enviarWhatsApp.isPending}
+              disabled={!selectedTemplate || !processedMessage || enviarWhatsApp.isPending || !hasActiveConfig}
             >
               {enviarWhatsApp.isPending ? "Enviando..." : "Enviar Agora"}
             </Button>

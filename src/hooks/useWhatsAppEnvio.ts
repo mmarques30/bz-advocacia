@@ -12,7 +12,11 @@ export function useEnviarWhatsApp() {
         body: params,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract meaningful error message from response
+        const errorMsg = (data as any)?.erro || error.message || 'Erro ao enviar mensagem';
+        throw new Error(errorMsg);
+      }
       return data;
     },
     onSuccess: () => {
