@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Textarea } from "@/components/ui/textarea";
-import { CalendarDays, CalendarRange, Calendar, Copy, Check, Loader2, ChevronDown, Sparkles } from "lucide-react";
+import { CalendarDays, CalendarRange, Calendar, Copy, Check, Loader2, ChevronDown, Sparkles, Bug, Zap, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -20,6 +19,14 @@ interface Atualizacao {
   created_at: string;
 }
 
+interface Melhoria {
+  id: string;
+  titulo: string;
+  descricao: string;
+  tipo: string;
+  data_implementacao: string;
+}
+
 export default function Atualizacoes() {
   const [loading, setLoading] = useState(false);
   const [loadingPeriodo, setLoadingPeriodo] = useState<string | null>(null);
@@ -28,7 +35,8 @@ export default function Atualizacoes() {
   const [historico, setHistorico] = useState<Atualizacao[]>([]);
   const [loadingHistorico, setLoadingHistorico] = useState(true);
   const [openItems, setOpenItems] = useState<string[]>([]);
-  const [descricaoManual, setDescricaoManual] = useState("");
+  const [melhorias, setMelhorias] = useState<Melhoria[]>([]);
+  const [loadingMelhorias, setLoadingMelhorias] = useState(true);
 
   const fetchHistorico = async () => {
     setLoadingHistorico(true);
@@ -43,8 +51,23 @@ export default function Atualizacoes() {
     setLoadingHistorico(false);
   };
 
+  const fetchMelhorias = async () => {
+    setLoadingMelhorias(true);
+    const { data, error } = await supabase
+      .from("melhorias_registro")
+      .select("*")
+      .order("data_implementacao", { ascending: false })
+      .limit(50);
+    
+    if (!error && data) {
+      setMelhorias(data as Melhoria[]);
+    }
+    setLoadingMelhorias(false);
+  };
+
   useEffect(() => {
     fetchHistorico();
+    fetchMelhorias();
   }, []);
 
   const gerarAtualizacao = async (periodo: string) => {
@@ -54,7 +77,7 @@ export default function Atualizacoes() {
 
     try {
       const { data, error } = await supabase.functions.invoke("analyze-updates", {
-        body: { periodo, descricao_manual: descricaoManual || undefined },
+        body: { periodo },
       });
 
       if (error) throw error;
@@ -84,6 +107,18 @@ export default function Atualizacoes() {
     return "Mês";
   };
 
+  const tipoIcon = (tipo: string) => {
+    if (tipo === "correcao") return <Bug className="h-4 w-4 text-orange-500" />;
+    if (tipo === "nova_funcionalidade") return <Star className="h-4 w-4 text-green-500" />;
+    return <Zap className="h-4 w-4 text-blue-500" />;
+  };
+
+  const tipoLabel = (tipo: string) => {
+    if (tipo === "correcao") return "Correção";
+    if (tipo === "nova_funcionalidade") return "Nova funcionalidade";
+    return "Melhoria";
+  };
+
   const toggleItem = (id: string) => {
     setOpenItems(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
@@ -100,6 +135,7 @@ export default function Atualizacoes() {
       <Tabs defaultValue="gerar">
         <TabsList>
           <TabsTrigger value="gerar">Gerar Atualização</TabsTrigger>
+          <TabsTrigger value="melhorias">Melhorias Registradas ({melhorias.length})</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
 
@@ -111,47 +147,20 @@ export default function Atualizacoes() {
                 Analisar Melhorias
               </CardTitle>
               <CardDescription>
-                Descreva as melhorias feitas e selecione o período. A IA irá gerar um texto profissional para enviar aos clientes.
+                Selecione o período para gerar um texto profissional com as melhorias registradas automaticamente.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Melhorias realizadas</label>
-                <Textarea
-                  placeholder="Descreva as melhorias, correções e novidades implementadas. Ex:&#10;- Corrigido envio de WhatsApp&#10;- Adicionada página de atualizações&#10;- Valores do contrato agora são pré-preenchidos"
-                  value={descricaoManual}
-                  onChange={(e) => setDescricaoManual(e.target.value)}
-                  rows={5}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  A IA também analisará os logs automáticos do sistema no período selecionado.
-                </p>
-              </div>
+            <CardContent>
               <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => gerarAtualizacao("dia")}
-                  disabled={loading}
-                  variant="outline"
-                  className="gap-2"
-                >
+                <Button onClick={() => gerarAtualizacao("dia")} disabled={loading} variant="outline" className="gap-2">
                   {loadingPeriodo === "dia" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
                   Hoje
                 </Button>
-                <Button
-                  onClick={() => gerarAtualizacao("semana")}
-                  disabled={loading}
-                  variant="outline"
-                  className="gap-2"
-                >
+                <Button onClick={() => gerarAtualizacao("semana")} disabled={loading} variant="outline" className="gap-2">
                   {loadingPeriodo === "semana" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarRange className="h-4 w-4" />}
                   Última Semana
                 </Button>
-                <Button
-                  onClick={() => gerarAtualizacao("mes")}
-                  disabled={loading}
-                  variant="outline"
-                  className="gap-2"
-                >
+                <Button onClick={() => gerarAtualizacao("mes")} disabled={loading} variant="outline" className="gap-2">
                   {loadingPeriodo === "mes" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
                   Último Mês
                 </Button>
@@ -176,6 +185,42 @@ export default function Atualizacoes() {
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="melhorias" className="space-y-4">
+          {loadingMelhorias ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : melhorias.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                Nenhuma melhoria registrada ainda.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {melhorias.map((m) => (
+                <Card key={m.id}>
+                  <CardContent className="py-4">
+                    <div className="flex items-start gap-3">
+                      {tipoIcon(m.tipo)}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm">{m.titulo}</span>
+                          <Badge variant="outline" className="text-xs">{tipoLabel(m.tipo)}</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(m.data_implementacao), "dd/MM/yyyy", { locale: ptBR })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{m.descricao}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
         </TabsContent>
 

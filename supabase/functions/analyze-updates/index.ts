@@ -28,7 +28,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    const { periodo, descricao_manual } = await req.json();
+    const { periodo } = await req.json();
 
     // Calculate date range
     const now = new Date();
@@ -46,61 +46,42 @@ serve(async (req) => {
       dataInicio.setMonth(now.getMonth() - 1);
     }
 
-    const dataInicioStr = dataInicio.toISOString();
-    const dataFimStr = dataFim.toISOString();
+    const dataInicioDate = dataInicio.toISOString().split("T")[0];
+    const dataFimDate = dataFim.toISOString().split("T")[0];
 
-    // Query logs_sistema using service role for full access
+    // Query melhorias_registro
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: logs, error: logsError } = await supabaseAdmin
-      .from("logs_sistema")
-      .select("acao, entidade_tipo, descricao, created_at")
-      .gte("created_at", dataInicioStr)
-      .lte("created_at", dataFimStr)
-      .order("created_at", { ascending: false })
-      .limit(500);
+    const { data: melhorias, error: melhoriasError } = await supabaseAdmin
+      .from("melhorias_registro")
+      .select("titulo, descricao, tipo, data_implementacao")
+      .gte("data_implementacao", dataInicioDate)
+      .lte("data_implementacao", dataFimDate)
+      .order("data_implementacao", { ascending: false });
 
-    if (logsError) {
-      console.error("Error fetching logs:", logsError);
-      return new Response(JSON.stringify({ error: "Erro ao buscar logs do sistema" }), {
+    if (melhoriasError) {
+      console.error("Error fetching melhorias:", melhoriasError);
+      return new Response(JSON.stringify({ error: "Erro ao buscar melhorias" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Group logs by entity and action
-    const summary: Record<string, Record<string, number>> = {};
-    for (const log of logs || []) {
-      const entity = log.entidade_tipo || "outro";
-      const action = log.acao || "outro";
-      if (!summary[entity]) summary[entity] = {};
-      summary[entity][action] = (summary[entity][action] || 0) + 1;
-    }
-
     const periodoLabel = periodo === "dia" ? "hoje" : periodo === "semana" ? "última semana" : "último mês";
-    const summaryText = Object.entries(summary)
-      .map(([entity, actions]) => {
-        const actionsStr = Object.entries(actions)
-          .map(([action, count]) => `${action}: ${count}`)
-          .join(", ");
-        return `- ${entity}: ${actionsStr}`;
-      })
-      .join("\n");
 
-    if (!summaryText && !descricao_manual) {
-      const conteudo = `Não houve alterações registradas no sistema durante o período selecionado (${periodoLabel}). Dica: descreva manualmente as melhorias feitas no campo de texto.`;
-      
+    if (!melhorias || melhorias.length === 0) {
+      const conteudo = `Não houve melhorias registradas no período selecionado (${periodoLabel}).`;
+
       const { error: insertError } = await supabaseAdmin
         .from("atualizacoes_sistema")
         .insert({
           periodo,
-          data_inicio: dataInicio.toISOString().split("T")[0],
-          data_fim: dataFim.toISOString().split("T")[0],
+          data_inicio: dataInicioDate,
+          data_fim: dataFimDate,
           conteudo,
           created_by: userId,
-          descricao_manual: descricao_manual || null,
         });
 
       if (insertError) console.error("Insert error:", insertError);
@@ -110,23 +91,23 @@ serve(async (req) => {
       });
     }
 
+    // Build melhorias text for AI
+    const tipoLabel = (t: string) => {
+      if (t === "correcao") return "🔧 Correção";
+      if (t === "nova_funcionalidade") return "✨ Nova funcionalidade";
+      return "⬆️ Melhoria";
+    };
+
+    const melhoriasText = melhorias
+      .map((m) => `- [${tipoLabel(m.tipo)}] ${m.titulo}: ${m.descricao}`)
+      .join("\n");
+
     // Call Lovable AI
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY não configurada" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-    }
-
-    // Build user prompt with manual description + logs
-    let userPromptParts: string[] = [];
-    
-    if (descricao_manual) {
-      userPromptParts.push(`Melhorias implementadas pela equipe durante ${periodoLabel}:\n${descricao_manual}`);
-    }
-    
-    if (summaryText) {
-      userPromptParts.push(`Atividades automáticas registradas no sistema (use como complemento, traduza nomes técnicos):\n${summaryText}\n\nReferência de tradução de nomes técnicos:\n- contact_submissions = gestão de clientes/leads\n- processos = processos jurídicos\n- demandas_internas = tarefas internas\n- parcelas_financeiras = gestão financeira\n- acordos_financeiros = acordos/contratos financeiros\n- contratos_gerados = documentos e contratos\n- despesas = controle de despesas\n- logs_sistema = monitoramento do sistema`);
     }
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -141,15 +122,13 @@ serve(async (req) => {
           {
             role: "system",
             content: `Você é uma assistente de comunicação de um escritório de advocacia chamado B&Z Advocacia. 
-Sua função é transformar as informações recebidas em um texto profissional, acessível e amigável para ser enviado aos clientes do escritório via WhatsApp ou e-mail.
+Sua função é transformar as melhorias técnicas do sistema em um texto profissional, acessível e amigável para ser enviado aos clientes do escritório via WhatsApp ou e-mail.
 
 Regras:
-- PRIORIZE as melhorias descritas manualmente pela equipe — elas são o conteúdo principal
-- Use os logs automáticos apenas como complemento (se houver)
 - Escreva em português brasileiro formal mas acessível
 - Use linguagem positiva focada em melhorias e benefícios para o cliente
-- Não mencione termos técnicos como "logs", "banco de dados", "tabelas", "CRUD", "edge functions"
-- Traduza nomes técnicos de tabelas para linguagem acessível
+- Não mencione termos técnicos como "logs", "banco de dados", "tabelas", "CRUD", "edge functions", "bug", "default value"
+- Traduza correções técnicas em benefícios práticos para o cliente
 - Organize em tópicos com emojis discretos
 - Comece com uma saudação e termine com uma frase motivadora
 - Mantenha o texto conciso (máximo 300 palavras)
@@ -158,7 +137,7 @@ Regras:
           },
           {
             role: "user",
-            content: userPromptParts.join("\n\n")
+            content: `Melhorias implementadas no sistema durante ${periodoLabel} (${melhorias.length} itens):\n\n${melhoriasText}`
           }
         ],
       }),
@@ -190,11 +169,10 @@ Regras:
       .from("atualizacoes_sistema")
       .insert({
         periodo,
-        data_inicio: dataInicio.toISOString().split("T")[0],
-        data_fim: dataFim.toISOString().split("T")[0],
+        data_inicio: dataInicioDate,
+        data_fim: dataFimDate,
         conteudo,
         created_by: userId,
-        descricao_manual: descricao_manual || null,
       });
 
     if (insertError) console.error("Insert error:", insertError);
