@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateAcordo } from "@/hooks/useFinanceiro";
 import { useLeads } from "@/hooks/useLeads";
+import { useClienteContratos } from "@/hooks/useClienteContratos";
 import { format, addMonths } from "date-fns";
 import { FORMA_PAGAMENTO_RECEBIDO_LABELS } from "@/types/financeiro";
 import type { FormaPagamento } from "@/types/financeiro";
@@ -30,6 +33,8 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const createAcordo = useCreateAcordo();
 
   const [clienteId, setClienteId] = useState("");
+  const { data: contratos } = useClienteContratos(clienteId);
+  const [prefilledFromContrato, setPrefilledFromContrato] = useState(false);
   const [tipoServico, setTipoServico] = useState("");
   const [valorTotal, setValorTotal] = useState("");
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>("a_vista");
@@ -40,6 +45,36 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const [conta, setConta] = useState("escritorio");
   const [comEntrada, setComEntrada] = useState(false);
   const [valorEntrada, setValorEntrada] = useState("");
+
+  // Pre-fill from generated contract when client is selected
+  useEffect(() => {
+    if (clienteId && contratos && contratos.length > 0) {
+      const contrato = contratos[0]; // most recent
+      const valores = contrato.valores;
+
+      setTipoServico(contrato.tipo_contrato || "");
+
+      if (valores?.valor_total) {
+        setValorTotal(valores.valor_total.toString());
+      }
+
+      if (valores?.valor_entrada && valores.valor_entrada > 0) {
+        setComEntrada(true);
+        setValorEntrada(valores.valor_entrada.toString());
+      }
+
+      if (valores?.num_parcelas && valores.num_parcelas > 1) {
+        setFormaPagamento("parcelado");
+        setNumeroParcelas(valores.num_parcelas.toString());
+      }
+
+      setPrefilledFromContrato(true);
+    } else if (!clienteId) {
+      setPrefilledFromContrato(false);
+    }
+  }, [clienteId, contratos]);
+
+
 
   const [parcelasPreview, setParcelasPreview] = useState<any[]>([]);
 
@@ -121,6 +156,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
           setObservacoes("");
           setComEntrada(false);
           setValorEntrada("");
+          setPrefilledFromContrato(false);
         },
       }
     );
@@ -149,6 +185,15 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
               </SelectContent>
             </Select>
           </div>
+
+          {prefilledFromContrato && (
+            <Alert className="border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                Valores pré-preenchidos a partir do contrato gerado — você pode editá-los.
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="tipo_servico">Tipo de Serviço *</Label>
