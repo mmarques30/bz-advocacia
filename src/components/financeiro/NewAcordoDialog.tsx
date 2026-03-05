@@ -73,8 +73,8 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
       setPrefilledFromContrato(false);
     }
   }, [clienteId, contratos]);
-  const [comEntrada, setComEntrada] = useState(false);
-  const [valorEntrada, setValorEntrada] = useState("");
+
+
 
   const [parcelasPreview, setParcelasPreview] = useState<any[]>([]);
 
