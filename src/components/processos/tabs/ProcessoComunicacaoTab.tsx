@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWhatsAppHistoricoProcesso } from "@/hooks/useWhatsAppHistorico";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { Send, CheckCircle, Clock, XCircle, Copy, MessageCircle, Check, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +41,7 @@ const STATUS_LABELS: Record<string, string> = {
 export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunicacaoTabProps) {
   const { data: historico = [] } = useWhatsAppHistoricoProcesso(processoId);
   const { data: allTemplates = [] } = useWhatsAppTemplates({ ativo: true });
+  const { configuracoes } = useConfiguracoesEscritorio();
   const [enviarDialogOpen, setEnviarDialogOpen] = useState(false);
   const [categoriaSelected, setCategoriaSelected] = useState<TemplateCategoria | "">("");
   const [templateId, setTemplateId] = useState<string>("");
@@ -89,6 +91,8 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
       "{{instancia}}": processo.instancia || "N/A",
       "{{autor}}": processo.autor || "N/A",
       "{{reu}}": processo.reu || "N/A",
+      "{{nome_escritorio}}": configuracoes?.nome_escritorio || "BZ Advocacia",
+      "{{nome_advogado}}": processo.responsavel?.nome_completo || "Advogado(a) Responsável",
     };
 
     Object.entries(variables).forEach(([key, value]) => {
@@ -96,7 +100,7 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
     });
 
     return message;
-  }, [selectedTemplate, processo]);
+  }, [selectedTemplate, processo, configuracoes]);
 
   const handleCategoriaChange = (value: string) => {
     setCategoriaSelected(value as TemplateCategoria);
