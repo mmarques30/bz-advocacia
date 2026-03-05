@@ -185,6 +185,15 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
             </Select>
           </div>
 
+          {prefilledFromContrato && (
+            <Alert className="border-primary/30 bg-primary/5">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-sm">
+                Valores pré-preenchidos a partir do contrato gerado — você pode editá-los.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="tipo_servico">Tipo de Serviço *</Label>
             <Input
