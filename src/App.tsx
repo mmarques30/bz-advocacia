@@ -170,53 +170,37 @@ const App = () => (
         } 
       />
       <Route 
-        path="/dashboard/configuracoes/perfil" 
+        path="/dashboard/configuracoes/cadastros" 
         element={
           <ProtectedRoute>
-            <Perfil />
+            <Cadastros />
           </ProtectedRoute>
         } 
       />
       <Route 
-        path="/dashboard/configuracoes/usuarios" 
+        path="/dashboard/configuracoes/modelos" 
         element={
           <ProtectedRoute>
-            <Usuarios />
+            <Modelos />
           </ProtectedRoute>
         } 
       />
       <Route 
-        path="/dashboard/configuracoes/guia" 
+        path="/dashboard/configuracoes/controle" 
         element={
           <ProtectedRoute>
-            <GuiaDeUso />
+            <Controle />
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/dashboard/configuracoes/automacoes" 
-        element={
-          <ProtectedRoute>
-            <Automacoes />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/configuracoes/listas" 
-        element={
-          <ProtectedRoute>
-            <ListasSuspensas />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/configuracoes/atualizacoes" 
-        element={
-          <ProtectedRoute>
-            <Atualizacoes />
-          </ProtectedRoute>
-        } 
-      />
+      {/* Redirects for old routes */}
+      <Route path="/dashboard/configuracoes/perfil" element={<Navigate to="/dashboard/configuracoes/cadastros" replace />} />
+      <Route path="/dashboard/configuracoes/usuarios" element={<Navigate to="/dashboard/configuracoes/cadastros" replace />} />
+      <Route path="/dashboard/configuracoes/whatsapp-templates" element={<Navigate to="/dashboard/configuracoes/modelos" replace />} />
+      <Route path="/dashboard/configuracoes/listas" element={<Navigate to="/dashboard/configuracoes/modelos" replace />} />
+      <Route path="/dashboard/configuracoes/guia" element={<Navigate to="/dashboard/configuracoes/controle" replace />} />
+      <Route path="/dashboard/configuracoes/atualizacoes" element={<Navigate to="/dashboard/configuracoes/controle" replace />} />
+      <Route path="/dashboard/configuracoes/automacoes" element={<Navigate to="/dashboard/configuracoes/controle" replace />} />
       
       {/* Processos - Subrotas */}
       <Route 
