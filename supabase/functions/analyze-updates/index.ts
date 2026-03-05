@@ -28,7 +28,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub;
 
-    const { periodo } = await req.json();
+    const { periodo, descricao_manual } = await req.json();
 
     // Calculate date range
     const now = new Date();
@@ -89,8 +89,8 @@ serve(async (req) => {
       })
       .join("\n");
 
-    if (!summaryText) {
-      const conteudo = `Não houve alterações registradas no sistema durante o período selecionado (${periodoLabel}).`;
+    if (!summaryText && !descricao_manual) {
+      const conteudo = `Não houve alterações registradas no sistema durante o período selecionado (${periodoLabel}). Dica: descreva manualmente as melhorias feitas no campo de texto.`;
       
       const { error: insertError } = await supabaseAdmin
         .from("atualizacoes_sistema")
@@ -100,6 +100,7 @@ serve(async (req) => {
           data_fim: dataFim.toISOString().split("T")[0],
           conteudo,
           created_by: userId,
+          descricao_manual: descricao_manual || null,
         });
 
       if (insertError) console.error("Insert error:", insertError);
@@ -117,6 +118,17 @@ serve(async (req) => {
       });
     }
 
+    // Build user prompt with manual description + logs
+    let userPromptParts: string[] = [];
+    
+    if (descricao_manual) {
+      userPromptParts.push(`Melhorias implementadas pela equipe durante ${periodoLabel}:\n${descricao_manual}`);
+    }
+    
+    if (summaryText) {
+      userPromptParts.push(`Atividades automáticas registradas no sistema (use como complemento, traduza nomes técnicos):\n${summaryText}\n\nReferência de tradução de nomes técnicos:\n- contact_submissions = gestão de clientes/leads\n- processos = processos jurídicos\n- demandas_internas = tarefas internas\n- parcelas_financeiras = gestão financeira\n- acordos_financeiros = acordos/contratos financeiros\n- contratos_gerados = documentos e contratos\n- despesas = controle de despesas\n- logs_sistema = monitoramento do sistema`);
+    }
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -129,12 +141,15 @@ serve(async (req) => {
           {
             role: "system",
             content: `Você é uma assistente de comunicação de um escritório de advocacia chamado B&Z Advocacia. 
-Sua função é transformar logs técnicos de sistema em um texto profissional, acessível e amigável para ser enviado aos clientes do escritório via WhatsApp ou e-mail.
+Sua função é transformar as informações recebidas em um texto profissional, acessível e amigável para ser enviado aos clientes do escritório via WhatsApp ou e-mail.
 
 Regras:
+- PRIORIZE as melhorias descritas manualmente pela equipe — elas são o conteúdo principal
+- Use os logs automáticos apenas como complemento (se houver)
 - Escreva em português brasileiro formal mas acessível
 - Use linguagem positiva focada em melhorias e benefícios para o cliente
-- Não mencione termos técnicos como "logs", "banco de dados", "tabelas", "CRUD"
+- Não mencione termos técnicos como "logs", "banco de dados", "tabelas", "CRUD", "edge functions"
+- Traduza nomes técnicos de tabelas para linguagem acessível
 - Organize em tópicos com emojis discretos
 - Comece com uma saudação e termine com uma frase motivadora
 - Mantenha o texto conciso (máximo 300 palavras)
@@ -143,7 +158,7 @@ Regras:
           },
           {
             role: "user",
-            content: `Analise os seguintes registros de atividades do sistema durante ${periodoLabel} e gere um texto de atualização para os clientes:\n\nResumo de atividades:\n${summaryText}\n\nTotal de registros: ${logs?.length || 0}`
+            content: userPromptParts.join("\n\n")
           }
         ],
       }),
@@ -179,6 +194,7 @@ Regras:
         data_fim: dataFim.toISOString().split("T")[0],
         conteudo,
         created_by: userId,
+        descricao_manual: descricao_manual || null,
       });
 
     if (insertError) console.error("Insert error:", insertError);

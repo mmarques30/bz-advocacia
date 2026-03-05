@@ -147,6 +147,7 @@ export type Database = {
           created_by: string | null
           data_fim: string
           data_inicio: string
+          descricao_manual: string | null
           id: string
           periodo: string
         }
@@ -156,6 +157,7 @@ export type Database = {
           created_by?: string | null
           data_fim: string
           data_inicio: string
+          descricao_manual?: string | null
           id?: string
           periodo: string
         }
@@ -165,6 +167,7 @@ export type Database = {
           created_by?: string | null
           data_fim?: string
           data_inicio?: string
+          descricao_manual?: string | null
           id?: string
           periodo?: string
         }
