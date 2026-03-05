@@ -118,13 +118,9 @@ const menuItems: MenuItem[] = [
     label: "Administrativo",
     icon: Settings,
     submenu: [
-      { title: "Meu Perfil", url: "/dashboard/configuracoes/perfil" },
-      { title: "Usuários", url: "/dashboard/configuracoes/usuarios" },
-      { title: "Modelos Chat", url: "/dashboard/configuracoes/whatsapp-templates" },
-      { title: "Automações", url: "/dashboard/configuracoes/automacoes" },
-      { title: "Listas do Sistema", url: "/dashboard/configuracoes/listas" },
-      { title: "Atualizações", url: "/dashboard/configuracoes/atualizacoes" },
-      { title: "Guia de Uso", url: "/dashboard/configuracoes/guia" },
+      { title: "Cadastros", url: "/dashboard/configuracoes/cadastros" },
+      { title: "Modelos", url: "/dashboard/configuracoes/modelos" },
+      { title: "Controle", url: "/dashboard/configuracoes/controle" },
     ]
   },
 ];
