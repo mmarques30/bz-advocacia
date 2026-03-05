@@ -107,7 +107,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Acordo Financeiro</DialogTitle>
+          <DialogTitle>Novo Contrato Financeiro</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -274,7 +274,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
               Cancelar
             </Button>
             <Button type="submit" disabled={createAcordo.isPending}>
-              {createAcordo.isPending ? "Criando..." : "Criar Acordo"}
+              {createAcordo.isPending ? "Criando..." : "Criar Contrato"}
             </Button>
           </div>
         </form>

@@ -95,7 +95,7 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes do Acordo Financeiro</DialogTitle>
+            <DialogTitle>Detalhes do Contrato Financeiro</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
