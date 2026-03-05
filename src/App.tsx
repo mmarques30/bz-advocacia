@@ -26,6 +26,7 @@ import Usuarios from "./pages/configuracoes/Usuarios";
 import GuiaDeUso from "./pages/configuracoes/GuiaDeUso";
 import Automacoes from "./pages/configuracoes/Automacoes";
 import ListasSuspensas from "./pages/configuracoes/ListasSuspensas";
+import Atualizacoes from "./pages/configuracoes/Atualizacoes";
 
 // Processos
 import ProcessosCalendario from "./pages/processos/Calendario";
@@ -208,6 +209,14 @@ const App = () => (
         element={
           <ProtectedRoute>
             <ListasSuspensas />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/configuracoes/atualizacoes" 
+        element={
+          <ProtectedRoute>
+            <Atualizacoes />
           </ProtectedRoute>
         } 
       />
