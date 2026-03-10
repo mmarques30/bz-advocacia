@@ -9,7 +9,8 @@ import { useWhatsAppConfig } from "@/hooks/useWhatsAppConfig";
 import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { TemplateCategoria } from "@/types/whatsapp";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, MessageCircle } from "lucide-react";
+import { openWhatsAppLink } from "@/lib/whatsappUtils";
 
 interface EnviarMensagemDialogProps {
   open: boolean;
