@@ -1,24 +1,17 @@
 
 
-## Diagnóstico
+## Problema
 
-O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
+A máscara de telefone no `EscritorioForm` é fixa como `(99) 99999-9999` (celular, 9 dígitos). O número do escritório `(51) 9339-8924` tem 8 dígitos (fixo), então a máscara não fecha — fica `(51) 93398-924_`.
 
-## Correção
+## Solução
 
-**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
+Trocar a máscara fixa por uma **máscara dinâmica** que detecta o número de dígitos:
+- Se o 3º dígito for 9 → celular: `(99) 99999-9999`  
+- Senão → fixo: `(99) 9999-9999`
 
-Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
+Alternativamente (mais simples e robusto): **remover a máscara** do campo telefone do escritório e usar um `Input` normal com placeholder `(51) 9339-8924`, já que telefones de escritório podem ter formatos variados (fixo, celular, com ramal, etc.).
 
-```typescript
-defaultValues: {
-  tipo: 'tarefa',
-  prioridade: 'media',
-  categoria: 'geral',
-  advogada_responsavel: 'juliana',  // <-- adicionar
-  processo_id: defaultProcessoId || '',
-}
-```
-
-Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
+### Arquivo alterado
+- `src/components/configuracoes/EscritorioForm.tsx` — substituir o `InputMask` do telefone por um `Input` simples, ou implementar máscara dinâmica
 
