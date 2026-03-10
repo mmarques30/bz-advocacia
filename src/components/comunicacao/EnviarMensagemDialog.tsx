@@ -194,6 +194,16 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
             <Button variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
+            {selectedTemplate && processo.cliente?.telefone && (
+              <Button
+                variant="outline"
+                className="gap-2 text-green-700 border-green-300 hover:bg-green-50"
+                onClick={() => openWhatsAppLink(processo.cliente.telefone, processedMessage)}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Abrir no WhatsApp
+              </Button>
+            )}
             <Button 
               onClick={handleEnviar} 
               disabled={!selectedTemplate || !processedMessage || enviarWhatsApp.isPending || !hasActiveConfig}

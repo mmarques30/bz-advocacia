@@ -136,10 +136,7 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
 
   const handleOpenWhatsApp = () => {
     if (!processedMessage || !processo.cliente?.telefone) return;
-    
-    const formattedPhone = formatPhoneForWhatsApp(processo.cliente.telefone);
-    const encodedMessage = encodeURIComponent(processedMessage);
-    window.open(`https://wa.me/${formattedPhone}?text=${encodedMessage}`, '_blank');
+    openWhatsAppLink(processo.cliente.telefone, processedMessage);
   };
 
   return (
