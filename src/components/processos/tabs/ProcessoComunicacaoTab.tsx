@@ -14,6 +14,7 @@ import { useState, useMemo } from "react";
 import { EnviarMensagemDialog } from "@/components/comunicacao/EnviarMensagemDialog";
 import { TemplateCategoria } from "@/types/whatsapp";
 import { toast } from "@/hooks/use-toast";
+import { openWhatsAppLink, formatPhoneForWhatsApp } from "@/lib/whatsappUtils";
 
 interface ProcessoComunicacaoTabProps {
   processoId: string;
