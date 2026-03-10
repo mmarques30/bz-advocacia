@@ -145,7 +145,7 @@ export function LeadGeralDetailsDialog({ open, onClose, lead, onSaveObservacoes 
             <Button
               variant="outline"
               className="w-full gap-2 text-green-700 border-green-300 hover:bg-green-50"
-              onClick={() => openWhatsApp(lead.phone_number!)}
+              onClick={() => openWhatsAppLink(lead.phone_number!)}
             >
               <MessageCircle className="h-4 w-4" /> Chamar no WhatsApp
             </Button>
