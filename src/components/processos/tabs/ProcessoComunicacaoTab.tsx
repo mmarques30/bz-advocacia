@@ -114,15 +114,6 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
     setCopied(false);
   };
 
-  const formatPhoneForWhatsApp = (phone: string) => {
-    if (!phone) return "";
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.startsWith('55')) {
-      return cleaned;
-    }
-    return `55${cleaned}`;
-  };
-
   const handleCopyMessage = async () => {
     if (!processedMessage) return;
     
