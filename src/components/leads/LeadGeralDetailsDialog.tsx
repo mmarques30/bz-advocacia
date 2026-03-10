@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Save, Facebook, Instagram, Globe, Calendar, Phone, User, Briefcase } from "lucide-react";
+import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import type { LeadGeral } from "@/hooks/useLeadsGeral";
 
 interface Props {
