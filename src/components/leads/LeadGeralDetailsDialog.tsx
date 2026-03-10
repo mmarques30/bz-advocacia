@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageCircle, Save, Facebook, Instagram, Globe, Calendar, Phone, User, Briefcase } from "lucide-react";
+import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import type { LeadGeral } from "@/hooks/useLeadsGeral";
 
 interface Props {
@@ -36,10 +37,6 @@ function StatusBadge({ status }: { status: string | null }) {
   return <Badge variant="outline">{status || "Sem status"}</Badge>;
 }
 
-function openWhatsApp(phone: string) {
-  const clean = phone.replace(/\D/g, "");
-  window.open(`https://wa.me/${clean}`, "_blank");
-}
 
 function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) {
   return (
@@ -148,7 +145,7 @@ export function LeadGeralDetailsDialog({ open, onClose, lead, onSaveObservacoes 
             <Button
               variant="outline"
               className="w-full gap-2 text-green-700 border-green-300 hover:bg-green-50"
-              onClick={() => openWhatsApp(lead.phone_number!)}
+              onClick={() => openWhatsAppLink(lead.phone_number!)}
             >
               <MessageCircle className="h-4 w-4" /> Chamar no WhatsApp
             </Button>

@@ -14,6 +14,7 @@ import { useState, useMemo } from "react";
 import { EnviarMensagemDialog } from "@/components/comunicacao/EnviarMensagemDialog";
 import { TemplateCategoria } from "@/types/whatsapp";
 import { toast } from "@/hooks/use-toast";
+import { openWhatsAppLink, formatPhoneForWhatsApp } from "@/lib/whatsappUtils";
 
 interface ProcessoComunicacaoTabProps {
   processoId: string;
@@ -113,15 +114,6 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
     setCopied(false);
   };
 
-  const formatPhoneForWhatsApp = (phone: string) => {
-    if (!phone) return "";
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.startsWith('55')) {
-      return cleaned;
-    }
-    return `55${cleaned}`;
-  };
-
   const handleCopyMessage = async () => {
     if (!processedMessage) return;
     
@@ -144,10 +136,7 @@ export function ProcessoComunicacaoTab({ processoId, processo }: ProcessoComunic
 
   const handleOpenWhatsApp = () => {
     if (!processedMessage || !processo.cliente?.telefone) return;
-    
-    const formattedPhone = formatPhoneForWhatsApp(processo.cliente.telefone);
-    const encodedMessage = encodeURIComponent(processedMessage);
-    window.open(`https://wa.me/${formattedPhone}?text=${encodedMessage}`, '_blank');
+    openWhatsAppLink(processo.cliente.telefone, processedMessage);
   };
 
   return (
