@@ -58,8 +58,15 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
     let message = selectedTemplate.mensagem;
     
     // Replace variables
+    const now = new Date();
     const variables: Record<string, string> = {
+      // Cliente
       "{{nome_cliente}}": processo.cliente?.nome_completo || "Cliente",
+      "{{cpf_cliente}}": processo.cliente?.cpf || "",
+      "{{email_cliente}}": processo.cliente?.email || "",
+      "{{telefone_cliente}}": processo.cliente?.telefone || "",
+      "{{endereco_cliente}}": processo.cliente?.endereco_completo || "",
+      // Processo
       "{{numero_processo}}": processo.numero_processo || "N/A",
       "{{tipo_processo}}": processo.tipo || "N/A",
       "{{status_processo}}": processo.status || "N/A",
@@ -67,8 +74,31 @@ export function EnviarMensagemDialog({ open, onOpenChange, processoId, processo 
       "{{vara}}": processo.vara || "N/A",
       "{{comarca}}": processo.comarca || "N/A",
       "{{data_inicio}}": processo.data_inicio ? new Date(processo.data_inicio).toLocaleDateString("pt-BR") : "N/A",
+      // Escritório
       "{{nome_escritorio}}": configuracoes?.nome_escritorio || "BZ Advocacia",
+      "{{telefone_escritorio}}": configuracoes?.telefone || "",
+      "{{email_escritorio}}": configuracoes?.email || "",
+      "{{cnpj_escritorio}}": configuracoes?.cnpj || "",
+      "{{oab_escritorio}}": configuracoes?.oab_principal || "",
+      "{{endereco_escritorio}}": configuracoes?.endereco_completo || "",
+      // Advogado
       "{{nome_advogado}}": processo.responsavel?.nome_completo || "Advogado(a) Responsável",
+      // Sistema
+      "{{data_atual}}": now.toLocaleDateString("pt-BR"),
+      "{{hora_atual}}": now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      // Contextuais (limpar para não exibir tags)
+      "{{descricao_andamento}}": "",
+      "{{data_andamento}}": "",
+      "{{data_audiencia}}": "",
+      "{{hora_audiencia}}": "",
+      "{{local_audiencia}}": "",
+      "{{resultado_sentenca}}": "",
+      "{{descricao_prazo}}": "",
+      "{{data_prazo}}": "",
+      "{{prazo_vencimento}}": "",
+      "{{nome_documento}}": "",
+      "{{tipo_documento}}": "",
+      "{{valor_devido}}": "",
     };
 
     Object.entries(variables).forEach(([key, value]) => {
