@@ -37,10 +37,6 @@ function StatusBadge({ status }: { status: string | null }) {
   return <Badge variant="outline">{status || "Sem status"}</Badge>;
 }
 
-function openWhatsApp(phone: string) {
-  const clean = phone.replace(/\D/g, "");
-  window.open(`https://wa.me/${clean}`, "_blank");
-}
 
 function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value: string | null | undefined }) {
   return (
