@@ -248,13 +248,11 @@ export function EscritorioForm() {
 
             <div className="space-y-2">
               <Label htmlFor="telefone">Telefone</Label>
-              <InputMask
-                mask="(99) 99999-9999"
-                value={form.watch("telefone")}
-                onChange={(e) => form.setValue("telefone", e.target.value)}
-              >
-                {(inputProps: any) => <Input {...inputProps} id="telefone" placeholder="(00) 00000-0000" />}
-              </InputMask>
+              <Input
+                id="telefone"
+                {...form.register("telefone")}
+                placeholder="(51) 9339-8924"
+              />
             </div>
 
             <div className="space-y-2">
