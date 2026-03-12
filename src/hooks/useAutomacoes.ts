@@ -43,12 +43,12 @@ export function useAutomacoes() {
     queryKey: ["automacoes"],
     queryFn: async () => {
       // Fetch all configurations in parallel
-      const [consultasConfig, metaConnections, whatsappConfig, consultasRealizadas, leads] = await Promise.all([
+      const [consultasConfig, metaConnections, whatsappConfig, consultasRealizadas, sheetLeadsRaw] = await Promise.all([
         supabase.from("consultas_config").select("*").maybeSingle(),
         supabase.from("meta_connections").select("*").maybeSingle(),
         supabase.from("whatsapp_config").select("*").maybeSingle(),
         supabase.from("consultas_realizadas").select("id, status, created_at, tipo_consulta"),
-        supabase.from("contact_submissions").select("id, origem, created_at"),
+        supabase.from("sheet_leads_raw").select("id, created_at", { count: "exact" }).order("created_at", { ascending: false }).limit(1),
       ]);
 
       // Calculate statistics
