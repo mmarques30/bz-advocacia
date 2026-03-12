@@ -43,17 +43,19 @@ export function useAutomacoes() {
     queryKey: ["automacoes"],
     queryFn: async () => {
       // Fetch all configurations in parallel
-      const [consultasConfig, metaConnections, whatsappConfig, consultasRealizadas, leads] = await Promise.all([
+      const [consultasConfig, metaConnections, whatsappConfig, consultasRealizadas, sheetLeadsRaw] = await Promise.all([
         supabase.from("consultas_config").select("*").maybeSingle(),
         supabase.from("meta_connections").select("*").maybeSingle(),
         supabase.from("whatsapp_config").select("*").maybeSingle(),
         supabase.from("consultas_realizadas").select("id, status, created_at, tipo_consulta"),
-        supabase.from("contact_submissions").select("id, origem, created_at"),
+        supabase.from("sheet_leads_raw").select("id, synced_at", { count: "exact" }).order("synced_at", { ascending: false }).limit(1),
       ]);
 
-      // Calculate statistics
       const consultasData = consultasRealizadas.data || [];
-      const leadsData = leads.data || [];
+
+      // Google Sheets stats (from sheet_leads_raw - immutable mirror)
+      const sheetsTotal = sheetLeadsRaw.count || 0;
+      const sheetsUltima = (sheetLeadsRaw.data as any)?.[0]?.synced_at || null;
 
       // Datajud stats
       const datajudConsultas = consultasData.filter((c) => c.tipo_consulta === "processo");
@@ -75,19 +77,15 @@ export function useAutomacoes() {
       const brasilApiErro = brasilApiConsultas.filter((c) => c.status === "erro").length;
       const brasilApiUltima = brasilApiConsultas.length > 0 ? brasilApiConsultas[0].created_at : null;
 
-      // Google Sheets stats (leads from sheets)
-      const sheetsLeads = leadsData.filter((l) => l.origem === "google-sheets" || l.origem === "planilha");
-      const sheetsUltima = sheetsLeads.length > 0 ? sheetsLeads[0].created_at : null;
-
       // Build integrations array
       const integrations: ApiIntegration[] = [
         {
           id: "google-sheets",
           nome: "Google Sheets",
           descricao: "Importação de leads via planilha Google",
-          status: sheetsLeads.length > 0 ? "ativo" : "pendente",
-          totalConsultas: sheetsLeads.length,
-          consultasSucesso: sheetsLeads.length,
+          status: sheetsTotal > 0 ? "ativo" : "pendente",
+          totalConsultas: sheetsTotal,
+          consultasSucesso: sheetsTotal,
           consultasErro: 0,
           ultimaAtividade: sheetsUltima,
           edgeFunctionPath: "receive-sheet-lead",
@@ -99,17 +97,14 @@ export function useAutomacoes() {
           tabelaOrigem: null,
           detalhes: {
             webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receive-sheet-lead`,
-            leadsImportados: sheetsLeads.length,
-            leadsUltimas24h: sheetsLeads.filter(
-              (l) => new Date(l.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-            ).length,
+            leadsImportados: sheetsTotal,
           },
         },
         {
           id: "datajud",
           nome: "Datajud (CNJ)",
           descricao: "Consulta de processos judiciais via API do CNJ",
-          status: datajudConsultas.length > 0 ? "ativo" : "pendente",
+          status: "ativo",
           totalConsultas: datajudConsultas.length,
           consultasSucesso: datajudSucesso,
           consultasErro: datajudErro,
@@ -176,7 +171,7 @@ export function useAutomacoes() {
           id: "consultas-api",
           nome: "API de Consultas",
           descricao: "Consultas de veículos, imóveis e outros",
-          status: consultasConfig.data?.ativo ? "ativo" : consultasConfig.data ? "pendente" : "inativo",
+          status: consultasConfig.data?.ativo && consultasConfig.data?.api_token ? "ativo" : consultasConfig.data ? "pendente" : "inativo",
           totalConsultas: apiConsultas.length,
           consultasSucesso: apiSucesso,
           consultasErro: apiErro,
