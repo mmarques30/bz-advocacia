@@ -48,14 +48,34 @@ export function useAutomacoes() {
         supabase.from("meta_connections").select("*").maybeSingle(),
         supabase.from("whatsapp_config").select("*").maybeSingle(),
         supabase.from("consultas_realizadas").select("id, status, created_at, tipo_consulta"),
-        supabase.from("sheet_leads_raw").select("id, created_at", { count: "exact" }).order("created_at", { ascending: false }).limit(1),
+        supabase.from("sheet_leads_raw").select("id, synced_at", { count: "exact" }).order("synced_at", { ascending: false }).limit(1),
       ]);
 
       const consultasData = consultasRealizadas.data || [];
 
-      // Google Sheets stats (from sheet_leads_raw)
+      // Google Sheets stats (from sheet_leads_raw - immutable mirror)
       const sheetsTotal = sheetLeadsRaw.count || 0;
-      const sheetsUltima = sheetLeadsRaw.data?.[0]?.created_at || null;
+      const sheetsUltima = (sheetLeadsRaw.data as any)?.[0]?.synced_at || null;
+
+      // Datajud stats
+      const datajudConsultas = consultasData.filter((c) => c.tipo_consulta === "processo");
+      const datajudSucesso = datajudConsultas.filter((c) => c.status === "sucesso").length;
+      const datajudErro = datajudConsultas.filter((c) => c.status === "erro").length;
+      const datajudUltima = datajudConsultas.length > 0 ? datajudConsultas[0].created_at : null;
+
+      // API Consultas stats (veiculos, imoveis, etc - not processo or cnpj)
+      const apiConsultas = consultasData.filter(
+        (c) => !["processo", "cnpj"].includes(c.tipo_consulta)
+      );
+      const apiSucesso = apiConsultas.filter((c) => c.status === "sucesso").length;
+      const apiErro = apiConsultas.filter((c) => c.status === "erro").length;
+      const apiUltima = apiConsultas.length > 0 ? apiConsultas[0].created_at : null;
+
+      // BrasilAPI stats (CNPJ)
+      const brasilApiConsultas = consultasData.filter((c) => c.tipo_consulta === "cnpj");
+      const brasilApiSucesso = brasilApiConsultas.filter((c) => c.status === "sucesso").length;
+      const brasilApiErro = brasilApiConsultas.filter((c) => c.status === "erro").length;
+      const brasilApiUltima = brasilApiConsultas.length > 0 ? brasilApiConsultas[0].created_at : null;
 
       // Build integrations array
       const integrations: ApiIntegration[] = [
@@ -63,9 +83,9 @@ export function useAutomacoes() {
           id: "google-sheets",
           nome: "Google Sheets",
           descricao: "Importação de leads via planilha Google",
-          status: sheetsLeads.length > 0 ? "ativo" : "pendente",
-          totalConsultas: sheetsLeads.length,
-          consultasSucesso: sheetsLeads.length,
+          status: sheetsTotal > 0 ? "ativo" : "pendente",
+          totalConsultas: sheetsTotal,
+          consultasSucesso: sheetsTotal,
           consultasErro: 0,
           ultimaAtividade: sheetsUltima,
           edgeFunctionPath: "receive-sheet-lead",
@@ -77,17 +97,14 @@ export function useAutomacoes() {
           tabelaOrigem: null,
           detalhes: {
             webhookUrl: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/receive-sheet-lead`,
-            leadsImportados: sheetsLeads.length,
-            leadsUltimas24h: sheetsLeads.filter(
-              (l) => new Date(l.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
-            ).length,
+            leadsImportados: sheetsTotal,
           },
         },
         {
           id: "datajud",
           nome: "Datajud (CNJ)",
           descricao: "Consulta de processos judiciais via API do CNJ",
-          status: datajudConsultas.length > 0 ? "ativo" : "pendente",
+          status: "ativo",
           totalConsultas: datajudConsultas.length,
           consultasSucesso: datajudSucesso,
           consultasErro: datajudErro,
@@ -154,7 +171,7 @@ export function useAutomacoes() {
           id: "consultas-api",
           nome: "API de Consultas",
           descricao: "Consultas de veículos, imóveis e outros",
-          status: consultasConfig.data?.ativo ? "ativo" : consultasConfig.data ? "pendente" : "inativo",
+          status: consultasConfig.data?.ativo && consultasConfig.data?.api_token ? "ativo" : consultasConfig.data ? "pendente" : "inativo",
           totalConsultas: apiConsultas.length,
           consultasSucesso: apiSucesso,
           consultasErro: apiErro,
