@@ -51,33 +51,11 @@ export function useAutomacoes() {
         supabase.from("sheet_leads_raw").select("id, created_at", { count: "exact" }).order("created_at", { ascending: false }).limit(1),
       ]);
 
-      // Calculate statistics
       const consultasData = consultasRealizadas.data || [];
-      const leadsData = leads.data || [];
 
-      // Datajud stats
-      const datajudConsultas = consultasData.filter((c) => c.tipo_consulta === "processo");
-      const datajudSucesso = datajudConsultas.filter((c) => c.status === "sucesso").length;
-      const datajudErro = datajudConsultas.filter((c) => c.status === "erro").length;
-      const datajudUltima = datajudConsultas.length > 0 ? datajudConsultas[0].created_at : null;
-
-      // API Consultas stats (veiculos, imoveis, etc - not processo or cnpj)
-      const apiConsultas = consultasData.filter(
-        (c) => !["processo", "cnpj"].includes(c.tipo_consulta)
-      );
-      const apiSucesso = apiConsultas.filter((c) => c.status === "sucesso").length;
-      const apiErro = apiConsultas.filter((c) => c.status === "erro").length;
-      const apiUltima = apiConsultas.length > 0 ? apiConsultas[0].created_at : null;
-
-      // BrasilAPI stats (CNPJ)
-      const brasilApiConsultas = consultasData.filter((c) => c.tipo_consulta === "cnpj");
-      const brasilApiSucesso = brasilApiConsultas.filter((c) => c.status === "sucesso").length;
-      const brasilApiErro = brasilApiConsultas.filter((c) => c.status === "erro").length;
-      const brasilApiUltima = brasilApiConsultas.length > 0 ? brasilApiConsultas[0].created_at : null;
-
-      // Google Sheets stats (leads from sheets)
-      const sheetsLeads = leadsData.filter((l) => l.origem === "google-sheets" || l.origem === "planilha");
-      const sheetsUltima = sheetsLeads.length > 0 ? sheetsLeads[0].created_at : null;
+      // Google Sheets stats (from sheet_leads_raw)
+      const sheetsTotal = sheetLeadsRaw.count || 0;
+      const sheetsUltima = sheetLeadsRaw.data?.[0]?.created_at || null;
 
       // Build integrations array
       const integrations: ApiIntegration[] = [
