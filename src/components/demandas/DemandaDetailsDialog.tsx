@@ -11,12 +11,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
-import { AlertCircle, GitBranch, Search, X } from "lucide-react";
+import { AlertCircle, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubtarefasList } from "./SubtarefasList";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
+import { ProcessoSearchInput } from "./ProcessoSearchInput";
 import { useIsAdvogada } from "@/hooks/useIsAdvogada";
 import { toast } from "sonner";
 
@@ -50,62 +51,6 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     },
   });
 
-  // Processo search state
-  const [processoSearch, setProcessoSearch] = useState('');
-  const [showProcessoDropdown, setShowProcessoDropdown] = useState(false);
-  const [selectedProcessoLabel, setSelectedProcessoLabel] = useState('');
-  const processoDropdownRef = useRef<HTMLDivElement>(null);
-
-  const { data: processosResults } = useQuery({
-    queryKey: ['processos-search', processoSearch],
-    queryFn: async () => {
-      let query = supabase
-        .from('processos')
-        .select('id, numero_processo, tipo, lead_id, contact_submissions!left(nome_completo)')
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (processoSearch.trim()) {
-        query = query.or(`numero_processo.ilike.%${processoSearch}%,tipo.ilike.%${processoSearch}%`);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-    enabled: showProcessoDropdown,
-  });
-
-  // Load label for current processo when dialog opens
-  useEffect(() => {
-    if (demanda?.processo_id && open) {
-      supabase
-        .from('processos')
-        .select('id, numero_processo, tipo, contact_submissions!left(nome_completo)')
-        .eq('id', demanda.processo_id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            const clienteName = (data.contact_submissions as any)?.nome_completo;
-            const label = [data.numero_processo, clienteName].filter(Boolean).join(' - ') || data.tipo;
-            setSelectedProcessoLabel(label);
-          }
-        });
-    } else if (!demanda?.processo_id) {
-      setSelectedProcessoLabel('');
-    }
-  }, [demanda?.processo_id, open]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (processoDropdownRef.current && !processoDropdownRef.current.contains(e.target as Node)) {
-        setShowProcessoDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
 
   useEffect(() => {
     if (demanda) {
@@ -355,78 +300,12 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               </Select>
             </div>
 
-            <div className="space-y-2 relative" ref={processoDropdownRef}>
+            <div className="space-y-2">
               <Label>Processo Relacionado</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por número ou cliente..."
-                  value={showProcessoDropdown ? processoSearch : selectedProcessoLabel || ''}
-                  onChange={(e) => {
-                    setProcessoSearch(e.target.value);
-                    setShowProcessoDropdown(true);
-                  }}
-                  onFocus={() => {
-                    setProcessoSearch('');
-                    setShowProcessoDropdown(true);
-                  }}
-                  className="pl-9 pr-9"
-                />
-                {selectedProcessoLabel && !showProcessoDropdown && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValue('processo_id', 'sem_processo');
-                      setSelectedProcessoLabel('');
-                      setProcessoSearch('');
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              {showProcessoDropdown && (
-                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                  <button
-                    type="button"
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-accent text-muted-foreground"
-                    onClick={() => {
-                      setValue('processo_id', 'sem_processo');
-                      setSelectedProcessoLabel('');
-                      setShowProcessoDropdown(false);
-                      setProcessoSearch('');
-                    }}
-                  >
-                    Nenhum processo
-                  </button>
-                  {processosResults?.map((processo) => {
-                    const clienteName = (processo.contact_submissions as any)?.nome_completo;
-                    const label = [processo.numero_processo, clienteName].filter(Boolean).join(' - ') || processo.tipo;
-                    return (
-                      <button
-                        key={processo.id}
-                        type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                        onClick={() => {
-                          setValue('processo_id', processo.id);
-                          setSelectedProcessoLabel(label);
-                          setShowProcessoDropdown(false);
-                          setProcessoSearch('');
-                        }}
-                      >
-                        <span className="font-medium">{processo.numero_processo || processo.tipo}</span>
-                        {clienteName && (
-                          <span className="text-muted-foreground ml-2">— {clienteName}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {processosResults?.length === 0 && (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum processo encontrado</p>
-                  )}
-                </div>
-              )}
+              <ProcessoSearchInput
+                value={watch('processo_id') === 'sem_processo' ? null : watch('processo_id') || null}
+                onChange={(id) => setValue('processo_id', id || 'sem_processo')}
+              />
             </div>
 
             <div className="space-y-2">
