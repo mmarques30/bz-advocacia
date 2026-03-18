@@ -54,22 +54,21 @@ export const PropostaPreview = ({
               <div className="text-xs text-muted-foreground px-3 py-1 bg-muted/50 border-b">
                 Página 1 - Apresentação
               </div>
-              <div className="flex min-h-[200px]">
-                <div className="w-2/5">
-                  <img 
-                    src={fotoAdvogadas} 
-                    alt="Advogadas" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="w-3/5 p-4 bg-[#FDFBF7] flex flex-col justify-center">
-                  <h3 className="text-sm font-semibold text-primary mb-1">
+              <div className="relative min-h-[280px] overflow-hidden">
+                <img 
+                  src={fotoAdvogadas} 
+                  alt="Advogadas" 
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h3 className="text-sm font-semibold text-white mb-1">
                     Muito prazer, somos<br />Borges & Zembruski Advocacia
                   </h3>
-                  <p className="text-xs text-primary/80 italic mb-3">
+                  <p className="text-xs text-[#D4A574] italic mb-2">
                     Escuta ativa, Advocacia Artesanal
                   </p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-6">
+                  <p className="text-[10px] text-white/80 leading-relaxed line-clamp-5">
                     {TEXTO_INSTITUCIONAL}
                   </p>
                 </div>
