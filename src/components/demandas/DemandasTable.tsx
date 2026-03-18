@@ -82,6 +82,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
             <TableHead>Status</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead>Prazo</TableHead>
+            <TableHead>Concluída em</TableHead>
             <TableHead>Advogada</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="w-[50px]"></TableHead>
