@@ -18,7 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import logoBZ from "@/assets/logo-bz-new.png";
-import lawyersImg from "@/assets/lawyers-new.png";
+import lawyersImg from "@/assets/lawyers-auth.jpg";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").trim(),
