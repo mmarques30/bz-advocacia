@@ -90,7 +90,7 @@ export default function Auth() {
           style={{
             backgroundImage: `url(${lawyersImg})`,
             backgroundSize: 'cover',
-            backgroundPosition: 'center 15%',
+            backgroundPosition: 'center 30%',
             backgroundRepeat: 'no-repeat',
           }}
         />
