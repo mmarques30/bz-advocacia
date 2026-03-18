@@ -1,0 +1,1 @@
+CREATE INDEX IF NOT EXISTS idx_processos_numero ON processos (numero_processo);
