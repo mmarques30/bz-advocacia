@@ -81,9 +81,9 @@ export function DashboardRightPanel({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-[hsl(210,80%,95%)] rounded-lg p-3 text-center">
-              <p className="text-2xl font-seasons font-bold text-[hsl(210,70%,40%)]">{statusProcessos.emAndamento}</p>
-              <p className="text-[10px] text-[hsl(210,50%,40%)] font-medium mt-0.5">Em andamento</p>
+            <div className="bg-primary/10 rounded-lg p-3 text-center">
+              <p className="text-2xl font-seasons font-bold text-primary">{statusProcessos.emAndamento}</p>
+              <p className="text-[10px] text-primary font-medium mt-0.5">Em andamento</p>
             </div>
             <div className="bg-[#EAF3DE] rounded-lg p-3 text-center">
               <p className="text-2xl font-seasons font-bold text-[hsl(100,40%,28%)]">{statusProcessos.concluidos}</p>
