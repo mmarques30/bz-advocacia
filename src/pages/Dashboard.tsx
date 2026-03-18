@@ -57,7 +57,7 @@ export default function Dashboard() {
         <DashboardKPICard
           title="Processos Ativos"
           value={data?.statusProcessos.emAndamento || 0}
-          barColor="bg-[hsl(210,70%,50%)]"
+          barColor="bg-primary"
           loading={isLoading}
         />
         <DashboardKPICard
