@@ -1,24 +1,12 @@
 
 
-## Diagnóstico
+## Ajustar overlay escuro para cobrir toda a imagem na proposta
 
-O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
+### Alterações
 
-## Correção
+**1. `src/components/documentos/PropostaPreview.tsx` (linha 63)**
+- Mudar o gradiente de `from-black/70 via-black/40 to-black/10` para `from-black/70 via-black/50 to-black/40` — cobrindo toda a imagem com sombreado uniforme, mais forte embaixo para legibilidade do texto.
 
-**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
-
-Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
-
-```typescript
-defaultValues: {
-  tipo: 'tarefa',
-  prioridade: 'media',
-  categoria: 'geral',
-  advogada_responsavel: 'juliana',  // <-- adicionar
-  processo_id: defaultProcessoId || '',
-}
-```
-
-Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
+**2. `src/components/documentos/PropostaPDF.tsx` (linhas 36-41)**
+- Mudar `page1Overlay` de `height: '70%'` e `bottom: 0` para `height: '100%'` e `top: 0`, cobrindo a imagem inteira no PDF também.
 
