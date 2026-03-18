@@ -73,6 +73,6 @@ export const CATEGORIA_LABELS: Record<DemandaCategoria, string> = {
 };
 
 export const ADVOGADA_LABELS: Record<AdvogadaResponsavel, string> = {
-  juliana: 'Juliana',
-  liziane: 'Liziane',
+  juliana: 'Juliana Borges',
+  liziane: 'Eliziane Zembruski Taborda',
 };
