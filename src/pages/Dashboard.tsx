@@ -136,8 +136,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Line 2 — Distribuição + Leads + Status */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      {/* Line 2 — Distribuição + Leads */}
+      <div className="grid gap-5 lg:grid-cols-2">
         <DashboardDistribuicaoCard
           membros={data?.distribuicao || []}
           loading={isLoading}
@@ -147,13 +147,6 @@ export default function Dashboard() {
           semFollowUp={data?.leadsSemFollowUpList || []}
           taxaConversao={data?.taxaConversaoMes || 0}
           loading={isLoading}
-        />
-        <DashboardStatusProcessosCard
-          statusProcessos={data?.statusProcessos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
-          processosSemMov={data?.processosSemMovimentacao || []}
-          totalSemMov={data?.totalSemMovimentacao || 0}
-          loading={isLoading}
-          onProcessoClick={(id) => setSelectedProcessoId(id)}
         />
       </div>
 
