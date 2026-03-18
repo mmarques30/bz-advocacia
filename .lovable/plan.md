@@ -1,24 +1,27 @@
 
 
-## Diagnóstico
+## Corrigir cálculo de tempo médio: usar `concluida_em` em vez de `data_conclusao`
 
-O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
+### Arquivos afetados
 
-## Correção
+#### 1. `src/hooks/useProdutividadeEquipe.ts` — 3 ocorrências
+- **Linha 126-127**: KPI de tempo médio geral — trocar `d.data_conclusao` por `d.concluida_em`
+- **Linha 152-153**: Tempo médio por executor — mesma troca
 
-**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
+#### 2. `src/hooks/useDemandasPerformance.ts` — 1 ocorrência
+- **Linha 87-89**: Cálculo de tempo médio — trocar `d.data_conclusao` por `d.concluida_em`
 
-Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
-
+### Detalhe da mudança
+Em cada ocorrência, substituir:
 ```typescript
-defaultValues: {
-  tipo: 'tarefa',
-  prioridade: 'media',
-  categoria: 'geral',
-  advogada_responsavel: 'juliana',  // <-- adicionar
-  processo_id: defaultProcessoId || '',
-}
+if (d.data_conclusao && d.created_at) {
+  const dias = differenceInDays(new Date(d.data_conclusao), ...
+```
+Por:
+```typescript
+if (d.concluida_em && d.created_at) {
+  const dias = differenceInDays(new Date(d.concluida_em), ...
 ```
 
-Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
+Nenhuma outra parte do sistema é alterada.
 
