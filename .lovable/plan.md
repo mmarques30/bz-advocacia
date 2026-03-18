@@ -1,24 +1,12 @@
 
 
-## Diagnóstico
+## Substituir imagem de fundo em /auth
 
-O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
+### Alterações
 
-## Correção
+1. **Copiar imagem** `user-uploads://IMG_8432.jpg` para `src/assets/lawyers-auth.jpg` (substituindo a atual)
 
-**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
-
-Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
-
-```typescript
-defaultValues: {
-  tipo: 'tarefa',
-  prioridade: 'media',
-  categoria: 'geral',
-  advogada_responsavel: 'juliana',  // <-- adicionar
-  processo_id: defaultProcessoId || '',
-}
-```
-
-Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
+2. **`src/pages/Auth.tsx`** — ajustar estilo do background:
+   - `backgroundPosition: 'center 50%'` (centralizar melhor as pessoas)
+   - `backgroundSize: '100% auto'` ou similar para reduzir o zoom e mostrar mais da imagem
 
