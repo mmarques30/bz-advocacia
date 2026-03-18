@@ -17,6 +17,7 @@ import { AlertCircle, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubtarefasList } from "./SubtarefasList";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
+import { ProcessoSearchInput } from "./ProcessoSearchInput";
 import { useIsAdvogada } from "@/hooks/useIsAdvogada";
 import { toast } from "sonner";
 
