@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClipboardList, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
-import { Demanda } from "@/types/demandas";
+import { Demanda, ADVOGADA_LABELS } from "@/types/demandas";
 
 interface ClienteTarefasTabProps {
   leadId: string;
