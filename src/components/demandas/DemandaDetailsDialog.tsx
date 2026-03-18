@@ -300,78 +300,12 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               </Select>
             </div>
 
-            <div className="space-y-2 relative" ref={processoDropdownRef}>
+            <div className="space-y-2">
               <Label>Processo Relacionado</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por número ou cliente..."
-                  value={showProcessoDropdown ? processoSearch : selectedProcessoLabel || ''}
-                  onChange={(e) => {
-                    setProcessoSearch(e.target.value);
-                    setShowProcessoDropdown(true);
-                  }}
-                  onFocus={() => {
-                    setProcessoSearch('');
-                    setShowProcessoDropdown(true);
-                  }}
-                  className="pl-9 pr-9"
-                />
-                {selectedProcessoLabel && !showProcessoDropdown && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setValue('processo_id', 'sem_processo');
-                      setSelectedProcessoLabel('');
-                      setProcessoSearch('');
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              {showProcessoDropdown && (
-                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-48 overflow-y-auto">
-                  <button
-                    type="button"
-                    className="w-full px-3 py-2 text-left text-sm hover:bg-accent text-muted-foreground"
-                    onClick={() => {
-                      setValue('processo_id', 'sem_processo');
-                      setSelectedProcessoLabel('');
-                      setShowProcessoDropdown(false);
-                      setProcessoSearch('');
-                    }}
-                  >
-                    Nenhum processo
-                  </button>
-                  {processosResults?.map((processo) => {
-                    const clienteName = (processo.contact_submissions as any)?.nome_completo;
-                    const label = [processo.numero_processo, clienteName].filter(Boolean).join(' - ') || processo.tipo;
-                    return (
-                      <button
-                        key={processo.id}
-                        type="button"
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
-                        onClick={() => {
-                          setValue('processo_id', processo.id);
-                          setSelectedProcessoLabel(label);
-                          setShowProcessoDropdown(false);
-                          setProcessoSearch('');
-                        }}
-                      >
-                        <span className="font-medium">{processo.numero_processo || processo.tipo}</span>
-                        {clienteName && (
-                          <span className="text-muted-foreground ml-2">— {clienteName}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {processosResults?.length === 0 && (
-                    <p className="px-3 py-2 text-sm text-muted-foreground">Nenhum processo encontrado</p>
-                  )}
-                </div>
-              )}
+              <ProcessoSearchInput
+                value={watch('processo_id') === 'sem_processo' ? null : watch('processo_id') || null}
+                onChange={(id) => setValue('processo_id', id || 'sem_processo')}
+              />
             </div>
 
             <div className="space-y-2">
