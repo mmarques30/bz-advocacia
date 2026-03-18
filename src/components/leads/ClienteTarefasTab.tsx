@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ClipboardList, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
-import { Demanda } from "@/types/demandas";
+import { Demanda, ADVOGADA_LABELS } from "@/types/demandas";
 
 interface ClienteTarefasTabProps {
   leadId: string;
@@ -45,7 +45,7 @@ function TarefaItem({ demanda }: { demanda: Demanda }) {
         </div>
       </div>
       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-        <span>Resp: {demanda.advogada_responsavel || "—"}</span>
+        <span>Resp: {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || demanda.advogada_responsavel || "—"}</span>
         {demanda.data_limite && (
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
