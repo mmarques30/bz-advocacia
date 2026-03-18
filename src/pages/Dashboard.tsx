@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DashboardKPICard } from "@/components/dashboard/DashboardKPICard";
-import { DashboardPrazosPanel } from "@/components/dashboard/DashboardPrazosPanel";
-import { DashboardRightPanel } from "@/components/dashboard/DashboardRightPanel";
+import { DashboardKPIStrip } from "@/components/dashboard/DashboardKPIStrip";
+import { DashboardPrazosCard } from "@/components/dashboard/DashboardPrazosCard";
+import { DashboardTarefasUrgentesCard } from "@/components/dashboard/DashboardTarefasUrgentesCard";
+import { DashboardDistribuicaoCard } from "@/components/dashboard/DashboardDistribuicaoCard";
+import { DashboardLeadsPendentesCard } from "@/components/dashboard/DashboardLeadsPendentesCard";
+import { DashboardStatusProcessosCard } from "@/components/dashboard/DashboardStatusProcessosCard";
 import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
-import { useDashboardPrincipal } from "@/hooks/useDashboardPrincipal";
+import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
+import { useDashboardPrincipal, type TarefaUrgente } from "@/hooks/useDashboardPrincipal";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import type { Demanda } from "@/types/demandas";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -21,93 +26,150 @@ export default function Dashboard() {
   const { profile } = useProfile();
   const { data, isLoading } = useDashboardPrincipal();
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
+  const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
 
   const userName = profile?.nome_completo || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const hoje = new Date();
-  const dataFormatada = format(hoje, "EEEE, d 'de' MMMM", { locale: ptBR });
-  // Capitalize first letter
+  const dataFormatada = format(hoje, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
   const dataCapitalizada = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
 
-  const prazosHojeCount = data?.prazosHojeCount || 0;
-  const prazosAtrasados = data?.prazosUrgencia.atrasados || 0;
+  const prazosHoje = data?.prazosHojeCount || 0;
+
+  // Build KPI cells
+  const kpiCells = [
+    {
+      title: "Processos ativos",
+      value: data?.processosAtivos || 0,
+      context: `${data?.processosConcluídosMes || 0} concluídos no mês`,
+      contextColor: "muted" as const,
+    },
+    {
+      title: "Prazos hoje",
+      value: prazosHoje,
+      context: prazosHoje > 0 ? `${prazosHoje} vencendo` : "Nenhum vencendo",
+      contextColor: prazosHoje > 0 ? "destructive" as const : "green" as const,
+    },
+    {
+      title: "Sem registro",
+      value: data?.semRegistro || 0,
+      context: "Aguardam movimentação",
+      contextColor: "amber" as const,
+    },
+    {
+      title: "Tarefas ativas",
+      value: data?.tarefasAtivas || 0,
+      context: `${data?.tarefasUrgentes || 0} urgentes`,
+      contextColor: (data?.tarefasUrgentes || 0) > 0 ? "destructive" as const : "muted" as const,
+    },
+    {
+      title: "Leads no mês",
+      value: data?.leadsNoMes || 0,
+      context: `${data?.leadsSemFollowUp || 0} sem follow-up`,
+      contextColor: (data?.leadsSemFollowUp || 0) > 0 ? "amber" as const : "muted" as const,
+    },
+    {
+      title: "Clientes ativos",
+      value: data?.clientesAtivos || 0,
+      context: `+${data?.clientesNovosMes || 0} este mês`,
+      contextColor: "green" as const,
+    },
+  ];
+
+  const handleTarefaClick = (tarefa: TarefaUrgente) => {
+    setSelectedDemanda({
+      id: tarefa.id,
+      titulo: tarefa.titulo,
+      prioridade: tarefa.prioridade as Demanda["prioridade"],
+      status: tarefa.status as Demanda["status"],
+      advogada_responsavel: tarefa.advogada_responsavel as Demanda["advogada_responsavel"],
+      data_limite: tarefa.data_limite,
+      descricao: null,
+      tipo: "tarefa",
+      categoria: "geral",
+      criado_por: null,
+      responsavel_id: null,
+      processo_id: null,
+      lead_id: null,
+      data_conclusao: null,
+      concluida_em: null,
+      parent_id: null,
+      ordem: null,
+      created_at: "",
+      updated_at: "",
+    });
+  };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Saudação + Data */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1">
         <div>
           <h1 className="text-3xl md:text-4xl font-seasons text-primary">
             {getGreeting()}, {userName}
           </h1>
-          <p className="text-base text-muted-foreground mt-1">Aqui está o resumo do seu escritório</p>
+          <p className="text-base text-muted-foreground mt-1">Aqui está o resumo operacional do escritório</p>
         </div>
         <div className="text-right">
           <p className="text-sm font-medium text-foreground">{dataCapitalizada}</p>
           <p className="text-xs text-muted-foreground">
-            {prazosHojeCount > 0
-              ? `${prazosHojeCount} prazo${prazosHojeCount > 1 ? "s" : ""} vence${prazosHojeCount > 1 ? "m" : ""} hoje`
-              : "Nenhum prazo para hoje"}
-            {prazosAtrasados > 0 && ` · ${prazosAtrasados} atrasado${prazosAtrasados > 1 ? "s" : ""}`}
+            {prazosHoje > 0
+              ? `${prazosHoje} prazo${prazosHoje > 1 ? "s" : ""} vence${prazosHoje > 1 ? "m" : ""} hoje`
+              : "Nenhum prazo vencendo hoje"}
           </p>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <DashboardKPICard
-          title="Processos Ativos"
-          value={data?.statusProcessos.emAndamento || 0}
-          barColor="bg-primary"
+      {/* KPI Strip */}
+      <DashboardKPIStrip cells={kpiCells} loading={isLoading} />
+
+      {/* Line 1 — Prazos + Tarefas urgentes */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <DashboardPrazosCard
+          urgencia={data?.prazosUrgencia || { atrasados: 0, hoje: 0, estaSemana: 0, trintaDias: 0 }}
+          proximosPrazos={data?.proximosPrazos || []}
           loading={isLoading}
+          onPrazoClick={(id) => setSelectedProcessoId(id)}
         />
-        <DashboardKPICard
-          title="Prazos Hoje"
-          value={prazosHojeCount}
-          barColor="bg-destructive"
-          subtitle={prazosAtrasados > 0 ? `+ ${prazosAtrasados} atrasado${prazosAtrasados > 1 ? "s" : ""}` : undefined}
+        <DashboardTarefasUrgentesCard
+          tarefas={data?.tarefasUrgentesList || []}
           loading={isLoading}
-        />
-        <DashboardKPICard
-          title="Sem Atualização"
-          value={data?.totalSemMovimentacao || 0}
-          barColor="bg-[hsl(38,92%,50%)]"
-          loading={isLoading}
-        />
-        <DashboardKPICard
-          title="Esta Semana"
-          value={data?.prazosUrgencia.estaSemana || 0}
-          barColor="bg-[hsl(142,76%,36%)]"
-          loading={isLoading}
+          onTarefaClick={handleTarefaClick}
         />
       </div>
 
-      {/* Main panels */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-3">
-          <DashboardPrazosPanel
-            urgencia={data?.prazosUrgencia || { atrasados: 0, hoje: 0, estaSemana: 0, trintaDias: 0 }}
-            distribuicao={data?.prazosTipoDistribuicao || []}
-            proximosPrazos={data?.proximosPrazos || []}
-            loading={isLoading}
-            onPrazoClick={(id) => setSelectedProcessoId(id)}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <DashboardRightPanel
-            cargaAdvogadas={data?.cargaAdvogadas || []}
-            statusProcessos={data?.statusProcessos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
-            processosSemMovimentacao={data?.processosSemMovimentacao || []}
-            totalSemMovimentacao={data?.totalSemMovimentacao || 0}
-            loading={isLoading}
-          />
-        </div>
+      {/* Line 2 — Distribuição + Leads + Status */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        <DashboardDistribuicaoCard
+          membros={data?.distribuicao || []}
+          loading={isLoading}
+        />
+        <DashboardLeadsPendentesCard
+          funil={data?.leadsFunil || { novo: 0, em_contato: 0, proposta: 0, perdido: 0 }}
+          semFollowUp={data?.leadsSemFollowUpList || []}
+          taxaConversao={data?.taxaConversaoMes || 0}
+          loading={isLoading}
+        />
+        <DashboardStatusProcessosCard
+          statusProcessos={data?.statusProcessos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
+          processosSemMov={data?.processosSemMovimentacao || []}
+          totalSemMov={data?.totalSemMovimentacao || 0}
+          loading={isLoading}
+          onProcessoClick={(id) => setSelectedProcessoId(id)}
+        />
       </div>
 
-      {/* Processo details dialog */}
+      {/* Dialogs */}
       <ProcessoDetailsDialog
         processoId={selectedProcessoId}
         open={!!selectedProcessoId}
         onClose={() => setSelectedProcessoId(null)}
+      />
+      <DemandaDetailsDialog
+        demanda={selectedDemanda}
+        open={!!selectedDemanda}
+        onOpenChange={(open) => { if (!open) setSelectedDemanda(null); }}
+        isEditing={false}
+        isAdmin={false}
       />
     </div>
   );

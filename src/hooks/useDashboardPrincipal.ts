@@ -1,13 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export interface PrazoUrgencia {
-  atrasados: number;
-  hoje: number;
-  estaSemana: number;
-  trintaDias: number;
-}
+// === Interfaces ===
 
+// Legacy exports for old components
 export interface PrazoTipoDistribuicao {
   tipo: string;
   count: number;
@@ -21,6 +17,13 @@ export interface CargaAdvogada {
   prazosHoje: number;
 }
 
+export interface PrazoUrgencia {
+  atrasados: number;
+  hoje: number;
+  estaSemana: number;
+  trintaDias: number;
+}
+
 export interface PrazoProximoEnriquecido {
   id: string;
   processo_id: string;
@@ -32,6 +35,39 @@ export interface PrazoProximoEnriquecido {
   prioridade: string;
   cliente_nome: string | null;
   advogada_nome: string | null;
+}
+
+export interface TarefaUrgente {
+  id: string;
+  titulo: string;
+  prioridade: string;
+  data_limite: string | null;
+  advogada_responsavel: string;
+  responsavel_nome: string | null;
+  status: string;
+}
+
+export interface DistribuicaoMembro {
+  id: string;
+  nome: string;
+  iniciais: string;
+  processos: number;
+  tarefas: number;
+  tarefasUrgentes: number;
+}
+
+export interface LeadPendente {
+  id: string;
+  nome: string;
+  origem: string | null;
+  dias_parado: number;
+}
+
+export interface LeadsFunil {
+  novo: number;
+  em_contato: number;
+  proposta: number;
+  perdido: number;
 }
 
 export interface ProcessoSemMovimentacao {
@@ -49,14 +85,29 @@ export interface StatusProcessos {
 }
 
 export interface DashboardPrincipalData {
+  // KPI Strip
+  processosAtivos: number;
+  processosConcluídosMes: number;
+  prazosHojeCount: number;
+  semRegistro: number;
+  tarefasAtivas: number;
+  tarefasUrgentes: number;
+  leadsNoMes: number;
+  leadsSemFollowUp: number;
+  clientesAtivos: number;
+  clientesNovosMes: number;
+  // Line 1
   prazosUrgencia: PrazoUrgencia;
-  prazosTipoDistribuicao: PrazoTipoDistribuicao[];
-  cargaAdvogadas: CargaAdvogada[];
   proximosPrazos: PrazoProximoEnriquecido[];
+  tarefasUrgentesList: TarefaUrgente[];
+  // Line 2
+  distribuicao: DistribuicaoMembro[];
+  leadsFunil: LeadsFunil;
+  leadsSemFollowUpList: LeadPendente[];
+  taxaConversaoMes: number;
   statusProcessos: StatusProcessos;
   processosSemMovimentacao: ProcessoSemMovimentacao[];
   totalSemMovimentacao: number;
-  prazosHojeCount: number;
 }
 
 function getEndOfWeek(date: Date): Date {
@@ -69,7 +120,7 @@ function getEndOfWeek(date: Date): Date {
 
 export function useDashboardPrincipal() {
   return useQuery({
-    queryKey: ["dashboard-principal"],
+    queryKey: ["dashboard-principal-v2"],
     queryFn: async (): Promise<DashboardPrincipalData> => {
       const hoje = new Date();
       const hojeISO = hoje.toISOString().split("T")[0];
@@ -81,209 +132,204 @@ export function useDashboardPrincipal() {
       const ha30Dias = new Date(hoje);
       ha30Dias.setDate(ha30Dias.getDate() - 30);
 
-      // Parallel queries
+      // Início do mês corrente
+      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+      const inicioMesISO = inicioMes.toISOString();
+
+      // 2 dias atrás para follow-up
+      const ha2Dias = new Date(hoje);
+      ha2Dias.setDate(ha2Dias.getDate() - 2);
+      const ha2DiasISO = ha2Dias.toISOString();
+
+      // Batch 1: All independent counts
       const [
-        prazosAtrasadosResult,
-        prazosHojeResult,
-        prazosSemanaResult,
-        prazos30DiasResult,
-        allPrazosPendentesResult,
-        processosResult,
-        processosSemMovResult,
-        processosSemMovCountResult,
-        proximosPrazosResult,
+        prazosAtrasadosR,
+        prazosHojeR,
+        prazosSemanaR,
+        prazos30DiasR,
+        processosR,
+        demandasAtivasR,
+        demandasUrgentesR,
+        leadsNoMesR,
+        leadsSemFollowUpCountR,
+        clientesAtivosR,
+        clientesNovosMesR,
+        processosSemMovCountR,
+        processosSemMovR,
+        proximosPrazosR,
+        tarefasUrgentesR,
+        leadsSemFollowUpListR,
+        leadsPendentesR,
+        leadsFechadosMesR,
+        leadsTotalMesR,
+        semRegistroR,
       ] = await Promise.all([
-        // Atrasados
-        supabase
-          .from("processos_prazos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pendente")
-          .lt("data_prazo", hojeISO),
-        // Hoje
-        supabase
-          .from("processos_prazos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pendente")
-          .eq("data_prazo", hojeISO),
-        // Esta semana (hoje até domingo)
-        supabase
-          .from("processos_prazos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pendente")
-          .gte("data_prazo", hojeISO)
-          .lte("data_prazo", fimSemanaISO),
+        // Prazos atrasados
+        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
+          .eq("status", "pendente").lt("data_prazo", hojeISO),
+        // Prazos hoje
+        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
+          .eq("status", "pendente").eq("data_prazo", hojeISO),
+        // Esta semana
+        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
+          .eq("status", "pendente").gte("data_prazo", hojeISO).lte("data_prazo", fimSemanaISO),
         // 30 dias
-        supabase
-          .from("processos_prazos")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "pendente")
-          .gt("data_prazo", fimSemanaISO)
-          .lte("data_prazo", em30DiasISO),
-        // All pending prazos for type distribution
-        supabase
-          .from("processos_prazos")
-          .select("tipo_prazo")
-          .eq("status", "pendente")
-          .gte("data_prazo", hojeISO)
-          .lte("data_prazo", em30DiasISO),
-        // Processos by status
-        supabase.from("processos").select("status, responsavel_id"),
-        // Processos sem movimentação (top 3)
-        supabase
-          .from("processos")
-          .select("id, numero_processo, autor, reu, data_ultima_atualizacao")
-          .eq("status", "em_andamento")
-          .or(`data_ultima_atualizacao.lt.${ha30Dias.toISOString()},data_ultima_atualizacao.is.null`)
-          .order("data_ultima_atualizacao", { ascending: true, nullsFirst: true })
-          .limit(3),
-        // Count total sem movimentação
-        supabase
-          .from("processos")
-          .select("id", { count: "exact", head: true })
+        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
+          .eq("status", "pendente").gt("data_prazo", fimSemanaISO).lte("data_prazo", em30DiasISO),
+        // Processos (all for status + distribution)
+        supabase.from("processos").select("id, status, responsavel_id, data_ultima_atualizacao"),
+        // Demandas ativas
+        supabase.from("demandas_internas").select("id", { count: "exact", head: true })
+          .not("status", "in", "(concluido,cancelado)"),
+        // Demandas urgentes
+        supabase.from("demandas_internas").select("id", { count: "exact", head: true })
+          .not("status", "in", "(concluido,cancelado)").eq("prioridade", "urgente"),
+        // Leads no mês
+        supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+          .gte("created_at", inicioMesISO),
+        // Leads sem follow-up (> 2 dias)
+        supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+          .not("estagio", "eq", "fechado").lt("ultimo_contato_em", ha2DiasISO),
+        // Clientes ativos (estagio = fechado)
+        supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+          .eq("estagio", "fechado"),
+        // Clientes novos este mês (estagio = fechado criados no mês)
+        supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+          .eq("estagio", "fechado").gte("created_at", inicioMesISO),
+        // Processos sem movimentação (count)
+        supabase.from("processos").select("id", { count: "exact", head: true })
           .eq("status", "em_andamento")
           .or(`data_ultima_atualizacao.lt.${ha30Dias.toISOString()},data_ultima_atualizacao.is.null`),
-        // Próximos prazos enriched (next 8)
-        supabase
-          .from("processos_prazos")
+        // Processos sem movimentação (top 3)
+        supabase.from("processos").select("id, numero_processo, autor, reu, data_ultima_atualizacao")
+          .eq("status", "em_andamento")
+          .or(`data_ultima_atualizacao.lt.${ha30Dias.toISOString()},data_ultima_atualizacao.is.null`)
+          .order("data_ultima_atualizacao", { ascending: true, nullsFirst: true }).limit(3),
+        // Próximos prazos (8)
+        supabase.from("processos_prazos")
           .select("id, processo_id, tipo_prazo, descricao, data_prazo, prioridade, responsavel_id")
-          .eq("status", "pendente")
-          .gte("data_prazo", hojeISO)
-          .order("data_prazo", { ascending: true })
-          .limit(8),
+          .eq("status", "pendente").gte("data_prazo", hojeISO)
+          .order("data_prazo", { ascending: true }).limit(8),
+        // Tarefas urgentes/alta (top 8)
+        supabase.from("demandas_internas")
+          .select("id, titulo, prioridade, data_limite, advogada_responsavel, responsavel_id, status")
+          .not("status", "in", "(concluido,cancelado)")
+          .in("prioridade", ["urgente", "alta"])
+          .order("data_limite", { ascending: true, nullsFirst: false }).limit(8),
+        // Leads sem follow-up list (top 5)
+        supabase.from("contact_submissions")
+          .select("id, nome_completo, origem, ultimo_contato_em")
+          .not("estagio", "eq", "fechado")
+          .lt("ultimo_contato_em", ha2DiasISO)
+          .order("ultimo_contato_em", { ascending: true }).limit(5),
+        // Leads pendentes por estágio
+        supabase.from("contact_submissions")
+          .select("estagio")
+          .not("estagio", "eq", "fechado"),
+        // Leads fechados no mês (conversão)
+        supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+          .eq("estagio", "fechado").gte("created_at", inicioMesISO),
+        // Leads total no mês
+        supabase.from("contact_submissions").select("id", { count: "exact", head: true })
+          .gte("created_at", inicioMesISO),
+        // Processos sem registro (sem nenhum histórico)
+        Promise.resolve({ count: 0, data: null, error: null }), // placeholder for sem registro
       ]);
 
-      // Build urgency counts
-      const prazosUrgencia: PrazoUrgencia = {
-        atrasados: prazosAtrasadosResult.count || 0,
-        hoje: prazosHojeResult.count || 0,
-        estaSemana: prazosSemanaResult.count || 0,
-        trintaDias: prazos30DiasResult.count || 0,
-      };
-
-      // Type distribution
-      const tipoCount: Record<string, number> = {};
-      (allPrazosPendentesResult.data || []).forEach((p) => {
-        const tipo = normalizeTipoPrazo(p.tipo_prazo);
-        tipoCount[tipo] = (tipoCount[tipo] || 0) + 1;
-      });
-      const prazosTipoDistribuicao: PrazoTipoDistribuicao[] = Object.entries(tipoCount)
-        .map(([tipo, count]) => ({ tipo, count }))
-        .sort((a, b) => b.count - a.count);
-
-      // Status processos
-      const processosData = processosResult.data || [];
+      // === Process data ===
+      const processosData = processosR.data || [];
       const statusProcessos: StatusProcessos = {
-        emAndamento: processosData.filter((p) => p.status === "em_andamento").length,
-        concluidos: processosData.filter((p) => p.status === "concluido").length,
-        arquivados: processosData.filter((p) => p.status === "arquivado").length,
+        emAndamento: processosData.filter(p => p.status === "em_andamento").length,
+        concluidos: processosData.filter(p => p.status === "concluido").length,
+        arquivados: processosData.filter(p => p.status === "arquivado").length,
       };
 
-      // Carga por advogada: count processos em_andamento by responsavel_id
-      const processosEmAndamento = processosData.filter((p) => p.status === "em_andamento");
-      const responsavelProcessoCount: Record<string, number> = {};
-      processosEmAndamento.forEach((p) => {
-        if (p.responsavel_id) {
-          responsavelProcessoCount[p.responsavel_id] = (responsavelProcessoCount[p.responsavel_id] || 0) + 1;
+      // Processos concluídos no mês
+      const processosConcluídosMes = processosData.filter(p => {
+        if (p.status !== "concluido") return false;
+        const upd = p.data_ultima_atualizacao ? new Date(p.data_ultima_atualizacao) : null;
+        return upd && upd >= inicioMes;
+      }).length;
+
+      // Sem registro: count processos em_andamento sem histórico
+      // We'll approximate: processos without data_ultima_atualizacao that are em_andamento
+      const semRegistroCount = processosData.filter(p => 
+        p.status === "em_andamento" && !p.data_ultima_atualizacao
+      ).length;
+
+      // === Distribution by responsável ===
+      const processosEmAndamento = processosData.filter(p => p.status === "em_andamento");
+      const respProcessos: Record<string, number> = {};
+      processosEmAndamento.forEach(p => {
+        if (p.responsavel_id) respProcessos[p.responsavel_id] = (respProcessos[p.responsavel_id] || 0) + 1;
+      });
+
+      // Get demandas for distribution
+      const { data: demandasDistrib } = await supabase.from("demandas_internas")
+        .select("responsavel_id, prioridade")
+        .not("status", "in", "(concluido,cancelado)");
+
+      const respTarefas: Record<string, number> = {};
+      const respTarefasUrg: Record<string, number> = {};
+      (demandasDistrib || []).forEach(d => {
+        if (d.responsavel_id) {
+          respTarefas[d.responsavel_id] = (respTarefas[d.responsavel_id] || 0) + 1;
+          if (d.prioridade === "urgente") respTarefasUrg[d.responsavel_id] = (respTarefasUrg[d.responsavel_id] || 0) + 1;
         }
       });
 
-      // Get prazos hoje by responsável
-      const { data: prazosHojeDetalhes } = await supabase
-        .from("processos_prazos")
-        .select("responsavel_id")
-        .eq("status", "pendente")
-        .eq("data_prazo", hojeISO);
+      const allRespIds = [...new Set([
+        ...Object.keys(respProcessos),
+        ...Object.keys(respTarefas),
+      ])];
 
-      const responsavelPrazosHoje: Record<string, number> = {};
-      (prazosHojeDetalhes || []).forEach((p) => {
-        if (p.responsavel_id) {
-          responsavelPrazosHoje[p.responsavel_id] = (responsavelPrazosHoje[p.responsavel_id] || 0) + 1;
-        }
-      });
+      // Get profiles for all responsible IDs + tarefa responsaveis
+      const tarefaRespIds = [...new Set((tarefasUrgentesR.data || []).map(t => t.responsavel_id).filter(Boolean))] as string[];
+      const prazoRespIds = [...new Set((proximosPrazosR.data || []).map(p => p.responsavel_id).filter(Boolean))] as string[];
+      const allProfileIds = [...new Set([...allRespIds, ...tarefaRespIds, ...prazoRespIds])];
 
-      // Get unique responsavel IDs
-      const allResponsavelIds = [
-        ...new Set([
-          ...Object.keys(responsavelProcessoCount),
-          ...Object.keys(responsavelPrazosHoje),
-        ]),
-      ];
-
-      let cargaAdvogadas: CargaAdvogada[] = [];
-      if (allResponsavelIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("id, nome_completo")
-          .in("id", allResponsavelIds);
-
-        cargaAdvogadas = (profiles || []).map((p) => {
-          const nome = p.nome_completo || "Sem nome";
-          const partes = nome.split(" ");
-          const iniciais = partes.length >= 2
-            ? (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
-            : nome.substring(0, 2).toUpperCase();
-          return {
-            id: p.id,
-            nome,
-            iniciais,
-            processos: responsavelProcessoCount[p.id] || 0,
-            prazosHoje: responsavelPrazosHoje[p.id] || 0,
-          };
-        }).sort((a, b) => b.processos - a.processos);
+      let profilesMap: Record<string, string> = {};
+      if (allProfileIds.length > 0) {
+        const { data: profiles } = await supabase.from("profiles").select("id, nome_completo").in("id", allProfileIds);
+        (profiles || []).forEach(p => { profilesMap[p.id] = p.nome_completo; });
       }
 
-      // Enrich próximos prazos with client name and advogada name
-      const prazoData = proximosPrazosResult.data || [];
-      const processoIds = [...new Set(prazoData.map((p) => p.processo_id))];
-      const responsavelIds = [...new Set(prazoData.map((p) => p.responsavel_id).filter(Boolean))];
+      const distribuicao: DistribuicaoMembro[] = allRespIds.map(id => {
+        const nome = profilesMap[id] || "Sem nome";
+        const partes = nome.split(" ");
+        const iniciais = partes.length >= 2
+          ? (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
+          : nome.substring(0, 2).toUpperCase();
+        return {
+          id,
+          nome,
+          iniciais,
+          processos: respProcessos[id] || 0,
+          tarefas: respTarefas[id] || 0,
+          tarefasUrgentes: respTarefasUrg[id] || 0,
+        };
+      }).sort((a, b) => (b.processos + b.tarefas) - (a.processos + a.tarefas));
+
+      // === Enrich próximos prazos ===
+      const prazoData = proximosPrazosR.data || [];
+      const processoIds = [...new Set(prazoData.map(p => p.processo_id))];
 
       let processosMap: Record<string, { numero_processo: string | null; lead_id: string | null; responsavel_id: string | null }> = {};
       if (processoIds.length > 0) {
-        const { data } = await supabase
-          .from("processos")
-          .select("id, numero_processo, lead_id, responsavel_id")
-          .in("id", processoIds);
-        (data || []).forEach((p) => {
-          processosMap[p.id] = { numero_processo: p.numero_processo, lead_id: p.lead_id, responsavel_id: p.responsavel_id };
-        });
+        const { data } = await supabase.from("processos").select("id, numero_processo, lead_id, responsavel_id").in("id", processoIds);
+        (data || []).forEach(p => { processosMap[p.id] = { numero_processo: p.numero_processo, lead_id: p.lead_id, responsavel_id: p.responsavel_id }; });
       }
 
-      // Get client names from lead_ids
-      const leadIds = [...new Set(Object.values(processosMap).map((p) => p.lead_id).filter(Boolean))] as string[];
+      const leadIds = [...new Set(Object.values(processosMap).map(p => p.lead_id).filter(Boolean))] as string[];
       let clientesMap: Record<string, string> = {};
       if (leadIds.length > 0) {
-        const { data } = await supabase
-          .from("contact_submissions")
-          .select("id, nome_completo")
-          .in("id", leadIds);
-        (data || []).forEach((c) => {
-          clientesMap[c.id] = c.nome_completo;
-        });
+        const { data } = await supabase.from("contact_submissions").select("id, nome_completo").in("id", leadIds);
+        (data || []).forEach(c => { clientesMap[c.id] = c.nome_completo; });
       }
 
-      // Get advogada names
-      const allPrazoResponsavelIds = [
-        ...new Set([
-          ...responsavelIds,
-          ...Object.values(processosMap).map((p) => p.responsavel_id).filter(Boolean),
-        ] as string[]),
-      ];
-      let advogadasMap: Record<string, string> = {};
-      if (allPrazoResponsavelIds.length > 0) {
-        const { data } = await supabase
-          .from("profiles")
-          .select("id, nome_completo")
-          .in("id", allPrazoResponsavelIds);
-        (data || []).forEach((a) => {
-          advogadasMap[a.id] = a.nome_completo;
-        });
-      }
-
-      const proximosPrazos: PrazoProximoEnriquecido[] = prazoData.map((p) => {
+      const proximosPrazos: PrazoProximoEnriquecido[] = prazoData.map(p => {
         const proc = processosMap[p.processo_id];
-        const diasRestantes = Math.ceil(
-          (new Date(p.data_prazo).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
-        );
+        const diasRestantes = Math.ceil((new Date(p.data_prazo).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
         const advId = p.responsavel_id || proc?.responsavel_id;
         return {
           id: p.id,
@@ -295,12 +341,53 @@ export function useDashboardPrincipal() {
           dias_restantes: diasRestantes,
           prioridade: p.prioridade || "media",
           cliente_nome: proc?.lead_id ? clientesMap[proc.lead_id] || null : null,
-          advogada_nome: advId ? advogadasMap[advId] || null : null,
+          advogada_nome: advId ? profilesMap[advId] || null : null,
         };
       });
 
-      // Processos sem movimentação
-      const processosSemMovimentacao: ProcessoSemMovimentacao[] = (processosSemMovResult.data || []).map((p) => {
+      // === Tarefas urgentes enriquecidas ===
+      const tarefasUrgentesList: TarefaUrgente[] = (tarefasUrgentesR.data || []).map(t => ({
+        id: t.id,
+        titulo: t.titulo,
+        prioridade: t.prioridade,
+        data_limite: t.data_limite,
+        advogada_responsavel: t.advogada_responsavel,
+        responsavel_nome: t.responsavel_id ? profilesMap[t.responsavel_id] || null : null,
+        status: t.status,
+      }));
+
+      // === Leads funil ===
+      const leadsPendentes = leadsPendentesR.data || [];
+      const leadsFunil: LeadsFunil = { novo: 0, em_contato: 0, proposta: 0, perdido: 0 };
+      leadsPendentes.forEach(l => {
+        const e = l.estagio || "novo";
+        if (e === "novo") leadsFunil.novo++;
+        else if (e === "em_contato" || e === "contato") leadsFunil.em_contato++;
+        else if (e === "proposta" || e === "proposta_enviada") leadsFunil.proposta++;
+        else if (e === "perdido") leadsFunil.perdido++;
+      });
+
+      // === Leads sem follow-up list ===
+      const leadsSemFollowUpList: LeadPendente[] = (leadsSemFollowUpListR.data || []).map(l => {
+        const lastContact = l.ultimo_contato_em ? new Date(l.ultimo_contato_em) : null;
+        const diasParado = lastContact
+          ? Math.floor((hoje.getTime() - lastContact.getTime()) / (1000 * 60 * 60 * 24))
+          : 999;
+        return {
+          id: l.id,
+          nome: l.nome_completo,
+          origem: l.origem,
+          dias_parado: diasParado,
+        };
+      });
+
+      // === Taxa conversão ===
+      const fechadosMes = leadsFechadosMesR.count || 0;
+      const totalMes = leadsTotalMesR.count || 0;
+      const taxaConversaoMes = totalMes > 0 ? Math.round((fechadosMes / totalMes) * 100) : 0;
+
+      // === Processos sem movimentação ===
+      const processosSemMovimentacao: ProcessoSemMovimentacao[] = (processosSemMovR.data || []).map(p => {
         const lastUpdate = p.data_ultima_atualizacao ? new Date(p.data_ultima_atualizacao) : null;
         const diasSem = lastUpdate
           ? Math.floor((hoje.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60 * 24))
@@ -315,26 +402,33 @@ export function useDashboardPrincipal() {
       });
 
       return {
-        prazosUrgencia,
-        prazosTipoDistribuicao,
-        cargaAdvogadas,
+        processosAtivos: statusProcessos.emAndamento,
+        processosConcluídosMes: processosConcluídosMes,
+        prazosHojeCount: prazosHojeR.count || 0,
+        semRegistro: semRegistroCount,
+        tarefasAtivas: demandasAtivasR.count || 0,
+        tarefasUrgentes: demandasUrgentesR.count || 0,
+        leadsNoMes: leadsNoMesR.count || 0,
+        leadsSemFollowUp: leadsSemFollowUpCountR.count || 0,
+        clientesAtivos: clientesAtivosR.count || 0,
+        clientesNovosMes: clientesNovosMesR.count || 0,
+        prazosUrgencia: {
+          atrasados: prazosAtrasadosR.count || 0,
+          hoje: prazosHojeR.count || 0,
+          estaSemana: prazosSemanaR.count || 0,
+          trintaDias: prazos30DiasR.count || 0,
+        },
         proximosPrazos,
+        tarefasUrgentesList,
+        distribuicao,
+        leadsFunil,
+        leadsSemFollowUpList,
+        taxaConversaoMes,
         statusProcessos,
         processosSemMovimentacao,
-        totalSemMovimentacao: processosSemMovCountResult.count || 0,
-        prazosHojeCount: prazosHojeResult.count || 0,
+        totalSemMovimentacao: processosSemMovCountR.count || 0,
       };
     },
     refetchInterval: 5 * 60 * 1000,
   });
-}
-
-function normalizeTipoPrazo(tipo: string): string {
-  const lower = tipo.toLowerCase();
-  if (lower.includes("peti")) return "Petição";
-  if (lower.includes("audi")) return "Audiência";
-  if (lower.includes("recur")) return "Recurso";
-  if (lower.includes("contestação") || lower.includes("contestacao")) return "Contestação";
-  if (lower.includes("manifestação") || lower.includes("manifestacao")) return "Manifestação";
-  return tipo.charAt(0).toUpperCase() + tipo.slice(1);
 }
