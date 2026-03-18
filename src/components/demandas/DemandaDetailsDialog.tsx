@@ -50,19 +50,62 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
     },
   });
 
-  const { data: processos } = useQuery({
-    queryKey: ['processos-demandas'],
+  // Processo search state
+  const [processoSearch, setProcessoSearch] = useState('');
+  const [showProcessoDropdown, setShowProcessoDropdown] = useState(false);
+  const [selectedProcessoLabel, setSelectedProcessoLabel] = useState('');
+  const processoDropdownRef = useRef<HTMLDivElement>(null);
+
+  const { data: processosResults } = useQuery({
+    queryKey: ['processos-search', processoSearch],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('processos')
-        .select('id, numero_processo, tipo')
+        .select('id, numero_processo, tipo, lead_id, contact_submissions!left(nome_completo)')
         .order('created_at', { ascending: false })
-        .limit(100);
-      
+        .limit(20);
+
+      if (processoSearch.trim()) {
+        query = query.or(`numero_processo.ilike.%${processoSearch}%,tipo.ilike.%${processoSearch}%`);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
+    enabled: showProcessoDropdown,
   });
+
+  // Load label for current processo when dialog opens
+  useEffect(() => {
+    if (demanda?.processo_id && open) {
+      supabase
+        .from('processos')
+        .select('id, numero_processo, tipo, contact_submissions!left(nome_completo)')
+        .eq('id', demanda.processo_id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            const clienteName = (data.contact_submissions as any)?.nome_completo;
+            const label = [data.numero_processo, clienteName].filter(Boolean).join(' - ') || data.tipo;
+            setSelectedProcessoLabel(label);
+          }
+        });
+    } else if (!demanda?.processo_id) {
+      setSelectedProcessoLabel('');
+    }
+  }, [demanda?.processo_id, open]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (processoDropdownRef.current && !processoDropdownRef.current.contains(e.target as Node)) {
+        setShowProcessoDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   useEffect(() => {
     if (demanda) {
