@@ -13,7 +13,7 @@ import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
-import { AlertCircle, GitBranch } from "lucide-react";
+import { AlertCircle, GitBranch, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubtarefasList } from "./SubtarefasList";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
