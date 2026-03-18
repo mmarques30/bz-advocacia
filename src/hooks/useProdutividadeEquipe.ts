@@ -49,6 +49,9 @@ export interface ProdutividadeData {
 
 function getDateRange(periodo: PeriodoFiltro) {
   const now = new Date();
+  if (periodo === 'esta_semana') {
+    return { start: startOfWeek(now, { weekStartsOn: 1 }).toISOString(), end: endOfWeek(now, { weekStartsOn: 1 }).toISOString() };
+  }
   if (periodo === 'este_mes') {
     return { start: startOfMonth(now).toISOString(), end: endOfMonth(now).toISOString() };
   }
