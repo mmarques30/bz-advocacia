@@ -3,6 +3,20 @@ import { supabase } from "@/integrations/supabase/client";
 
 // === Interfaces ===
 
+// Legacy exports for old components
+export interface PrazoTipoDistribuicao {
+  tipo: string;
+  count: number;
+}
+
+export interface CargaAdvogada {
+  id: string;
+  nome: string;
+  iniciais: string;
+  processos: number;
+  prazosHoje: number;
+}
+
 export interface PrazoUrgencia {
   atrasados: number;
   hoje: number;
