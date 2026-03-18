@@ -1,5 +1,6 @@
 import { UserCircle, Settings, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -13,11 +14,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function UserAvatar() {
   const { user, signOut } = useAuth();
+  const { profile } = useProfile();
   const navigate = useNavigate();
   
-  // Pegar iniciais do nome
-  const getInitials = (email: string) => {
-    const name = email.split('@')[0];
+  const displayName = profile?.nome_completo || user?.user_metadata?.full_name || 'Usuário';
+  const displayEmail = profile?.email || user?.email;
+  const avatarUrl = profile?.avatar_url || user?.user_metadata?.avatar_url;
+  
+  const getInitials = (name: string) => {
+    const parts = name.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
     return name.substring(0, 2).toUpperCase();
   };
   
@@ -26,9 +34,9 @@ export function UserAvatar() {
       <DropdownMenuTrigger asChild>
         <button className="focus:outline-none focus:ring-2 focus:ring-ring rounded-full">
           <Avatar className="h-9 w-9 cursor-pointer hover:ring-2 hover:ring-ring transition-all">
-            <AvatarImage src={user?.user_metadata?.avatar_url} alt="Avatar" />
+            <AvatarImage src={avatarUrl} alt="Avatar" />
             <AvatarFallback className="bg-primary text-primary-foreground">
-              {user?.email ? getInitials(user.email) : 'U'}
+              {getInitials(displayName)}
             </AvatarFallback>
           </Avatar>
         </button>
@@ -38,10 +46,10 @@ export function UserAvatar() {
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.user_metadata?.full_name || 'Usuário'}
+              {displayName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.email}
+              {displayEmail}
             </p>
           </div>
         </DropdownMenuLabel>
