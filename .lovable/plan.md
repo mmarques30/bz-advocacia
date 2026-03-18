@@ -1,11 +1,24 @@
 
 
-## Remover cards e ajustar layout da Linha 2 do Dashboard
+## Diagnóstico
 
-### Alterações em `src/pages/Dashboard.tsx`
+O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
 
-1. Remover import de `DashboardStatusProcessosCard`
-2. Na Linha 2, mudar grid de `lg:grid-cols-3` para `lg:grid-cols-2`
-3. Remover o bloco `<DashboardStatusProcessosCard ... />`
-4. Os dois cards restantes (Distribuição + Leads Pendentes) ocuparão 50% cada
+## Correção
+
+**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
+
+Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
+
+```typescript
+defaultValues: {
+  tipo: 'tarefa',
+  prioridade: 'media',
+  categoria: 'geral',
+  advogada_responsavel: 'juliana',  // <-- adicionar
+  processo_id: defaultProcessoId || '',
+}
+```
+
+Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
 
