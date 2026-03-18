@@ -149,8 +149,8 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
         if (!d.responsavel_id) return;
         const exec = getOrCreate(d.responsavel_id, nameMap.get(d.responsavel_id));
         exec.concluidas++;
-        if (d.data_conclusao && d.created_at) {
-          const dias = differenceInDays(new Date(d.data_conclusao), new Date(d.created_at));
+        if (d.concluida_em && d.created_at) {
+          const dias = differenceInDays(new Date(d.concluida_em), new Date(d.created_at));
           if (!temposPorExecutor.has(d.responsavel_id)) temposPorExecutor.set(d.responsavel_id, []);
           temposPorExecutor.get(d.responsavel_id)!.push(Math.max(dias, 0));
         }
