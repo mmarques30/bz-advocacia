@@ -89,8 +89,8 @@ export default function Auth() {
           className="absolute inset-0 opacity-60"
           style={{
             backgroundImage: `url(${lawyersImg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center 30%',
+            backgroundSize: '100% auto',
+            backgroundPosition: 'center 50%',
             backgroundRepeat: 'no-repeat',
           }}
         />
