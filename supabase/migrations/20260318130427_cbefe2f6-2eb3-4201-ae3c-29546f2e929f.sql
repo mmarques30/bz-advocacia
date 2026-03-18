@@ -1,0 +1,1 @@
+UPDATE profiles SET nome_completo = 'Eliziane Zembruski Taborda' WHERE email ILIKE '%liziztaborda%';

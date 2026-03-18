@@ -10,6 +10,7 @@ import { VisaoOperacional } from "@/components/dashboard/VisaoOperacional";
 import { LeadsEvolution } from "@/components/dashboard/LeadsEvolution";
 import { useUserPendencias } from "@/hooks/useUserPendencias";
 import { useDashboardCompleto } from "@/hooks/useDashboardCompleto";
+import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 
 function getGreeting() {
@@ -21,10 +22,11 @@ function getGreeting() {
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { profile } = useProfile();
   const { data: pendencias, isLoading: pendenciasLoading } = useUserPendencias();
   const { data: dashboard, isLoading: dashboardLoading } = useDashboardCompleto();
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+  const userName = profile?.nome_completo || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
   return (
     <div className="space-y-6">
@@ -39,38 +41,16 @@ export default function Dashboard() {
       {/* Pendências do Usuário */}
       <UserPendenciasCards data={pendencias} loading={pendenciasLoading} />
 
-      {/* KPIs Grid - 4 colunas operacionais (sem valores financeiros) */}
+      {/* KPIs Grid */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <KPICard
-          title="Clientes Ativos"
-          value={dashboard?.totalClientes || 0}
-          icon={Users}
-          loading={dashboardLoading}
-        />
-        <KPICard
-          title="Leads no Mês"
-          value={dashboard?.totalLeadsMes || 0}
-          icon={TrendingUp}
-          loading={dashboardLoading}
-        />
-        <KPICard
-          title="Processos Ativos"
-          value={dashboard?.processos.emAndamento || 0}
-          icon={Briefcase}
-          loading={dashboardLoading}
-        />
-        <KPICard
-          title="Tarefas Pendentes"
-          value={dashboard?.demandasPendentes || 0}
-          icon={ClipboardList}
-          loading={dashboardLoading}
-        />
+        <KPICard title="Clientes Ativos" value={dashboard?.totalClientes || 0} icon={Users} loading={dashboardLoading} />
+        <KPICard title="Leads no Mês" value={dashboard?.totalLeadsMes || 0} icon={TrendingUp} loading={dashboardLoading} />
+        <KPICard title="Processos Ativos" value={dashboard?.processos.emAndamento || 0} icon={Briefcase} loading={dashboardLoading} />
+        <KPICard title="Tarefas Pendentes" value={dashboard?.demandasPendentes || 0} icon={ClipboardList} loading={dashboardLoading} />
       </div>
 
-      {/* Evolução de Leads */}
       <LeadsEvolution data={dashboard?.leadsEvolution || []} loading={dashboardLoading} />
 
-      {/* Visão Operacional: Processos + Pipeline */}
       <VisaoOperacional
         processos={dashboard?.processos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
         proximosPrazos={dashboard?.proximosPrazos || []}
