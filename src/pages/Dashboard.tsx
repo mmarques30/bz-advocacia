@@ -104,13 +104,11 @@ export default function Dashboard() {
       </div>
 
       {/* Processo details dialog */}
-      {selectedProcessoId && (
-        <ProcessoDetailsDialog
-          processoId={selectedProcessoId}
-          open={!!selectedProcessoId}
-          onOpenChange={(open) => !open && setSelectedProcessoId(null)}
-        />
-      )}
+      <ProcessoDetailsDialog
+        processoId={selectedProcessoId}
+        open={!!selectedProcessoId}
+        onClose={() => setSelectedProcessoId(null)}
+      />
     </div>
   );
 }
