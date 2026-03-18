@@ -123,8 +123,8 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
       let tempoTotal = 0;
       let countTempo = 0;
       concluidas?.forEach(d => {
-        if (d.data_conclusao && d.created_at) {
-          const dias = differenceInDays(new Date(d.data_conclusao), new Date(d.created_at));
+        if (d.concluida_em && d.created_at) {
+          const dias = differenceInDays(new Date(d.concluida_em), new Date(d.created_at));
           tempoTotal += Math.max(dias, 0);
           countTempo++;
         }
