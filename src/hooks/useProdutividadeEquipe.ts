@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { differenceInDays, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export type PeriodoFiltro = 'este_mes' | '30d' | '90d' | 'todos';
+export type PeriodoFiltro = 'esta_semana' | 'este_mes' | '30d' | '90d' | 'todos';
 
 export interface ExecutorRanking {
   nome: string;
