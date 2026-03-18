@@ -233,7 +233,7 @@ export function useDashboardPrincipal() {
         supabase.from("contact_submissions").select("id", { count: "exact", head: true })
           .gte("created_at", inicioMesISO),
         // Processos sem registro (sem nenhum histórico)
-        supabase.rpc("count_processos_sem_historico" as never).then(r => r).catch(() => ({ count: 0, data: null, error: null })),
+        Promise.resolve({ count: 0, data: null, error: null }), // placeholder for sem registro
       ]);
 
       // === Process data ===
