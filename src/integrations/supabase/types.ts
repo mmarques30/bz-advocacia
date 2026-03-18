@@ -715,6 +715,7 @@ export type Database = {
         Row: {
           advogada_responsavel: string
           categoria: string | null
+          concluida_em: string | null
           created_at: string
           criado_por: string | null
           data_conclusao: string | null
@@ -736,6 +737,7 @@ export type Database = {
         Insert: {
           advogada_responsavel?: string
           categoria?: string | null
+          concluida_em?: string | null
           created_at?: string
           criado_por?: string | null
           data_conclusao?: string | null
@@ -757,6 +759,7 @@ export type Database = {
         Update: {
           advogada_responsavel?: string
           categoria?: string | null
+          concluida_em?: string | null
           created_at?: string
           criado_por?: string | null
           data_conclusao?: string | null

@@ -82,6 +82,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
             <TableHead>Status</TableHead>
             <TableHead>Prioridade</TableHead>
             <TableHead>Prazo</TableHead>
+            <TableHead>Concluída em</TableHead>
             <TableHead>Advogada</TableHead>
             <TableHead>Responsável</TableHead>
             <TableHead className="w-[50px]"></TableHead>
@@ -90,7 +91,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
         <TableBody>
           {demandas.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                 Nenhuma demanda encontrada
               </TableCell>
             </TableRow>
@@ -138,6 +139,12 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     {demanda.data_limite 
                       ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
                       : '-'
+                    }
+                  </TableCell>
+                  <TableCell>
+                    {demanda.concluida_em
+                      ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })
+                      : '—'
                     }
                   </TableCell>
                   <TableCell>

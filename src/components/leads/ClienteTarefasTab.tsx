@@ -52,10 +52,10 @@ function TarefaItem({ demanda }: { demanda: Demanda }) {
             Prazo: {format(new Date(demanda.data_limite), "dd/MM/yyyy")}
           </span>
         )}
-        {demanda.data_conclusao && (
+        {demanda.concluida_em && (
           <span className="flex items-center gap-1">
             <CheckCircle2 className="h-3 w-3 text-green-600" />
-            Concluída: {format(new Date(demanda.data_conclusao), "dd/MM/yyyy")}
+            Concluída: {format(new Date(demanda.concluida_em), "dd/MM/yyyy")}
           </span>
         )}
       </div>

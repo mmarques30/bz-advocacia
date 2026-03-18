@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch } from "lucide-react";
+import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { format, isPast, parseISO } from "date-fns";
@@ -97,6 +97,13 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
               <span>
                 {format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })}
               </span>
+            </div>
+          )}
+
+          {demanda.status === 'concluido' && demanda.concluida_em && (
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Concluída em: {format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })}</span>
             </div>
           )}
         </div>
