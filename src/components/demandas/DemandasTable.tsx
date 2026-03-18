@@ -142,6 +142,12 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     }
                   </TableCell>
                   <TableCell>
+                    {demanda.concluida_em
+                      ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })
+                      : '—'
+                    }
+                  </TableCell>
+                  <TableCell>
                     {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}
                   </TableCell>
                   <TableCell>

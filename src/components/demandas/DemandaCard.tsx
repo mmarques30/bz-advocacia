@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch } from "lucide-react";
+import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { format, isPast, parseISO } from "date-fns";

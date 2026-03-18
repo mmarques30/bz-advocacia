@@ -19,6 +19,7 @@ export interface Demanda {
   lead_id: string | null;
   data_limite: string | null;
   data_conclusao: string | null;
+  concluida_em: string | null;
   parent_id: string | null;
   ordem: number | null;
   created_at: string;

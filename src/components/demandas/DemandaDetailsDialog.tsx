@@ -242,14 +242,15 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                   {format(new Date(demanda.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                 </p>
               </div>
-              {demanda.data_conclusao && (
-                <div>
-                  <Label>Concluído em</Label>
-                  <p className="text-sm mt-1">
-                    {format(new Date(demanda.data_conclusao), "dd/MM/yyyy", { locale: ptBR })}
-                  </p>
-                </div>
-              )}
+              <div>
+                <Label>Concluído em</Label>
+                <p className="text-sm mt-1">
+                  {demanda.concluida_em
+                    ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                    : '—'
+                  }
+                </p>
+              </div>
             </div>
 
             {/* Subtarefas section */}
