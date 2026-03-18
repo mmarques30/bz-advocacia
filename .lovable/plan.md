@@ -1,17 +1,24 @@
 
 
-## Ajuste: Adicionar filtro "Semana" ao painel de Produtividade
+## Diagnóstico
 
-### Mudanças
+O erro `null value in column "advogada_responsavel"` ocorre porque o campo `advogada_responsavel` não está incluído nos `defaultValues` do `useForm`. O `defaultValue="juliana"` no componente `Select` é apenas visual — o valor real no formulário permanece `undefined` se o usuário não interagir com o campo.
 
-#### 1. `src/hooks/useProdutividadeEquipe.ts`
-- Adicionar `'esta_semana'` ao tipo `PeriodoFiltro`
-- Na função `getDateRange`, adicionar caso para `'esta_semana'` usando `startOfWeek(now, { weekStartsOn: 1 })` (segunda-feira) até `endOfWeek(now, { weekStartsOn: 1 })` (domingo)
+## Correção
 
-#### 2. `src/components/demandas/ProdutividadeDashboard.tsx`
-- Adicionar `esta_semana: "Esta Semana"` ao objeto `PERIODO_LABELS`, posicionado entre as opções existentes (antes de `este_mes`)
+**Arquivo:** `src/components/demandas/NewDemandaDialog.tsx` (linha 34-41)
 
-### Arquivos alterados
-- `src/hooks/useProdutividadeEquipe.ts` — tipo + lógica de range
-- `src/components/demandas/ProdutividadeDashboard.tsx` — label no dropdown
+Adicionar `advogada_responsavel: 'juliana'` aos `defaultValues` do `useForm`:
+
+```typescript
+defaultValues: {
+  tipo: 'tarefa',
+  prioridade: 'media',
+  categoria: 'geral',
+  advogada_responsavel: 'juliana',  // <-- adicionar
+  processo_id: defaultProcessoId || '',
+}
+```
+
+Isso é suficiente para resolver o erro. Nenhuma outra alteração necessária.
 

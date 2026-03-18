@@ -25,6 +25,7 @@ const MEDAL_MAP: Record<number, string> = {
 };
 
 const PERIODO_LABELS: Record<PeriodoFiltro, string> = {
+  esta_semana: "Esta Semana",
   este_mes: "Este Mês",
   "30d": "Últimos 30d",
   "90d": "Últimos 90d",

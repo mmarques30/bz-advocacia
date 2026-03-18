@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { differenceInDays, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export type PeriodoFiltro = 'este_mes' | '30d' | '90d' | 'todos';
+export type PeriodoFiltro = 'esta_semana' | 'este_mes' | '30d' | '90d' | 'todos';
 
 export interface ExecutorRanking {
   nome: string;
@@ -49,6 +49,9 @@ export interface ProdutividadeData {
 
 function getDateRange(periodo: PeriodoFiltro) {
   const now = new Date();
+  if (periodo === 'esta_semana') {
+    return { start: startOfWeek(now, { weekStartsOn: 1 }).toISOString(), end: endOfWeek(now, { weekStartsOn: 1 }).toISOString() };
+  }
   if (periodo === 'este_mes') {
     return { start: startOfMonth(now).toISOString(), end: endOfMonth(now).toISOString() };
   }
