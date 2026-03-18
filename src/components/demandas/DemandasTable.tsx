@@ -91,7 +91,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
         <TableBody>
           {demandas.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                 Nenhuma demanda encontrada
               </TableCell>
             </TableRow>
