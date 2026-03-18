@@ -34,11 +34,11 @@ const styles = StyleSheet.create({
   },
   page1Overlay: {
     position: 'absolute',
-    bottom: 0,
+    top: 0,
     left: 0,
     width: '100%',
-    height: '70%',
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   page1TextContainer: {
     position: 'absolute',
