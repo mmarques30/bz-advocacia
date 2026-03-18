@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, subMonths, startOfMonth, endOfMonth, format } from "date-fns";
+import { differenceInDays, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export type PeriodoFiltro = 'esta_semana' | 'este_mes' | '30d' | '90d' | 'todos';
