@@ -225,10 +225,9 @@ export const PropostaPDF = ({
       {/* Página 1 - Apresentação */}
       <Page size="A4" style={[styles.page, styles.page1]}>
         <View style={styles.page1Container}>
-          <View style={styles.page1Left}>
-            <Image src={fotoAdvogadas} style={styles.page1Image} />
-          </View>
-          <View style={styles.page1Right}>
+          <Image src={fotoAdvogadas} style={styles.page1Image} />
+          <View style={styles.page1Overlay} />
+          <View style={styles.page1TextContainer}>
             <Text style={styles.page1Title}>
               Muito prazer, somos{'\n'}Borges & Zembruski Advocacia
             </Text>
