@@ -60,7 +60,7 @@ export const PropostaPreview = ({
                   alt="Advogadas" 
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-black/40" />
                 <div className="absolute bottom-4 left-4 right-4">
                   <h3 className="text-sm font-semibold text-white mb-1">
                     Muito prazer, somos<br />Borges & Zembruski Advocacia
