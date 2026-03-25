@@ -42,6 +42,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
   });
   const createDemanda = useCreateDemanda();
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
+  const advogadaLabels = useAdvogadaLabels();
 
   const categorias = categoriasDb && categoriasDb.length > 0
     ? categoriasDb.map(o => ({ value: o.valor, label: o.label }))
@@ -187,8 +188,8 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="juliana">Juliana</SelectItem>
-                <SelectItem value="liziane">Liziane</SelectItem>
+                <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
+                <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
               </SelectContent>
             </Select>
           </div>
