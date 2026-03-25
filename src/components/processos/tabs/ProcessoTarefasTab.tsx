@@ -8,7 +8,8 @@ import { Plus, Clock, CheckCircle2, AlertCircle, ChevronDown, ListTodo, Timer } 
 import { format } from "date-fns";
 import { useState } from "react";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
-import { PRIORIDADE_LABELS, STATUS_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
+import { PRIORIDADE_LABELS, STATUS_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
 interface ProcessoTarefasTabProps {
   processoId: string;

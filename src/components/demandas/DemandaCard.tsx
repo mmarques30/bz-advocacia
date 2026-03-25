@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Demanda, CATEGORIA_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { cn } from "@/lib/utils";
 
 interface DemandaCardProps {
@@ -33,6 +34,7 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
     isPast(parseISO(demanda.data_limite)) && 
     !['concluido', 'cancelado'].includes(demanda.status);
 
+  const advogadaLabels = useAdvogadaLabels();
   const isParent = !demanda.parent_id;
   const { data: subtarefas } = useSubtarefas(isParent ? demanda.id : null);
   const subTotal = subtarefas?.length || 0;
@@ -66,7 +68,7 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
             <div className="flex items-center gap-1.5">
               <Scale className="h-3.5 w-3.5" />
               <span className="truncate font-medium text-foreground">
-                {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS]}
+                {advogadaLabels[demanda.advogada_responsavel] || demanda.advogada_responsavel}
               </span>
             </div>
           )}

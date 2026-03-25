@@ -7,7 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { cn } from "@/lib/utils";
 
 interface DemandasTableProps {
