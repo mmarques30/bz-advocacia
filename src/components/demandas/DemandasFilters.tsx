@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search } from "lucide-react";
 import { DemandasFilters as FiltersType } from "@/types/demandas";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
 interface DemandasFiltersProps {
   filters: FiltersType;
@@ -11,6 +12,7 @@ interface DemandasFiltersProps {
 
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
+  const advogadaLabels = useAdvogadaLabels();
 
   const categorias = categoriasDb && categoriasDb.length > 0
     ? categoriasDb.map(o => ({ value: o.valor, label: o.label }))
@@ -81,8 +83,8 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todas as advogadas</SelectItem>
-          <SelectItem value="juliana">Juliana</SelectItem>
-          <SelectItem value="liziane">Liziane</SelectItem>
+          <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
+          <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
         </SelectContent>
       </Select>
 

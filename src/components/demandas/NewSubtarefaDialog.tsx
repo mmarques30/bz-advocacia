@@ -8,6 +8,7 @@ import { useCreateSubtarefa } from "@/hooks/useSubtarefas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Demanda } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
 interface NewSubtarefaDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface FormData {
 }
 
 export const NewSubtarefaDialog = ({ open, onOpenChange, parentDemanda, nextOrdem }: NewSubtarefaDialogProps) => {
+  const advogadaLabels = useAdvogadaLabels();
   const { register, handleSubmit, reset, setValue } = useForm<FormData>({
     defaultValues: {
       advogada_responsavel: parentDemanda.advogada_responsavel || 'juliana',
@@ -86,8 +88,8 @@ export const NewSubtarefaDialog = ({ open, onOpenChange, parentDemanda, nextOrde
               <Select onValueChange={(v) => setValue('advogada_responsavel', v)} defaultValue={parentDemanda.advogada_responsavel || 'juliana'}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="juliana">Juliana</SelectItem>
-                  <SelectItem value="liziane">Liziane</SelectItem>
+                  <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
+                  <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
