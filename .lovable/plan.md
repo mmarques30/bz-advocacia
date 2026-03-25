@@ -1,32 +1,32 @@
 
+Objetivo: fazer os nomes exibidos nos selects de tarefas seguirem o cadastro atual (profiles), sem quebrar os valores salvos em `advogada_responsavel` (`juliana`/`liziane`).
 
-## Tornar nomes das advogadas dinâmicos (vindo do banco)
+1) Identificar e substituir todos os pontos ainda hardcoded nos formulários
+- Ajustar estes arquivos que ainda renderizam labels fixas:
+  - `src/components/demandas/NewDemandaDialog.tsx`
+  - `src/components/demandas/DemandaDetailsDialog.tsx` (modo edição)
+  - `src/components/demandas/NewSubtarefaDialog.tsx`
+  - `src/components/demandas/DemandasFilters.tsx`
+- Em todos, trocar `SelectItem` com texto fixo (“Juliana”, “Liziane”) por labels vindas de `useAdvogadaLabels()`.
 
-### Problema
-O campo `advogada_responsavel` armazena chaves fixas (`'juliana'`, `'liziane'`), e o código usa `ADVOGADA_LABELS` com nomes hardcoded para exibição. Quando o nome é alterado no cadastro (profiles), as tarefas continuam mostrando o nome antigo.
+2) Padronizar a fonte dos labels
+- Reusar `useAdvogadaLabels` como única fonte de exibição dos nomes.
+- Manter `value="juliana"` e `value="liziane"` nos selects (para não afetar registros existentes e filtros no banco).
+- Só o texto exibido muda dinamicamente para o nome atual cadastrado.
 
-### Solução
-Criar um hook `useAdvogadaLabels` que busca os nomes reais da tabela `profiles` e constrói o mapeamento dinamicamente, substituindo o uso da constante hardcoded em todos os componentes.
+3) Fortalecer o fallback do hook (para evitar regressão)
+- Garantir fallback consistente para quando a query ainda não carregou:
+  - exibir `ADVOGADA_LABELS` temporariamente.
+- (Ajuste recomendado) tornar a resolução menos frágil do que “começa com nome”, para evitar voltar ao nome antigo se o cadastro mudar bastante.
 
-### Alterações
+4) Validação funcional após ajuste
+- Fluxo 1: abrir “Nova Demanda” e confirmar que “Advogada Responsável” mostra os nomes atualizados do cadastro.
+- Fluxo 2: abrir “Detalhes da Demanda” em edição e validar o mesmo select.
+- Fluxo 3: criar “Nova Subtarefa” e validar o select.
+- Fluxo 4: abrir filtros de demandas e validar nomes atualizados no filtro de advogada.
+- Confirmar que salvar/filtrar continua funcionando normalmente (valores persistidos continuam `juliana`/`liziane`).
 
-**1. Criar `src/hooks/useAdvogadaLabels.ts`**
-- Hook que consulta `profiles` buscando os perfis cujo `nome_completo` começa com "Juliana" e "Eliziane"
-- Retorna um `Record<string, string>` no formato `{ juliana: 'Nome Real', liziane: 'Nome Real' }`
-- Fallback para os valores atuais caso a query falhe
-
-**2. Atualizar 6 componentes** que usam `ADVOGADA_LABELS`:
-- `src/components/demandas/DemandaCard.tsx`
-- `src/components/demandas/DemandasTable.tsx`
-- `src/components/demandas/DemandaDetailsDialog.tsx`
-- `src/components/demandas/SubtarefasList.tsx`
-- `src/components/leads/ClienteTarefasTab.tsx`
-- `src/components/processos/tabs/ProcessoTarefasTab.tsx`
-
-Em cada um: importar `useAdvogadaLabels`, chamar o hook, e usar o mapa dinâmico no lugar de `ADVOGADA_LABELS`.
-
-**3. `src/hooks/useProdutividadeEquipe.ts`**
-- Substituir o `ADVOGADA_LABELS` local pela mesma query dinâmica de profiles (já busca profiles no mesmo hook).
-
-A constante `ADVOGADA_LABELS` em `types/demandas.ts` permanece como fallback mas deixa de ser a fonte principal.
-
+Detalhes técnicos
+- Não haverá mudança de banco/migration.
+- Não altera schema nem dados antigos.
+- Impacto é somente de camada de apresentação (labels dinâmicos) com compatibilidade total de dados existentes.
