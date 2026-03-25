@@ -25,6 +25,7 @@ const prioridadeConfig: Record<string, { label: string; className: string }> = {
 };
 
 function TarefaItem({ demanda }: { demanda: Demanda }) {
+  const advogadaLabels = useAdvogadaLabels();
   const status = statusConfig[demanda.status] || statusConfig.pendente;
   const prioridade = prioridadeConfig[demanda.prioridade] || prioridadeConfig.media;
   const isConcluida = demanda.status === "concluido";
@@ -46,7 +47,7 @@ function TarefaItem({ demanda }: { demanda: Demanda }) {
         </div>
       </div>
       <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-        <span>Resp: {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || demanda.advogada_responsavel || "—"}</span>
+        <span>Resp: {advogadaLabels[demanda.advogada_responsavel] || demanda.advogada_responsavel || "—"}</span>
         {demanda.data_limite && (
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />

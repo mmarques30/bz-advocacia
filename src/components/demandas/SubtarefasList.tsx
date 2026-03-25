@@ -28,6 +28,7 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
   const updateStatus = useUpdateSubtarefaStatus();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const { isAdvogada } = useIsAdvogada();
+  const advogadaLabels = useAdvogadaLabels();
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando subtarefas...</p>;
 
@@ -87,7 +88,7 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Scale className="h-3 w-3" />
-                    {ADVOGADA_LABELS[sub.advogada_responsavel as keyof typeof ADVOGADA_LABELS]}
+                    {advogadaLabels[sub.advogada_responsavel] || sub.advogada_responsavel}
                   </span>
                   {sub.responsavel?.nome_completo && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">

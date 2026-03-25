@@ -49,6 +49,7 @@ const categoriaColors: Record<string, string> = {
 };
 
 export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: DemandasTableProps) => {
+  const advogadaLabels = useAdvogadaLabels();
   // Fetch subtask counts for all parent tasks
   const parentIds = demandas.map(d => d.id);
   const { data: subtaskCounts } = useQuery({
@@ -149,7 +150,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     }
                   </TableCell>
                   <TableCell>
-                    {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}
+                    {advogadaLabels[demanda.advogada_responsavel] || '-'}
                   </TableCell>
                   <TableCell>
                     {demanda.responsavel?.nome_completo || '-'}

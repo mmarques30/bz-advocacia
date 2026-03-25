@@ -31,6 +31,7 @@ interface DemandaDetailsDialogProps {
 }
 
 export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, isAdmin }: DemandaDetailsDialogProps) => {
+  const advogadaLabels = useAdvogadaLabels();
   const { register, handleSubmit, reset, setValue, watch } = useForm();
   const updateDemanda = useUpdateDemanda();
   const [localEditing, setLocalEditing] = useState(isEditing);
@@ -153,7 +154,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Advogada Responsável</Label>
-                <p className="text-sm mt-1">{ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}</p>
+                <p className="text-sm mt-1">{advogadaLabels[demanda.advogada_responsavel] || '-'}</p>
               </div>
               <div>
                 <Label>Criado por</Label>
