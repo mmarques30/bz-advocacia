@@ -194,14 +194,14 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
 
       // Build dynamic labels from profiles
       const advLabels: Record<string, string> = { juliana: 'Juliana Borges', liziane: 'Eliziane Taborda' };
-      allProfiles.forEach(p => {
+      profiles?.forEach(p => {
         const nome = p.nome_completo.toLowerCase();
         if (nome.startsWith('juliana')) advLabels.juliana = p.nome_completo;
         else if (nome.startsWith('eliziane')) advLabels.liziane = p.nome_completo;
       });
       const pendentesAprovacao: PendentesAgrupado[] = Array.from(pendentesMap.entries())
         .map(([adv, demandas]) => ({
-          advogada: ADVOGADA_LABELS[adv] || adv,
+          advogada: advLabels[adv] || adv,
           total: demandas.length,
           demandas,
         }))
