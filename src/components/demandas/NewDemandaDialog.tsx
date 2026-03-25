@@ -9,6 +9,7 @@ import { useCreateDemanda } from "@/hooks/useDemandas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { ProcessoSearchInput } from "./ProcessoSearchInput";
 
 interface NewDemandaDialogProps {

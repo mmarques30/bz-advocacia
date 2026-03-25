@@ -8,6 +8,7 @@ import { useCreateSubtarefa } from "@/hooks/useSubtarefas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Demanda } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
 interface NewSubtarefaDialogProps {
   open: boolean;

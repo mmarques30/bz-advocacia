@@ -296,8 +296,8 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="juliana">Juliana</SelectItem>
-                  <SelectItem value="liziane">Liziane</SelectItem>
+                  <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
+                  <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

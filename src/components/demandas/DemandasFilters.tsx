@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search } from "lucide-react";
 import { DemandasFilters as FiltersType } from "@/types/demandas";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
 interface DemandasFiltersProps {
   filters: FiltersType;
