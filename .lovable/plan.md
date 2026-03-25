@@ -1,17 +1,32 @@
 
 
-## Corrigir nome hardcoded da advogada nas tarefas
+## Tornar nomes das advogadas dinâmicos (vindo do banco)
 
 ### Problema
-O nome "Eliziane Zembruski Taborda" está **hardcoded** em dois arquivos. Mesmo após alterar no cadastro (tabela profiles), as tarefas continuam exibindo o nome antigo porque usam constantes fixas no código, não o banco de dados.
+O campo `advogada_responsavel` armazena chaves fixas (`'juliana'`, `'liziane'`), e o código usa `ADVOGADA_LABELS` com nomes hardcoded para exibição. Quando o nome é alterado no cadastro (profiles), as tarefas continuam mostrando o nome antigo.
+
+### Solução
+Criar um hook `useAdvogadaLabels` que busca os nomes reais da tabela `profiles` e constrói o mapeamento dinamicamente, substituindo o uso da constante hardcoded em todos os componentes.
 
 ### Alterações
 
-**1. `src/types/demandas.ts` (linha 77)**
-- Alterar `'Eliziane Zembruski Taborda'` → `'Eliziane Taborda'`
+**1. Criar `src/hooks/useAdvogadaLabels.ts`**
+- Hook que consulta `profiles` buscando os perfis cujo `nome_completo` começa com "Juliana" e "Eliziane"
+- Retorna um `Record<string, string>` no formato `{ juliana: 'Nome Real', liziane: 'Nome Real' }`
+- Fallback para os valores atuais caso a query falhe
 
-**2. `src/hooks/useProdutividadeEquipe.ts` (linha 195)**
-- Alterar `'Eliziane Zembruski Taborda'` → `'Eliziane Taborda'`
+**2. Atualizar 6 componentes** que usam `ADVOGADA_LABELS`:
+- `src/components/demandas/DemandaCard.tsx`
+- `src/components/demandas/DemandasTable.tsx`
+- `src/components/demandas/DemandaDetailsDialog.tsx`
+- `src/components/demandas/SubtarefasList.tsx`
+- `src/components/leads/ClienteTarefasTab.tsx`
+- `src/components/processos/tabs/ProcessoTarefasTab.tsx`
 
-Ambos os locais alimentam todos os componentes que exibem o nome da advogada responsável nas tarefas (tabela, kanban, detalhes, subtarefas, etc.).
+Em cada um: importar `useAdvogadaLabels`, chamar o hook, e usar o mapa dinâmico no lugar de `ADVOGADA_LABELS`.
+
+**3. `src/hooks/useProdutividadeEquipe.ts`**
+- Substituir o `ADVOGADA_LABELS` local pela mesma query dinâmica de profiles (já busca profiles no mesmo hook).
+
+A constante `ADVOGADA_LABELS` em `types/demandas.ts` permanece como fallback mas deixa de ser a fonte principal.
 
