@@ -8,7 +8,8 @@ import { Plus, Clock, CheckCircle2, AlertCircle, ChevronDown, ListTodo, Timer } 
 import { format } from "date-fns";
 import { useState } from "react";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
-import { PRIORIDADE_LABELS, STATUS_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
+import { PRIORIDADE_LABELS, STATUS_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
 interface ProcessoTarefasTabProps {
   processoId: string;
@@ -24,6 +25,7 @@ const prioridadeColor: Record<string, string> = {
 export function ProcessoTarefasTab({ processoId }: ProcessoTarefasTabProps) {
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [concluidasOpen, setConcluidasOpen] = useState(false);
+  const advogadaLabels = useAdvogadaLabels();
 
   const { data: tarefas, isLoading } = useQuery({
     queryKey: ["processo-tarefas", processoId],
@@ -111,7 +113,7 @@ export function ProcessoTarefasTab({ processoId }: ProcessoTarefasTabProps) {
                     <div className="flex items-center gap-2 mt-1">
                       {tarefa.advogada_responsavel && (
                         <span className="text-xs font-medium text-primary">
-                          {ADVOGADA_LABELS[tarefa.advogada_responsavel as keyof typeof ADVOGADA_LABELS]}
+                          {advogadaLabels[tarefa.advogada_responsavel] || tarefa.advogada_responsavel}
                         </span>
                       )}
                       {tarefa.responsavel?.nome_completo && (

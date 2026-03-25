@@ -12,7 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
-import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { AlertCircle, GitBranch } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SubtarefasList } from "./SubtarefasList";
@@ -30,6 +31,7 @@ interface DemandaDetailsDialogProps {
 }
 
 export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, isAdmin }: DemandaDetailsDialogProps) => {
+  const advogadaLabels = useAdvogadaLabels();
   const { register, handleSubmit, reset, setValue, watch } = useForm();
   const updateDemanda = useUpdateDemanda();
   const [localEditing, setLocalEditing] = useState(isEditing);
@@ -152,7 +154,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Advogada Responsável</Label>
-                <p className="text-sm mt-1">{ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}</p>
+                <p className="text-sm mt-1">{advogadaLabels[demanda.advogada_responsavel] || '-'}</p>
               </div>
               <div>
                 <Label>Criado por</Label>

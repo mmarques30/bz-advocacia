@@ -7,7 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS, ADVOGADA_LABELS } from "@/types/demandas";
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { cn } from "@/lib/utils";
 
 interface DemandasTableProps {
@@ -48,6 +49,7 @@ const categoriaColors: Record<string, string> = {
 };
 
 export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: DemandasTableProps) => {
+  const advogadaLabels = useAdvogadaLabels();
   // Fetch subtask counts for all parent tasks
   const parentIds = demandas.map(d => d.id);
   const { data: subtaskCounts } = useQuery({
@@ -148,7 +150,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     }
                   </TableCell>
                   <TableCell>
-                    {ADVOGADA_LABELS[demanda.advogada_responsavel as keyof typeof ADVOGADA_LABELS] || '-'}
+                    {advogadaLabels[demanda.advogada_responsavel] || '-'}
                   </TableCell>
                   <TableCell>
                     {demanda.responsavel?.nome_completo || '-'}

@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, User, Scale } from "lucide-react";
 import { useSubtarefas, useUpdateSubtarefaStatus } from "@/hooks/useSubtarefas";
-import { ADVOGADA_LABELS, STATUS_LABELS } from "@/types/demandas";
+import { STATUS_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { useState } from "react";
 import { NewSubtarefaDialog } from "./NewSubtarefaDialog";
 import { Demanda } from "@/types/demandas";
@@ -27,6 +28,7 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
   const updateStatus = useUpdateSubtarefaStatus();
   const [showNewDialog, setShowNewDialog] = useState(false);
   const { isAdvogada } = useIsAdvogada();
+  const advogadaLabels = useAdvogadaLabels();
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Carregando subtarefas...</p>;
 
@@ -86,7 +88,7 @@ export const SubtarefasList = ({ parentDemanda }: SubtarefasListProps) => {
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Scale className="h-3 w-3" />
-                    {ADVOGADA_LABELS[sub.advogada_responsavel as keyof typeof ADVOGADA_LABELS]}
+                    {advogadaLabels[sub.advogada_responsavel] || sub.advogada_responsavel}
                   </span>
                   {sub.responsavel?.nome_completo && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
