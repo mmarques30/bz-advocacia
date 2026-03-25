@@ -1,29 +1,17 @@
 
 
-## Corrigir: admin não consegue atualizar perfil de outro usuário
+## Corrigir nome hardcoded da advogada nas tarefas
 
-### Causa raiz
-A tabela `profiles` tem a policy de UPDATE:
-```
-"Users can update their own profile" → auth.uid() = id
-```
-Quando o admin edita o nome da Eliziane, o UPDATE roda com o ID dela mas o `auth.uid()` é do admin logado. A policy bloqueia silenciosamente (0 rows affected, sem erro).
+### Problema
+O nome "Eliziane Zembruski Taborda" está **hardcoded** em dois arquivos. Mesmo após alterar no cadastro (tabela profiles), as tarefas continuam exibindo o nome antigo porque usam constantes fixas no código, não o banco de dados.
 
-### Correção
+### Alterações
 
-**1. Migration SQL** — Adicionar policy permitindo admins atualizarem qualquer perfil:
-```sql
-DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
+**1. `src/types/demandas.ts` (linha 77)**
+- Alterar `'Eliziane Zembruski Taborda'` → `'Eliziane Taborda'`
 
-CREATE POLICY "Users can update own or admin can update any profile"
-ON public.profiles
-FOR UPDATE
-TO authenticated
-USING (
-  auth.uid() = id 
-  OR has_role(auth.uid(), 'admin'::app_role)
-);
-```
+**2. `src/hooks/useProdutividadeEquipe.ts` (linha 195)**
+- Alterar `'Eliziane Zembruski Taborda'` → `'Eliziane Taborda'`
 
-Nenhum arquivo de código precisa ser alterado. A lógica em `useUpdateUser` já faz o `.update().eq('id', userId)` corretamente — o problema é exclusivamente de permissão no banco.
+Ambos os locais alimentam todos os componentes que exibem o nome da advogada responsável nas tarefas (tabela, kanban, detalhes, subtarefas, etc.).
 
