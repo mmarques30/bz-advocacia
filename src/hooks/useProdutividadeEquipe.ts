@@ -192,7 +192,7 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
         });
       });
 
-      const ADVOGADA_LABELS: Record<string, string> = { juliana: 'Juliana Borges', liziane: 'Eliziane Zembruski Taborda' };
+      const ADVOGADA_LABELS: Record<string, string> = { juliana: 'Juliana Borges', liziane: 'Eliziane Taborda' };
       const pendentesAprovacao: PendentesAgrupado[] = Array.from(pendentesMap.entries())
         .map(([adv, demandas]) => ({
           advogada: ADVOGADA_LABELS[adv] || adv,
