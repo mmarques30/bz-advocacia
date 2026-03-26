@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
-import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList } from "lucide-react";
+import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
