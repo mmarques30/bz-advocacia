@@ -15,6 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, User } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const processoSchema = z.object({
   lead_id: z.string().min(1, "Cliente é obrigatório"),
@@ -43,6 +47,7 @@ interface NewProcessoDialogProps {
 export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialogProps) {
   const createProcesso = useCreateProcesso();
   const { data: clientes, isLoading: clientesLoading } = useClientes();
+  const [isExtrajudicial, setIsExtrajudicial] = useState(false);
 
   const form = useForm<ProcessoFormData>({
     resolver: zodResolver(processoSchema),
@@ -52,7 +57,29 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
     },
   });
 
+  const generateCodigoInterno = async () => {
+    const ano = new Date().getFullYear();
+    const { data } = await supabase
+      .from("processos")
+      .select("codigo_interno")
+      .ilike("codigo_interno", `EXT-${ano}-%`)
+      .order("codigo_interno", { ascending: false })
+      .limit(1);
+
+    let seq = 1;
+    if (data && data.length > 0 && data[0].codigo_interno) {
+      const parts = data[0].codigo_interno.split("-");
+      seq = parseInt(parts[2] || "0", 10) + 1;
+    }
+    return `EXT-${ano}-${String(seq).padStart(3, "0")}`;
+  };
+
   const onSubmit = async (data: ProcessoFormData) => {
+    let codigoInterno: string | null = null;
+    if (isExtrajudicial) {
+      codigoInterno = await generateCodigoInterno();
+    }
+
     await createProcesso.mutateAsync({
       ...data,
       lead_id: data.lead_id,
@@ -64,8 +91,15 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
       data_distribuicao: data.data_distribuicao 
         ? format(data.data_distribuicao, "yyyy-MM-dd") 
         : null,
+      extrajudicial: isExtrajudicial,
+      codigo_interno: codigoInterno,
+      numero_processo: isExtrajudicial ? null : data.numero_processo,
+      tribunal: isExtrajudicial ? null : data.tribunal,
+      comarca: isExtrajudicial ? null : data.comarca,
+      vara: isExtrajudicial ? null : data.vara,
     } as any);
     form.reset();
+    setIsExtrajudicial(false);
     onClose();
   };
 
