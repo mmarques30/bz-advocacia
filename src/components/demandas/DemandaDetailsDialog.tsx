@@ -40,6 +40,10 @@ interface DemandaDetailsDialogProps {
 
 export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, isAdmin }: DemandaDetailsDialogProps) => {
   const advogadaLabels = useAdvogadaLabels();
+  const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
+  const statuses = statusDb && statusDb.length > 0
+    ? statusDb.map(o => ({ value: o.valor, label: o.label }))
+    : DEFAULT_STATUSES;
   const { register, handleSubmit, reset, setValue, watch } = useForm();
   const updateDemanda = useUpdateDemanda();
   const [localEditing, setLocalEditing] = useState(isEditing);
@@ -266,12 +270,15 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pendente">Pendente</SelectItem>
-                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    <SelectItem value="concluido" disabled={!isAdvogada}>
-                      Concluído {!isAdvogada && '(apenas advogadas)'}
-                    </SelectItem>
-                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                    {statuses.map((s) => (
+                      <SelectItem 
+                        key={s.value} 
+                        value={s.value}
+                        disabled={s.value === 'concluido' && !isAdvogada}
+                      >
+                        {s.label} {s.value === 'concluido' && !isAdvogada && '(apenas advogadas)'}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
