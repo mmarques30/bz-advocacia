@@ -1,28 +1,46 @@
 
 
-## Adicionar aba "Mensagens" no dialog de detalhes do lead
+## Adicionar campo "Tipo" nos modelos e botão "Primeiro Contato" nos leads
 
-### Alterações
+### 1. Migration: adicionar coluna `tipo` em `whatsapp_templates`
+```sql
+ALTER TABLE public.whatsapp_templates 
+ADD COLUMN tipo text DEFAULT 'geral';
+```
+Valores possíveis: `primeiro_contato`, `follow_up`, `proposta`, `geral`.
 
-**1. Criar componente `src/components/leads/LeadMensagensTab.tsx`**
-- Busca histórico de mensagens de `lead_interacoes` filtrado por `lead_id` e `tipo = 'whatsapp'` (usa `useLeadInteracoes`)
-- Exibe mensagens em formato chat (timestamp, direção, conteúdo)
-- Seção de composição:
-  - Select com templates ativos de `whatsapp_templates` (usa `useWhatsAppTemplates`)
-  - Textarea editável pré-preenchida ao selecionar template
-  - Botão "Enviar via WhatsApp" que chama `openWhatsAppLink` com o telefone do lead
-  - Ao clicar enviar, registra em `lead_interacoes` (insert direto via supabase) com `tipo='whatsapp'`, `canal='whatsapp'`, `direcao='saida'`
-  - Se telefone não cadastrado, exibe aviso com sugestão de editar o lead
+### 2. Atualizar tipo `WhatsAppTemplate` em `src/types/whatsapp.ts`
+- Adicionar `export type TemplateTipo = 'primeiro_contato' | 'follow_up' | 'proposta' | 'geral';`
+- Adicionar campo `tipo: TemplateTipo` na interface `WhatsAppTemplate`
 
-**2. Editar `src/components/leads/LeadDetailsDialog.tsx`**
-- Importar `LeadMensagensTab` e ícone `MessageCircle`
-- Adicionar `<TabsTrigger value="mensagens">Mensagens</TabsTrigger>` ao TabsList (ajustar grid-cols)
-- Adicionar `<TabsContent value="mensagens">` renderizando `<LeadMensagensTab leadId={lead.id} telefone={lead.telefone} />`
-- Preservar todas as abas e lógica existente intactas
+### 3. Atualizar dialog de criação/edição `WhatsAppTemplateDialog.tsx`
+- Adicionar select de "Tipo" com opções: Primeiro contato, Follow-up, Proposta, Geral
+- Incluir `tipo` no `handleSave`
 
-### Arquivos
-- **Criado**: `src/components/leads/LeadMensagensTab.tsx`
-- **Editado**: `src/components/leads/LeadDetailsDialog.tsx`
+### 4. Atualizar listagem `src/pages/comunicacao/Templates.tsx`
+- Exibir coluna "Tipo" na tabela
+- Opcionalmente filtrar por tipo
 
-Nenhuma alteração de banco necessária — `lead_interacoes` já existe com as colunas necessárias e RLS permite INSERT para autenticados.
+### 5. Atualizar `useWhatsAppTemplates` hook
+- Aceitar filtro `tipo` nas queries
+
+### 6. Adicionar botão "Primeiro Contato" no `LeadDetailsDialog.tsx`
+- Quando `lead.estagio === 'novo'`, exibir botão no header do dialog
+- Ao clicar: buscar template com `tipo = 'primeiro_contato'` e `ativo = true`
+- Substituir variáveis `{{nome_cliente}}` e `{{tipo_processo}}` com dados do lead
+- Chamar `openWhatsAppLink` com telefone e mensagem processada
+- Registrar interação em `lead_interacoes`
+- Se não houver template desse tipo, exibir toast orientando criar em Administrativo > Modelos
+
+### 7. Adicionar botão no `LeadCard.tsx` (kanban)
+- Para leads com `estagio === 'novo'`, exibir ícone de WhatsApp como ação rápida no card
+
+### Arquivos editados
+- **Migration**: adicionar coluna `tipo`
+- `src/types/whatsapp.ts` — novo tipo + campo
+- `src/hooks/useWhatsAppTemplates.ts` — filtro por tipo
+- `src/components/comunicacao/WhatsAppTemplateDialog.tsx` — select de tipo
+- `src/pages/comunicacao/Templates.tsx` — coluna tipo na tabela
+- `src/components/leads/LeadDetailsDialog.tsx` — botão primeiro contato
+- `src/components/leads/LeadCard.tsx` — ação rápida (opcional)
 
