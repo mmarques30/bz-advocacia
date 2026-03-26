@@ -1,28 +1,46 @@
 
 
-## Identificação e filtro de clientes sem WhatsApp
+## Visibilidade de clientes sem processos vinculados
 
-### Alterações
+### 1. `src/hooks/useDashboardPrincipal.ts`
+- Adicionar query para contar clientes sem processo: clientes com `estagio = 'fechado'` cujo `id` não aparece em `processos.lead_id`
+- Adicionar campo `clientesSemProcesso: number` ao `DashboardPrincipalData`
+- Implementação: buscar todos os IDs de clientes ativos, buscar todos os `lead_id` distintos de processos, calcular a diferença
 
-**1. `src/components/clientes/ClientesFilters.tsx`**
-- Adicionar `semWhatsapp: boolean` ao `ClientesFiltersType`
-- Adicionar seção "Dados Cadastrais" antes dos demais filtros com checkbox "Sem WhatsApp cadastrado"
-- Incluir no `handleClearFilters` e no count de filtros ativos
+### 2. `src/pages/Dashboard.tsx`
+- No KPI "Clientes ativos", alterar o `context` para incluir contagem de clientes sem processo
+- Tornar o subtexto clicável com `useNavigate` para `/dashboard/clientes?semProcesso=true`
 
-**2. `src/pages/Clientes.tsx`**
-- Adicionar `semWhatsapp: false` ao estado inicial de filtros
-- Aplicar filtro client-side no `filteredLeads`: quando `semWhatsapp === true`, filtrar leads onde `!lead.telefone || lead.telefone.trim() === ''`
-- Incluir `clientesFilters.semWhatsapp` no cálculo de `activeFiltersCount`
+### 3. `src/components/dashboard/DashboardKPIStrip.tsx`
+- Alterar o campo `context` para aceitar `ReactNode` (em vez de apenas string) ou adicionar campo `contextLink?: string`
+- Quando `contextLink` presente, renderizar o contexto como link clicável
 
-**3. `src/components/leads/ClientesTable.tsx`**
-- Importar `AlertTriangle` do lucide-react e `Tooltip/TooltipTrigger/TooltipContent/TooltipProvider` do ui
-- Na coluna Nome: exibir ícone `AlertTriangle` (amarelo, pequeno) ao lado do nome quando `!lead.telefone`, com tooltip "WhatsApp não cadastrado"
-- Na coluna WhatsApp: quando telefone vazio, em vez de `-`, exibir o botão `MessageCircle` desabilitado (opacity reduzida) com tooltip "WhatsApp não cadastrado — edite o cliente para adicionar"
+### 4. `src/components/clientes/ClientesFilters.tsx`
+- Adicionar `semProcesso: boolean` ao `ClientesFiltersType`
+- Adicionar checkbox "Sem processo vinculado" na seção "Dados Cadastrais"
+- Incluir no `handleClearFilters`
+
+### 5. `src/pages/Clientes.tsx`
+- Adicionar `semProcesso: false` ao estado inicial
+- Ler query param `?semProcesso=true` da URL para inicializar o filtro
+- Buscar IDs de clientes com processos via query separada (`processos` → `lead_id` distintos)
+- No `filteredLeads`, quando `semProcesso === true`, filtrar leads cujo `id` não está no set de `lead_id`s
+- Incluir no `activeFiltersCount`
+
+### 6. `src/components/leads/LeadDetailsDialog.tsx`
+- Para clientes (`isCliente === true`), buscar contagem de processos via query rápida `processos.select('id', { count: 'exact', head: true }).eq('lead_id', lead.id)`
+- Quando count === 0, exibir alerta âmbar antes das tabs:
+  - Ícone `AlertTriangle` + texto "Este cliente não possui processos ativos. Considere atualizar o status para Concluído."
+  - Botão "Marcar como Concluído" que atualiza `contact_submissions.status_cliente` para `'inativo'`
+  - Toast de confirmação após salvar
 
 ### Arquivos editados
-- `src/components/clientes/ClientesFilters.tsx`
-- `src/pages/Clientes.tsx`
-- `src/components/leads/ClientesTable.tsx`
+- `src/hooks/useDashboardPrincipal.ts` — novo campo `clientesSemProcesso`
+- `src/pages/Dashboard.tsx` — subtexto clicável no KPI
+- `src/components/dashboard/DashboardKPIStrip.tsx` — suporte a link no contexto
+- `src/components/clientes/ClientesFilters.tsx` — checkbox "Sem processo vinculado"
+- `src/pages/Clientes.tsx` — lógica de filtro + leitura de query param
+- `src/components/leads/LeadDetailsDialog.tsx` — alerta âmbar + ação rápida
 
 Nenhuma alteração de banco necessária.
 
