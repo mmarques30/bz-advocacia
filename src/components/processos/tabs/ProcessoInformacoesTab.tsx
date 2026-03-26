@@ -45,6 +45,14 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
       });
     }
 
+    if (editData.extrajudicial !== processo.extrajudicial) {
+      auditFields.push({
+        campo: "extrajudicial",
+        anterior: processo.extrajudicial ? "Sim" : "Não",
+        novo: editData.extrajudicial ? "Sim" : "Não",
+      });
+    }
+
     await updateProcesso.mutateAsync(editData);
 
     // Record audit entries
