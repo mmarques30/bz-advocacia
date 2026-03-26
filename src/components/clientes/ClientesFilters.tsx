@@ -20,6 +20,7 @@ export interface ClientesFiltersType {
   statusCliente: StatusCliente[];
   statusProcesso: string[];
   semWhatsapp: boolean;
+  semProcesso: boolean;
 }
 
 interface ClientesFiltersProps {
@@ -50,6 +51,7 @@ export function ClientesFilters({
       statusCliente: [],
       statusProcesso: [],
       semWhatsapp: false,
+      semProcesso: false,
     });
   };
 
@@ -107,6 +109,18 @@ export function ClientesFilters({
                   />
                   <Label htmlFor="sem-whatsapp" className="cursor-pointer">
                     Sem WhatsApp cadastrado
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="sem-processo"
+                    checked={filters.semProcesso}
+                    onCheckedChange={(checked) =>
+                      onFiltersChange({ ...filters, semProcesso: checked === true })
+                    }
+                  />
+                  <Label htmlFor="sem-processo" className="cursor-pointer">
+                    Sem processo vinculado
                   </Label>
                 </div>
               </div>

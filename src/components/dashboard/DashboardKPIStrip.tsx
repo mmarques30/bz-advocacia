@@ -1,10 +1,12 @@
+import { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface KPICell {
   title: string;
   value: number;
-  context: string;
+  context: ReactNode;
   contextColor?: "destructive" | "amber" | "green" | "muted";
+  contextLink?: string;
 }
 
 interface Props {
@@ -38,9 +40,9 @@ export function DashboardKPIStrip({ cells, loading }: Props) {
               <p className="text-2xl font-bold text-foreground leading-tight mt-0.5">
                 {cell.value}
               </p>
-              <p className={`text-xs mt-0.5 truncate ${colorMap[cell.contextColor || "muted"]}`}>
+              <div className={`text-xs mt-0.5 truncate ${colorMap[cell.contextColor || "muted"]}`}>
                 {cell.context}
-              </p>
+              </div>
             </>
           )}
         </div>
