@@ -205,58 +205,62 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="tribunal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tribunal</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TRIBUNAIS_OPCOES.map((tribunal) => (
-                          <SelectItem key={tribunal} value={tribunal}>
-                            {tribunal}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!isExtrajudicial && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="tribunal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tribunal</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TRIBUNAIS_OPCOES.map((tribunal) => (
+                              <SelectItem key={tribunal} value={tribunal}>
+                                {tribunal}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="comarca"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Comarca</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="comarca"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comarca</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="vara"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vara</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="vara"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vara</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
 
               <FormField
                 control={form.control}
