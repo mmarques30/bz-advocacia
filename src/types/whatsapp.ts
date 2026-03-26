@@ -1,6 +1,15 @@
 export type WhatsAppProvider = 'meta' | 'twilio' | 'zenvia';
 
+export type TemplateTipo = 'primeiro_contato' | 'follow_up' | 'proposta' | 'geral';
+
 export type TemplateCategoria = 
+  | 'andamento' 
+  | 'audiencia' 
+  | 'sentenca' 
+  | 'geral' 
+  | 'cobranca'
+  | 'documento'
+  | 'prazo';
   | 'andamento' 
   | 'audiencia' 
   | 'sentenca' 
