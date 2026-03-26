@@ -329,7 +329,7 @@ export function ProcessosTable({
             <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir o processo{" "}
-              <strong>{processoToDelete?.numero_processo || "sem número"}</strong>?
+              <strong>{processoToDelete?.extrajudicial ? processoToDelete?.codigo_interno : (processoToDelete?.numero_processo || "sem número")}</strong>?
               <br />
               <span className="text-destructive">Esta ação não pode ser desfeita.</span>
             </AlertDialogDescription>
