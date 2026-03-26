@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,12 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
-import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle } from "lucide-react";
+import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle, MessageSquare } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { supabase } from "@/integrations/supabase/client";
+import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { processarTemplate } from "@/types/whatsapp";
+import { openWhatsAppLink } from "@/lib/whatsappUtils";
+import { toast } from "@/hooks/use-toast";
 
 interface LeadDetailsDialogProps {
   open: boolean;
@@ -27,6 +33,46 @@ interface LeadDetailsDialogProps {
 
 export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false }: LeadDetailsDialogProps) {
   const diasParado = lead?.dias_parado || 0;
+  const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
+
+  const { data: templatesPrimeiroContato } = useWhatsAppTemplates({ 
+    tipo: 'primeiro_contato', 
+    ativo: true 
+  });
+
+  const handlePrimeiroContato = async () => {
+    if (!lead) return;
+    const template = templatesPrimeiroContato?.[0];
+    if (!template) {
+      toast({
+        title: "Modelo não encontrado",
+        description: "Crie um modelo do tipo 'Primeiro Contato' em Administrativo > Modelos",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!lead.telefone) {
+      toast({ title: "Telefone não cadastrado", variant: "destructive" });
+      return;
+    }
+    setSendingPrimeiroContato(true);
+    const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
+      ? lead.outro_tipo_processo : lead.tipo_processo;
+    const mensagem = processarTemplate(template.mensagem, {
+      nome_cliente: lead.nome_completo,
+      tipo_processo: tipoServico,
+    });
+    openWhatsAppLink(lead.telefone, mensagem);
+    await supabase.from("lead_interacoes").insert({
+      lead_id: lead.id,
+      tipo: "whatsapp",
+      canal: "whatsapp",
+      direcao: "saida",
+      mensagem,
+    });
+    setSendingPrimeiroContato(false);
+    toast({ title: "Mensagem de primeiro contato enviada" });
+  };
 
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
