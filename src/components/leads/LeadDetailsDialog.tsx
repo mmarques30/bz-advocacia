@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
-import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList } from "lucide-react";
+import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
+import { LeadMensagensTab } from "./LeadMensagensTab";
 
 interface LeadDetailsDialogProps {
   open: boolean;
@@ -90,7 +91,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-6' : 'grid-cols-3'}`}>
+              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-7' : 'grid-cols-4'}`}>
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
                 {isCliente && <TabsTrigger value="contratos">Contratos</TabsTrigger>}
@@ -100,6 +101,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     Tarefas
                   </TabsTrigger>
                 )}
+                <TabsTrigger value="mensagens" className="flex items-center gap-1">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Mensagens
+                </TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 <TabsTrigger value="notas">Notas</TabsTrigger>
               </TabsList>
@@ -244,6 +249,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   <ClienteTarefasTab leadId={lead.id} />
                 </TabsContent>
               )}
+
+              <TabsContent value="mensagens" className="mt-4">
+                <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} />
+              </TabsContent>
 
               <TabsContent value="documentos" className="mt-4">
                 {lead.documentos && lead.documentos.length > 0 ? (
