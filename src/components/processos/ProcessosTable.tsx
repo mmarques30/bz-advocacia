@@ -73,7 +73,16 @@ function ProcessoRow({
   return (
     <TableRow>
       <TableCell className="font-mono text-sm">
-        {processo.numero_processo || "Sem número"}
+        <div className="flex items-center gap-2">
+          {processo.extrajudicial ? (
+            <>
+              <span>{processo.codigo_interno || "Sem código"}</span>
+              <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">Extrajudicial</Badge>
+            </>
+          ) : (
+            processo.numero_processo || "Sem número"
+          )}
+        </div>
       </TableCell>
 
       <TableCell>

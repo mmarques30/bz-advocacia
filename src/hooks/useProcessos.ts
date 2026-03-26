@@ -38,11 +38,11 @@ export function useProcessos(filters: ProcessosFilters) {
 
         if (clientIds.length > 0) {
           query = query.or(
-            `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%,lead_id.in.(${clientIds.join(",")})`
+            `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%,codigo_interno.ilike.%${filters.search}%,lead_id.in.(${clientIds.join(",")})`
           );
         } else {
           query = query.or(
-            `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%`
+            `numero_processo.ilike.%${filters.search}%,tipo.ilike.%${filters.search}%,codigo_interno.ilike.%${filters.search}%`
           );
         }
       }

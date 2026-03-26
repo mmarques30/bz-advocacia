@@ -12,6 +12,7 @@ import { ProcessoFinanceiroTab } from "./tabs/ProcessoFinanceiroTab";
 import { ProcessoHistoricoTab } from "./tabs/ProcessoHistoricoTab";
 import { ProcessoComunicacaoTab } from "./tabs/ProcessoComunicacaoTab";
 import { Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface ProcessoDetailsDialogProps {
   processoId: string | null;
@@ -51,8 +52,15 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isLoading ? "Carregando..." : `Processo ${processo?.numero_processo || processo?.tipo}`}
+          <DialogTitle className="flex items-center gap-2">
+            {isLoading ? "Carregando..." : (
+              <>
+                Processo {processo?.extrajudicial ? processo?.codigo_interno : (processo?.numero_processo || processo?.tipo)}
+                {processo?.extrajudicial && (
+                  <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">Extrajudicial</Badge>
+                )}
+              </>
+            )}
           </DialogTitle>
         </DialogHeader>
 
