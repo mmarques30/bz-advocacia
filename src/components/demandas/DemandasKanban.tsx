@@ -3,25 +3,37 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { DemandaCard } from "./DemandaCard";
-import { Demanda, STATUS_LABELS } from "@/types/demandas";
+import { Demanda } from "@/types/demandas";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+
+const DEFAULT_COLUMNS = [
+  { key: 'pendente', label: 'Pendente', color: 'bg-yellow-500' },
+  { key: 'em_andamento', label: 'Em Andamento', color: 'bg-blue-500' },
+  { key: 'concluido', label: 'Concluído', color: 'bg-green-500' },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  pendente: 'bg-yellow-500',
+  em_andamento: 'bg-blue-500',
+  concluido: 'bg-green-500',
+  cancelado: 'bg-red-500',
+};
 
 interface DemandasKanbanProps {
-  demandas: {
-    pendente: Demanda[];
-    em_andamento: Demanda[];
-    concluido: Demanda[];
-  } | undefined;
+  demandas: Record<string, Demanda[]> | undefined;
   loading: boolean;
   onSelectDemanda: (demanda: Demanda) => void;
 }
 
-const columns = [
-  { key: 'pendente', label: 'Pendente', color: 'bg-yellow-500' },
-  { key: 'em_andamento', label: 'Em Andamento', color: 'bg-blue-500' },
-  { key: 'concluido', label: 'Concluído', color: 'bg-green-500' },
-] as const;
-
 export const DemandasKanban = ({ demandas, loading, onSelectDemanda }: DemandasKanbanProps) => {
+  const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
+
+  const columns = statusDb && statusDb.length > 0
+    ? statusDb
+        .filter(s => s.valor !== 'cancelado')
+        .map(s => ({ key: s.valor, label: s.label, color: STATUS_COLORS[s.valor] || 'bg-gray-500' }))
+    : DEFAULT_COLUMNS;
+
   if (loading) {
     return (
       <div className="grid gap-4 md:grid-cols-3">
@@ -42,7 +54,7 @@ export const DemandasKanban = ({ demandas, loading, onSelectDemanda }: DemandasK
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className={`grid gap-4 md:grid-cols-${Math.min(columns.length, 4)}`} style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}>
       {columns.map((column) => {
         const columnDemandas = demandas?.[column.key] || [];
         

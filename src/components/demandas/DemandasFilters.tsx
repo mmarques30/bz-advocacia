@@ -5,6 +5,13 @@ import { DemandasFilters as FiltersType } from "@/types/demandas";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 
+const DEFAULT_STATUSES = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'em_andamento', label: 'Em Andamento' },
+  { value: 'concluido', label: 'Concluído' },
+  { value: 'cancelado', label: 'Cancelado' },
+];
+
 interface DemandasFiltersProps {
   filters: FiltersType;
   onFilterChange: (key: string, value: string) => void;
@@ -12,7 +19,12 @@ interface DemandasFiltersProps {
 
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
+  const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
   const advogadaLabels = useAdvogadaLabels();
+
+  const statuses = statusDb && statusDb.length > 0
+    ? statusDb.map(o => ({ value: o.valor, label: o.label }))
+    : DEFAULT_STATUSES;
 
   const categorias = categoriasDb && categoriasDb.length > 0
     ? categoriasDb.map(o => ({ value: o.valor, label: o.label }))
@@ -57,10 +69,9 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="todos">Todos os status</SelectItem>
-          <SelectItem value="pendente">Pendente</SelectItem>
-          <SelectItem value="em_andamento">Em Andamento</SelectItem>
-          <SelectItem value="concluido">Concluído</SelectItem>
-          <SelectItem value="cancelado">Cancelado</SelectItem>
+          {statuses.map((s) => (
+            <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

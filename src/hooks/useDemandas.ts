@@ -121,16 +121,12 @@ export const useDemandasByStatus = () => {
 
       if (error) throw error;
 
-      const grouped = {
-        pendente: [] as Demanda[],
-        em_andamento: [] as Demanda[],
-        concluido: [] as Demanda[],
-      };
+      const grouped: Record<string, Demanda[]> = {};
 
       (data as Demanda[])?.forEach((demanda) => {
-        if (demanda.status === 'pendente') grouped.pendente.push(demanda);
-        else if (demanda.status === 'em_andamento') grouped.em_andamento.push(demanda);
-        else if (demanda.status === 'concluido') grouped.concluido.push(demanda);
+        const status = demanda.status || 'pendente';
+        if (!grouped[status]) grouped[status] = [];
+        grouped[status].push(demanda);
       });
 
       return grouped;
