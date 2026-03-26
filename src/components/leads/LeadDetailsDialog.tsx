@@ -123,7 +123,20 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     </Badge>
                   </DialogDescription>
                 </div>
-                <Button onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
+                <div className="flex gap-2">
+                  {!isCliente && lead.estagio === 'novo' && (
+                    <Button 
+                      variant="outline" 
+                      onClick={handlePrimeiroContato}
+                      disabled={sendingPrimeiroContato}
+                      className="gap-1.5"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Primeiro Contato
+                    </Button>
+                  )}
+                  <Button onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
+                </div>
               </div>
             </DialogHeader>
 
