@@ -3241,6 +3241,7 @@ export type Database = {
           id: string
           mensagem: string
           nome: string
+          tipo: string | null
           total_envios: number | null
           updated_at: string | null
           usado_ultima_vez: string | null
@@ -3254,6 +3255,7 @@ export type Database = {
           id?: string
           mensagem: string
           nome: string
+          tipo?: string | null
           total_envios?: number | null
           updated_at?: string | null
           usado_ultima_vez?: string | null
@@ -3267,6 +3269,7 @@ export type Database = {
           id?: string
           mensagem?: string
           nome?: string
+          tipo?: string | null
           total_envios?: number | null
           updated_at?: string | null
           usado_ultima_vez?: string | null

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, MoreHorizontal, Pencil, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { useWhatsAppTemplates, useDeleteWhatsAppTemplate, useToggleWhatsAppTemplateStatus } from "@/hooks/useWhatsAppTemplates";
-import { TemplateCategoria } from "@/types/whatsapp";
+import { TemplateCategoria, TemplateTipo } from "@/types/whatsapp";
 import { WhatsAppTemplateDialog } from "@/components/comunicacao/WhatsAppTemplateDialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,13 @@ const categoriasLabels: Record<TemplateCategoria, string> = {
   prazo: "Prazo",
   geral: "Geral",
   cobranca: "Cobrança",
+};
+
+const tipoLabels: Record<TemplateTipo, string> = {
+  primeiro_contato: "Primeiro Contato",
+  follow_up: "Follow-up",
+  proposta: "Proposta",
+  geral: "Geral",
 };
 
 export default function Templates() {
@@ -129,6 +136,7 @@ export default function Templates() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Categoria</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead className="w-[80px]">Ações</TableHead>
@@ -141,6 +149,11 @@ export default function Templates() {
                   <TableCell>
                     <Badge variant="outline">
                       {categoriasLabels[template.categoria] || template.categoria}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">
+                      {tipoLabels[(template as any).tipo] || "Geral"}
                     </Badge>
                   </TableCell>
                   <TableCell>

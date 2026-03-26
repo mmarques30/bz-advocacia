@@ -1,5 +1,7 @@
 export type WhatsAppProvider = 'meta' | 'twilio' | 'zenvia';
 
+export type TemplateTipo = 'primeiro_contato' | 'follow_up' | 'proposta' | 'geral';
+
 export type TemplateCategoria = 
   | 'andamento' 
   | 'audiencia' 
@@ -34,6 +36,7 @@ export interface WhatsAppTemplate {
   id: string;
   nome: string;
   categoria: TemplateCategoria;
+  tipo: TemplateTipo;
   mensagem: string;
   variaveis: string[];
   ativo: boolean;
