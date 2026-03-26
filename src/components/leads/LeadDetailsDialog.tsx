@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
+import { LeadMensagensTab } from "./LeadMensagensTab";
 
 interface LeadDetailsDialogProps {
   open: boolean;
