@@ -20,7 +20,15 @@ import { SubtarefasList } from "./SubtarefasList";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { ProcessoSearchInput } from "./ProcessoSearchInput";
 import { useIsAdvogada } from "@/hooks/useIsAdvogada";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 import { toast } from "sonner";
+
+const DEFAULT_STATUSES = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'em_andamento', label: 'Em Andamento' },
+  { value: 'concluido', label: 'Concluído' },
+  { value: 'cancelado', label: 'Cancelado' },
+];
 
 interface DemandaDetailsDialogProps {
   demanda: Demanda | null;
