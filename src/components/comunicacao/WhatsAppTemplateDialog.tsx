@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { WhatsAppTemplate, TemplateCategoria, VARIAVEIS_DISPONIVEIS, extrairVariaveis, processarTemplate } from "@/types/whatsapp";
+import { WhatsAppTemplate, TemplateCategoria, TemplateTipo, VARIAVEIS_DISPONIVEIS, extrairVariaveis, processarTemplate } from "@/types/whatsapp";
 import { useCreateWhatsAppTemplate, useUpdateWhatsAppTemplate } from "@/hooks/useWhatsAppTemplates";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ interface WhatsAppTemplateDialogProps {
 export function WhatsAppTemplateDialog({ open, onOpenChange, template }: WhatsAppTemplateDialogProps) {
   const [nome, setNome] = useState("");
   const [categoria, setCategoria] = useState<TemplateCategoria>("geral");
+  const [tipo, setTipo] = useState<TemplateTipo>("geral");
   const [mensagem, setMensagem] = useState("");
 
   const createTemplate = useCreateWhatsAppTemplate();
@@ -29,10 +30,12 @@ export function WhatsAppTemplateDialog({ open, onOpenChange, template }: WhatsAp
     if (template) {
       setNome(template.nome);
       setCategoria(template.categoria);
+      setTipo(template.tipo || "geral");
       setMensagem(template.mensagem);
     } else {
       setNome("");
       setCategoria("geral");
+      setTipo("geral");
       setMensagem("");
     }
   }, [template, open]);
@@ -45,6 +48,7 @@ export function WhatsAppTemplateDialog({ open, onOpenChange, template }: WhatsAp
         id: template.id,
         nome,
         categoria,
+        tipo,
         mensagem,
         variaveis,
       }, {
@@ -54,6 +58,7 @@ export function WhatsAppTemplateDialog({ open, onOpenChange, template }: WhatsAp
       createTemplate.mutate({
         nome,
         categoria,
+        tipo,
         mensagem,
         variaveis,
         ativo: true,

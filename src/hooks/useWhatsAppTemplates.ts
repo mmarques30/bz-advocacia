@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppTemplate, TemplateCategoria } from "@/types/whatsapp";
+import { WhatsAppTemplate, TemplateCategoria, TemplateTipo } from "@/types/whatsapp";
 import { toast } from "@/hooks/use-toast";
 
 interface TemplateFilters {
   busca?: string;
   categoria?: TemplateCategoria;
+  tipo?: TemplateTipo;
   ativo?: boolean;
 }
 
@@ -28,6 +29,10 @@ export function useWhatsAppTemplates(filters?: TemplateFilters) {
 
       if (filters?.ativo !== undefined) {
         query = query.eq("ativo", filters.ativo);
+      }
+
+      if (filters?.tipo) {
+        query = query.eq("tipo", filters.tipo);
       }
 
       const { data, error } = await query;
