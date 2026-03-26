@@ -357,7 +357,7 @@ export const useCanEditProcesso = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .in("role", ["admin", "moderator"]);
+        .eq("role", "admin");
 
       if (error) {
         console.error("Erro ao verificar permissão:", error);
