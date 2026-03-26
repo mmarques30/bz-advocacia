@@ -2403,6 +2403,45 @@ export type Database = {
         }
         Relationships: []
       }
+      senhas_sistema: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          observacoes: string | null
+          senha: string
+          titulo: string
+          updated_at: string | null
+          url: string | null
+          usuario: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          senha: string
+          titulo: string
+          updated_at?: string | null
+          url?: string | null
+          usuario?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          observacoes?: string | null
+          senha?: string
+          titulo?: string
+          updated_at?: string | null
+          url?: string | null
+          usuario?: string | null
+        }
+        Relationships: []
+      }
       sheet_leads_raw: {
         Row: {
           ad_id: string | null
@@ -2803,6 +2842,42 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      treinamentos: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          created_at: string | null
+          created_by: string | null
+          descricao: string | null
+          drive_url: string
+          id: string
+          ordem: number | null
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          drive_url: string
+          id?: string
+          ordem?: number | null
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          descricao?: string | null
+          drive_url?: string
+          id?: string
+          ordem?: number | null
+          titulo?: string
+        }
+        Relationships: []
       }
       user_invites: {
         Row: {

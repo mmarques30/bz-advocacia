@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Sparkles, Zap } from "lucide-react";
+import { BookOpen, Sparkles, Video, Zap } from "lucide-react";
 import GuiaDeUso from "./GuiaDeUso";
 import Atualizacoes from "./Atualizacoes";
 import Automacoes from "./Automacoes";
+import Treinamentos from "./Treinamentos";
 
 export default function Controle() {
   return (
@@ -10,7 +11,7 @@ export default function Controle() {
       <div>
         <h1 className="text-3xl font-bold">Controle</h1>
         <p className="text-muted-foreground mt-2">
-          Guia de uso, atualizações do sistema e automações
+          Guia de uso, atualizações do sistema, treinamentos e automações
         </p>
       </div>
 
@@ -19,6 +20,10 @@ export default function Controle() {
           <TabsTrigger value="guia" className="gap-2">
             <BookOpen className="h-4 w-4" />
             Guia de Uso
+          </TabsTrigger>
+          <TabsTrigger value="treinamentos" className="gap-2">
+            <Video className="h-4 w-4" />
+            Treinamentos
           </TabsTrigger>
           <TabsTrigger value="atualizacoes" className="gap-2">
             <Sparkles className="h-4 w-4" />
@@ -32,6 +37,10 @@ export default function Controle() {
 
         <TabsContent value="guia">
           <GuiaDeUso />
+        </TabsContent>
+
+        <TabsContent value="treinamentos">
+          <Treinamentos />
         </TabsContent>
 
         <TabsContent value="atualizacoes">
