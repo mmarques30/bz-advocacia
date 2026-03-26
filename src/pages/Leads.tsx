@@ -249,7 +249,7 @@ function LeadsTab({
 
       {view === 'table' ? (
         <TooltipProvider>
-          <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} />
+          <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} enableBulkSelect={isAdsTab} />
         </TooltipProvider>
       ) : (
         <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
