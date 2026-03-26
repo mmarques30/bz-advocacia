@@ -10,13 +10,6 @@ export type TemplateCategoria =
   | 'cobranca'
   | 'documento'
   | 'prazo';
-  | 'andamento' 
-  | 'audiencia' 
-  | 'sentenca' 
-  | 'geral' 
-  | 'cobranca'
-  | 'documento'
-  | 'prazo';
 
 export type NotificacaoStatus = 
   | 'pendente' 
