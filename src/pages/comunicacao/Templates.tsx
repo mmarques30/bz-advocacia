@@ -155,10 +155,6 @@ export default function Templates() {
                     <Badge variant="secondary">
                       {tipoLabels[(template as any).tipo] || "Geral"}
                     </Badge>
-                  </TableCell>
-                      {categoriasLabels[template.categoria] || template.categoria}
-                    </Badge>
-                  </TableCell>
                   <TableCell>
                     <Badge variant={template.ativo ? "default" : "secondary"}>
                       {template.ativo ? "Ativo" : "Inativo"}
