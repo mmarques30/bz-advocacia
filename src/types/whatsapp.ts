@@ -36,7 +36,16 @@ export interface WhatsAppTemplate {
   id: string;
   nome: string;
   categoria: TemplateCategoria;
+  tipo: TemplateTipo;
   mensagem: string;
+  variaveis: string[];
+  ativo: boolean;
+  total_envios: number;
+  usado_ultima_vez?: string;
+  criado_por?: string;
+  created_at: string;
+  updated_at: string;
+}
   variaveis: string[];
   ativo: boolean;
   total_envios: number;
