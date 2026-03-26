@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Edit } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -44,6 +45,14 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
       });
     }
 
+    if (editData.extrajudicial !== processo.extrajudicial) {
+      auditFields.push({
+        campo: "extrajudicial",
+        anterior: processo.extrajudicial ? "Sim" : "Não",
+        novo: editData.extrajudicial ? "Sim" : "Não",
+      });
+    }
+
     await updateProcesso.mutateAsync(editData);
 
     // Record audit entries
@@ -67,7 +76,12 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
       <div className="space-y-6">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-lg font-semibold mb-1">{processo.numero_processo || "Sem número"}</h3>
+            <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+              {processo.extrajudicial ? processo.codigo_interno : processo.numero_processo || "Sem número"}
+              {processo.extrajudicial && (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">Extrajudicial</Badge>
+              )}
+            </h3>
             <Badge>{PROCESSO_STATUS_LABELS[processo.status]}</Badge>
           </div>
           {canEdit && (
@@ -155,13 +169,32 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Número do Processo</Label>
-          <Input
-            value={editData.numero_processo || ""}
-            onChange={(e) => setEditData({ ...editData, numero_processo: e.target.value })}
+        {/* Extrajudicial toggle */}
+        <div className="col-span-2 flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
+          <Checkbox
+            id="edit-extrajudicial"
+            checked={editData.extrajudicial || false}
+            onCheckedChange={(checked) => setEditData({ ...editData, extrajudicial: checked === true })}
           />
+          <Label htmlFor="edit-extrajudicial" className="cursor-pointer">
+            Processo extrajudicial (sem número CNJ)
+          </Label>
         </div>
+
+        {editData.extrajudicial ? (
+          <div>
+            <Label>Código Interno</Label>
+            <Input value={editData.codigo_interno || "Será gerado automaticamente"} disabled className="bg-muted" />
+          </div>
+        ) : (
+          <div>
+            <Label>Número do Processo</Label>
+            <Input
+              value={editData.numero_processo || ""}
+              onChange={(e) => setEditData({ ...editData, numero_processo: e.target.value })}
+            />
+          </div>
+        )}
 
         <div>
           <Label>Status</Label>
@@ -190,40 +223,44 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
           />
         </div>
 
-        <div>
-          <Label>Tribunal</Label>
-          <Select
-            value={editData.tribunal || ""}
-            onValueChange={(value) => setEditData({ ...editData, tribunal: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              {TRIBUNAIS_OPCOES.map((tribunal) => (
-                <SelectItem key={tribunal} value={tribunal}>
-                  {tribunal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!editData.extrajudicial && (
+          <>
+            <div>
+              <Label>Tribunal</Label>
+              <Select
+                value={editData.tribunal || ""}
+                onValueChange={(value) => setEditData({ ...editData, tribunal: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIBUNAIS_OPCOES.map((tribunal) => (
+                    <SelectItem key={tribunal} value={tribunal}>
+                      {tribunal}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div>
-          <Label>Comarca</Label>
-          <Input
-            value={editData.comarca || ""}
-            onChange={(e) => setEditData({ ...editData, comarca: e.target.value })}
-          />
-        </div>
+            <div>
+              <Label>Comarca</Label>
+              <Input
+                value={editData.comarca || ""}
+                onChange={(e) => setEditData({ ...editData, comarca: e.target.value })}
+              />
+            </div>
 
-        <div>
-          <Label>Vara</Label>
-          <Input
-            value={editData.vara || ""}
-            onChange={(e) => setEditData({ ...editData, vara: e.target.value })}
-          />
-        </div>
+            <div>
+              <Label>Vara</Label>
+              <Input
+                value={editData.vara || ""}
+                onChange={(e) => setEditData({ ...editData, vara: e.target.value })}
+              />
+            </div>
+          </>
+        )}
 
         <div>
           <Label>Parte Autora</Label>

@@ -15,6 +15,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, User } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const processoSchema = z.object({
   lead_id: z.string().min(1, "Cliente é obrigatório"),
@@ -43,6 +47,7 @@ interface NewProcessoDialogProps {
 export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialogProps) {
   const createProcesso = useCreateProcesso();
   const { data: clientes, isLoading: clientesLoading } = useClientes();
+  const [isExtrajudicial, setIsExtrajudicial] = useState(false);
 
   const form = useForm<ProcessoFormData>({
     resolver: zodResolver(processoSchema),
@@ -52,7 +57,29 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
     },
   });
 
+  const generateCodigoInterno = async () => {
+    const ano = new Date().getFullYear();
+    const { data } = await supabase
+      .from("processos")
+      .select("codigo_interno")
+      .ilike("codigo_interno", `EXT-${ano}-%`)
+      .order("codigo_interno", { ascending: false })
+      .limit(1);
+
+    let seq = 1;
+    if (data && data.length > 0 && data[0].codigo_interno) {
+      const parts = data[0].codigo_interno.split("-");
+      seq = parseInt(parts[2] || "0", 10) + 1;
+    }
+    return `EXT-${ano}-${String(seq).padStart(3, "0")}`;
+  };
+
   const onSubmit = async (data: ProcessoFormData) => {
+    let codigoInterno: string | null = null;
+    if (isExtrajudicial) {
+      codigoInterno = await generateCodigoInterno();
+    }
+
     await createProcesso.mutateAsync({
       ...data,
       lead_id: data.lead_id,
@@ -64,8 +91,15 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
       data_distribuicao: data.data_distribuicao 
         ? format(data.data_distribuicao, "yyyy-MM-dd") 
         : null,
+      extrajudicial: isExtrajudicial,
+      codigo_interno: codigoInterno,
+      numero_processo: isExtrajudicial ? null : data.numero_processo,
+      tribunal: isExtrajudicial ? null : data.tribunal,
+      comarca: isExtrajudicial ? null : data.comarca,
+      vara: isExtrajudicial ? null : data.vara,
     } as any);
     form.reset();
+    setIsExtrajudicial(false);
     onClose();
   };
 
@@ -121,20 +155,41 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="numero_processo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número do Processo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0000000-00.0000.0.00.0000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {/* Checkbox Extrajudicial */}
+            <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
+              <Checkbox
+                id="extrajudicial"
+                checked={isExtrajudicial}
+                onCheckedChange={(checked) => setIsExtrajudicial(checked === true)}
               />
+              <Label htmlFor="extrajudicial" className="cursor-pointer">
+                Processo extrajudicial (sem número CNJ)
+              </Label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {!isExtrajudicial && (
+                <FormField
+                  control={form.control}
+                  name="numero_processo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número do Processo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0000000-00.0000.0.00.0000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {isExtrajudicial && (
+                <div>
+                  <Label className="text-sm font-medium">Código Interno</Label>
+                  <Input value="Gerado automaticamente (EXT-ANO-SEQ)" disabled className="mt-2 bg-muted" />
+                </div>
+              )}
 
               <FormField
                 control={form.control}
@@ -150,58 +205,62 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="tribunal"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tribunal</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TRIBUNAIS_OPCOES.map((tribunal) => (
-                          <SelectItem key={tribunal} value={tribunal}>
-                            {tribunal}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!isExtrajudicial && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="tribunal"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tribunal</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione..." />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {TRIBUNAIS_OPCOES.map((tribunal) => (
+                              <SelectItem key={tribunal} value={tribunal}>
+                                {tribunal}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="comarca"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Comarca</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="comarca"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Comarca</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="vara"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vara</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  <FormField
+                    control={form.control}
+                    name="vara"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vara</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
 
               <FormField
                 control={form.control}

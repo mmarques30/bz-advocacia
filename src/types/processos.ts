@@ -29,6 +29,8 @@ export interface Processo {
   grau_tribunal: string | null;
   instancia: string | null;
   pasta_drive_url: string | null;
+  extrajudicial: boolean;
+  codigo_interno: string | null;
   
   // Relações
   cliente?: {

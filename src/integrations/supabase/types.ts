@@ -1895,12 +1895,14 @@ export type Database = {
       processos: {
         Row: {
           autor: string | null
+          codigo_interno: string | null
           comarca: string | null
           created_at: string | null
           data_distribuicao: string | null
           data_inicio: string
           data_prevista_conclusao: string | null
           data_ultima_atualizacao: string | null
+          extrajudicial: boolean | null
           grau_tribunal: string | null
           id: string
           instancia: string | null
@@ -1919,12 +1921,14 @@ export type Database = {
         }
         Insert: {
           autor?: string | null
+          codigo_interno?: string | null
           comarca?: string | null
           created_at?: string | null
           data_distribuicao?: string | null
           data_inicio: string
           data_prevista_conclusao?: string | null
           data_ultima_atualizacao?: string | null
+          extrajudicial?: boolean | null
           grau_tribunal?: string | null
           id?: string
           instancia?: string | null
@@ -1943,12 +1947,14 @@ export type Database = {
         }
         Update: {
           autor?: string | null
+          codigo_interno?: string | null
           comarca?: string | null
           created_at?: string | null
           data_distribuicao?: string | null
           data_inicio?: string
           data_prevista_conclusao?: string | null
           data_ultima_atualizacao?: string | null
+          extrajudicial?: boolean | null
           grau_tribunal?: string | null
           id?: string
           instancia?: string | null
