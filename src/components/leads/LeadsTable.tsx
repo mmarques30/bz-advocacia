@@ -1,4 +1,4 @@
-import { AlertTriangle, Eye, Edit, MoreVertical, Trash2 } from "lucide-react";
+import { AlertTriangle, Eye, Edit, MoreVertical, Trash2, CheckSquare, X } from "lucide-react";
 import { useState } from "react";
 import {
   Table,
@@ -26,6 +26,10 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useUpdateLeadStage, useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,12 +46,64 @@ interface LeadsTableProps {
   isLoading: boolean;
   onViewDetails: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
+  enableBulkSelect?: boolean;
 }
 
-export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTableProps) {
+export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulkSelect = false }: LeadsTableProps) {
   const updateStage = useUpdateLeadStage();
   const deleteLead = useDeleteLead();
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const queryClient = useQueryClient();
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (!leads) return;
+    if (selectedIds.size === leads.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(leads.map(l => l.id)));
+    }
+  };
+
+  const handleBulkStatusChange = async (estagio: string) => {
+    if (selectedIds.size === 0) return;
+    setBulkUpdating(true);
+    try {
+      const ids = [...selectedIds];
+      const { error } = await supabase
+        .from('contact_submissions')
+        .update({ estagio })
+        .in('id', ids);
+      if (error) throw error;
+
+      const interacoes = ids.map(id => ({
+        lead_id: id,
+        tipo: 'alteracao_em_lote',
+        canal: 'sistema',
+        mensagem: `Estágio alterado em lote para: ${LEAD_STATUS_LABELS[estagio] || estagio}`,
+        direcao: 'saida',
+        eh_bot: false,
+      }));
+      await supabase.from('lead_interacoes').insert(interacoes);
+
+      toast.success(`${ids.length} lead(s) atualizado(s) com sucesso`);
+      setSelectedIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } catch (err) {
+      toast.error("Erro ao atualizar leads em lote");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
 
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
@@ -102,126 +158,170 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit }: LeadsTab
   }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Origem</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Estágio</TableHead>
-            <TableHead>Situação</TableHead>
-            <TableHead>Data</TableHead>
-            <TableHead>Dias Parado</TableHead>
-            <TableHead className="w-[80px]">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leads.map((lead) => (
-            <TableRow key={lead.id}>
-              <TableCell className="font-medium">
-                <div className="flex items-center gap-2">
-                  {lead.dias_parado && lead.dias_parado > 7 && (
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                  )}
-                  <span className="truncate max-w-[200px]">
-                    {lead.nome_completo}
-                  </span>
-                </div>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
-                    {ORIGEM_LABELS[lead.origem] || lead.origem}
-                  </Badge>
-                  {lead.origem_descricao && (
-                    <span className="text-xs text-muted-foreground">{lead.origem_descricao}</span>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="capitalize">
-                {lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
-                  ? lead.outro_tipo_processo
-                  : lead.tipo_processo}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
-                  {LEAD_STATUS_LABELS[lead.estagio]}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {lead.status_cliente ? (
-                  <Badge 
-                    variant="outline" 
-                    className={lead.status_cliente === 'ativo' 
-                      ? "bg-green-100 text-green-800 border-green-200" 
-                      : "bg-gray-100 text-gray-800 border-gray-200"
-                    }
-                  >
-                    {lead.status_cliente === 'ativo' ? 'Ativo' : 'Inativo'}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground text-sm">-</span>
-                )}
-              </TableCell>
-              <TableCell>
-                {format(new Date(lead.created_at), "dd/MM/yyyy")}
-              </TableCell>
-              <TableCell>
-                <span className={cn(getDiasParadoColor(lead.dias_parado || 0))}>
-                  {lead.dias_parado || 0} dias
-                </span>
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onViewDetails(lead)}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => onEdit(lead)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>Alterar Estágio</DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        {Object.entries(LEAD_STATUS_LABELS).map(([key, label]) => (
-                          <DropdownMenuItem
-                            key={key}
-                            onClick={() => updateStage.mutate({ id: lead.id, estagio: key })}
-                            disabled={lead.estagio === key}
-                          >
-                            {label}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      onClick={() => setLeadToDelete(lead)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-2">
+      {enableBulkSelect && selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          <Badge variant="secondary" className="text-sm">
+            <CheckSquare className="h-3.5 w-3.5 mr-1" />
+            {selectedIds.size} lead(s) selecionado(s)
+          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" disabled={bulkUpdating}>
+                Alterar status
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {Object.entries(LEAD_STATUS_LABELS).map(([key, label]) => (
+                <DropdownMenuItem key={key} onClick={() => handleBulkStatusChange(key)}>
+                  {label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+            <X className="h-4 w-4 mr-1" />
+            Cancelar seleção
+          </Button>
+        </div>
+      )}
 
-      {/* Dialog de Confirmação de Exclusão */}
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {enableBulkSelect && (
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={leads.length > 0 && selectedIds.size === leads.length}
+                    onCheckedChange={toggleAll}
+                  />
+                </TableHead>
+              )}
+              <TableHead>Nome</TableHead>
+              <TableHead>Origem</TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Estágio</TableHead>
+              <TableHead>Situação</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Dias Parado</TableHead>
+              <TableHead className="w-[80px]">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {leads.map((lead) => (
+              <TableRow key={lead.id} className={cn(selectedIds.has(lead.id) && "bg-primary/5")}>
+                {enableBulkSelect && (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(lead.id)}
+                      onCheckedChange={() => toggleSelect(lead.id)}
+                    />
+                  </TableCell>
+                )}
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    {lead.dias_parado && lead.dias_parado > 7 && (
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                    )}
+                    <span className="truncate max-w-[200px]">
+                      {lead.nome_completo}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
+                      {ORIGEM_LABELS[lead.origem] || lead.origem}
+                    </Badge>
+                    {lead.origem_descricao && (
+                      <span className="text-xs text-muted-foreground">{lead.origem_descricao}</span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="capitalize">
+                  {lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
+                    ? lead.outro_tipo_processo
+                    : lead.tipo_processo}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
+                    {LEAD_STATUS_LABELS[lead.estagio]}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {lead.status_cliente ? (
+                    <Badge 
+                      variant="outline" 
+                      className={lead.status_cliente === 'ativo' 
+                        ? "bg-green-100 text-green-800 border-green-200" 
+                        : "bg-gray-100 text-gray-800 border-gray-200"
+                      }
+                    >
+                      {lead.status_cliente === 'ativo' ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {format(new Date(lead.created_at), "dd/MM/yyyy")}
+                </TableCell>
+                <TableCell>
+                  <span className={cn(getDiasParadoColor(lead.dias_parado || 0))}>
+                    {lead.dias_parado || 0} dias
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onViewDetails(lead)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(lead)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>Alterar Estágio</DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          {Object.entries(LEAD_STATUS_LABELS).map(([key, label]) => (
+                            <DropdownMenuItem
+                              key={key}
+                              onClick={() => updateStage.mutate({ id: lead.id, estagio: key })}
+                              disabled={lead.estagio === key}
+                            >
+                              {label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => setLeadToDelete(lead)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
       <AlertDialog open={!!leadToDelete} onOpenChange={(open) => !open && setLeadToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
