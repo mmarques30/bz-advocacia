@@ -16,6 +16,7 @@ const GRUPOS = [
   { key: 'tipo_processo' as const, label: 'Tipo de Processo' },
   { key: 'categoria_despesa' as const, label: 'Categoria de Despesas' },
   { key: 'categoria_tarefa' as const, label: 'Categoria de Tarefas' },
+  { key: 'status_tarefa' as const, label: 'Status de Tarefas' },
 ];
 
 function GrupoTab({ grupo }: { grupo: typeof GRUPOS[number] }) {
@@ -187,7 +188,7 @@ export default function ListasSuspensas() {
       <Card>
         <CardContent className="pt-6">
           <Tabs defaultValue="origem_lead">
-            <TabsList className="grid grid-cols-4 w-full">
+            <TabsList className="grid grid-cols-5 w-full">
               {GRUPOS.map((g) => (
                 <TabsTrigger key={g.key} value={g.key}>{g.label}</TabsTrigger>
               ))}
