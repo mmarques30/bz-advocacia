@@ -161,13 +161,32 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Número do Processo</Label>
-          <Input
-            value={editData.numero_processo || ""}
-            onChange={(e) => setEditData({ ...editData, numero_processo: e.target.value })}
+        {/* Extrajudicial toggle */}
+        <div className="col-span-2 flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
+          <Checkbox
+            id="edit-extrajudicial"
+            checked={editData.extrajudicial || false}
+            onCheckedChange={(checked) => setEditData({ ...editData, extrajudicial: checked === true })}
           />
+          <Label htmlFor="edit-extrajudicial" className="cursor-pointer">
+            Processo extrajudicial (sem número CNJ)
+          </Label>
         </div>
+
+        {editData.extrajudicial ? (
+          <div>
+            <Label>Código Interno</Label>
+            <Input value={editData.codigo_interno || "Será gerado automaticamente"} disabled className="bg-muted" />
+          </div>
+        ) : (
+          <div>
+            <Label>Número do Processo</Label>
+            <Input
+              value={editData.numero_processo || ""}
+              onChange={(e) => setEditData({ ...editData, numero_processo: e.target.value })}
+            />
+          </div>
+        )}
 
         <div>
           <Label>Status</Label>
