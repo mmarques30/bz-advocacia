@@ -250,6 +250,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 </TabsContent>
               )}
 
+              <TabsContent value="mensagens" className="mt-4">
+                <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} />
+              </TabsContent>
+
               <TabsContent value="documentos" className="mt-4">
                 {lead.documentos && lead.documentos.length > 0 ? (
                   <div className="space-y-2">
