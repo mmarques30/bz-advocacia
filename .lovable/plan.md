@@ -1,46 +1,46 @@
 
 
-## Adicionar campo "Tipo" nos modelos e botão "Primeiro Contato" nos leads
+## Suporte a processos extrajudiciais
 
-### 1. Migration: adicionar coluna `tipo` em `whatsapp_templates`
+### Alterações no banco
+Adicionar duas colunas à tabela `processos`:
 ```sql
-ALTER TABLE public.whatsapp_templates 
-ADD COLUMN tipo text DEFAULT 'geral';
+ALTER TABLE public.processos 
+  ADD COLUMN extrajudicial boolean DEFAULT false,
+  ADD COLUMN codigo_interno text;
 ```
-Valores possíveis: `primeiro_contato`, `follow_up`, `proposta`, `geral`.
 
-### 2. Atualizar tipo `WhatsAppTemplate` em `src/types/whatsapp.ts`
-- Adicionar `export type TemplateTipo = 'primeiro_contato' | 'follow_up' | 'proposta' | 'geral';`
-- Adicionar campo `tipo: TemplateTipo` na interface `WhatsAppTemplate`
+### Alterações no código
 
-### 3. Atualizar dialog de criação/edição `WhatsAppTemplateDialog.tsx`
-- Adicionar select de "Tipo" com opções: Primeiro contato, Follow-up, Proposta, Geral
-- Incluir `tipo` no `handleSave`
+**1. `src/types/processos.ts`** — Adicionar `extrajudicial` e `codigo_interno` à interface `Processo`
 
-### 4. Atualizar listagem `src/pages/comunicacao/Templates.tsx`
-- Exibir coluna "Tipo" na tabela
-- Opcionalmente filtrar por tipo
+**2. `src/hooks/useProcessos.ts`** — Na busca (filtro `search`), incluir `codigo_interno` no `.or()` junto com `numero_processo`
 
-### 5. Atualizar `useWhatsAppTemplates` hook
-- Aceitar filtro `tipo` nas queries
+**3. `src/components/processos/NewProcessoDialog.tsx`**
+- Adicionar checkbox "Processo extrajudicial" no topo do formulário
+- Quando marcado: ocultar campo `numero_processo`, campos tribunal/comarca/vara; exibir campo `Código interno` (read-only, gerado automaticamente)
+- Gerar código `EXT-[ANO]-[SEQ]` buscando o último código do ano no banco antes de inserir
+- Ao submeter, enviar `extrajudicial: true` e `codigo_interno` gerado
 
-### 6. Adicionar botão "Primeiro Contato" no `LeadDetailsDialog.tsx`
-- Quando `lead.estagio === 'novo'`, exibir botão no header do dialog
-- Ao clicar: buscar template com `tipo = 'primeiro_contato'` e `ativo = true`
-- Substituir variáveis `{{nome_cliente}}` e `{{tipo_processo}}` com dados do lead
-- Chamar `openWhatsAppLink` com telefone e mensagem processada
-- Registrar interação em `lead_interacoes`
-- Se não houver template desse tipo, exibir toast orientando criar em Administrativo > Modelos
+**4. `src/components/processos/ProcessosTable.tsx`**
+- Na coluna "Nº Processo": exibir `codigo_interno` + badge "Extrajudicial" quando `extrajudicial === true`, caso contrário exibir `numero_processo`
 
-### 7. Adicionar botão no `LeadCard.tsx` (kanban)
-- Para leads com `estagio === 'novo'`, exibir ícone de WhatsApp como ação rápida no card
+**5. `src/components/processos/ProcessoDetailsDialog.tsx`**
+- No título: usar `codigo_interno` quando extrajudicial, com badge
+
+**6. `src/components/processos/tabs/ProcessoInformacoesTab.tsx`**
+- No modo edição: exibir checkbox extrajudicial e campos condicionais (código interno read-only vs número do processo)
+- Auditar alteração do campo `extrajudicial`
+
+**7. `src/components/processos/ProcessosHeader.tsx`**
+- O placeholder de busca já menciona "número ou cliente", sem mudanças necessárias (a busca por `codigo_interno` é resolvida no hook)
 
 ### Arquivos editados
-- **Migration**: adicionar coluna `tipo`
-- `src/types/whatsapp.ts` — novo tipo + campo
-- `src/hooks/useWhatsAppTemplates.ts` — filtro por tipo
-- `src/components/comunicacao/WhatsAppTemplateDialog.tsx` — select de tipo
-- `src/pages/comunicacao/Templates.tsx` — coluna tipo na tabela
-- `src/components/leads/LeadDetailsDialog.tsx` — botão primeiro contato
-- `src/components/leads/LeadCard.tsx` — ação rápida (opcional)
+- Migration: 2 colunas novas
+- `src/types/processos.ts`
+- `src/hooks/useProcessos.ts`
+- `src/components/processos/NewProcessoDialog.tsx`
+- `src/components/processos/ProcessosTable.tsx`
+- `src/components/processos/ProcessoDetailsDialog.tsx`
+- `src/components/processos/tabs/ProcessoInformacoesTab.tsx`
 
