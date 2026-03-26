@@ -9,6 +9,9 @@ import { Edit } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useUpdateProcesso } from "@/hooks/useProcessos";
+import { useCanEditProcesso } from "@/hooks/useUsuarios";
+import { useCreateHistorico } from "@/hooks/useProcessoHistorico";
+import { toast } from "sonner";
 
 interface ProcessoInformacoesTabProps {
   processo: Processo;
@@ -18,9 +21,44 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState(processo);
   const updateProcesso = useUpdateProcesso();
+  const { data: canEdit } = useCanEditProcesso();
+  const createHistorico = useCreateHistorico();
 
   const handleSave = async () => {
+    // Log changes to audited fields
+    const auditFields: { campo: string; anterior: string; novo: string }[] = [];
+
+    if (editData.numero_processo !== processo.numero_processo) {
+      auditFields.push({
+        campo: "numero_processo",
+        anterior: processo.numero_processo || "",
+        novo: editData.numero_processo || "",
+      });
+    }
+
+    if (editData.valor !== processo.valor) {
+      auditFields.push({
+        campo: "valor",
+        anterior: processo.valor?.toString() || "",
+        novo: editData.valor?.toString() || "",
+      });
+    }
+
     await updateProcesso.mutateAsync(editData);
+
+    // Record audit entries
+    for (const field of auditFields) {
+      await createHistorico.mutateAsync({
+        processo_id: processo.id,
+        entidade_tipo: "processo",
+        acao: "editar",
+        campo_alterado: field.campo,
+        valor_anterior: field.anterior,
+        valor_novo: field.novo,
+      });
+    }
+
+    toast.success("Processo atualizado com sucesso");
     setIsEditing(false);
   };
 
@@ -32,10 +70,12 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
             <h3 className="text-lg font-semibold mb-1">{processo.numero_processo || "Sem número"}</h3>
             <Badge>{PROCESSO_STATUS_LABELS[processo.status]}</Badge>
           </div>
-          <Button size="sm" onClick={() => setIsEditing(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
+          {canEdit && (
+            <Button size="sm" onClick={() => setIsEditing(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
