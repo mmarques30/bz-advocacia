@@ -141,6 +141,21 @@ export function WhatsAppTemplateDialog({ open, onOpenChange, template }: WhatsAp
             </div>
 
             <div>
+              <Label htmlFor="tipo">Tipo *</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as TemplateTipo)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="primeiro_contato">Primeiro Contato</SelectItem>
+                  <SelectItem value="follow_up">Follow-up</SelectItem>
+                  <SelectItem value="proposta">Proposta</SelectItem>
+                  <SelectItem value="geral">Geral</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="mensagem">Mensagem *</Label>
               <Textarea
                 id="mensagem"
