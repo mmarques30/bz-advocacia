@@ -1,4 +1,4 @@
-import { Eye, Edit, MoreVertical, Trash2, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Eye, Edit, MoreVertical, Trash2, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { useState, useMemo } from "react";
 import {
   Table,
@@ -22,6 +22,7 @@ import { Lead, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
 import { useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -150,12 +151,22 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
           {sortedLeads.map((lead) => (
             <TableRow key={lead.id}>
               <TableCell className="font-medium">
-                <span className="truncate max-w-[200px]">
+                <span className="flex items-center gap-1.5 truncate max-w-[200px]">
                   {lead.nome_completo}
+                  {(!lead.telefone || lead.telefone.trim() === '') && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <AlertTriangle className="h-3.5 w-3.5 text-yellow-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>WhatsApp não cadastrado</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </span>
               </TableCell>
               <TableCell className="text-center">
-                {lead.telefone ? (
+                {lead.telefone && lead.telefone.trim() !== '' ? (
                   <Button
                     variant="ghost"
                     size="icon"
@@ -166,7 +177,21 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                     <MessageCircle className="h-5 w-5" />
                   </Button>
                 ) : (
-                  <span className="text-muted-foreground text-sm">-</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-40 cursor-not-allowed"
+                          disabled
+                        >
+                          <MessageCircle className="h-5 w-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>WhatsApp não cadastrado — edite o cliente para adicionar</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
               </TableCell>
               <TableCell>

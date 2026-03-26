@@ -27,6 +27,7 @@ export default function Clientes() {
     tipoProcesso: [],
     statusCliente: [],
     statusProcesso: [],
+    semWhatsapp: false,
   });
 
   // Converter filtros de clientes para o formato esperado pelo hook useLeads
@@ -43,15 +44,22 @@ export default function Clientes() {
 
   const { data: leads, isLoading } = useLeads(leadsFilters);
 
-  const filteredLeads = clienteFilterId
-    ? leads?.filter((l) => l.id === clienteFilterId)
-    : leads;
+  const filteredLeads = (() => {
+    let result = clienteFilterId
+      ? leads?.filter((l) => l.id === clienteFilterId)
+      : leads;
+    if (clientesFilters.semWhatsapp && result) {
+      result = result.filter((l) => !l.telefone || l.telefone.trim() === '');
+    }
+    return result;
+  })();
 
   const activeFiltersCount = [
     clientesFilters.origem.length > 0,
     clientesFilters.tipoProcesso.length > 0,
     clientesFilters.statusCliente.length > 0,
     clientesFilters.statusProcesso.length > 0,
+    clientesFilters.semWhatsapp,
   ].filter(Boolean).length;
 
   const handleViewDetails = (lead: Lead) => {

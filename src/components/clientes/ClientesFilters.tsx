@@ -19,6 +19,7 @@ export interface ClientesFiltersType {
   tipoProcesso: string[];
   statusCliente: StatusCliente[];
   statusProcesso: string[];
+  semWhatsapp: boolean;
 }
 
 interface ClientesFiltersProps {
@@ -48,6 +49,7 @@ export function ClientesFilters({
       tipoProcesso: [],
       statusCliente: [],
       statusProcesso: [],
+      semWhatsapp: false,
     });
   };
 
@@ -91,6 +93,27 @@ export function ClientesFilters({
 
         <ScrollArea className="h-[calc(100vh-200px)] pr-4 mt-6">
           <div className="space-y-6">
+            {/* Dados Cadastrais */}
+            <div className="space-y-3">
+              <h3 className="font-medium text-sm">Dados Cadastrais</h3>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="sem-whatsapp"
+                    checked={filters.semWhatsapp}
+                    onCheckedChange={(checked) =>
+                      onFiltersChange({ ...filters, semWhatsapp: checked === true })
+                    }
+                  />
+                  <Label htmlFor="sem-whatsapp" className="cursor-pointer">
+                    Sem WhatsApp cadastrado
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Situação do Cliente */}
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Situação do Cliente</h3>
