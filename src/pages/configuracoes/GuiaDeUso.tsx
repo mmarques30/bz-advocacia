@@ -1,6 +1,9 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookOpen, Users, Scale, DollarSign, Search, MessageSquare, Settings, FileText } from "lucide-react";
+import { BookOpen, Users, Scale, DollarSign, Search, MessageSquare, Settings, FileText, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import SenhasSistema from "./SenhasSistema";
 
 const guias = [
   {
@@ -86,6 +89,23 @@ const guias = [
 ];
 
 export default function GuiaDeUso() {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -129,6 +149,26 @@ export default function GuiaDeUso() {
               </AccordionItem>
             );
           })}
+
+          {isAdmin && (
+            <AccordionItem value="senhas" className="border-0">
+              <Card>
+                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-destructive/10">
+                      <Lock className="h-5 w-5 text-destructive" />
+                    </div>
+                    <span className="font-semibold text-lg">Senhas do Sistema</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <CardContent className="pt-0 pb-4">
+                    <SenhasSistema />
+                  </CardContent>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
+          )}
         </Accordion>
       </div>
     </div>

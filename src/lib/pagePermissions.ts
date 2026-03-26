@@ -78,6 +78,8 @@ export const PAGE_PERMISSIONS: PagePermission[] = [
       { key: "administrativo.cadastros", label: "Cadastros", parent: "administrativo" },
       { key: "administrativo.modelos", label: "Modelos", parent: "administrativo" },
       { key: "administrativo.controle", label: "Controle", parent: "administrativo" },
+      { key: "administrativo.treinamentos", label: "Treinamentos", parent: "administrativo" },
+      { key: "administrativo.senhas", label: "Senhas do Sistema", parent: "administrativo" },
     ],
   },
 ];
