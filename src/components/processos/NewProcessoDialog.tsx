@@ -155,20 +155,41 @@ export function NewProcessoDialog({ open, onClose, clienteId }: NewProcessoDialo
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="numero_processo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Número do Processo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0000000-00.0000.0.00.0000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {/* Checkbox Extrajudicial */}
+            <div className="flex items-center space-x-2 p-3 border rounded-lg bg-muted/50">
+              <Checkbox
+                id="extrajudicial"
+                checked={isExtrajudicial}
+                onCheckedChange={(checked) => setIsExtrajudicial(checked === true)}
               />
+              <Label htmlFor="extrajudicial" className="cursor-pointer">
+                Processo extrajudicial (sem número CNJ)
+              </Label>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {!isExtrajudicial && (
+                <FormField
+                  control={form.control}
+                  name="numero_processo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número do Processo</FormLabel>
+                      <FormControl>
+                        <Input placeholder="0000000-00.0000.0.00.0000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {isExtrajudicial && (
+                <div>
+                  <Label className="text-sm font-medium">Código Interno</Label>
+                  <Input value="Gerado automaticamente (EXT-ANO-SEQ)" disabled className="mt-2 bg-muted" />
+                </div>
+              )}
 
               <FormField
                 control={form.control}
