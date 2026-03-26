@@ -1,32 +1,74 @@
 
-Objetivo: fazer os nomes exibidos nos selects de tarefas seguirem o cadastro atual (profiles), sem quebrar os valores salvos em `advogada_responsavel` (`juliana`/`liziane`).
 
-1) Identificar e substituir todos os pontos ainda hardcoded nos formulários
-- Ajustar estes arquivos que ainda renderizam labels fixas:
-  - `src/components/demandas/NewDemandaDialog.tsx`
-  - `src/components/demandas/DemandaDetailsDialog.tsx` (modo edição)
-  - `src/components/demandas/NewSubtarefaDialog.tsx`
-  - `src/components/demandas/DemandasFilters.tsx`
-- Em todos, trocar `SelectItem` com texto fixo (“Juliana”, “Liziane”) por labels vindas de `useAdvogadaLabels()`.
+## Plano: Aba Treinamentos + Senhas (admin-only) + Permissões
 
-2) Padronizar a fonte dos labels
-- Reusar `useAdvogadaLabels` como única fonte de exibição dos nomes.
-- Manter `value="juliana"` e `value="liziane"` nos selects (para não afetar registros existentes e filtros no banco).
-- Só o texto exibido muda dinamicamente para o nome atual cadastrado.
+### 1. Criar tabela `treinamentos` no banco
+```sql
+CREATE TABLE public.treinamentos (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo text NOT NULL,
+  descricao text,
+  drive_url text NOT NULL,
+  categoria text DEFAULT 'geral',
+  ordem integer DEFAULT 0,
+  ativo boolean DEFAULT true,
+  created_at timestamptz DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id)
+);
+ALTER TABLE public.treinamentos ENABLE ROW LEVEL SECURITY;
+-- Todos autenticados podem ler
+CREATE POLICY "Authenticated can read treinamentos" ON public.treinamentos FOR SELECT TO authenticated USING (true);
+-- Apenas admins podem gerenciar
+CREATE POLICY "Admins can manage treinamentos" ON public.treinamentos FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+```
 
-3) Fortalecer o fallback do hook (para evitar regressão)
-- Garantir fallback consistente para quando a query ainda não carregou:
-  - exibir `ADVOGADA_LABELS` temporariamente.
-- (Ajuste recomendado) tornar a resolução menos frágil do que “começa com nome”, para evitar voltar ao nome antigo se o cadastro mudar bastante.
+### 2. Criar tabela `senhas_sistema` no banco (admin-only)
+```sql
+CREATE TABLE public.senhas_sistema (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo text NOT NULL,
+  url text,
+  usuario text,
+  senha text NOT NULL,
+  categoria text DEFAULT 'geral',
+  observacoes text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  created_by uuid REFERENCES auth.users(id)
+);
+ALTER TABLE public.senhas_sistema ENABLE ROW LEVEL SECURITY;
+-- Apenas admins podem ver e gerenciar
+CREATE POLICY "Admins can manage senhas" ON public.senhas_sistema FOR ALL TO authenticated USING (has_role(auth.uid(), 'admin'::app_role)) WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+```
 
-4) Validação funcional após ajuste
-- Fluxo 1: abrir “Nova Demanda” e confirmar que “Advogada Responsável” mostra os nomes atualizados do cadastro.
-- Fluxo 2: abrir “Detalhes da Demanda” em edição e validar o mesmo select.
-- Fluxo 3: criar “Nova Subtarefa” e validar o select.
-- Fluxo 4: abrir filtros de demandas e validar nomes atualizados no filtro de advogada.
-- Confirmar que salvar/filtrar continua funcionando normalmente (valores persistidos continuam `juliana`/`liziane`).
+### 3. Criar componente `src/pages/configuracoes/Treinamentos.tsx`
+- Lista de vídeos de treinamento com título, descrição, link do Drive
+- Botão "Adicionar Treinamento" (admin-only) abre dialog com campos: título, descrição, URL do Drive, categoria
+- Cards com botão para abrir link em nova aba, editar e excluir (admin-only)
+- Hook `useTreinamentos` para CRUD na tabela
 
-Detalhes técnicos
-- Não haverá mudança de banco/migration.
-- Não altera schema nem dados antigos.
-- Impacto é somente de camada de apresentação (labels dinâmicos) com compatibilidade total de dados existentes.
+### 4. Criar componente `src/pages/configuracoes/SenhasSistema.tsx`
+- Visível apenas para admins (verificação via `useIsAdvogada` ou `user_roles`)
+- Tabela com colunas: Título, URL, Usuário, Senha (mascarada com toggle), Categoria
+- Botão "Adicionar Senha" abre dialog com os campos
+- Funcionalidade de copiar senha para clipboard
+- Hook `useSenhasSistema` para CRUD na tabela
+
+### 5. Atualizar `src/pages/configuracoes/Controle.tsx`
+- Adicionar aba "Treinamentos" com ícone `Video`
+- Renderizar componente `Treinamentos`
+
+### 6. Atualizar `src/pages/configuracoes/GuiaDeUso.tsx`
+- Adicionar seção "Senhas do Sistema" (com ícone `Lock`) no final dos guias
+- Renderizar componente `SenhasSistema` dentro dessa seção, visível apenas para admins
+
+### 7. Atualizar permissões em `src/lib/pagePermissions.ts`
+- Adicionar ao grupo `administrativo.children`:
+  - `{ key: "administrativo.treinamentos", label: "Treinamentos", parent: "administrativo" }`
+  - `{ key: "administrativo.senhas", label: "Senhas do Sistema", parent: "administrativo" }`
+
+### Arquivos criados/editados
+- **Migration**: 2 tabelas novas (`treinamentos`, `senhas_sistema`)
+- **Criados**: `Treinamentos.tsx`, `SenhasSistema.tsx`, `useTreinamentos.ts`, `useSenhasSistema.ts`
+- **Editados**: `Controle.tsx`, `GuiaDeUso.tsx`, `pagePermissions.ts`
+
