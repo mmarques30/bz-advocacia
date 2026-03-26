@@ -1,46 +1,37 @@
 
 
-## Suporte a processos extrajudiciais
+## Adicionar "Status de Tarefas" às Listas do Sistema
 
-### Alterações no banco
-Adicionar duas colunas à tabela `processos`:
-```sql
-ALTER TABLE public.processos 
-  ADD COLUMN extrajudicial boolean DEFAULT false,
-  ADD COLUMN codigo_interno text;
-```
+### Alterações
 
-### Alterações no código
+**1. `src/hooks/useOpcoesSistema.ts`**
+- Adicionar `'status_tarefa'` ao type `GrupoOpcao`
 
-**1. `src/types/processos.ts`** — Adicionar `extrajudicial` e `codigo_interno` à interface `Processo`
+**2. `src/pages/configuracoes/ListasSuspensas.tsx`**
+- Adicionar `{ key: 'status_tarefa', label: 'Status de Tarefas' }` ao array `GRUPOS`
+- Ajustar `grid-cols-4` → `grid-cols-5` no TabsList
 
-**2. `src/hooks/useProcessos.ts`** — Na busca (filtro `search`), incluir `codigo_interno` no `.or()` junto com `numero_processo`
+**3. RLS da tabela `opcoes_sistema`**
+- Adicionar políticas para moderators (INSERT, UPDATE, DELETE) usando `has_role(auth.uid(), 'moderator')` — atualmente apenas admins podem modificar
 
-**3. `src/components/processos/NewProcessoDialog.tsx`**
-- Adicionar checkbox "Processo extrajudicial" no topo do formulário
-- Quando marcado: ocultar campo `numero_processo`, campos tribunal/comarca/vara; exibir campo `Código interno` (read-only, gerado automaticamente)
-- Gerar código `EXT-[ANO]-[SEQ]` buscando o último código do ano no banco antes de inserir
-- Ao submeter, enviar `extrajudicial: true` e `codigo_interno` gerado
+**4. Seed dos status padrão**
+- Inserir os 4 status atuais (`pendente`, `em_andamento`, `concluido`, `cancelado`) na tabela `opcoes_sistema` com `grupo = 'status_tarefa'` via migration
 
-**4. `src/components/processos/ProcessosTable.tsx`**
-- Na coluna "Nº Processo": exibir `codigo_interno` + badge "Extrajudicial" quando `extrajudicial === true`, caso contrário exibir `numero_processo`
+**5. `src/components/demandas/DemandasFilters.tsx`**
+- Buscar status de `useOpcoesSistema('status_tarefa', true)` com fallback para os 4 fixos
+- Renderizar dinamicamente os `SelectItem` de status
 
-**5. `src/components/processos/ProcessoDetailsDialog.tsx`**
-- No título: usar `codigo_interno` quando extrajudicial, com badge
+**6. `src/components/demandas/DemandaDetailsDialog.tsx`**
+- Mesmo padrão: buscar status dinâmicos e renderizar no select de edição de status
 
-**6. `src/components/processos/tabs/ProcessoInformacoesTab.tsx`**
-- No modo edição: exibir checkbox extrajudicial e campos condicionais (código interno read-only vs número do processo)
-- Auditar alteração do campo `extrajudicial`
-
-**7. `src/components/processos/ProcessosHeader.tsx`**
-- O placeholder de busca já menciona "número ou cliente", sem mudanças necessárias (a busca por `codigo_interno` é resolvida no hook)
+**7. `src/components/demandas/DemandasKanban.tsx`**
+- Se usa colunas fixas de status, tornar dinâmico com os mesmos dados
 
 ### Arquivos editados
-- Migration: 2 colunas novas
-- `src/types/processos.ts`
-- `src/hooks/useProcessos.ts`
-- `src/components/processos/NewProcessoDialog.tsx`
-- `src/components/processos/ProcessosTable.tsx`
-- `src/components/processos/ProcessoDetailsDialog.tsx`
-- `src/components/processos/tabs/ProcessoInformacoesTab.tsx`
+- Migration: RLS para moderators + seed dos status padrão
+- `src/hooks/useOpcoesSistema.ts`
+- `src/pages/configuracoes/ListasSuspensas.tsx`
+- `src/components/demandas/DemandasFilters.tsx`
+- `src/components/demandas/DemandaDetailsDialog.tsx`
+- `src/components/demandas/DemandasKanban.tsx` (se aplicável)
 
