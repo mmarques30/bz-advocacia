@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
 import { DashboardKPIStrip } from "@/components/dashboard/DashboardKPIStrip";
 import { DashboardPrazosCard } from "@/components/dashboard/DashboardPrazosCard";
 import { DashboardTarefasUrgentesCard } from "@/components/dashboard/DashboardTarefasUrgentesCard";
@@ -24,6 +25,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { data, isLoading } = useDashboardPrincipal();
+  const navigate = useNavigate();
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
 
@@ -69,8 +71,17 @@ export default function Dashboard() {
     {
       title: "Clientes ativos",
       value: data?.clientesAtivos || 0,
-      context: `+${data?.clientesNovosMes || 0} este mês`,
-      contextColor: "green" as const,
+      context: (data?.clientesSemProcesso || 0) > 0 ? (
+        <span
+          className="cursor-pointer underline decoration-dotted"
+          onClick={() => navigate("/dashboard/clientes?semProcesso=true")}
+        >
+          {data?.clientesSemProcesso} sem processo
+        </span>
+      ) : (
+        `+${data?.clientesNovosMes || 0} este mês`
+      ),
+      contextColor: (data?.clientesSemProcesso || 0) > 0 ? "amber" as const : "green" as const,
     },
   ];
 

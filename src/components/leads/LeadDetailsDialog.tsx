@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
-import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle, MessageSquare } from "lucide-react";
+import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle, MessageSquare, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
@@ -34,6 +35,32 @@ interface LeadDetailsDialogProps {
 export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false }: LeadDetailsDialogProps) {
   const diasParado = lead?.dias_parado || 0;
   const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
+  const [markingConcluido, setMarkingConcluido] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Check if client has processes
+  const { data: processosCount } = useQuery({
+    queryKey: ["cliente-processos-count", lead?.id],
+    queryFn: async () => {
+      const { count } = await supabase.from("processos")
+        .select("id", { count: "exact", head: true })
+        .eq("lead_id", lead!.id);
+      return count || 0;
+    },
+    enabled: isCliente && !!lead?.id && open,
+  });
+
+  const handleMarcarConcluido = async () => {
+    if (!lead) return;
+    setMarkingConcluido(true);
+    await supabase.from("contact_submissions")
+      .update({ status_cliente: "inativo" })
+      .eq("id", lead.id);
+    queryClient.invalidateQueries({ queryKey: ["leads"] });
+    queryClient.invalidateQueries({ queryKey: ["cliente-processos-count", lead.id] });
+    setMarkingConcluido(false);
+    toast({ title: "Status atualizado para Concluído/Inativo" });
+  };
 
   const { data: templatesPrimeiroContato } = useWhatsAppTemplates({ 
     tipo: 'primeiro_contato', 
@@ -146,6 +173,26 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 <p className="text-sm text-destructive font-medium">
                   Lead parado há {diasParado} dias - Atenção necessária
                 </p>
+              </div>
+            )}
+
+            {isCliente && processosCount === 0 && (
+              <div className="bg-[hsl(38,92%,50%)]/10 border border-[hsl(38,92%,50%)]/20 rounded-lg p-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-[hsl(38,92%,50%)]" />
+                  <p className="text-sm font-medium text-[hsl(38,92%,50%)]">
+                    Este cliente não possui processos ativos. Considere atualizar o status para Concluído.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleMarcarConcluido}
+                  disabled={markingConcluido || lead?.status_cliente === 'inativo'}
+                  className="shrink-0"
+                >
+                  {lead?.status_cliente === 'inativo' ? 'Já concluído' : 'Marcar como Concluído'}
+                </Button>
               </div>
             )}
 

@@ -96,6 +96,7 @@ export interface DashboardPrincipalData {
   leadsSemFollowUp: number;
   clientesAtivos: number;
   clientesNovosMes: number;
+  clientesSemProcesso: number;
   // Line 1
   prazosUrgencia: PrazoUrgencia;
   proximosPrazos: PrazoProximoEnriquecido[];
@@ -235,6 +236,21 @@ export function useDashboardPrincipal() {
         // Processos sem registro (sem nenhum histórico)
         Promise.resolve({ count: 0, data: null, error: null }), // placeholder for sem registro
       ]);
+
+      // Clientes sem processo: IDs de clientes ativos que não aparecem em processos.lead_id
+      const clientesAtivosIds: string[] = [];
+      if ((clientesAtivosR.count || 0) > 0) {
+        const { data: clientesData } = await supabase.from("contact_submissions")
+          .select("id").eq("estagio", "fechado");
+        (clientesData || []).forEach(c => clientesAtivosIds.push(c.id));
+      }
+      let clientesSemProcessoCount = 0;
+      if (clientesAtivosIds.length > 0) {
+        const { data: processosLeadIds } = await supabase.from("processos")
+          .select("lead_id").not("lead_id", "is", null);
+        const leadIdSet = new Set((processosLeadIds || []).map(p => p.lead_id));
+        clientesSemProcessoCount = clientesAtivosIds.filter(id => !leadIdSet.has(id)).length;
+      }
 
       // === Process data ===
       const processosData = processosR.data || [];
@@ -412,6 +428,7 @@ export function useDashboardPrincipal() {
         leadsSemFollowUp: leadsSemFollowUpCountR.count || 0,
         clientesAtivos: clientesAtivosR.count || 0,
         clientesNovosMes: clientesNovosMesR.count || 0,
+        clientesSemProcesso: clientesSemProcessoCount,
         prazosUrgencia: {
           atrasados: prazosAtrasadosR.count || 0,
           hoje: prazosHojeR.count || 0,
