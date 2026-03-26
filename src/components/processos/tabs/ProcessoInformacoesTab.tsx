@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Edit } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -67,7 +68,12 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
       <div className="space-y-6">
         <div className="flex justify-between items-start">
           <div>
-            <h3 className="text-lg font-semibold mb-1">{processo.numero_processo || "Sem número"}</h3>
+            <h3 className="text-lg font-semibold mb-1 flex items-center gap-2">
+              {processo.extrajudicial ? processo.codigo_interno : processo.numero_processo || "Sem número"}
+              {processo.extrajudicial && (
+                <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-300">Extrajudicial</Badge>
+              )}
+            </h3>
             <Badge>{PROCESSO_STATUS_LABELS[processo.status]}</Badge>
           </div>
           {canEdit && (
