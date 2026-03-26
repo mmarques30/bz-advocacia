@@ -46,14 +46,6 @@ export interface WhatsAppTemplate {
   created_at: string;
   updated_at: string;
 }
-  variaveis: string[];
-  ativo: boolean;
-  total_envios: number;
-  usado_ultima_vez?: string;
-  criado_por?: string;
-  created_at: string;
-  updated_at: string;
-}
 
 export interface WhatsAppRegra {
   id: string;
