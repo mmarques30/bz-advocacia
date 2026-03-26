@@ -91,7 +91,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-6' : 'grid-cols-3'}`}>
+              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-7' : 'grid-cols-4'}`}>
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
                 {isCliente && <TabsTrigger value="contratos">Contratos</TabsTrigger>}
@@ -101,6 +101,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     Tarefas
                   </TabsTrigger>
                 )}
+                <TabsTrigger value="mensagens" className="flex items-center gap-1">
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  Mensagens
+                </TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 <TabsTrigger value="notas">Notas</TabsTrigger>
               </TabsList>
