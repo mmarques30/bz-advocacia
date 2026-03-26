@@ -1,33 +1,28 @@
 
 
-## Controle de edição por role nos campos do processo
-
-### Contexto
-Atualmente o `ProcessoInformacoesTab` permite que **qualquer** usuário autenticado edite todos os campos (incluindo número do processo e valor da causa). Não há verificação de role.
+## Adicionar aba "Mensagens" no dialog de detalhes do lead
 
 ### Alterações
 
-**1. Criar hook `useCheckUserRole` em `src/hooks/useUsuarios.ts`**
-- Nova função que retorna a role do usuário (`admin`, `moderator`, `user`, etc.)
-- Reutiliza o padrão existente de `useCheckIsAdmin`, mas retorna a role completa
-- Alternativa mais simples: criar `useCanEditProcesso` que retorna `true` se admin ou moderator
+**1. Criar componente `src/components/leads/LeadMensagensTab.tsx`**
+- Busca histórico de mensagens de `lead_interacoes` filtrado por `lead_id` e `tipo = 'whatsapp'` (usa `useLeadInteracoes`)
+- Exibe mensagens em formato chat (timestamp, direção, conteúdo)
+- Seção de composição:
+  - Select com templates ativos de `whatsapp_templates` (usa `useWhatsAppTemplates`)
+  - Textarea editável pré-preenchida ao selecionar template
+  - Botão "Enviar via WhatsApp" que chama `openWhatsAppLink` com o telefone do lead
+  - Ao clicar enviar, registra em `lead_interacoes` (insert direto via supabase) com `tipo='whatsapp'`, `canal='whatsapp'`, `direcao='saida'`
+  - Se telefone não cadastrado, exibe aviso com sugestão de editar o lead
 
-**2. Atualizar `src/components/processos/tabs/ProcessoInformacoesTab.tsx`**
-- Importar `useCheckIsAdmin` (ou o novo hook) + verificar se é admin/moderator
-- O botão "Editar" só aparece se o usuário tem role admin ou moderator
-- Usuários com role `user` veem a ficha apenas em modo leitura
-- Na função `handleSave`, antes de chamar `updateProcesso`:
-  - Comparar `editData.numero_processo` com `processo.numero_processo`
-  - Comparar `editData.valor` com `processo.valor`
-  - Para cada campo alterado, inserir registro em `logs_sistema` com `valor_anterior` e `valor_novo`
-- Exibir toast de sucesso após salvar (já existe via `useUpdateProcesso`)
+**2. Editar `src/components/leads/LeadDetailsDialog.tsx`**
+- Importar `LeadMensagensTab` e ícone `MessageCircle`
+- Adicionar `<TabsTrigger value="mensagens">Mensagens</TabsTrigger>` ao TabsList (ajustar grid-cols)
+- Adicionar `<TabsContent value="mensagens">` renderizando `<LeadMensagensTab leadId={lead.id} telefone={lead.telefone} />`
+- Preservar todas as abas e lógica existente intactas
 
-**3. Detalhe do log de auditoria**
-- Inserir diretamente na tabela `logs_sistema` via supabase client
-- Campos: `acao: 'editar'`, `entidade_tipo: 'processos'`, `entidade_id: processo.id`, `campo_alterado`, `valor_anterior`, `valor_novo`
-- Usar a tabela `processos_historico` que já existe para esse propósito (mais adequado que `logs_sistema`)
+### Arquivos
+- **Criado**: `src/components/leads/LeadMensagensTab.tsx`
+- **Editado**: `src/components/leads/LeadDetailsDialog.tsx`
 
-### Arquivos editados
-- `src/hooks/useUsuarios.ts` — adicionar `useCheckCanEditProcesso`
-- `src/components/processos/tabs/ProcessoInformacoesTab.tsx` — role check + auditoria
+Nenhuma alteração de banco necessária — `lead_interacoes` já existe com as colunas necessárias e RLS permite INSERT para autenticados.
 
