@@ -223,40 +223,44 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
           />
         </div>
 
-        <div>
-          <Label>Tribunal</Label>
-          <Select
-            value={editData.tribunal || ""}
-            onValueChange={(value) => setEditData({ ...editData, tribunal: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              {TRIBUNAIS_OPCOES.map((tribunal) => (
-                <SelectItem key={tribunal} value={tribunal}>
-                  {tribunal}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!editData.extrajudicial && (
+          <>
+            <div>
+              <Label>Tribunal</Label>
+              <Select
+                value={editData.tribunal || ""}
+                onValueChange={(value) => setEditData({ ...editData, tribunal: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIBUNAIS_OPCOES.map((tribunal) => (
+                    <SelectItem key={tribunal} value={tribunal}>
+                      {tribunal}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-        <div>
-          <Label>Comarca</Label>
-          <Input
-            value={editData.comarca || ""}
-            onChange={(e) => setEditData({ ...editData, comarca: e.target.value })}
-          />
-        </div>
+            <div>
+              <Label>Comarca</Label>
+              <Input
+                value={editData.comarca || ""}
+                onChange={(e) => setEditData({ ...editData, comarca: e.target.value })}
+              />
+            </div>
 
-        <div>
-          <Label>Vara</Label>
-          <Input
-            value={editData.vara || ""}
-            onChange={(e) => setEditData({ ...editData, vara: e.target.value })}
-          />
-        </div>
+            <div>
+              <Label>Vara</Label>
+              <Input
+                value={editData.vara || ""}
+                onChange={(e) => setEditData({ ...editData, vara: e.target.value })}
+              />
+            </div>
+          </>
+        )}
 
         <div>
           <Label>Parte Autora</Label>
