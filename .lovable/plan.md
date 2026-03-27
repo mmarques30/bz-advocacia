@@ -1,34 +1,45 @@
 
 
-## Processar variáveis nos templates do LeadMensagensTab
+## Corrigir RLS das tabelas financeiras
 
 ### Problema
-Linha 50 do `LeadMensagensTab.tsx` faz `setMensagem(template.mensagem)` sem chamar `processarTemplate()`. Variáveis como `{{nome_cliente}}` ficam literais.
+Várias tabelas financeiras têm policies usando `TO public` (acessível sem login) em vez de `TO authenticated`. Além disso, faltam restrições por role — qualquer usuário autenticado pode ler/escrever dados financeiros.
+
+### Tabelas afetadas e estado atual
+
+| Tabela | Problema |
+|--------|----------|
+| `financeiro` | SELECT/INSERT ok (`authenticated`), mas faltam UPDATE e DELETE |
+| `transacoes_financeiras` | ALL e SELECT usam `public` |
+| `despesas_fixas` | ALL usa `public` |
+| `creditos_condicionais` | ALL usa `public` |
+| `parcelas_financeiras` | ALL usa `authenticated` sem restrição de role |
 
 ### Solução
 
-**`src/components/leads/LeadMensagensTab.tsx`**:
+Uma única migração SQL que:
 
-1. Expandir props para receber dados do lead: `nomeCompleto`, `email` (além de `leadId` e `telefone`)
-2. Importar `processarTemplate` de `@/types/whatsapp` e `useConfiguracoesEscritorio`
-3. No `handleTemplateSelect`, montar objeto de dados com as variáveis disponíveis do lead e escritório, chamar `processarTemplate(template.mensagem, dados)` antes de `setMensagem`
-4. Adicionar estado `hasUnfilledVars` — após processar, verificar se ainda restam `{{...}}` no texto. Se sim, exibir aviso discreto abaixo do textarea: "Algumas variáveis não foram preenchidas automaticamente"
-5. Limpar variáveis não preenchidas (remover `{{...}}` restantes) do texto processado
+1. **Remove** todas as policies existentes das 5 tabelas
+2. **Cria** policies padronizadas para cada tabela:
+   - **SELECT** → `TO authenticated` com `has_role(admin) OR has_role(advogado) OR has_role(financeiro)`
+   - **INSERT** → `TO authenticated` com `has_role(admin) OR has_role(financeiro)`
+   - **UPDATE** → `TO authenticated` com `has_role(admin) OR has_role(financeiro)`
+   - **DELETE** → `TO authenticated` com `has_role(admin) OR has_role(financeiro)`
 
-**`src/components/leads/LeadDetailsDialog.tsx`** (linha 360):
-- Passar props adicionais: `nomeCompleto={lead.nome_completo}` e `email={lead.email}`
+### Detalhes técnicos
 
-### Mapeamento de variáveis
-```
-nome_cliente → lead.nomeCompleto
-telefone_cliente → lead.telefone
-email_cliente → lead.email
-nome_escritorio → escritorio.nome_escritorio
-telefone_escritorio → escritorio.telefone
-email_escritorio → escritorio.email
-```
+A migração segue o padrão `DROP POLICY IF EXISTS` + `CREATE POLICY` para cada tabela. A função `has_role()` já existe como `SECURITY DEFINER`, evitando recursão em RLS.
 
-### Arquivos editados
-- `src/components/leads/LeadMensagensTab.tsx`
-- `src/components/leads/LeadDetailsDialog.tsx`
+Roles com acesso de **leitura**: `admin`, `advogado`, `financeiro`
+Roles com acesso de **escrita**: `admin`, `financeiro`
+
+A role `assistente` **não** terá acesso às tabelas financeiras.
+
+### Impacto
+- Usuários não autenticados perdem todo acesso a dados financeiros
+- Usuários com role `user` ou `assistente` perdem acesso a dados financeiros
+- Nenhuma alteração de código necessária — os hooks já usam o client autenticado
+
+### Arquivo alterado
+- Nova migração SQL (via migration tool)
 
