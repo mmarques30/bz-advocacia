@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 const CATEGORIAS = ["geral", "plataformas", "apis", "emails", "redes_sociais", "outros"];
 
-export default function SenhasSistema() {
+export default function SenhasSistema({ hideHeader = false }: { hideHeader?: boolean }) {
   const { data: senhas, isLoading } = useSenhasSistema();
   const createMutation = useCreateSenha();
   const updateMutation = useUpdateSenha();
@@ -65,13 +65,15 @@ export default function SenhasSistema() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Lock className="h-6 w-6 text-primary" />
-            Senhas do Sistema
-          </h2>
-          <p className="text-muted-foreground mt-1">Senhas de aplicações, plataformas e sites úteis (apenas admins)</p>
-        </div>
+        {!hideHeader && (
+          <div>
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <Lock className="h-6 w-6 text-primary" />
+              Senhas do Sistema
+            </h2>
+            <p className="text-muted-foreground mt-1">Senhas de aplicações, plataformas e sites úteis (apenas admins)</p>
+          </div>
+        )}
         <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
           <DialogTrigger asChild>
             <Button><Plus className="h-4 w-4 mr-2" />Adicionar Senha</Button>

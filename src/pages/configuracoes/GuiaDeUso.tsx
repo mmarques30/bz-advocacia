@@ -163,7 +163,7 @@ export default function GuiaDeUso() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <CardContent className="pt-0 pb-4">
-                    <SenhasSistema />
+                    <SenhasSistema hideHeader />
                   </CardContent>
                 </AccordionContent>
               </Card>
