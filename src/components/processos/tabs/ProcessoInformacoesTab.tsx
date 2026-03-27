@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit } from "lucide-react";
+import { Edit, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useUpdateProcesso } from "@/hooks/useProcessos";
