@@ -2857,6 +2857,7 @@ export type Database = {
           created_by: string | null
           descricao: string | null
           drive_url: string
+          formato: string | null
           id: string
           ordem: number | null
           titulo: string
@@ -2868,6 +2869,7 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           drive_url: string
+          formato?: string | null
           id?: string
           ordem?: number | null
           titulo: string
@@ -2879,6 +2881,7 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           drive_url?: string
+          formato?: string | null
           id?: string
           ordem?: number | null
           titulo?: string
