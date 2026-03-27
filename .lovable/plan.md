@@ -1,27 +1,34 @@
 
 
-## Restringir edição de número do processo e valor da causa
+## Processar variáveis nos templates do LeadMensagensTab
 
 ### Problema
-`useCanEditProcesso` retorna `true` para qualquer usuário autenticado. Deve restringir para admin, advogado e assistente — excluindo `financeiro`.
+Linha 50 do `LeadMensagensTab.tsx` faz `setMensagem(template.mensagem)` sem chamar `processarTemplate()`. Variáveis como `{{nome_cliente}}` ficam literais.
 
-### Alterações
+### Solução
 
-**1. `src/hooks/useUsuarios.ts`** — `useCanEditProcesso` (linhas 349-357)
-- Buscar roles do usuário na tabela `user_roles`
-- Retornar `true` se possuir role `admin`, `advogado` ou `assistente`
-- Retornar `false` para `financeiro` ou sem role
+**`src/components/leads/LeadMensagensTab.tsx`**:
 
-**2. `src/components/processos/tabs/ProcessoInformacoesTab.tsx`**
-- Na view de leitura (linha 87-92): manter botão "Editar" condicional a `canEdit`
-- Na view de edição (linhas 190-196, 281-289): quando `!canEdit`, renderizar campos `numero_processo` e `valor` como `disabled` com classe `bg-muted` e ícone de cadeado
-- Isso cobre o caso de um usuário financeiro que eventualmente acesse a tela — os campos críticos ficam bloqueados enquanto outros campos editáveis permanecem disponíveis
+1. Expandir props para receber dados do lead: `nomeCompleto`, `email` (além de `leadId` e `telefone`)
+2. Importar `processarTemplate` de `@/types/whatsapp` e `useConfiguracoesEscritorio`
+3. No `handleTemplateSelect`, montar objeto de dados com as variáveis disponíveis do lead e escritório, chamar `processarTemplate(template.mensagem, dados)` antes de `setMensagem`
+4. Adicionar estado `hasUnfilledVars` — após processar, verificar se ainda restam `{{...}}` no texto. Se sim, exibir aviso discreto abaixo do textarea: "Algumas variáveis não foram preenchidas automaticamente"
+5. Limpar variáveis não preenchidas (remover `{{...}}` restantes) do texto processado
 
-**Nota**: Como a role `financeiro` não deveria ter acesso ao botão "Editar" (pois `canEdit` será `false`), o cadeado nos campos individuais é uma camada de segurança adicional caso a lógica de UI mude no futuro.
+**`src/components/leads/LeadDetailsDialog.tsx`** (linha 360):
+- Passar props adicionais: `nomeCompleto={lead.nome_completo}` e `email={lead.email}`
+
+### Mapeamento de variáveis
+```
+nome_cliente → lead.nomeCompleto
+telefone_cliente → lead.telefone
+email_cliente → lead.email
+nome_escritorio → escritorio.nome_escritorio
+telefone_escritorio → escritorio.telefone
+email_escritorio → escritorio.email
+```
 
 ### Arquivos editados
-- `src/hooks/useUsuarios.ts`
-- `src/components/processos/tabs/ProcessoInformacoesTab.tsx`
-
-Nenhuma alteração de banco necessária.
+- `src/components/leads/LeadMensagensTab.tsx`
+- `src/components/leads/LeadDetailsDialog.tsx`
 
