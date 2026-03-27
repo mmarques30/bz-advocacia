@@ -1,37 +1,23 @@
 
-## Adicionar formato "link" e "documento" nos Treinamentos
 
-### Contexto
-Atualmente os treinamentos só aceitam URL do Google Drive. O usuário quer poder cadastrar tanto links externos (vídeos, artigos) quanto documentos (upload de arquivo).
+## Corrigir título duplicado de "Senhas do Sistema" no Guia de Uso
+
+### Problema
+O componente `SenhasSistema` renderiza seu próprio título `<h2>Senhas do Sistema</h2>` (linhas 66-74). Quando embutido dentro do accordion no `GuiaDeUso.tsx`, o título do accordion já diz "Senhas do Sistema", causando duplicação.
+
+### Solução
+Adicionar uma prop `hideHeader` ao `SenhasSistema` para ocultar o cabeçalho (título + descrição) quando usado dentro do Guia de Uso.
 
 ### Alterações
 
-**1. Migration: adicionar coluna `formato` na tabela `treinamentos`**
-```sql
-ALTER TABLE public.treinamentos ADD COLUMN formato text DEFAULT 'link';
-```
-Valores: `link` (URL externa) e `documento` (arquivo enviado ao storage).
+**1. `src/pages/configuracoes/SenhasSistema.tsx`**
+- Adicionar prop `hideHeader?: boolean` (default `false`)
+- Quando `hideHeader === true`, não renderizar o `<div>` com o `<h2>` e `<p>` (linhas 67-74)
 
-**2. Criar bucket de storage `treinamentos`** (via migration)
-```sql
-INSERT INTO storage.buckets (id, name, public) VALUES ('treinamentos', 'treinamentos', false);
-```
-Com policy para authenticated users lerem e admins inserirem/deletarem.
-
-**3. `src/hooks/useTreinamentos.ts`**
-- Adicionar `formato` à interface `Treinamento`
-- Adicionar `formato` aos parâmetros de `useCreateTreinamento` e `useUpdateTreinamento`
-
-**4. `src/pages/configuracoes/Treinamentos.tsx`**
-- Adicionar estado `formato` (`'link' | 'documento'`)
-- No formulário: radio/select para escolher formato
-  - Quando `link`: campo de URL (comportamento atual)
-  - Quando `documento`: input type="file" com upload para bucket `treinamentos` via `supabase.storage`
-  - Após upload, salvar a URL pública/signed no campo `drive_url`
-- No card de listagem: ícone diferente para cada formato (`Link` vs `FileText`)
-- Botão de abrir: para link abre URL externa; para documento baixa o arquivo
+**2. `src/pages/configuracoes/GuiaDeUso.tsx`**
+- Passar `<SenhasSistema hideHeader />` na seção do accordion
 
 ### Arquivos editados
-- Migration: coluna `formato` + bucket storage + policies
-- `src/hooks/useTreinamentos.ts`
-- `src/pages/configuracoes/Treinamentos.tsx`
+- `src/pages/configuracoes/SenhasSistema.tsx`
+- `src/pages/configuracoes/GuiaDeUso.tsx`
+
