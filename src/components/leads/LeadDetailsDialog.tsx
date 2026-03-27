@@ -357,7 +357,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               )}
 
               <TabsContent value="mensagens" className="mt-4">
-                <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} />
+                <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} />
               </TabsContent>
 
               <TabsContent value="documentos" className="mt-4">
