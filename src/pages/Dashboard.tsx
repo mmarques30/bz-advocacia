@@ -29,6 +29,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { data, isLoading } = useDashboardPrincipal();
+  const { data: evolucaoData, isLoading: evolucaoLoading } = useProcessosEvolucao();
   const navigate = useNavigate();
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
