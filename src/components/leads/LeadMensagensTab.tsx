@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
+import { useConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
+import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,19 +11,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { MessageCircle, Send, AlertCircle, Bot, User } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, Bot, User, Info } from "lucide-react";
 import type { LeadInteracao } from "@/hooks/useLeadInteracoes";
 
 interface LeadMensagensTabProps {
   leadId: string;
   telefone?: string;
+  nomeCompleto?: string;
+  email?: string;
 }
 
-export function LeadMensagensTab({ leadId, telefone }: LeadMensagensTabProps) {
+export function LeadMensagensTab({ leadId, telefone, nomeCompleto, email }: LeadMensagensTabProps) {
   const [mensagem, setMensagem] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [enviando, setEnviando] = useState(false);
+  const [hasUnfilledVars, setHasUnfilledVars] = useState(false);
   const queryClient = useQueryClient();
+  const { configuracoes } = useConfiguracoesEscritorio();
 
   const { data: interacoes = [], isLoading } = useQuery({
     queryKey: ['lead-interacoes-whatsapp', leadId],
@@ -41,13 +47,28 @@ export function LeadMensagensTab({ leadId, telefone }: LeadMensagensTabProps) {
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
+    setHasUnfilledVars(false);
     if (templateId === "none") {
       setMensagem("");
       return;
     }
     const template = templates.find(t => t.id === templateId);
     if (template) {
-      setMensagem(template.mensagem);
+      const dados: Record<string, string> = {
+        nome_cliente: nomeCompleto || "",
+        telefone_cliente: telefone || "",
+        email_cliente: email || "",
+        nome_escritorio: configuracoes?.nome_escritorio || "",
+        telefone_escritorio: configuracoes?.telefone || "",
+        email_escritorio: configuracoes?.email || "",
+        nome_advogado: "",
+      };
+
+      let processed = processarTemplate(template.mensagem, dados);
+      const remaining = /\{\{[^}]+\}\}/.test(processed);
+      setHasUnfilledVars(remaining);
+      processed = processed.replace(/\{\{[^}]+\}\}/g, "").replace(/\s{2,}/g, " ").trim();
+      setMensagem(processed);
     }
   };
 
@@ -78,6 +99,7 @@ export function LeadMensagensTab({ leadId, telefone }: LeadMensagensTabProps) {
       queryClient.invalidateQueries({ queryKey: ['lead-interacoes-whatsapp', leadId] });
       setMensagem("");
       setSelectedTemplate("");
+      setHasUnfilledVars(false);
       toast({ title: "Mensagem registrada e WhatsApp aberto" });
     } catch {
       toast({ title: "Erro ao registrar mensagem", variant: "destructive" });
@@ -159,6 +181,13 @@ export function LeadMensagensTab({ leadId, telefone }: LeadMensagensTabProps) {
           onChange={(e) => setMensagem(e.target.value)}
           rows={3}
         />
+
+        {hasUnfilledVars && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Info className="h-3.5 w-3.5" />
+            <span>Algumas variáveis não foram preenchidas automaticamente</span>
+          </div>
+        )}
 
         <Button onClick={handleEnviar} disabled={enviando || !mensagem.trim()} className="w-full gap-2">
           <Send className="h-4 w-4" />
