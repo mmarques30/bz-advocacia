@@ -8,6 +8,7 @@ export interface Treinamento {
   descricao: string | null;
   drive_url: string;
   categoria: string;
+  formato: string;
   ordem: number;
   ativo: boolean;
   created_at: string;
@@ -33,7 +34,7 @@ export const useTreinamentos = () => {
 export const useCreateTreinamento = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { titulo: string; descricao?: string; drive_url: string; categoria?: string }) => {
+    mutationFn: async (data: { titulo: string; descricao?: string; drive_url: string; categoria?: string; formato?: string }) => {
       const { data: user } = await supabase.auth.getUser();
       const { error } = await supabase.from("treinamentos").insert({
         ...data,
@@ -52,7 +53,7 @@ export const useCreateTreinamento = () => {
 export const useUpdateTreinamento = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; descricao?: string; drive_url?: string; categoria?: string }) => {
+    mutationFn: async ({ id, ...data }: { id: string; titulo?: string; descricao?: string; drive_url?: string; categoria?: string; formato?: string }) => {
       const { error } = await supabase.from("treinamentos").update(data).eq("id", id);
       if (error) throw error;
     },
