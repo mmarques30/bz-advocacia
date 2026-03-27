@@ -1,20 +1,27 @@
 
 
-## Permitir edição de número do processo e valor da causa para todos os usuários
+## Restringir edição de número do processo e valor da causa
 
 ### Problema
-Atualmente, o botão "Editar" na aba Informações do processo só aparece para admins (`useCanEditProcesso` verifica `role = 'admin'`). Todos os usuários autenticados devem poder editar.
+`useCanEditProcesso` retorna `true` para qualquer usuário autenticado. Deve restringir para admin, advogado e assistente — excluindo `financeiro`.
 
-### Solução
-Remover a restrição de admin no `useCanEditProcesso`, retornando `true` para qualquer usuário autenticado.
+### Alterações
 
-### Alteração
+**1. `src/hooks/useUsuarios.ts`** — `useCanEditProcesso` (linhas 349-357)
+- Buscar roles do usuário na tabela `user_roles`
+- Retornar `true` se possuir role `admin`, `advogado` ou `assistente`
+- Retornar `false` para `financeiro` ou sem role
 
-**`src/hooks/useUsuarios.ts`** (linhas 349-368)
-- Simplificar `useCanEditProcesso` para retornar `true` quando há um usuário logado, sem verificar role admin.
+**2. `src/components/processos/tabs/ProcessoInformacoesTab.tsx`**
+- Na view de leitura (linha 87-92): manter botão "Editar" condicional a `canEdit`
+- Na view de edição (linhas 190-196, 281-289): quando `!canEdit`, renderizar campos `numero_processo` e `valor` como `disabled` com classe `bg-muted` e ícone de cadeado
+- Isso cobre o caso de um usuário financeiro que eventualmente acesse a tela — os campos críticos ficam bloqueados enquanto outros campos editáveis permanecem disponíveis
+
+**Nota**: Como a role `financeiro` não deveria ter acesso ao botão "Editar" (pois `canEdit` será `false`), o cadeado nos campos individuais é uma camada de segurança adicional caso a lógica de UI mude no futuro.
 
 ### Arquivos editados
 - `src/hooks/useUsuarios.ts`
+- `src/components/processos/tabs/ProcessoInformacoesTab.tsx`
 
-Nenhuma alteração de banco necessária — RLS da tabela `processos` já permite UPDATE para todos os autenticados.
+Nenhuma alteração de banco necessária.
 
