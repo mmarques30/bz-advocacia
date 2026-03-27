@@ -180,6 +180,14 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Line 4 — Evolução de Processos */}
+      <DashboardEvolucaoProcessosCard
+        data={evolucaoData?.meses || []}
+        loading={evolucaoLoading}
+        abertos30d={evolucaoData?.abertos30d || 0}
+        variacao={evolucaoData?.variacao || 0}
+      />
+
       {/* Dialogs */}
       <ProcessoDetailsDialog
         processoId={selectedProcessoId}
