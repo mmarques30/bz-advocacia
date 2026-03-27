@@ -9,6 +9,8 @@ import { DashboardDistribuicaoCard } from "@/components/dashboard/DashboardDistr
 import { DashboardLeadsPendentesCard } from "@/components/dashboard/DashboardLeadsPendentesCard";
 import { DashboardStatusProcessosCard } from "@/components/dashboard/DashboardStatusProcessosCard";
 import { DashboardSemMovimentacaoCard } from "@/components/dashboard/DashboardSemMovimentacaoCard";
+import { DashboardEvolucaoProcessosCard } from "@/components/dashboard/DashboardEvolucaoProcessosCard";
+import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
 import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
 import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
 import { useDashboardPrincipal, type TarefaUrgente } from "@/hooks/useDashboardPrincipal";
