@@ -7,8 +7,6 @@ import { DashboardPrazosCard } from "@/components/dashboard/DashboardPrazosCard"
 import { DashboardTarefasUrgentesCard } from "@/components/dashboard/DashboardTarefasUrgentesCard";
 import { DashboardDistribuicaoCard } from "@/components/dashboard/DashboardDistribuicaoCard";
 import { DashboardLeadsPendentesCard } from "@/components/dashboard/DashboardLeadsPendentesCard";
-import { DashboardStatusProcessosCard } from "@/components/dashboard/DashboardStatusProcessosCard";
-import { DashboardSemMovimentacaoCard } from "@/components/dashboard/DashboardSemMovimentacaoCard";
 import { DashboardEvolucaoProcessosCard } from "@/components/dashboard/DashboardEvolucaoProcessosCard";
 import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
 import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
@@ -166,19 +164,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Line 3 — Status Processos + Sem Movimentação */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DashboardStatusProcessosCard
-          statusProcessos={data?.statusProcessos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
-          loading={isLoading}
-        />
-        <DashboardSemMovimentacaoCard
-          processosSemMov={data?.processosSemMovimentacao || []}
-          totalSemMov={data?.totalSemMovimentacao || 0}
-          loading={isLoading}
-          onProcessoClick={(id) => setSelectedProcessoId(id)}
-        />
-      </div>
 
       {/* Line 4 — Evolução de Processos */}
       <DashboardEvolucaoProcessosCard
