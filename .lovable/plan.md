@@ -1,33 +1,20 @@
 
 
-## Adicionar cards "Status dos Processos" e "Sem Movimentação" ao Dashboard
+## Permitir edição de número do processo e valor da causa para todos os usuários
 
-### Contexto
-Os dados já são buscados pelo hook `useDashboardPrincipal` (`statusProcessos`, `processosSemMovimentacao`, `totalSemMovimentacao`). O componente `DashboardRightPanel` existe mas não é usado — ele agrupa 3 cards (incluindo "Carga por Advogada" que duplica a funcionalidade do `DashboardDistribuicaoCard`).
+### Problema
+Atualmente, o botão "Editar" na aba Informações do processo só aparece para admins (`useCanEditProcesso` verifica `role = 'admin'`). Todos os usuários autenticados devem poder editar.
 
-### Abordagem
-Extrair os dois cards faltantes ("Status dos Processos" e "Sem Movimentação") como componentes independentes e adicioná-los ao layout do Dashboard numa terceira linha.
+### Solução
+Remover a restrição de admin no `useCanEditProcesso`, retornando `true` para qualquer usuário autenticado.
 
-### Alterações
+### Alteração
 
-**1. `src/components/dashboard/DashboardStatusProcessosCard.tsx`** (já existe — verificar se é reutilizável ou criar novo)
-- Card com grid 3 colunas: Em Andamento / Concluídos / Arquivados
-- Mesmo visual do `DashboardRightPanel` (badges coloridos com contagem)
-
-**2. `src/components/dashboard/DashboardSemMovimentacaoCard.tsx`** (novo)
-- Card com alerta âmbar mostrando total de processos sem registro há 30+ dias
-- Lista dos processos com número e dias sem atualização
-- Botão "Ver todos" que navega para `/dashboard/processos`
-
-**3. `src/pages/Dashboard.tsx`**
-- Adicionar terceira linha com grid 2 colunas:
-  - `DashboardStatusProcessosCard` com dados de `data.statusProcessos`
-  - `DashboardSemMovimentacaoCard` com dados de `data.processosSemMovimentacao` e `data.totalSemMovimentacao`
+**`src/hooks/useUsuarios.ts`** (linhas 349-368)
+- Simplificar `useCanEditProcesso` para retornar `true` quando há um usuário logado, sem verificar role admin.
 
 ### Arquivos editados
-- `src/components/dashboard/DashboardStatusProcessosCard.tsx` (reutilizar ou reescrever)
-- `src/components/dashboard/DashboardSemMovimentacaoCard.tsx` (novo)
-- `src/pages/Dashboard.tsx`
+- `src/hooks/useUsuarios.ts`
 
-Nenhuma alteração de banco necessária — os dados já são buscados pelo hook existente.
+Nenhuma alteração de banco necessária — RLS da tabela `processos` já permite UPDATE para todos os autenticados.
 
