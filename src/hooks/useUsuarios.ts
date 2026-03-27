@@ -351,19 +351,7 @@ export const useCanEditProcesso = () => {
     queryKey: ["can-edit-processo"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin");
-
-      if (error) {
-        console.error("Erro ao verificar permissão:", error);
-        return false;
-      }
-      return (data && data.length > 0);
+      return !!user;
     },
   });
 };
