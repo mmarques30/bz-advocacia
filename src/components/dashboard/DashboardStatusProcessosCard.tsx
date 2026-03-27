@@ -3,10 +3,7 @@ import type { StatusProcessos } from "@/hooks/useDashboardPrincipal";
 
 interface Props {
   statusProcessos: StatusProcessos;
-  processosSemMov?: unknown[];
-  totalSemMov?: number;
   loading?: boolean;
-  onProcessoClick?: (id: string) => void;
 }
 
 export function DashboardStatusProcessosCard({ statusProcessos, loading }: Props) {
