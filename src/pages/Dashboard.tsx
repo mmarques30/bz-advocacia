@@ -9,6 +9,8 @@ import { DashboardDistribuicaoCard } from "@/components/dashboard/DashboardDistr
 import { DashboardLeadsPendentesCard } from "@/components/dashboard/DashboardLeadsPendentesCard";
 import { DashboardStatusProcessosCard } from "@/components/dashboard/DashboardStatusProcessosCard";
 import { DashboardSemMovimentacaoCard } from "@/components/dashboard/DashboardSemMovimentacaoCard";
+import { DashboardEvolucaoProcessosCard } from "@/components/dashboard/DashboardEvolucaoProcessosCard";
+import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
 import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
 import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
 import { useDashboardPrincipal, type TarefaUrgente } from "@/hooks/useDashboardPrincipal";
@@ -27,6 +29,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { data, isLoading } = useDashboardPrincipal();
+  const { data: evolucaoData, isLoading: evolucaoLoading } = useProcessosEvolucao();
   const navigate = useNavigate();
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
@@ -176,6 +179,14 @@ export default function Dashboard() {
           onProcessoClick={(id) => setSelectedProcessoId(id)}
         />
       </div>
+
+      {/* Line 4 — Evolução de Processos */}
+      <DashboardEvolucaoProcessosCard
+        data={evolucaoData?.meses || []}
+        loading={evolucaoLoading}
+        abertos30d={evolucaoData?.abertos30d || 0}
+        variacao={evolucaoData?.variacao || 0}
+      />
 
       {/* Dialogs */}
       <ProcessoDetailsDialog
