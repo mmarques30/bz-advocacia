@@ -167,10 +167,7 @@ export default function Dashboard() {
       <div className="grid gap-5 lg:grid-cols-2">
         <DashboardStatusProcessosCard
           statusProcessos={data?.statusProcessos || { emAndamento: 0, concluidos: 0, arquivados: 0 }}
-          processosSemMov={[]}
-          totalSemMov={0}
           loading={isLoading}
-          onProcessoClick={(id) => setSelectedProcessoId(id)}
         />
         <DashboardSemMovimentacaoCard
           processosSemMov={data?.processosSemMovimentacao || []}
