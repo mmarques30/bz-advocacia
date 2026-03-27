@@ -351,7 +351,17 @@ export const useCanEditProcesso = () => {
     queryKey: ["can-edit-processo"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      return !!user;
+      if (!user) return false;
+
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      if (!data || data.length === 0) return false;
+
+      const allowedRoles = ["admin", "advogado", "assistente"];
+      return data.some((r) => allowedRoles.includes(r.role));
     },
   });
 };

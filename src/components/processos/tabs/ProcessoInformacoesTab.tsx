@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Edit } from "lucide-react";
+import { Edit, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 import { useUpdateProcesso } from "@/hooks/useProcessos";
@@ -188,10 +188,15 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
           </div>
         ) : (
           <div>
-            <Label>Número do Processo</Label>
+            <Label className="flex items-center gap-1">
+              Número do Processo
+              {!canEdit && <Lock className="h-3 w-3 text-muted-foreground" />}
+            </Label>
             <Input
               value={editData.numero_processo || ""}
               onChange={(e) => setEditData({ ...editData, numero_processo: e.target.value })}
+              disabled={!canEdit}
+              className={!canEdit ? "bg-muted" : ""}
             />
           </div>
         )}
@@ -279,12 +284,17 @@ export function ProcessoInformacoesTab({ processo }: ProcessoInformacoesTabProps
         </div>
 
         <div>
-          <Label>Valor da Causa</Label>
+          <Label className="flex items-center gap-1">
+            Valor da Causa
+            {!canEdit && <Lock className="h-3 w-3 text-muted-foreground" />}
+          </Label>
           <Input
             type="number"
             step="0.01"
             value={editData.valor || ""}
             onChange={(e) => setEditData({ ...editData, valor: e.target.value ? parseFloat(e.target.value) : null })}
+            disabled={!canEdit}
+            className={!canEdit ? "bg-muted" : ""}
           />
         </div>
       </div>
