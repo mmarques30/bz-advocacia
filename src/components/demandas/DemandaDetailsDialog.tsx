@@ -211,10 +211,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               <div>
                 <Label>Data Limite</Label>
                 <p className={cn("text-sm mt-1", isAtrasada && "text-destructive font-medium")}>
-                  {demanda.data_limite 
-                    ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
-                    : '-'
-                  }
+                  {safeFormatDate(demanda.data_limite)}
                   {isAtrasada && ' (Atrasada)'}
                 </p>
               </div>
