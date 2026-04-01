@@ -112,7 +112,7 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
               {isAtrasada && <AlertCircle className="h-3.5 w-3.5" />}
               <CalendarDays className="h-3.5 w-3.5" />
               <span>
-                {format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })}
+                {safeFormatDate(demanda.data_limite)}
               </span>
             </div>
           )}
