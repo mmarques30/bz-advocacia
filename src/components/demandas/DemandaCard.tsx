@@ -46,8 +46,7 @@ const categoriaColors: Record<string, string> = {
 };
 
 export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
-  const isAtrasada = demanda.data_limite && 
-    isPast(parseISO(demanda.data_limite)) && 
+  const isAtrasada = safeIsPast(demanda.data_limite) && 
     !['concluido', 'cancelado'].includes(demanda.status);
 
   const advogadaLabels = useAdvogadaLabels();
