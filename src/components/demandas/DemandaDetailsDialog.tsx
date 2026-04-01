@@ -218,7 +218,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               <div>
                 <Label>Criado em</Label>
                 <p className="text-sm mt-1">
-                  {format(new Date(demanda.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  {safeFormatDateTime(demanda.created_at)}
                 </p>
               </div>
               <div>
