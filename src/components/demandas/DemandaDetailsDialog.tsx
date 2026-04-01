@@ -224,10 +224,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               <div>
                 <Label>Concluído em</Label>
                 <p className="text-sm mt-1">
-                  {demanda.concluida_em
-                    ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                    : '—'
-                  }
+                  {safeFormatDateTime(demanda.concluida_em)}
                 </p>
               </div>
             </div>
