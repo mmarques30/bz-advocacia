@@ -115,8 +115,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
             </TableRow>
           ) : (
             demandas.map((demanda) => {
-              const isAtrasada = demanda.data_limite && 
-                isPast(parseISO(demanda.data_limite)) && 
+              const isAtrasada = safeIsPast(demanda.data_limite) && 
                 !['concluido', 'cancelado'].includes(demanda.status);
               
               return (
