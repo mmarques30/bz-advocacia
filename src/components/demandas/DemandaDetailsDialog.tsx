@@ -9,7 +9,31 @@ import { useForm } from "react-hook-form";
 import { useUpdateDemanda } from "@/hooks/useDemandas";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isPast, parseISO } from "date-fns";
+import { format, isPast, parseISO, isValid } from "date-fns";
+
+function safeFormatDate(dateStr: string | null, fmt = "dd/MM/yyyy"): string {
+  if (!dateStr) return '-';
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) ? format(d, fmt, { locale: ptBR }) : '-';
+  } catch { return '-'; }
+}
+
+function safeFormatDateTime(dateStr: string | null): string {
+  if (!dateStr) return '—';
+  try {
+    const d = new Date(dateStr);
+    return isValid(d) ? format(d, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }) : '—';
+  } catch { return '—'; }
+}
+
+function safeIsPast(dateStr: string | null): boolean {
+  if (!dateStr) return false;
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) && isPast(d);
+  } catch { return false; }
+}
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
@@ -128,8 +152,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
 
   if (!demanda) return null;
 
-  const isAtrasada = demanda.data_limite && 
-    isPast(parseISO(demanda.data_limite)) && 
+  const isAtrasada = safeIsPast(demanda.data_limite) && 
     !['concluido', 'cancelado'].includes(demanda.status);
 
   return (
@@ -188,26 +211,20 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               <div>
                 <Label>Data Limite</Label>
                 <p className={cn("text-sm mt-1", isAtrasada && "text-destructive font-medium")}>
-                  {demanda.data_limite 
-                    ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
-                    : '-'
-                  }
+                  {safeFormatDate(demanda.data_limite)}
                   {isAtrasada && ' (Atrasada)'}
                 </p>
               </div>
               <div>
                 <Label>Criado em</Label>
                 <p className="text-sm mt-1">
-                  {format(new Date(demanda.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                  {safeFormatDateTime(demanda.created_at)}
                 </p>
               </div>
               <div>
                 <Label>Concluído em</Label>
                 <p className="text-sm mt-1">
-                  {demanda.concluida_em
-                    ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                    : '—'
-                  }
+                  {safeFormatDateTime(demanda.concluida_em)}
                 </p>
               </div>
             </div>

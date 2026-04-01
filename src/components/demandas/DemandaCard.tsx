@@ -3,7 +3,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
-import { format, isPast, parseISO } from "date-fns";
+import { format, isPast, parseISO, isValid } from "date-fns";
+
+function safeFormatDate(dateStr: string | null, fmt = "dd/MM/yyyy"): string {
+  if (!dateStr) return '-';
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) ? format(d, fmt, { locale: ptBR }) : '-';
+  } catch { return '-'; }
+}
+
+function safeIsPast(dateStr: string | null): boolean {
+  if (!dateStr) return false;
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) && isPast(d);
+  } catch { return false; }
+}
 import { ptBR } from "date-fns/locale";
 import { Demanda, CATEGORIA_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
@@ -30,8 +46,7 @@ const categoriaColors: Record<string, string> = {
 };
 
 export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
-  const isAtrasada = demanda.data_limite && 
-    isPast(parseISO(demanda.data_limite)) && 
+  const isAtrasada = safeIsPast(demanda.data_limite) && 
     !['concluido', 'cancelado'].includes(demanda.status);
 
   const advogadaLabels = useAdvogadaLabels();
@@ -97,7 +112,7 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
               {isAtrasada && <AlertCircle className="h-3.5 w-3.5" />}
               <CalendarDays className="h-3.5 w-3.5" />
               <span>
-                {format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })}
+                {safeFormatDate(demanda.data_limite)}
               </span>
             </div>
           )}
@@ -105,7 +120,7 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
           {demanda.status === 'concluido' && demanda.concluida_em && (
             <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Concluída em: {format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })}</span>
+              <span>Concluída em: {safeFormatDate(demanda.concluida_em)}</span>
             </div>
           )}
         </div>

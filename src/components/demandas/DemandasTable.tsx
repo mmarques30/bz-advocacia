@@ -5,7 +5,23 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical, Eye, Edit, Trash2, AlertCircle, GitBranch } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isPast, parseISO } from "date-fns";
+import { format, isPast, parseISO, isValid } from "date-fns";
+
+function safeFormatDate(dateStr: string | null, fmt = "dd/MM/yyyy"): string {
+  if (!dateStr) return '-';
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) ? format(d, fmt, { locale: ptBR }) : '-';
+  } catch { return '-'; }
+}
+
+function safeIsPast(dateStr: string | null): boolean {
+  if (!dateStr) return false;
+  try {
+    const d = parseISO(dateStr);
+    return isValid(d) && isPast(d);
+  } catch { return false; }
+}
 import { ptBR } from "date-fns/locale";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
@@ -99,8 +115,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
             </TableRow>
           ) : (
             demandas.map((demanda) => {
-              const isAtrasada = demanda.data_limite && 
-                isPast(parseISO(demanda.data_limite)) && 
+              const isAtrasada = safeIsPast(demanda.data_limite) && 
                 !['concluido', 'cancelado'].includes(demanda.status);
               
               return (
@@ -138,16 +153,10 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     </Badge>
                   </TableCell>
                   <TableCell className={cn(isAtrasada && "text-destructive font-medium")}>
-                    {demanda.data_limite 
-                      ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
-                      : '-'
-                    }
+                    {safeFormatDate(demanda.data_limite)}
                   </TableCell>
                   <TableCell>
-                    {demanda.concluida_em
-                      ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })
-                      : '—'
-                    }
+                    {safeFormatDate(demanda.concluida_em)}
                   </TableCell>
                   <TableCell>
                     {advogadaLabels[demanda.advogada_responsavel] || '-'}
