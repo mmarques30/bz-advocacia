@@ -152,8 +152,7 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
 
   if (!demanda) return null;
 
-  const isAtrasada = demanda.data_limite && 
-    isPast(parseISO(demanda.data_limite)) && 
+  const isAtrasada = safeIsPast(demanda.data_limite) && 
     !['concluido', 'cancelado'].includes(demanda.status);
 
   return (
