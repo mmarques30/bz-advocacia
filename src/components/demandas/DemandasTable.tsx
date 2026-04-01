@@ -153,16 +153,10 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
                     </Badge>
                   </TableCell>
                   <TableCell className={cn(isAtrasada && "text-destructive font-medium")}>
-                    {demanda.data_limite 
-                      ? format(parseISO(demanda.data_limite), "dd/MM/yyyy", { locale: ptBR })
-                      : '-'
-                    }
+                    {safeFormatDate(demanda.data_limite)}
                   </TableCell>
                   <TableCell>
-                    {demanda.concluida_em
-                      ? format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })
-                      : '—'
-                    }
+                    {safeFormatDate(demanda.concluida_em)}
                   </TableCell>
                   <TableCell>
                     {advogadaLabels[demanda.advogada_responsavel] || '-'}
