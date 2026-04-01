@@ -120,7 +120,7 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
           {demanda.status === 'concluido' && demanda.concluida_em && (
             <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
               <CheckCircle2 className="h-3.5 w-3.5" />
-              <span>Concluída em: {format(parseISO(demanda.concluida_em), "dd/MM/yyyy", { locale: ptBR })}</span>
+              <span>Concluída em: {safeFormatDate(demanda.concluida_em)}</span>
             </div>
           )}
         </div>
