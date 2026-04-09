@@ -37,7 +37,7 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
       ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
       <Select value={filters.categoria || 'todos'} onValueChange={(value) => onFilterChange('categoria', value === 'todos' ? '' : value)}>
         <SelectTrigger>
           <SelectValue placeholder="Categoria" />
@@ -96,6 +96,16 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
           <SelectItem value="todos">Todas as advogadas</SelectItem>
           <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
           <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select value={filters.ordenacao || 'recente'} onValueChange={(value) => onFilterChange('ordenacao', value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Ordenação" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="recente">Mais recente</SelectItem>
+          <SelectItem value="antigo">Mais antigo</SelectItem>
         </SelectContent>
       </Select>
 

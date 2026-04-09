@@ -17,7 +17,7 @@ export const useDemandas = (filters?: DemandasFilters) => {
           lead:contact_submissions(nome_completo)
         `)
         .is('parent_id', null)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: filters?.ordenacao === 'antigo' });
 
       if (filters?.tipo) {
         query = query.eq('tipo', filters.tipo);
