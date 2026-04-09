@@ -99,6 +99,16 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectContent>
       </Select>
 
+      <Select value={filters.ordenacao || 'recente'} onValueChange={(value) => onFilterChange('ordenacao', value)}>
+        <SelectTrigger>
+          <SelectValue placeholder="Ordenação" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="recente">Mais recente</SelectItem>
+          <SelectItem value="antigo">Mais antigo</SelectItem>
+        </SelectContent>
+      </Select>
+
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
