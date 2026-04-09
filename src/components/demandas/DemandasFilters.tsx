@@ -37,7 +37,7 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
       ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
       <Select value={filters.categoria || 'todos'} onValueChange={(value) => onFilterChange('categoria', value === 'todos' ? '' : value)}>
         <SelectTrigger>
           <SelectValue placeholder="Categoria" />

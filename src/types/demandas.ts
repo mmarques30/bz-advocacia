@@ -41,6 +41,7 @@ export interface DemandasFilters {
   advogada_responsavel?: string;
   atrasadas?: boolean;
   search?: string;
+  ordenacao?: 'recente' | 'antigo';
 }
 
 export const TIPO_LABELS: Record<DemandaTipo, string> = {
