@@ -197,10 +197,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-7' : 'grid-cols-4'}`}>
+              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-7' : 'grid-cols-5'}`}>
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
-                {isCliente && <TabsTrigger value="contratos">Contratos</TabsTrigger>}
+                <TabsTrigger value="contratos">{isCliente ? 'Contratos' : 'Propostas'}</TabsTrigger>
                 {isCliente && (
                   <TabsTrigger value="tarefas" className="flex items-center gap-1">
                     <ClipboardList className="h-3.5 w-3.5" />

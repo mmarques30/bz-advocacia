@@ -29,7 +29,7 @@ export const GerarPropostaForm = () => {
   const [condicoesAdicionais, setCondicoesAdicionais] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const { data: leads = [], isLoading: leadsLoading } = useLeads({
+  const { data: allLeads = [], isLoading: leadsLoading } = useLeads({
     search: '',
     status: [],
     origem: [],
@@ -39,6 +39,9 @@ export const GerarPropostaForm = () => {
     responsavel: null,
     statusCliente: [],
   });
+
+  // Filtrar apenas leads (não-fechados) para propostas
+  const leads = useMemo(() => allLeads.filter(l => l.estagio !== 'fechado'), [allLeads]);
 
   const { data: modelosPersonalizados = [] } = useModelosPersonalizados('proposta');
 
@@ -170,7 +173,7 @@ export const GerarPropostaForm = () => {
         <CardContent className="flex-1 space-y-6">
           {/* Cliente */}
           <div className="space-y-2">
-            <Label>Cliente (Lead) *</Label>
+            <Label>Lead *</Label>
             <Select value={clienteSelecionado} onValueChange={handleClienteChange}>
               <SelectTrigger>
                 <SelectValue placeholder={leadsLoading ? "Carregando..." : "Selecione o cliente"} />
