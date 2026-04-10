@@ -137,9 +137,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         {lead ? (
+          selectedProcessoId ? (
+            <ProcessoDetailsInline
+              processoId={selectedProcessoId}
+              onBack={() => setSelectedProcessoId(null)}
+              clienteNome={lead.nome_completo}
+            />
+          ) : (
           <>
             <DialogHeader>
               <div className="flex items-start justify-between">
