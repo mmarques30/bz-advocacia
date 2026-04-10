@@ -178,7 +178,7 @@ export function useDashboardPrincipal() {
         supabase.from("processos_prazos").select("id", { count: "exact", head: true })
           .eq("status", "pendente").gt("data_prazo", fimSemanaISO).lte("data_prazo", em30DiasISO),
         // Processos (all for status + distribution)
-        supabase.from("processos").select("id, status, responsavel_id, data_ultima_atualizacao"),
+        supabase.from("processos").select("id, status, responsavel_id, data_ultima_atualizacao").limit(5000),
         // Demandas ativas
         supabase.from("demandas_internas").select("id", { count: "exact", head: true })
           .not("status", "in", "(concluido,cancelado)"),
