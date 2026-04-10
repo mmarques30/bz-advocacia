@@ -27,7 +27,8 @@ export function useProcessosEvolucao() {
       const { data: processos, error } = await supabase
         .from("processos")
         .select("id, created_at, status, data_ultima_atualizacao")
-        .gte("created_at", inicio.toISOString());
+        .gte("created_at", inicio.toISOString())
+        .limit(5000);
 
       if (error) throw error;
 
@@ -35,7 +36,8 @@ export function useProcessosEvolucao() {
       const { data: allProcessos, error: err2 } = await supabase
         .from("processos")
         .select("id, created_at, status, data_ultima_atualizacao")
-        .lt("created_at", inicio.toISOString());
+        .lt("created_at", inicio.toISOString())
+        .limit(5000);
 
       if (err2) throw err2;
 

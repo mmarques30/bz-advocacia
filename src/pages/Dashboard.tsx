@@ -107,8 +107,8 @@ export default function Dashboard() {
       concluida_em: null,
       parent_id: null,
       ordem: null,
-      created_at: "",
-      updated_at: "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     });
   };
 
