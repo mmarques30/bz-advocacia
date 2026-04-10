@@ -1,37 +1,34 @@
 
 
-## Corrigir conexão entre tarefas, processos e clientes
+## Corrigir lógica do funil: propostas para leads, contratos para clientes
 
-### Problemas identificados
+### Situação atual
 
-1. **`NewDemandaDialog`** recebe `defaultProcessoId` mas NÃO busca o `lead_id` do processo para preencher automaticamente. A tarefa é salva com `processo_id` correto, mas sem `lead_id`.
-
-2. **`useDemandasByLead`** filtra apenas `.eq('lead_id', leadId)` — ignora tarefas vinculadas indiretamente via processos do cliente.
-
-3. **`DemandaDetailsDialog`** (modo visualização) mostra o processo como texto estático sem link clicável para a ficha do processo.
+- `GerarPropostaForm` usa `useLeads()` que traz TODOS os leads (sem filtro por estágio)
+- `GerarContratoForm` usa `useLeadsSimple()` que traz TODOS os contact_submissions
+- Ambos permitem selecionar qualquer pessoa, independente do estágio
+- A automação de status já existe e funciona (`atualizarLeadParaPropostaEnviada` e `atualizarLeadParaFechado`)
+- No `LeadDetailsDialog`, a aba "Contratos" só aparece para clientes (`isCliente`)
 
 ### Alterações
 
-**1. `src/components/demandas/NewDemandaDialog.tsx`**
-- Quando `defaultProcessoId` é fornecido, buscar o `lead_id` do processo automaticamente via query
-- Passar `lead_id` no payload do `createDemanda.mutate()`
-- Isso garante que tarefas criadas dentro de um processo herdem o cliente
+**1. `src/components/documentos/GerarPropostaForm.tsx`** — Filtrar seletor para mostrar apenas leads (não-fechados)
+- Após buscar leads, filtrar para exibir apenas aqueles com `estagio !== 'fechado'`
+- Alterar label de "Cliente (Lead)" para "Lead"
 
-**2. `src/hooks/useDemandas.ts` — `useDemandasByLead`**
-- Alterar a query para buscar tarefas onde `lead_id = leadId` OU onde `processo_id` pertence a um processo do cliente
-- Usar uma abordagem em 2 passos: primeiro buscar os `processo_id` do cliente, depois buscar demandas com `.or('lead_id.eq.{leadId},processo_id.in.({ids})')`
-- Incluir campo `processo` no select para exibir info do processo vinculado
+**2. `src/components/documentos/GerarContratoForm.tsx`** — Filtrar seletor para mostrar apenas clientes (fechados)
+- No `useLeadsSimple`, adicionar `.eq('estagio', 'fechado')` para buscar apenas clientes
+- Manter label "Cliente"
 
-**3. `src/components/leads/ClienteTarefasTab.tsx` — `TarefaItem`**
-- Exibir badge com número/tipo do processo quando a tarefa tem `processo` vinculado
-- Badge clicável que navega para `/dashboard/processos?id={processo_id}` (ou abre o detalhe do processo)
+**3. `src/components/leads/LeadDetailsDialog.tsx`** — Mostrar aba "Contratos/Propostas" para leads também
+- Para leads (não-clientes), exibir a aba `LeadContratosTab` mas com label "Propostas" em vez de "Contratos"
+- Isso permite que leads vejam propostas geradas para eles
 
-**4. `src/components/demandas/DemandaDetailsDialog.tsx` — modo visualização**
-- Transformar o texto "Processo Relacionado" em link clicável quando há processo vinculado
+**4. `src/components/documentos/ContratosHistorico.tsx`** — Sem alteração necessária
+- Já mostra todos os documentos (propostas e contratos) com filtro por tipo funcional
 
 ### Arquivos editados
-- `src/components/demandas/NewDemandaDialog.tsx`
-- `src/hooks/useDemandas.ts`
-- `src/components/leads/ClienteTarefasTab.tsx`
-- `src/components/demandas/DemandaDetailsDialog.tsx`
+- `src/components/documentos/GerarPropostaForm.tsx` (filtrar leads não-fechados)
+- `src/components/documentos/GerarContratoForm.tsx` (filtrar apenas clientes fechados)
+- `src/components/leads/LeadDetailsDialog.tsx` (exibir aba propostas para leads)
 
