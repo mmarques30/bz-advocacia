@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,26 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const [comEntrada, setComEntrada] = useState(false);
   const [valorEntrada, setValorEntrada] = useState("");
 
+  const resetForm = () => {
+    setClienteId("");
+    setTipoServico("");
+    setValorTotal("");
+    setFormaPagamento("a_vista");
+    setNumeroParcelas("1");
+    setDataPrimeiroVencimento("");
+    setFormaPagamentoRecebido("pix");
+    setObservacoes("");
+    setConta("escritorio");
+    setComEntrada(false);
+    setValorEntrada("");
+    setPrefilledFromContrato(false);
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   // Pre-fill from generated contract when client is selected
   useEffect(() => {
     if (clienteId && contratos && contratos.length > 0) {
@@ -87,23 +108,28 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
       if (comEntrada && valorEntrada) {
         const entrada = parseFloat(valorEntrada);
         const restante = valor - entrada;
-        const valorParcela = parcelas > 0 ? restante / parcelas : 0;
+        const valorParcela = parcelas > 0 ? Math.round((restante / parcelas) * 100) / 100 : 0;
+        const somaParcelasRegulares = valorParcela * (parcelas - 1);
+        const ultimaParcelaValor = parcelas > 0 ? Math.round((restante - somaParcelasRegulares) * 100) / 100 : 0;
 
         const preview = [
           { numero: 1, valor: entrada, data: format(new Date(), "yyyy-MM-dd"), isEntrada: true },
           ...Array.from({ length: parcelas }, (_, i) => ({
             numero: i + 2,
-            valor: valorParcela,
+            valor: i === parcelas - 1 ? ultimaParcelaValor : valorParcela,
             data: format(addMonths(dataInicio, i), "yyyy-MM-dd"),
             isEntrada: false,
           })),
         ];
         setParcelasPreview(preview);
       } else {
-        const valorParcela = valor / parcelas;
+        const valorParcela = Math.round((valor / parcelas) * 100) / 100;
+        const somaParcelasRegulares = valorParcela * (parcelas - 1);
+        const ultimaParcelaValor = Math.round((valor - somaParcelasRegulares) * 100) / 100;
+
         const preview = Array.from({ length: parcelas }, (_, i) => ({
           numero: i + 1,
-          valor: valorParcela,
+          valor: i === parcelas - 1 ? ultimaParcelaValor : valorParcela,
           data: format(addMonths(dataInicio, i), "yyyy-MM-dd"),
           isEntrada: false,
         }));
@@ -146,24 +172,18 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
       },
       {
         onSuccess: () => {
+          resetForm();
           onClose();
-          setClienteId("");
-          setTipoServico("");
-          setValorTotal("");
-          setFormaPagamento("a_vista");
-          setNumeroParcelas("1");
-          setDataPrimeiroVencimento("");
-          setObservacoes("");
-          setComEntrada(false);
-          setValorEntrada("");
-          setPrefilledFromContrato(false);
+        },
+        onError: (error: any) => {
+          toast.error(error.message || "Erro ao criar contrato financeiro");
         },
       }
     );
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Novo Contrato Financeiro</DialogTitle>
@@ -382,7 +402,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               Cancelar
             </Button>
             <Button type="submit" disabled={createAcordo.isPending}>

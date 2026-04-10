@@ -19,6 +19,7 @@ import {
 import { useCreateTransacao, useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
 import { toast } from "sonner";
 
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -54,6 +55,11 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
   const { data: subcategorias } = useSubcategorias(categoriaCodigo);
   const createTransacao = useCreateTransacao();
 
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -77,10 +83,10 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
       });
 
       toast.success("Transação criada com sucesso");
-      onClose();
       resetForm();
-    } catch (error) {
-      toast.error("Erro ao criar transação");
+      onClose();
+    } catch (error: any) {
+      toast.error(error?.message || "Erro ao criar transação");
     }
   };
 
@@ -96,7 +102,7 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nova Transação</DialogTitle>

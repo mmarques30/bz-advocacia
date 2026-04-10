@@ -335,6 +335,9 @@ export function useCreateAcordo() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["acordos-financeiros"] });
       queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["fluxo-caixa"] });
+      queryClient.invalidateQueries({ queryKey: ["receita-mensal"] });
+      queryClient.invalidateQueries({ queryKey: ["projetado-vs-realizado"] });
       toast({
         title: "Acordo criado",
         description: "O acordo financeiro foi criado com sucesso.",
