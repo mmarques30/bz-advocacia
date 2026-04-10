@@ -18,6 +18,7 @@ import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
 import { processarTemplate } from "@/types/whatsapp";
