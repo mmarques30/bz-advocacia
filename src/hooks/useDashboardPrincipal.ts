@@ -17,25 +17,8 @@ export interface CargaAdvogada {
   prazosHoje: number;
 }
 
-export interface PrazoUrgencia {
-  atrasados: number;
-  hoje: number;
-  estaSemana: number;
-  trintaDias: number;
-}
 
-export interface PrazoProximoEnriquecido {
-  id: string;
-  processo_id: string;
-  numero_processo: string | null;
-  tipo_prazo: string;
-  descricao: string;
-  data_prazo: string;
-  dias_restantes: number;
-  prioridade: string;
-  cliente_nome: string | null;
-  advogada_nome: string | null;
-}
+
 
 export interface TarefaUrgente {
   id: string;
@@ -99,8 +82,6 @@ export interface DashboardPrincipalData {
   clientesSemProcesso: number;
   aniversariantesHoje: number;
   // Line 1
-  prazosUrgencia: PrazoUrgencia;
-  proximosPrazos: PrazoProximoEnriquecido[];
   tarefasUrgentesList: TarefaUrgente[];
   // Line 2
   distribuicao: DistribuicaoMembro[];
@@ -145,10 +126,6 @@ export function useDashboardPrincipal() {
 
       // Batch 1: All independent counts
       const [
-        prazosAtrasadosR,
-        prazosHojeR,
-        prazosSemanaR,
-        prazos30DiasR,
         processosR,
         demandasAtivasR,
         demandasUrgentesR,
@@ -158,7 +135,6 @@ export function useDashboardPrincipal() {
         clientesNovosMesR,
         processosSemMovCountR,
         processosSemMovR,
-        proximosPrazosR,
         tarefasUrgentesR,
         leadsSemFollowUpListR,
         leadsPendentesR,
@@ -207,11 +183,6 @@ export function useDashboardPrincipal() {
           .eq("status", "em_andamento")
           .or(`data_ultima_atualizacao.lt.${ha30Dias.toISOString()},data_ultima_atualizacao.is.null`)
           .order("data_ultima_atualizacao", { ascending: true, nullsFirst: true }).limit(3),
-        // Próximos prazos (8)
-        supabase.from("processos_prazos")
-          .select("id, processo_id, tipo_prazo, descricao, data_prazo, prioridade, responsavel_id")
-          .eq("status", "pendente").gte("data_prazo", hojeISO)
-          .order("data_prazo", { ascending: true }).limit(8),
         // Tarefas urgentes/alta (top 8)
         supabase.from("demandas_internas")
           .select("id, titulo, prioridade, data_limite, advogada_responsavel, responsavel_id, status")
@@ -312,8 +283,7 @@ export function useDashboardPrincipal() {
 
       // Get profiles for all responsible IDs + tarefa responsaveis
       const tarefaRespIds = [...new Set((tarefasUrgentesR.data || []).map(t => t.responsavel_id).filter(Boolean))] as string[];
-      const prazoRespIds = [...new Set((proximosPrazosR.data || []).map(p => p.responsavel_id).filter(Boolean))] as string[];
-      const allProfileIds = [...new Set([...allRespIds, ...tarefaRespIds, ...prazoRespIds])];
+      const allProfileIds = [...new Set([...allRespIds, ...tarefaRespIds])];
 
       let profilesMap: Record<string, string> = {};
       if (allProfileIds.length > 0) {
@@ -336,41 +306,6 @@ export function useDashboardPrincipal() {
           tarefasUrgentes: respTarefasUrg[id] || 0,
         };
       }).sort((a, b) => (b.processos + b.tarefas) - (a.processos + a.tarefas));
-
-      // === Enrich próximos prazos ===
-      const prazoData = proximosPrazosR.data || [];
-      const processoIds = [...new Set(prazoData.map(p => p.processo_id))];
-
-      let processosMap: Record<string, { numero_processo: string | null; lead_id: string | null; responsavel_id: string | null }> = {};
-      if (processoIds.length > 0) {
-        const { data } = await supabase.from("processos").select("id, numero_processo, lead_id, responsavel_id").in("id", processoIds);
-        (data || []).forEach(p => { processosMap[p.id] = { numero_processo: p.numero_processo, lead_id: p.lead_id, responsavel_id: p.responsavel_id }; });
-      }
-
-      const leadIds = [...new Set(Object.values(processosMap).map(p => p.lead_id).filter(Boolean))] as string[];
-      let clientesMap: Record<string, string> = {};
-      if (leadIds.length > 0) {
-        const { data } = await supabase.from("contact_submissions").select("id, nome_completo").in("id", leadIds);
-        (data || []).forEach(c => { clientesMap[c.id] = c.nome_completo; });
-      }
-
-      const proximosPrazos: PrazoProximoEnriquecido[] = prazoData.map(p => {
-        const proc = processosMap[p.processo_id];
-        const diasRestantes = Math.ceil((new Date(p.data_prazo).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-        const advId = p.responsavel_id || proc?.responsavel_id;
-        return {
-          id: p.id,
-          processo_id: p.processo_id,
-          numero_processo: proc?.numero_processo || null,
-          tipo_prazo: p.tipo_prazo,
-          descricao: p.descricao,
-          data_prazo: p.data_prazo,
-          dias_restantes: diasRestantes,
-          prioridade: p.prioridade || "media",
-          cliente_nome: proc?.lead_id ? clientesMap[proc.lead_id] || null : null,
-          advogada_nome: advId ? profilesMap[advId] || null : null,
-        };
-      });
 
       // === Tarefas urgentes enriquecidas ===
       const tarefasUrgentesList: TarefaUrgente[] = (tarefasUrgentesR.data || []).map(t => ({
@@ -441,13 +376,6 @@ export function useDashboardPrincipal() {
         clientesNovosMes: clientesNovosMesR.count || 0,
         clientesSemProcesso: clientesSemProcessoCount,
         aniversariantesHoje,
-        prazosUrgencia: {
-          atrasados: prazosAtrasadosR.count || 0,
-          hoje: prazosHojeR.count || 0,
-          estaSemana: prazosSemanaR.count || 0,
-          trintaDias: prazos30DiasR.count || 0,
-        },
-        proximosPrazos,
         tarefasUrgentesList,
         distribuicao,
         leadsFunil,

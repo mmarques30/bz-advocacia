@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { DashboardKPIStrip } from "@/components/dashboard/DashboardKPIStrip";
-import { DashboardPrazosCard } from "@/components/dashboard/DashboardPrazosCard";
+
 import { DashboardTarefasUrgentesCard } from "@/components/dashboard/DashboardTarefasUrgentesCard";
 import { DashboardDistribuicaoCard } from "@/components/dashboard/DashboardDistribuicaoCard";
 import { DashboardLeadsPendentesCard } from "@/components/dashboard/DashboardLeadsPendentesCard";
@@ -143,14 +143,8 @@ export default function Dashboard() {
       {/* KPI Strip */}
       <DashboardKPIStrip cells={kpiCells} loading={isLoading} />
 
-      {/* Line 1 — Prazos + Tarefas urgentes */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DashboardPrazosCard
-          urgencia={data?.prazosUrgencia || { atrasados: 0, hoje: 0, estaSemana: 0, trintaDias: 0 }}
-          proximosPrazos={data?.proximosPrazos || []}
-          loading={isLoading}
-          onPrazoClick={(id) => setSelectedProcessoId(id)}
-        />
+      {/* Line 1 — Tarefas urgentes */}
+      <div>
         <DashboardTarefasUrgentesCard
           tarefas={data?.tarefasUrgentesList || []}
           loading={isLoading}
