@@ -107,11 +107,6 @@ export function useDashboardPrincipal() {
     queryFn: async (): Promise<DashboardPrincipalData> => {
       const hoje = new Date();
       const hojeISO = hoje.toISOString().split("T")[0];
-      const fimSemana = getEndOfWeek(hoje);
-      const fimSemanaISO = fimSemana.toISOString().split("T")[0];
-      const em30Dias = new Date(hoje);
-      em30Dias.setDate(em30Dias.getDate() + 30);
-      const em30DiasISO = em30Dias.toISOString().split("T")[0];
       const ha30Dias = new Date(hoje);
       ha30Dias.setDate(ha30Dias.getDate() - 30);
 
