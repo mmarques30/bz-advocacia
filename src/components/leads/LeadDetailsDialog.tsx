@@ -18,6 +18,7 @@ import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
 import { processarTemplate } from "@/types/whatsapp";
@@ -36,7 +37,13 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   const diasParado = lead?.dias_parado || 0;
   const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
   const [markingConcluido, setMarkingConcluido] = useState(false);
+  const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const handleDialogClose = () => {
+    setSelectedProcessoId(null);
+    onClose();
+  };
 
   // Check if client has processes
   const { data: processosCount } = useQuery({
@@ -130,9 +137,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         {lead ? (
+          selectedProcessoId ? (
+            <ProcessoDetailsInline
+              processoId={selectedProcessoId}
+              onBack={() => setSelectedProcessoId(null)}
+              clienteNome={lead.nome_completo}
+            />
+          ) : (
           <>
             <DialogHeader>
               <div className="flex items-start justify-between">
@@ -349,8 +363,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsContent>
 
               {isCliente && (
-                <TabsContent value="processos" className="mt-4">
-                  <ClienteProcessosTab clienteId={lead.id} clienteNome={lead.nome_completo} />
+              <TabsContent value="processos" className="mt-4">
+                  <ClienteProcessosTab 
+                    clienteId={lead.id} 
+                    clienteNome={lead.nome_completo} 
+                    onSelectProcesso={(id) => setSelectedProcessoId(id)}
+                  />
                 </TabsContent>
               )}
 
@@ -410,6 +428,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsContent>
             </Tabs>
           </>
+          )
         ) : (
           <div className="py-8 text-center text-muted-foreground">
             Carregando detalhes...

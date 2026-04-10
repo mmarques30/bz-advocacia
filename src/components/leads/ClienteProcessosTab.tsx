@@ -8,11 +8,11 @@ import { Scale, Plus, Eye, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { NewProcessoDialog } from "@/components/processos/NewProcessoDialog";
-import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
 
 interface ClienteProcessosTabProps {
   clienteId: string;
   clienteNome: string;
+  onSelectProcesso?: (id: string) => void;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
@@ -23,9 +23,8 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   suspenso: { label: "Suspenso", className: "bg-yellow-100 text-yellow-800 border-yellow-200" },
 };
 
-export function ClienteProcessosTab({ clienteId, clienteNome }: ClienteProcessosTabProps) {
+export function ClienteProcessosTab({ clienteId, clienteNome, onSelectProcesso }: ClienteProcessosTabProps) {
   const [newProcessoOpen, setNewProcessoOpen] = useState(false);
-  const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
 
   const { data: processos, isLoading } = useQuery({
     queryKey: ["processos-cliente", clienteId],
@@ -44,6 +43,12 @@ export function ClienteProcessosTab({ clienteId, clienteNome }: ClienteProcessos
 
   const getStatusConfig = (status: string | null) => {
     return STATUS_CONFIG[status || "ativo"] || STATUS_CONFIG.ativo;
+  };
+
+  const handleSelectProcesso = (id: string) => {
+    if (onSelectProcesso) {
+      onSelectProcesso(id);
+    }
   };
 
   if (isLoading) {
@@ -102,7 +107,7 @@ export function ClienteProcessosTab({ clienteId, clienteNome }: ClienteProcessos
                 <TableRow
                   key={processo.id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => setSelectedProcessoId(processo.id)}
+                  onClick={() => handleSelectProcesso(processo.id)}
                 >
                   <TableCell className="font-medium">
                     {processo.numero_processo || "Sem número"}
@@ -123,7 +128,7 @@ export function ClienteProcessosTab({ clienteId, clienteNome }: ClienteProcessos
                       title="Ver Detalhes"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedProcessoId(processo.id);
+                        handleSelectProcesso(processo.id);
                       }}
                     >
                       <Eye className="h-4 w-4" />
@@ -140,12 +145,6 @@ export function ClienteProcessosTab({ clienteId, clienteNome }: ClienteProcessos
         open={newProcessoOpen}
         onClose={() => setNewProcessoOpen(false)}
         clienteId={clienteId}
-      />
-
-      <ProcessoDetailsDialog
-        processoId={selectedProcessoId}
-        open={!!selectedProcessoId}
-        onClose={() => setSelectedProcessoId(null)}
       />
     </div>
   );
