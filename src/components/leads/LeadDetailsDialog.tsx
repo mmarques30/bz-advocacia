@@ -424,6 +424,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsContent>
             </Tabs>
           </>
+          )
         ) : (
           <div className="py-8 text-center text-muted-foreground">
             Carregando detalhes...
