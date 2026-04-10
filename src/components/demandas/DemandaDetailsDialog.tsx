@@ -38,8 +38,9 @@ import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
-import { AlertCircle, GitBranch } from "lucide-react";
+import { AlertCircle, GitBranch, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import { SubtarefasList } from "./SubtarefasList";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { ProcessoSearchInput } from "./ProcessoSearchInput";
@@ -64,6 +65,7 @@ interface DemandaDetailsDialogProps {
 
 export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, isAdmin }: DemandaDetailsDialogProps) => {
   const advogadaLabels = useAdvogadaLabels();
+  const navigate = useNavigate();
   const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
   const statuses = statusDb && statusDb.length > 0
     ? statusDb.map(o => ({ value: o.valor, label: o.label }))
@@ -201,12 +203,20 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
               </div>
               <div>
                 <Label>Processo Relacionado</Label>
-                <p className="text-sm mt-1">
-                  {demanda.processo 
-                    ? (demanda.processo.numero_processo || demanda.processo.tipo)
-                    : '-'
-                  }
-                </p>
+                {demanda.processo && demanda.processo_id ? (
+                  <button
+                    onClick={() => {
+                      onOpenChange(false);
+                      navigate(`/dashboard/processos?id=${demanda.processo_id}`);
+                    }}
+                    className="flex items-center gap-1 text-sm mt-1 text-primary hover:underline"
+                  >
+                    {demanda.processo.numero_processo || demanda.processo.tipo}
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
+                ) : (
+                  <p className="text-sm mt-1">-</p>
+                )}
               </div>
               <div>
                 <Label>Data Limite</Label>

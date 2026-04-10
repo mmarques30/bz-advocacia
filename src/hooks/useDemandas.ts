@@ -236,7 +236,16 @@ export const useDemandasByLead = (leadId: string) => {
   return useQuery({
     queryKey: ['demandas-by-lead', leadId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get all processo IDs for this client
+      const { data: processos } = await supabase
+        .from('processos')
+        .select('id')
+        .eq('lead_id', leadId);
+
+      const processoIds = processos?.map(p => p.id) || [];
+
+      // Build OR filter: direct lead_id match OR processo_id in client's processes
+      let query = supabase
         .from('demandas_internas')
         .select(`
           *,
@@ -244,10 +253,16 @@ export const useDemandasByLead = (leadId: string) => {
           responsavel:profiles!demandas_internas_responsavel_id_fkey(nome_completo),
           processo:processos(numero_processo, tipo)
         `)
-        .eq('lead_id', leadId)
         .is('parent_id', null)
         .order('created_at', { ascending: false });
 
+      if (processoIds.length > 0) {
+        query = query.or(`lead_id.eq.${leadId},processo_id.in.(${processoIds.join(',')})`);
+      } else {
+        query = query.eq('lead_id', leadId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Demanda[];
     },

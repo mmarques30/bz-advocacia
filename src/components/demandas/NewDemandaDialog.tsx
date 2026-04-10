@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
 import { ProcessoSearchInput } from "./ProcessoSearchInput";
+import { useEffect } from "react";
 
 interface NewDemandaDialogProps {
   open: boolean;
@@ -69,7 +70,27 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
 
   const processoId = watch('processo_id');
 
+  // Auto-fetch lead_id from the processo when defaultProcessoId is provided
+  const { data: processoData } = useQuery({
+    queryKey: ['processo-lead', defaultProcessoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('processos')
+        .select('lead_id')
+        .eq('id', defaultProcessoId!)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!defaultProcessoId,
+  });
+
   const onSubmit = (data: FormData) => {
+    // Use lead_id from processo when available
+    const leadId = defaultProcessoId && processoData?.lead_id
+      ? processoData.lead_id
+      : null;
+
     createDemanda.mutate({
       titulo: data.titulo,
       descricao: data.descricao || null,
@@ -80,6 +101,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
       status: 'pendente',
       responsavel_id: data.responsavel_id === 'sem_responsavel' ? null : data.responsavel_id || null,
       processo_id: data.processo_id || null,
+      lead_id: leadId,
       data_limite: data.data_limite || null,
       data_conclusao: null,
     }, {
