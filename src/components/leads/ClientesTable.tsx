@@ -1,4 +1,4 @@
-import { Eye, Edit, MoreVertical, Trash2, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
+import { Eye, Edit, MoreVertical, Trash2, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle, Cake } from "lucide-react";
 import { useState, useMemo } from "react";
 import {
   Table,
@@ -153,6 +153,20 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
               <TableCell className="font-medium">
                 <span className="flex items-center gap-1.5 truncate max-w-[200px]">
                   {lead.nome_completo}
+                  {lead.data_nascimento && (() => {
+                    const today = new Date();
+                    const [y, m, d] = lead.data_nascimento!.split('-').map(Number);
+                    return m === today.getMonth() + 1 && d === today.getDate();
+                  })() && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Cake className="h-3.5 w-3.5 text-pink-500 shrink-0" />
+                        </TooltipTrigger>
+                        <TooltipContent>Aniversariante hoje! 🎂</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   {(!lead.telefone || lead.telefone.trim() === '') && (
                     <TooltipProvider>
                       <Tooltip>
