@@ -196,6 +196,9 @@ export function useDashboardPrincipal() {
           .gte("created_at", inicioMesISO),
         // Processos sem registro (sem nenhum histórico)
         Promise.resolve({ count: 0, data: null, error: null }), // placeholder for sem registro
+        // Prazos hoje (for KPI strip)
+        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
+          .eq("status", "pendente").eq("data_prazo", hojeISO),
       ]);
 
       // Clientes sem processo: IDs de clientes ativos que não aparecem em processos.lead_id
