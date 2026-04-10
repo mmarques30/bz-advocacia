@@ -1,34 +1,26 @@
 
 
-## Substituir Dialog do cliente por Sheet lateral
+## Remover card "Prazos processuais" do Dashboard
 
-### Alteração principal: `src/components/leads/LeadDetailsDialog.tsx`
+### Alteração em `src/pages/Dashboard.tsx`
 
-Substituir `Dialog`/`DialogContent` por `Sheet`/`SheetContent` do shadcn/ui, mantendo toda a lógica e tabs intactas.
+1. Remover import do `DashboardPrazosCard`
+2. Remover o card `<DashboardPrazosCard>` do grid (linhas ~146-153)
+3. Ajustar o grid: o `DashboardTarefasUrgentesCard` passa a ocupar a largura toda (remover `lg:grid-cols-2` ou manter com outro card)
 
-**Mudanças específicas:**
+### Alteração em `src/hooks/useDashboardPrincipal.ts`
 
-1. **Imports** — trocar `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogDescription` por `Sheet`, `SheetContent`, `SheetHeader`, `SheetTitle`, `SheetDescription` de `@/components/ui/sheet`
+- Remover as queries de prazos do `Promise.all` (4 queries de contagem + 1 de próximos prazos)
+- Remover tipos `PrazoUrgencia`, `PrazoProximoEnriquecido` e campos relacionados do retorno
+- Remover lógica de enriquecimento de prazos
 
-2. **Componente raiz** — `<Dialog>` → `<Sheet>`, `<DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">` → `<SheetContent side="right" className="w-full sm:w-[680px] sm:max-w-[680px] overflow-y-auto p-6">`
+### Arquivo a excluir
 
-3. **Header** — `<DialogHeader>` → `<SheetHeader>`, `<DialogTitle>` → `<SheetTitle>`, `<DialogDescription>` → `<SheetDescription>`
+- `src/components/dashboard/DashboardPrazosCard.tsx`
 
-4. **Cabeçalho enriquecido** (fora das tabs):
-   - Nome em destaque (`SheetTitle`)
-   - Badge de status (Ativo/Inativo) ao lado do nome
-   - Linha com CPF mascarado · X processos · cidade (quando disponíveis)
-   - O botão X de fechar já vem nativo do `SheetContent`
+### O que NÃO muda
 
-5. **Tabs** — sem alteração estrutural, apenas mais espaço horizontal disponível
-
-6. **ProcessoDetailsInline** — permanece igual, substituindo o corpo do drawer quando selecionado
-
-7. **Mobile** — `w-full` garante 100vw em telas pequenas; `sm:w-[680px]` aplica a largura fixa no desktop
-
-### Arquivos que chamam o componente (sem alteração necessária)
-- `src/pages/Clientes.tsx` — usa `LeadDetailsDialog` com `isCliente={true}`, props idênticas
-- `src/pages/Leads.tsx` — usa `LeadDetailsDialog`, props idênticas
-
-A interface `LeadDetailsDialogProps` permanece a mesma (open, onClose, lead, onEdit, isCliente).
+- A aba "Prazos" dentro dos detalhes de cada processo (`ProcessoPrazosTab`) permanece intacta
+- O hook `useProcessoPrazos` e a tabela `processos_prazos` permanecem — são usados nos detalhes de processos
+- O calendário de prazos continua funcionando
 
