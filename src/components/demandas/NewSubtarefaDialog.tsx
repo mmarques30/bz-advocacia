@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Demanda } from "@/types/demandas";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
+import { useEffect } from "react";
 
 interface NewSubtarefaDialogProps {
   open: boolean;
@@ -26,12 +27,20 @@ interface FormData {
 
 export const NewSubtarefaDialog = ({ open, onOpenChange, parentDemanda, nextOrdem }: NewSubtarefaDialogProps) => {
   const advogadaLabels = useAdvogadaLabels();
-  const { register, handleSubmit, reset, setValue } = useForm<FormData>({
-    defaultValues: {
-      advogada_responsavel: parentDemanda.advogada_responsavel || 'juliana',
-    },
-  });
+  const { register, handleSubmit, reset, setValue } = useForm<FormData>();
   const createSubtarefa = useCreateSubtarefa();
+
+  // Reset form with fresh values every time dialog opens
+  useEffect(() => {
+    if (open) {
+      reset({
+        titulo: '',
+        advogada_responsavel: parentDemanda.advogada_responsavel || 'juliana',
+        responsavel_id: '',
+        data_limite: '',
+      });
+    }
+  }, [open, parentDemanda.advogada_responsavel, reset]);
 
   const { data: usuarios } = useQuery({
     queryKey: ['usuarios-demandas'],
@@ -51,7 +60,7 @@ export const NewSubtarefaDialog = ({ open, onOpenChange, parentDemanda, nextOrde
       titulo: data.titulo,
       parent_id: parentDemanda.id,
       ordem: nextOrdem,
-      advogada_responsavel: data.advogada_responsavel,
+      advogada_responsavel: data.advogada_responsavel || parentDemanda.advogada_responsavel || 'juliana',
       responsavel_id: data.responsavel_id === 'sem_responsavel' ? null : data.responsavel_id || null,
       data_limite: data.data_limite || null,
       processo_id: parentDemanda.processo_id,
@@ -61,8 +70,12 @@ export const NewSubtarefaDialog = ({ open, onOpenChange, parentDemanda, nextOrde
       prioridade: parentDemanda.prioridade,
     }, {
       onSuccess: () => {
-        reset();
-        onOpenChange(false);
+        try {
+          reset();
+          onOpenChange(false);
+        } catch (e) {
+          console.error('Erro ao fechar dialog de subtarefa:', e);
+        }
       },
     });
   };

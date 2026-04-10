@@ -77,7 +77,8 @@ export const useCreateSubtarefa = () => {
       toast.success('Subtarefa criada com sucesso!');
     },
     onError: (error: any) => {
-      toast.error('Erro ao criar subtarefa: ' + error.message);
+      console.error('Erro ao criar subtarefa:', error);
+      toast.error('Erro ao criar subtarefa: ' + (error?.message || 'Erro desconhecido'));
     },
   });
 };
