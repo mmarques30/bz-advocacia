@@ -141,19 +141,8 @@ export function useDashboardPrincipal() {
         leadsFechadosMesR,
         leadsTotalMesR,
         semRegistroR,
+        prazosHojeR,
       ] = await Promise.all([
-        // Prazos atrasados
-        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
-          .eq("status", "pendente").lt("data_prazo", hojeISO),
-        // Prazos hoje
-        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
-          .eq("status", "pendente").eq("data_prazo", hojeISO),
-        // Esta semana
-        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
-          .eq("status", "pendente").gte("data_prazo", hojeISO).lte("data_prazo", fimSemanaISO),
-        // 30 dias
-        supabase.from("processos_prazos").select("id", { count: "exact", head: true })
-          .eq("status", "pendente").gt("data_prazo", fimSemanaISO).lte("data_prazo", em30DiasISO),
         // Processos (all for status + distribution)
         supabase.from("processos").select("id, status, responsavel_id, data_ultima_atualizacao").limit(5000),
         // Demandas ativas
