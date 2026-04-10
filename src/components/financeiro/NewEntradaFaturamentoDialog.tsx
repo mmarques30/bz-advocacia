@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -171,8 +172,25 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
   const [observacoes, setObservacoes] = useState("");
   const [conta, setConta] = useState("escritorio");
 
+  const resetForm = () => {
+    setClienteId("");
+    setProcessoId("");
+    setDescricao("");
+    setValor("");
+    setDataRecebimento(format(new Date(), "yyyy-MM-dd"));
+    setFormaPagamento("pix");
+    setObservacoes("");
+    setConta("escritorio");
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const valorNum = parseFloat(valor);
+    if (isNaN(valorNum) || valorNum <= 0) {
+      toast.error("Informe um valor válido maior que zero");
+      return;
+    }
 
     // Criar como acordo à vista com 1 parcela já paga
     createAcordo.mutate(
@@ -180,7 +198,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
         cliente_id: clienteId,
         processo_id: processoId && processoId !== "none" ? processoId : null,
         tipo_servico: `${TIPO_ENTRADA_FATURAMENTO_LABELS[tipo]}${descricao ? ` - ${descricao}` : ''}`,
-        valor_total: parseFloat(valor),
+        valor_total: Math.round(valorNum * 100) / 100,
         forma_pagamento: 'a_vista',
         numero_parcelas: 1,
         data_primeiro_vencimento: dataRecebimento,
@@ -188,17 +206,21 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
         conta,
         parcelas: [{
           numero_parcela: 1,
-          valor: parseFloat(valor),
+          valor: Math.round(valorNum * 100) / 100,
           data_vencimento: dataRecebimento,
           data_pagamento: dataRecebimento,
-          valor_pago: parseFloat(valor),
+          valor_pago: Math.round(valorNum * 100) / 100,
           forma_pagamento_recebido: formaPagamento,
           status: 'pago',
         }],
       },
       {
         onSuccess: () => {
+          resetForm();
           onClose();
+        },
+        onError: (error: any) => {
+          toast.error(error?.message || "Erro ao registrar entrada de faturamento");
         },
       }
     );
