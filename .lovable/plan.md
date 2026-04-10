@@ -1,26 +1,20 @@
 
 
-## Remover card "Prazos processuais" do Dashboard
+## Corrigir formulário de Proposta para focar em Leads
 
-### Alteração em `src/pages/Dashboard.tsx`
+### Problema
+O formulário `GerarPropostaForm` já filtra corretamente leads não-fechados (linha 44), mas a linguagem da interface ainda referencia "cliente" em vários pontos (placeholder "Selecione o cliente", variáveis internas `clienteSelecionado`, `clienteData`, etc.), causando confusão conceitual.
 
-1. Remover import do `DashboardPrazosCard`
-2. Remover o card `<DashboardPrazosCard>` do grid (linhas ~146-153)
-3. Ajustar o grid: o `DashboardTarefasUrgentesCard` passa a ocupar a largura toda (remover `lg:grid-cols-2` ou manter com outro card)
+### Alteração em `src/components/documentos/GerarPropostaForm.tsx`
 
-### Alteração em `src/hooks/useDashboardPrincipal.ts`
-
-- Remover as queries de prazos do `Promise.all` (4 queries de contagem + 1 de próximos prazos)
-- Remover tipos `PrazoUrgencia`, `PrazoProximoEnriquecido` e campos relacionados do retorno
-- Remover lógica de enriquecimento de prazos
-
-### Arquivo a excluir
-
-- `src/components/dashboard/DashboardPrazosCard.tsx`
+1. **Placeholder do Select**: `"Selecione o cliente"` → `"Selecione o lead"`
+2. **Exibir estágio do lead** no dropdown para contexto (ex: "João Silva - Divórcio · Novo")
+3. **Renomear variáveis internas** de `clienteSelecionado`/`clienteData` para `leadSelecionado`/`leadData` para consistência semântica
+4. **Adicionar texto informativo** abaixo do select explicando que propostas são geradas para leads em fase de negociação
 
 ### O que NÃO muda
-
-- A aba "Prazos" dentro dos detalhes de cada processo (`ProcessoPrazosTab`) permanece intacta
-- O hook `useProcessoPrazos` e a tabela `processos_prazos` permanecem — são usados nos detalhes de processos
-- O calendário de prazos continua funcionando
+- Lógica de filtro (já correta — exclui `fechado`)
+- Estrutura de dados e tabelas
+- Automação de status (`atualizarLeadParaPropostaEnviada`)
+- PDF e preview
 
