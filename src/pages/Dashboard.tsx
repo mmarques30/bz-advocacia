@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Cake } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
@@ -79,7 +80,7 @@ export default function Dashboard() {
           className="cursor-pointer underline decoration-dotted"
           onClick={() => navigate("/dashboard/clientes?aniversariantes=hoje")}
         >
-          🎂 {data?.aniversariantesHoje} aniversariante{(data?.aniversariantesHoje || 0) > 1 ? 's' : ''} hoje
+          <Cake className="inline-block w-3.5 h-3.5 mr-0.5 -mt-0.5" /> {data?.aniversariantesHoje} aniversariante{(data?.aniversariantesHoje || 0) > 1 ? 's' : ''} hoje
         </span>
       ) : (data?.clientesSemProcesso || 0) > 0 ? (
         <span
