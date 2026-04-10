@@ -1,10 +1,11 @@
 import { useDemandasByLead } from "@/hooks/useDemandas";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ClipboardList, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { ClipboardList, CheckCircle2, Clock, AlertTriangle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { Demanda } from "@/types/demandas";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
+import { useNavigate } from "react-router-dom";
 
 interface ClienteTarefasTabProps {
   leadId: string;
@@ -26,6 +27,7 @@ const prioridadeConfig: Record<string, { label: string; className: string }> = {
 
 function TarefaItem({ demanda }: { demanda: Demanda }) {
   const advogadaLabels = useAdvogadaLabels();
+  const navigate = useNavigate();
   const status = statusConfig[demanda.status] || statusConfig.pendente;
   const prioridade = prioridadeConfig[demanda.prioridade] || prioridadeConfig.media;
   const isConcluida = demanda.status === "concluido";
@@ -46,8 +48,17 @@ function TarefaItem({ demanda }: { demanda: Demanda }) {
           <Badge variant="outline" className={status.className}>{status.label}</Badge>
         </div>
       </div>
-      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
         <span>Resp: {advogadaLabels[demanda.advogada_responsavel] || demanda.advogada_responsavel || "—"}</span>
+        {demanda.processo && (
+          <button
+            onClick={() => navigate(`/dashboard/processos?id=${demanda.processo_id}`)}
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            <FileText className="h-3 w-3" />
+            {demanda.processo.numero_processo || demanda.processo.tipo}
+          </button>
+        )}
         {demanda.data_limite && (
           <span className="flex items-center gap-1">
             <Clock className="h-3 w-3" />
