@@ -196,7 +196,7 @@ const App = () => (
       {/* Redirects for old routes */}
       <Route path="/dashboard/configuracoes/perfil" element={<Navigate to="/dashboard/configuracoes/cadastros" replace />} />
       <Route path="/dashboard/configuracoes/usuarios" element={<Navigate to="/dashboard/configuracoes/cadastros" replace />} />
-      <Route path="/dashboard/configuracoes/whatsapp-templates" element={<Navigate to="/dashboard/configuracoes/modelos" replace />} />
+      
       <Route path="/dashboard/configuracoes/listas" element={<Navigate to="/dashboard/configuracoes/modelos" replace />} />
       <Route path="/dashboard/configuracoes/guia" element={<Navigate to="/dashboard/configuracoes/controle" replace />} />
       <Route path="/dashboard/configuracoes/atualizacoes" element={<Navigate to="/dashboard/configuracoes/controle" replace />} />
