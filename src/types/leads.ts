@@ -43,6 +43,7 @@ export interface Lead {
   rg: string | null;
   nacionalidade: string | null;
   profissao: string | null;
+  data_nascimento: string | null;
 }
 
 export interface LeadNota {
