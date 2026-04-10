@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +45,6 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
     onClose();
   };
 
-  // Check if client has processes
   const { data: processosCount } = useQuery({
     queryKey: ["cliente-processos-count", lead?.id],
     queryFn: async () => {
@@ -136,9 +135,25 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
     return colors[estagio] || "";
   };
 
+  const maskCpf = (cpf: string) => {
+    const digits = cpf.replace(/\D/g, '');
+    if (digits.length >= 11) {
+      return `***.***.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+    }
+    return cpf;
+  };
+
+  const summaryParts: string[] = [];
+  if (lead?.cpf) summaryParts.push(maskCpf(lead.cpf));
+  if (typeof processosCount === 'number') summaryParts.push(`${processosCount} processo${processosCount !== 1 ? 's' : ''}`);
+  if (lead?.endereco_completo) {
+    const city = lead.endereco_completo.split(',').pop()?.trim();
+    if (city) summaryParts.push(city);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={handleDialogClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Sheet open={open} onOpenChange={handleDialogClose}>
+      <SheetContent side="right" className="w-full sm:w-[680px] sm:max-w-[680px] overflow-y-auto p-6">
         {lead ? (
           selectedProcessoId ? (
             <ProcessoDetailsInline
@@ -148,41 +163,55 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             />
           ) : (
           <>
-            <DialogHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <DialogTitle className="text-2xl">{lead.nome_completo}</DialogTitle>
-                  <DialogDescription className="mt-2 flex items-center gap-2">
-                    <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
-                      {ORIGEM_LABELS[lead.origem] || lead.origem}
-                    </Badge>
-                    {lead.origem_descricao && (
-                      <span className="text-xs text-muted-foreground">{lead.origem_descricao}</span>
-                    )}
-                    <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
-                      {LEAD_STATUS_LABELS[lead.estagio]}
-                    </Badge>
-                  </DialogDescription>
-                </div>
-                <div className="flex gap-2">
-                  {!isCliente && lead.estagio === 'novo' && (
-                    <Button 
-                      variant="outline" 
-                      onClick={handlePrimeiroContato}
-                      disabled={sendingPrimeiroContato}
-                      className="gap-1.5"
-                    >
-                      <MessageSquare className="h-4 w-4" />
-                      Primeiro Contato
-                    </Button>
-                  )}
-                  <Button onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
-                </div>
+            <SheetHeader className="space-y-1 pr-6">
+              <div className="flex items-center gap-3">
+                <SheetTitle className="text-2xl">{lead.nome_completo}</SheetTitle>
+                {isCliente && lead.status_cliente && (
+                  <Badge 
+                    variant="outline" 
+                    className={lead.status_cliente === 'ativo' 
+                      ? "bg-green-100 text-green-800 border-green-200" 
+                      : "bg-gray-100 text-gray-800 border-gray-200"
+                    }
+                  >
+                    {lead.status_cliente === 'ativo' ? 'Ativo' : 'Inativo'}
+                  </Badge>
+                )}
               </div>
-            </DialogHeader>
+              <SheetDescription className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
+                  {ORIGEM_LABELS[lead.origem] || lead.origem}
+                </Badge>
+                {lead.origem_descricao && (
+                  <span className="text-xs text-muted-foreground">{lead.origem_descricao}</span>
+                )}
+                <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
+                  {LEAD_STATUS_LABELS[lead.estagio]}
+                </Badge>
+              </SheetDescription>
+              {summaryParts.length > 0 && (
+                <p className="text-xs text-muted-foreground">{summaryParts.join(' · ')}</p>
+              )}
+            </SheetHeader>
+
+            <div className="flex gap-2 mt-3">
+              {!isCliente && lead.estagio === 'novo' && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handlePrimeiroContato}
+                  disabled={sendingPrimeiroContato}
+                  className="gap-1.5"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  Primeiro Contato
+                </Button>
+              )}
+              <Button size="sm" onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
+            </div>
 
             {!isCliente && diasParado > 7 && (
-              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center gap-2">
+              <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center gap-2 mt-4">
                 <AlertCircle className="h-5 w-5 text-destructive" />
                 <p className="text-sm text-destructive font-medium">
                   Lead parado há {diasParado} dias - Atenção necessária
@@ -191,7 +220,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             {isCliente && processosCount === 0 && (
-              <div className="bg-[hsl(38,92%,50%)]/10 border border-[hsl(38,92%,50%)]/20 rounded-lg p-3 flex items-center justify-between gap-2">
+              <div className="bg-[hsl(38,92%,50%)]/10 border border-[hsl(38,92%,50%)]/20 rounded-lg p-3 flex items-center justify-between gap-2 mt-4">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-[hsl(38,92%,50%)]" />
                   <p className="text-sm font-medium text-[hsl(38,92%,50%)]">
@@ -306,23 +335,6 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                       <p className="text-sm">{format(new Date(lead.data_nascimento + 'T00:00:00'), "dd/MM/yyyy")}</p>
                     </div>
                   )}
-
-                  {isCliente && lead.status_cliente && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span className="text-sm font-medium">Status do Cliente</span>
-                      </div>
-                      <Badge 
-                        variant="outline" 
-                        className={lead.status_cliente === 'ativo' 
-                          ? "bg-green-100 text-green-800 border-green-200" 
-                          : "bg-gray-100 text-gray-800 border-gray-200"
-                        }
-                      >
-                        {lead.status_cliente === 'ativo' ? 'Ativo' : 'Inativo'}
-                      </Badge>
-                    </div>
-                  )}
                 </div>
 
                 <Separator />
@@ -434,7 +446,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             Carregando detalhes...
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
