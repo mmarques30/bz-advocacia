@@ -1097,42 +1097,6 @@ export type Database = {
           },
         ]
       }
-      kpis: {
-        Row: {
-          created_at: string | null
-          data: string
-          id: string
-          novos_clientes: number | null
-          processos_ativos: number | null
-          receita_mes: number | null
-          taxa_conversao: number | null
-          taxa_inadimplencia: number | null
-          total_leads: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          data: string
-          id?: string
-          novos_clientes?: number | null
-          processos_ativos?: number | null
-          receita_mes?: number | null
-          taxa_conversao?: number | null
-          taxa_inadimplencia?: number | null
-          total_leads?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          data?: string
-          id?: string
-          novos_clientes?: number | null
-          processos_ativos?: number | null
-          receita_mes?: number | null
-          taxa_conversao?: number | null
-          taxa_inadimplencia?: number | null
-          total_leads?: number | null
-        }
-        Relationships: []
-      }
       lead_acquisition_events: {
         Row: {
           ad_id: string | null
