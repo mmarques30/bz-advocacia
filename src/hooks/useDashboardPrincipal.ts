@@ -97,6 +97,7 @@ export interface DashboardPrincipalData {
   clientesAtivos: number;
   clientesNovosMes: number;
   clientesSemProcesso: number;
+  aniversariantesHoje: number;
   // Line 1
   prazosUrgencia: PrazoUrgencia;
   proximosPrazos: PrazoProximoEnriquecido[];
@@ -238,11 +239,21 @@ export function useDashboardPrincipal() {
       ]);
 
       // Clientes sem processo: IDs de clientes ativos que não aparecem em processos.lead_id
+      // Also count birthday celebrants
       const clientesAtivosIds: string[] = [];
+      let aniversariantesHoje = 0;
       if ((clientesAtivosR.count || 0) > 0) {
         const { data: clientesData } = await supabase.from("contact_submissions")
-          .select("id").eq("estagio", "fechado");
-        (clientesData || []).forEach(c => clientesAtivosIds.push(c.id));
+          .select("id, data_nascimento").eq("estagio", "fechado");
+        const todayDay = hoje.getDate();
+        const todayMonth = hoje.getMonth() + 1;
+        (clientesData || []).forEach(c => {
+          clientesAtivosIds.push(c.id);
+          if (c.data_nascimento) {
+            const [, m, d] = c.data_nascimento.split('-').map(Number);
+            if (m === todayMonth && d === todayDay) aniversariantesHoje++;
+          }
+        });
       }
       let clientesSemProcessoCount = 0;
       if (clientesAtivosIds.length > 0) {
@@ -429,6 +440,7 @@ export function useDashboardPrincipal() {
         clientesAtivos: clientesAtivosR.count || 0,
         clientesNovosMes: clientesNovosMesR.count || 0,
         clientesSemProcesso: clientesSemProcessoCount,
+        aniversariantesHoje,
         prazosUrgencia: {
           atrasados: prazosAtrasadosR.count || 0,
           hoje: prazosHojeR.count || 0,

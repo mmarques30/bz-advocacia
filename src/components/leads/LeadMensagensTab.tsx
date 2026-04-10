@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { MessageCircle, Send, AlertCircle, Bot, User, Info } from "lucide-react";
+import { MessageCircle, Send, AlertCircle, Bot, User, Info, Cake } from "lucide-react";
 import type { LeadInteracao } from "@/hooks/useLeadInteracoes";
 
 interface LeadMensagensTabProps {
@@ -19,9 +19,10 @@ interface LeadMensagensTabProps {
   telefone?: string;
   nomeCompleto?: string;
   email?: string;
+  dataNascimento?: string | null;
 }
 
-export function LeadMensagensTab({ leadId, telefone, nomeCompleto, email }: LeadMensagensTabProps) {
+export function LeadMensagensTab({ leadId, telefone, nomeCompleto, email, dataNascimento }: LeadMensagensTabProps) {
   const [mensagem, setMensagem] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [enviando, setEnviando] = useState(false);
@@ -44,6 +45,23 @@ export function LeadMensagensTab({ leadId, telefone, nomeCompleto, email }: Lead
   });
 
   const { data: templates = [] } = useWhatsAppTemplates({ ativo: true });
+
+  // Check if today is the client's birthday
+  const isAniversarioHoje = (() => {
+    if (!dataNascimento) return false;
+    const today = new Date();
+    const [, m, d] = dataNascimento.split('-').map(Number);
+    return m === today.getMonth() + 1 && d === today.getDate();
+  })();
+
+  const handleEnviarParabens = () => {
+    const anivTemplate = templates.find(t => (t as any).tipo === 'aniversario');
+    if (anivTemplate) {
+      handleTemplateSelect(anivTemplate.id);
+    } else {
+      setMensagem(`Feliz aniversário, ${nomeCompleto || ''}! 🎂🎉 Que este novo ano seja repleto de conquistas e realizações!`);
+    }
+  };
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplate(templateId);
@@ -120,6 +138,20 @@ export function LeadMensagensTab({ leadId, telefone, nomeCompleto, email }: Lead
 
   return (
     <div className="space-y-4">
+      {/* Birthday banner */}
+      {isAniversarioHoje && (
+        <div className="bg-pink-50 dark:bg-pink-950/30 border border-pink-200 dark:border-pink-800 rounded-lg p-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Cake className="h-5 w-5 text-pink-500" />
+            <p className="text-sm font-medium text-pink-700 dark:text-pink-300">
+              Hoje é aniversário de {nomeCompleto}! 🎂
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleEnviarParabens} className="shrink-0 border-pink-300 text-pink-700 hover:bg-pink-100 dark:border-pink-700 dark:text-pink-300 dark:hover:bg-pink-900">
+            Enviar parabéns
+          </Button>
+        </div>
+      )}
       {/* Histórico */}
       <div className="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3">
         {isLoading ? (

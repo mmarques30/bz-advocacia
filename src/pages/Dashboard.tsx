@@ -74,7 +74,14 @@ export default function Dashboard() {
     {
       title: "Clientes ativos",
       value: data?.clientesAtivos || 0,
-      context: (data?.clientesSemProcesso || 0) > 0 ? (
+      context: (data?.aniversariantesHoje || 0) > 0 ? (
+        <span
+          className="cursor-pointer underline decoration-dotted"
+          onClick={() => navigate("/dashboard/clientes?aniversariantes=hoje")}
+        >
+          🎂 {data?.aniversariantesHoje} aniversariante{(data?.aniversariantesHoje || 0) > 1 ? 's' : ''} hoje
+        </span>
+      ) : (data?.clientesSemProcesso || 0) > 0 ? (
         <span
           className="cursor-pointer underline decoration-dotted"
           onClick={() => navigate("/dashboard/clientes?semProcesso=true")}
@@ -84,7 +91,7 @@ export default function Dashboard() {
       ) : (
         `+${data?.clientesNovosMes || 0} este mês`
       ),
-      contextColor: (data?.clientesSemProcesso || 0) > 0 ? "amber" as const : "green" as const,
+      contextColor: (data?.aniversariantesHoje || 0) > 0 ? "green" as const : (data?.clientesSemProcesso || 0) > 0 ? "amber" as const : "green" as const,
     },
   ];
 
