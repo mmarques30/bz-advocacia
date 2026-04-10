@@ -21,7 +21,7 @@ import { useQueryClient } from "@tanstack/react-query";
 export const GerarPropostaForm = () => {
   const queryClient = useQueryClient();
   const [modeloSelecionado, setModeloSelecionado] = useState<string>("");
-  const [clienteSelecionado, setClienteSelecionado] = useState<string>("");
+  const [leadSelecionado, setLeadSelecionado] = useState<string>("");
   const [descricaoServico, setDescricaoServico] = useState<string>("");
   const [valorEntrada, setValorEntrada] = useState<number>(0);
   const [descontoAvista, setDescontoAvista] = useState<number>(0);
@@ -65,13 +65,20 @@ export const GerarPropostaForm = () => {
     return [...modelosDB, ...MODELOS_PROPOSTA.map(m => ({ ...m, isCustom: false }))];
   }, [modelosPersonalizados]);
 
-  const clienteData = useMemo(() => {
-    const cliente = leads.find(l => l.id === clienteSelecionado);
-    return cliente;
-  }, [leads, clienteSelecionado]);
+  const leadData = useMemo(() => {
+    return leads.find(l => l.id === leadSelecionado);
+  }, [leads, leadSelecionado]);
 
-  const clienteNome = clienteData?.nome_completo || '';
-  const clienteCPF = clienteData?.cpf || '';
+  const leadNome = leadData?.nome_completo || '';
+  const leadCPF = leadData?.cpf || '';
+
+  const ESTAGIO_LABELS: Record<string, string> = {
+    novo: 'Novo',
+    contato_inicial: 'Enviado',
+    em_analise: 'Qualificado',
+    proposta_enviada: 'Proposta Enviada',
+    perdido: 'Perdido',
+  };
 
   const handleModeloChange = (modeloId: string) => {
     setModeloSelecionado(modeloId);
@@ -81,11 +88,11 @@ export const GerarPropostaForm = () => {
     }
   };
 
-  const handleClienteChange = (clienteId: string) => {
-    setClienteSelecionado(clienteId);
-    const cliente = leads.find(l => l.id === clienteId);
-    if (cliente) {
-      const tipoProcesso = cliente.tipo_processo?.toLowerCase() || '';
+  const handleLeadChange = (leadId: string) => {
+    setLeadSelecionado(leadId);
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) {
+      const tipoProcesso = lead.tipo_processo?.toLowerCase() || '';
       if (tipoProcesso.includes('divórcio') || tipoProcesso.includes('divorcio')) {
         handleModeloChange('proposta-divorcio');
       } else if (tipoProcesso.includes('inventário') || tipoProcesso.includes('inventario')) {
@@ -97,7 +104,7 @@ export const GerarPropostaForm = () => {
   };
 
   const handleGerarPDF = async () => {
-    if (!clienteSelecionado || !descricaoServico) {
+    if (!leadSelecionado || !descricaoServico) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -106,8 +113,8 @@ export const GerarPropostaForm = () => {
     try {
       const blob = await pdf(
         <PropostaPDF
-          clienteNome={clienteNome}
-          clienteCPF={clienteCPF}
+          clienteNome={leadNome}
+          clienteCPF={leadCPF}
           descricaoServico={descricaoServico}
           valorEntrada={valorEntrada}
           descontoAvista={descontoAvista}
@@ -119,16 +126,15 @@ export const GerarPropostaForm = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Proposta_${clienteNome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = `Proposta_${leadNome.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      // Salvar proposta no banco — o trigger atribui numero_proposta automaticamente
       const { data: savedProposta, error: saveError } = await supabase.from('contratos_gerados').insert({
-        cliente_id: clienteSelecionado,
-        titulo: `Proposta - ${clienteNome}`,
+        cliente_id: leadSelecionado,
+        titulo: `Proposta - ${leadNome}`,
         tipo_contrato: 'proposta',
         conteudo_final: descricaoServico,
         valores: {
@@ -147,7 +153,7 @@ export const GerarPropostaForm = () => {
         toast.warning("Proposta gerada, mas houve erro ao salvar no histórico");
       } else {
         const numeroProposta = savedProposta?.numero_proposta;
-        await atualizarLeadParaPropostaEnviada(clienteSelecionado, 'proposta', queryClient);
+        await atualizarLeadParaPropostaEnviada(leadSelecionado, 'proposta', queryClient);
         toast.success(numeroProposta 
           ? `Proposta #${numeroProposta} gerada e salva com sucesso!`
           : "Proposta gerada e salva com sucesso!"
@@ -171,37 +177,45 @@ export const GerarPropostaForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 space-y-6">
-          {/* Cliente */}
+          {/* Lead */}
           <div className="space-y-2">
             <Label>Lead *</Label>
-            <Select value={clienteSelecionado} onValueChange={handleClienteChange}>
+            <Select value={leadSelecionado} onValueChange={handleLeadChange}>
               <SelectTrigger>
-                <SelectValue placeholder={leadsLoading ? "Carregando..." : "Selecione o cliente"} />
+                <SelectValue placeholder={leadsLoading ? "Carregando..." : "Selecione o lead"} />
               </SelectTrigger>
               <SelectContent>
                 {leads.map((lead) => (
                   <SelectItem key={lead.id} value={lead.id}>
-                    {lead.nome_completo} - {lead.tipo_processo}
+                    <span className="flex items-center gap-1">
+                      {lead.nome_completo} - {lead.tipo_processo}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        · {ESTAGIO_LABELS[lead.estagio] || lead.estagio}
+                      </span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Propostas são geradas para leads em fase de negociação. Após aceita, o lead é convertido em cliente.
+            </p>
           </div>
 
-          {/* Painel de dados do cliente */}
-          {clienteData && (
+          {/* Painel de dados do lead */}
+          {leadData && (
             <ClienteDataPanel
               cliente={{
-                id: clienteData.id,
-                cpf: clienteData.cpf,
-                rg: clienteData.rg,
-                nacionalidade: clienteData.nacionalidade,
-                profissao: clienteData.profissao,
-                estado_civil: clienteData.estado_civil || clienteData.situacao_atual,
-                endereco_completo: clienteData.endereco_completo,
-                endereco_cep: (clienteData as unknown as { endereco_cep?: string }).endereco_cep,
-                endereco_cidade: (clienteData as unknown as { endereco_cidade?: string }).endereco_cidade,
-                endereco_estado: (clienteData as unknown as { endereco_estado?: string }).endereco_estado,
+                id: leadData.id,
+                cpf: leadData.cpf,
+                rg: leadData.rg,
+                nacionalidade: leadData.nacionalidade,
+                profissao: leadData.profissao,
+                estado_civil: leadData.estado_civil || leadData.situacao_atual,
+                endereco_completo: leadData.endereco_completo,
+                endereco_cep: (leadData as unknown as { endereco_cep?: string }).endereco_cep,
+                endereco_cidade: (leadData as unknown as { endereco_cidade?: string }).endereco_cidade,
+                endereco_estado: (leadData as unknown as { endereco_estado?: string }).endereco_estado,
               }}
             />
           )}
@@ -290,7 +304,7 @@ export const GerarPropostaForm = () => {
             onClick={handleGerarPDF} 
             className="w-full" 
             size="default"
-            disabled={isGenerating || !clienteSelecionado || !descricaoServico}
+            disabled={isGenerating || !leadSelecionado || !descricaoServico}
           >
             {isGenerating ? (
               <>
@@ -309,8 +323,8 @@ export const GerarPropostaForm = () => {
 
       {/* Preview */}
       <PropostaPreview
-        clienteNome={clienteNome}
-        clienteCPF={clienteCPF}
+        clienteNome={leadNome}
+        clienteCPF={leadCPF}
         descricaoServico={descricaoServico}
         valorEntrada={valorEntrada}
         descontoAvista={descontoAvista}
