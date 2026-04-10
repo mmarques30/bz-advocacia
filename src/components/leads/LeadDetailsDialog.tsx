@@ -363,8 +363,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsContent>
 
               {isCliente && (
-                <TabsContent value="processos" className="mt-4">
-                  <ClienteProcessosTab clienteId={lead.id} clienteNome={lead.nome_completo} />
+              <TabsContent value="processos" className="mt-4">
+                  <ClienteProcessosTab 
+                    clienteId={lead.id} 
+                    clienteNome={lead.nome_completo} 
+                    onSelectProcesso={(id) => setSelectedProcessoId(id)}
+                  />
                 </TabsContent>
               )}
 
