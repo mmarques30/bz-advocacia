@@ -1,0 +1,1 @@
+ALTER TABLE public.contact_submissions ADD COLUMN data_nascimento date NULL;

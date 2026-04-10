@@ -37,6 +37,7 @@ const leadFormSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   telefone: z.string().min(10, "Telefone inválido"),
   cpf: z.string().optional(),
+  data_nascimento: z.string().optional(),
   tipo_processo: z.string().optional(),
   origem: z.string().optional(),
   origem_descricao: z.string().optional(),
@@ -67,6 +68,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
       email: "",
       telefone: "",
       cpf: "",
+      data_nascimento: "",
       tipo_processo: "",
       origem: "site",
       origem_descricao: "",
@@ -82,6 +84,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
         email: lead.email,
         telefone: lead.telefone,
         cpf: lead.cpf || "",
+        data_nascimento: lead.data_nascimento || "",
         tipo_processo: lead.tipo_processo,
         origem: lead.origem,
         origem_descricao: lead.origem_descricao || "",
@@ -94,6 +97,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
         email: "",
         telefone: "",
         cpf: "",
+        data_nascimento: "",
         tipo_processo: "",
         origem: "site",
         origem_descricao: "",
@@ -112,6 +116,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
           email: values.email,
           telefone: values.telefone,
           cpf: values.cpf || null,
+          data_nascimento: values.data_nascimento || null,
           tipo_processo: values.tipo_processo,
           origem: values.origem as any,
           outro_como_conheceu: values.origem_descricao || null,
@@ -125,6 +130,7 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
           email: values.email,
           telefone: values.telefone,
           cpf: values.cpf || null,
+          data_nascimento: values.data_nascimento || null,
           tipo_processo: values.tipo_processo,
           origem: values.origem as any,
           outro_como_conheceu: values.origem_descricao || null,
@@ -209,6 +215,20 @@ export function NewLeadDialog({ open, onClose, lead, isCliente = false }: NewLea
                     <FormLabel>CPF/CNPJ</FormLabel>
                     <FormControl>
                       <Input placeholder="000.000.000-00 ou 00.000.000/0000-00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="data_nascimento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Nascimento</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -26,6 +26,7 @@ const tipoLabels: Record<TemplateTipo, string> = {
   follow_up: "Follow-up",
   proposta: "Proposta",
   geral: "Geral",
+  aniversario: "Aniversário",
 };
 
 export default function Templates() {

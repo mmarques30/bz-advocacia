@@ -283,6 +283,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     </div>
                   )}
 
+                  {lead.data_nascimento && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span className="text-sm font-medium">Data de Nascimento</span>
+                      </div>
+                      <p className="text-sm">{format(new Date(lead.data_nascimento + 'T00:00:00'), "dd/MM/yyyy")}</p>
+                    </div>
+                  )}
+
                   {isCliente && lead.status_cliente && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-muted-foreground">
@@ -355,7 +365,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               )}
 
               <TabsContent value="mensagens" className="mt-4">
-                <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} />
+                <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} dataNascimento={lead.data_nascimento} />
               </TabsContent>
 
               <TabsContent value="documentos" className="mt-4">

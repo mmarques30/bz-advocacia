@@ -21,6 +21,7 @@ export interface ClientesFiltersType {
   statusProcesso: string[];
   semWhatsapp: boolean;
   semProcesso: boolean;
+  aniversariantes: 'hoje' | 'semana' | 'mes' | null;
 }
 
 interface ClientesFiltersProps {
@@ -52,6 +53,7 @@ export function ClientesFilters({
       statusProcesso: [],
       semWhatsapp: false,
       semProcesso: false,
+      aniversariantes: null,
     });
   };
 
@@ -95,6 +97,33 @@ export function ClientesFilters({
 
         <ScrollArea className="h-[calc(100vh-200px)] pr-4 mt-6">
           <div className="space-y-6">
+            {/* Aniversariantes */}
+            <div className="space-y-3">
+              <h3 className="font-medium text-sm">🎂 Aniversariantes</h3>
+              <div className="space-y-2">
+                {([
+                  { value: 'hoje' as const, label: 'Hoje' },
+                  { value: 'semana' as const, label: 'Esta semana' },
+                  { value: 'mes' as const, label: 'Este mês' },
+                ]).map((opt) => (
+                  <div key={opt.value} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`aniv-${opt.value}`}
+                      checked={filters.aniversariantes === opt.value}
+                      onCheckedChange={(checked) =>
+                        onFiltersChange({ ...filters, aniversariantes: checked ? opt.value : null })
+                      }
+                    />
+                    <Label htmlFor={`aniv-${opt.value}`} className="cursor-pointer">
+                      {opt.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
             {/* Dados Cadastrais */}
             <div className="space-y-3">
               <h3 className="font-medium text-sm">Dados Cadastrais</h3>

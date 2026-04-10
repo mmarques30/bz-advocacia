@@ -33,14 +33,22 @@ export default function Clientes() {
     statusProcesso: [],
     semWhatsapp: false,
     semProcesso: searchParams.get("semProcesso") === "true",
+    aniversariantes: (searchParams.get("aniversariantes") as 'hoje' | 'semana' | 'mes') || null,
   });
 
   // Read URL param on mount
   useEffect(() => {
+    const needsClean = searchParams.get("semProcesso") === "true" || searchParams.get("aniversariantes");
     if (searchParams.get("semProcesso") === "true") {
       setClientesFilters(prev => ({ ...prev, semProcesso: true }));
-      // Clean URL param
+    }
+    const anivParam = searchParams.get("aniversariantes") as 'hoje' | 'semana' | 'mes' | null;
+    if (anivParam) {
+      setClientesFilters(prev => ({ ...prev, aniversariantes: anivParam }));
+    }
+    if (needsClean) {
       searchParams.delete("semProcesso");
+      searchParams.delete("aniversariantes");
       setSearchParams(searchParams, { replace: true });
     }
   }, []);
@@ -79,6 +87,32 @@ export default function Clientes() {
     if (clientesFilters.semProcesso && result && leadIdsComProcesso) {
       result = result.filter((l) => !leadIdsComProcesso.has(l.id));
     }
+    if (clientesFilters.aniversariantes && result) {
+      const today = new Date();
+      const todayDay = today.getDate();
+      const todayMonth = today.getMonth() + 1;
+      const todayDayOfWeek = today.getDay();
+      // Compute end of week (Sunday)
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (7 - todayDayOfWeek));
+
+      result = result.filter((l) => {
+        if (!l.data_nascimento) return false;
+        const [, m, d] = l.data_nascimento.split('-').map(Number);
+        if (clientesFilters.aniversariantes === 'hoje') {
+          return m === todayMonth && d === todayDay;
+        }
+        if (clientesFilters.aniversariantes === 'semana') {
+          // Create a date in current year for comparison
+          const bday = new Date(today.getFullYear(), m - 1, d);
+          return bday >= today && bday <= endOfWeek;
+        }
+        if (clientesFilters.aniversariantes === 'mes') {
+          return m === todayMonth;
+        }
+        return false;
+      });
+    }
     return result;
   })();
 
@@ -89,6 +123,7 @@ export default function Clientes() {
     clientesFilters.statusProcesso.length > 0,
     clientesFilters.semWhatsapp,
     clientesFilters.semProcesso,
+    clientesFilters.aniversariantes !== null,
   ].filter(Boolean).length;
 
   const handleViewDetails = (lead: Lead) => {
