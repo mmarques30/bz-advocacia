@@ -37,7 +37,7 @@ export default function Usuarios() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Usuários</h1>
+          <h1 className="text-3xl font-seasons text-primary">Usuários</h1>
           <p className="text-muted-foreground mt-2">
             Gerencie os usuários e permissões do escritório
           </p>
@@ -56,7 +56,7 @@ export default function Usuarios() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Usuários</h1>
+        <h1 className="text-3xl font-seasons text-primary">Usuários</h1>
         <p className="text-muted-foreground mt-2">
           Gerencie os usuários e permissões do escritório
         </p>

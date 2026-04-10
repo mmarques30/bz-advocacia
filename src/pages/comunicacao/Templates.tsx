@@ -86,7 +86,7 @@ export default function Templates() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Templates WhatsApp</h1>
+          <h1 className="text-3xl font-seasons text-primary mb-2">Templates WhatsApp</h1>
           <p className="text-muted-foreground">
             Gerencie os templates de mensagens para notificações automáticas
           </p>

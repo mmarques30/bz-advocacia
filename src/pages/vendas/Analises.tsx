@@ -8,7 +8,7 @@ export default function VendasAnalises() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Análises de Vendas</h1>
+        <h1 className="text-3xl font-seasons text-primary">Análises de Vendas</h1>
         <p className="text-muted-foreground">
           Análise detalhada de conversão e performance por canal
         </p>

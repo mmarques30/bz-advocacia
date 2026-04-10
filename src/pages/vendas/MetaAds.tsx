@@ -30,7 +30,7 @@ export default function MetaAds() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard de Marketing</h1>
+          <h1 className="text-3xl font-seasons text-primary">Dashboard de Marketing</h1>
           <p className="text-muted-foreground">
             Acompanhe a performance das suas campanhas e análises de conversão
           </p>

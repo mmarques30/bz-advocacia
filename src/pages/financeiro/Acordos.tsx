@@ -17,7 +17,7 @@ export default function FinanceiroAcordos() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Gestão de Contratos</h1>
+        <h1 className="text-3xl font-seasons text-primary">Gestão de Contratos</h1>
         <p className="text-muted-foreground mt-2">
           Gerencie todos os contratos financeiros
         </p>

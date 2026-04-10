@@ -12,7 +12,7 @@ export default function Documentos() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Documentos</h1>
+        <h1 className="text-3xl font-seasons text-primary">Documentos</h1>
         <p className="text-muted-foreground">
           Gere contratos e propostas comerciais automaticamente
         </p>

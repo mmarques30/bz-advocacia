@@ -179,7 +179,7 @@ export default function ListasSuspensas() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Listas do Sistema</h1>
+        <h1 className="text-3xl font-seasons text-primary">Listas do Sistema</h1>
         <p className="text-muted-foreground mt-2">
           Gerencie as opções de listas suspensas utilizadas em todo o sistema
         </p>

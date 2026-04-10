@@ -50,7 +50,7 @@ export default function PesquisasIndex() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Pesquisas e Consultas</h1>
+        <h1 className="text-3xl font-seasons text-primary">Pesquisas e Consultas</h1>
         <p className="text-muted-foreground mt-2">
           Sistema de consultas de dados para investigação processual
         </p>

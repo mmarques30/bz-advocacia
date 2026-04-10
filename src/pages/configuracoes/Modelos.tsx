@@ -7,7 +7,7 @@ export default function Modelos() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Modelos</h1>
+        <h1 className="text-3xl font-seasons text-primary">Modelos</h1>
         <p className="text-muted-foreground mt-2">
           Gerencie modelos de mensagens e listas do sistema
         </p>

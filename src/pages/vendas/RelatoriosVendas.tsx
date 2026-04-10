@@ -87,7 +87,7 @@ export default function RelatoriosVendas() {
           <FileBarChart className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Relatórios de Vendas</h1>
+          <h1 className="text-3xl font-seasons text-primary">Relatórios de Vendas</h1>
           <p className="text-muted-foreground">
             Relatórios prontos para enviar à sua agência de marketing
           </p>
