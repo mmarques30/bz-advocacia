@@ -126,7 +126,7 @@ const menuItems: MenuItem[] = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const { signOut } = useAuth();
   const location = useLocation();
   const isCollapsed = state === "collapsed";
@@ -158,8 +158,15 @@ export function AppSidebar() {
     );
   };
 
+  const handleCollapsedClick = (title: string) => {
+    toggleSidebar();
+    if (!openMenus.includes(title)) {
+      setOpenMenus(prev => [...prev, title]);
+    }
+  };
+
   return (
-    <Sidebar collapsible="offcanvas">
+    <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
           <img src={logoBZ} alt="B&Z Advocacia" className="h-8 w-8 object-contain" />
@@ -218,26 +225,31 @@ export function AppSidebar() {
                     onOpenChange={() => toggleMenu(item.title)}
                   >
                     <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton tooltip={item.label}>
+                       {isCollapsed ? (
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          onClick={() => handleCollapsedClick(item.title)}
+                        >
                           <item.icon className="h-4 w-4" />
-                          {!isCollapsed && (
-                            <>
-                              <span>{item.label}</span>
-                              {item.badge && (
-                                <Badge variant="destructive" className="ml-auto">
-                                  {item.badge}
-                                </Badge>
-                              )}
-                              {isOpen ? (
-                                <ChevronUp className="ml-auto h-4 w-4" />
-                              ) : (
-                                <ChevronDown className="ml-auto h-4 w-4" />
-                              )}
-                            </>
-                          )}
                         </SidebarMenuButton>
-                      </CollapsibleTrigger>
+                      ) : (
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton tooltip={item.label}>
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                            {item.badge && (
+                              <Badge variant="destructive" className="ml-auto">
+                                {item.badge}
+                              </Badge>
+                            )}
+                            {isOpen ? (
+                              <ChevronUp className="ml-auto h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="ml-auto h-4 w-4" />
+                            )}
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                      )}
                       
                       {!isCollapsed && (
                         <CollapsibleContent>
