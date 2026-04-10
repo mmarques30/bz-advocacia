@@ -39,6 +39,7 @@ const useLeadsSimple = () => {
       const { data, error } = await supabase
         .from('contact_submissions')
         .select('*')
+        .eq('estagio', 'fechado')
         .order('nome_completo', { ascending: true });
       
       if (error) throw error;
