@@ -7,26 +7,26 @@ import { ContratosHistorico } from "@/components/documentos/ContratosHistorico";
 import { ModelosContrato } from "@/components/documentos/ModelosContrato";
 
 export default function Documentos() {
-  const [activeTab, setActiveTab] = useState("gerar");
+  const [activeTab, setActiveTab] = useState("proposta");
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-seasons text-primary">Documentos</h1>
         <p className="text-muted-foreground">
-          Gere contratos e propostas comerciais automaticamente
+          Gere propostas e contratos automaticamente
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 max-w-lg">
-          <TabsTrigger value="gerar" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Contrato
-          </TabsTrigger>
           <TabsTrigger value="proposta" className="flex items-center gap-2">
             <FileSpreadsheet className="h-4 w-4" />
             Proposta
+          </TabsTrigger>
+          <TabsTrigger value="gerar" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Contrato
           </TabsTrigger>
           <TabsTrigger value="historico" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -38,12 +38,12 @@ export default function Documentos() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="gerar">
-          <GerarContratoForm />
-        </TabsContent>
-
         <TabsContent value="proposta">
           <GerarPropostaForm />
+        </TabsContent>
+
+        <TabsContent value="gerar">
+          <GerarContratoForm />
         </TabsContent>
 
         <TabsContent value="historico">
