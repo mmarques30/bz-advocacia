@@ -344,11 +344,9 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 </TabsContent>
               )}
 
-              {isCliente && (
-                <TabsContent value="contratos" className="mt-4">
-                  <LeadContratosTab clienteId={lead.id} />
-                </TabsContent>
-              )}
+              <TabsContent value="contratos" className="mt-4">
+                <LeadContratosTab clienteId={lead.id} />
+              </TabsContent>
 
               {isCliente && (
                 <TabsContent value="tarefas" className="mt-4">
