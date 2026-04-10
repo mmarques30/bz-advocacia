@@ -100,9 +100,9 @@ export const useSaveModelo = () => {
       queryClient.invalidateQueries({ queryKey: ['modelos-personalizados', variables.tipo] });
       toast.success('Modelo salvo com sucesso!');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Erro ao salvar modelo:', error);
-      toast.error('Erro ao salvar modelo');
+      toast.error(error?.message || 'Erro ao salvar modelo');
     }
   });
 };
