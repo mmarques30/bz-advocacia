@@ -447,6 +447,7 @@ export type Database = {
           conversa_bot_completa: Json | null
           cpf: string | null
           created_at: string
+          data_nascimento: string | null
           data_ultima_atividade: string | null
           documentos: string[] | null
           email: string | null
@@ -498,6 +499,7 @@ export type Database = {
           conversa_bot_completa?: Json | null
           cpf?: string | null
           created_at?: string
+          data_nascimento?: string | null
           data_ultima_atividade?: string | null
           documentos?: string[] | null
           email?: string | null
@@ -549,6 +551,7 @@ export type Database = {
           conversa_bot_completa?: Json | null
           cpf?: string | null
           created_at?: string
+          data_nascimento?: string | null
           data_ultima_atividade?: string | null
           documentos?: string[] | null
           email?: string | null
