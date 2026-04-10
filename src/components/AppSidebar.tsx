@@ -12,7 +12,7 @@ import {
   TrendingUp,
   FileBarChart,
 } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import logoBZ from "@/assets/logo-bz-new.png";
 import {
