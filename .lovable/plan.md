@@ -1,34 +1,34 @@
 
 
-## Corrigir lógica do funil: propostas para leads, contratos para clientes
+## Corrigir erro visual ao criar subtarefa
 
-### Situação atual
+### Análise
 
-- `GerarPropostaForm` usa `useLeads()` que traz TODOS os leads (sem filtro por estágio)
-- `GerarContratoForm` usa `useLeadsSimple()` que traz TODOS os contact_submissions
-- Ambos permitem selecionar qualquer pessoa, independente do estágio
-- A automação de status já existe e funciona (`atualizarLeadParaPropostaEnviada` e `atualizarLeadParaFechado`)
-- No `LeadDetailsDialog`, a aba "Contratos" só aparece para clientes (`isCliente`)
+Investiguei o fluxo completo: constraints do banco (`tipo`, `status`, `prioridade`, `advogada_responsavel` — todos permitem os valores enviados), RLS policies (INSERT e SELECT abertos para authenticated), triggers (apenas em UPDATE), e o código do formulário/mutation.
 
-### Alterações
+Não encontrei uma causa raiz óbvia que impeça a inserção. O cenário mais provável do "erro visual mesmo com sucesso" é:
 
-**1. `src/components/documentos/GerarPropostaForm.tsx`** — Filtrar seletor para mostrar apenas leads (não-fechados)
-- Após buscar leads, filtrar para exibir apenas aqueles com `estagio !== 'fechado'`
-- Alterar label de "Cliente (Lead)" para "Lead"
+1. **Form não reseta corretamente entre criações**: O `useForm` mantém `defaultValues` do mount inicial. Quando o dialog abre novamente, campos como `advogada_responsavel` podem estar stale se o `parentDemanda` mudou.
 
-**2. `src/components/documentos/GerarContratoForm.tsx`** — Filtrar seletor para mostrar apenas clientes (fechados)
-- No `useLeadsSimple`, adicionar `.eq('estagio', 'fechado')` para buscar apenas clientes
-- Manter label "Cliente"
+2. **Mutação com callback duplo**: O `useCreateSubtarefa` tem `onSuccess` global (toast.success) e o `NewSubtarefaDialog` passa `onSuccess` local (reset + close). Se o callback local lançar um erro implícito, o toast.success global pode não aparecer, deixando apenas um estado visual ambíguo.
 
-**3. `src/components/leads/LeadDetailsDialog.tsx`** — Mostrar aba "Contratos/Propostas" para leads também
-- Para leads (não-clientes), exibir a aba `LeadContratosTab` mas com label "Propostas" em vez de "Contratos"
-- Isso permite que leads vejam propostas geradas para eles
+3. **Possível re-render que dispara validação do formulário pai**: A invalidação de queries (`demandas`, `demandas-by-status`) pode causar re-render do `DemandaDetailsDialog`, que poderia disparar alguma validação visual.
 
-**4. `src/components/documentos/ContratosHistorico.tsx`** — Sem alteração necessária
-- Já mostra todos os documentos (propostas e contratos) com filtro por tipo funcional
+### Correções
+
+**1. `src/components/demandas/NewSubtarefaDialog.tsx`**
+- Resetar form com valores corretos ao abrir (usar `useEffect` com `open` + `parentDemanda`)
+- Mover `reset()` e `onOpenChange(false)` para o `onSettled` ou garantir execução segura
+- Adicionar `try/catch` no callback `onSuccess` local para evitar erros silenciosos
+
+**2. `src/hooks/useSubtarefas.ts`**
+- Adicionar `console.error` no `onError` para diagnóstico
+- Garantir que `onSuccess` e `onError` não conflitam (usar apenas um ponto de toast)
+
+**3. `src/components/demandas/SubtarefasList.tsx`**
+- Sem alteração necessária — renderização é defensiva com optional chaining
 
 ### Arquivos editados
-- `src/components/documentos/GerarPropostaForm.tsx` (filtrar leads não-fechados)
-- `src/components/documentos/GerarContratoForm.tsx` (filtrar apenas clientes fechados)
-- `src/components/leads/LeadDetailsDialog.tsx` (exibir aba propostas para leads)
+- `src/components/demandas/NewSubtarefaDialog.tsx` (reset robusto ao abrir/fechar)
+- `src/hooks/useSubtarefas.ts` (melhorar logging de erro)
 
