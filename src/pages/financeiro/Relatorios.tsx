@@ -66,7 +66,7 @@ export default function FinanceiroRelatorios() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Relatórios Financeiros</h1>
+        <h1 className="text-3xl font-seasons text-primary">Relatórios Financeiros</h1>
         <p className="text-muted-foreground mt-2">Relatórios consolidados e análises financeiras</p>
       </div>
 

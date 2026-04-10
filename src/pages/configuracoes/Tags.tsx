@@ -37,7 +37,7 @@ export default function Tags() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tags</h1>
+          <h1 className="text-3xl font-seasons text-primary">Tags</h1>
           <p className="text-muted-foreground mt-2">
             Organize leads e processos com tags personalizadas
           </p>

@@ -76,7 +76,7 @@ export default function Financeiro() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Gestão Financeira</h1>
+        <h1 className="text-3xl font-seasons text-primary">Gestão Financeira</h1>
         <p className="text-muted-foreground">
           Acompanhe receitas, acordos e pagamentos
         </p>

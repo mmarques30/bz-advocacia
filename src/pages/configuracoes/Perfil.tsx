@@ -123,7 +123,7 @@ export default function Perfil() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Meu Perfil</h1>
+        <h1 className="text-3xl font-seasons text-primary">Meu Perfil</h1>
         <p className="text-muted-foreground mt-2">Gerencie suas informações pessoais</p>
       </div>
 

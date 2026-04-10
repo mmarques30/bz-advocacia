@@ -9,7 +9,7 @@ export default function Controle() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Controle</h1>
+        <h1 className="text-3xl font-seasons text-primary">Controle</h1>
         <p className="text-muted-foreground mt-2">
           Guia de uso, atualizações do sistema, treinamentos e automações
         </p>

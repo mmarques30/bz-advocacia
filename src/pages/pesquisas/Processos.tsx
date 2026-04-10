@@ -197,7 +197,7 @@ export default function PesquisasProcessos() {
     <div className="space-y-6">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">Consulta de Processos Judiciais</h1>
+          <h1 className="text-3xl font-seasons text-primary">Consulta de Processos Judiciais</h1>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

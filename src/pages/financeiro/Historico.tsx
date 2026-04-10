@@ -17,7 +17,7 @@ export default function FinanceiroHistorico() {
           Voltar
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Histórico de Transações</h1>
+          <h1 className="text-3xl font-seasons text-primary">Histórico de Transações</h1>
           <p className="text-muted-foreground">
             Todas as transações financeiras registradas
           </p>

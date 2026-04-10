@@ -109,7 +109,7 @@ export default function Automacoes() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="text-3xl font-seasons text-primary flex items-center gap-2">
             <Zap className="h-8 w-8 text-primary" />
             Automações
           </h1>

@@ -6,7 +6,7 @@ export default function Logs() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Logs do Sistema</h1>
+        <h1 className="text-3xl font-seasons text-primary">Logs do Sistema</h1>
         <p className="text-muted-foreground mt-2">
           Visualize o histórico de ações realizadas no sistema
         </p>

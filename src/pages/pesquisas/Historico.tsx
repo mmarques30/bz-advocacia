@@ -58,7 +58,7 @@ export default function Historico() {
   return (
     <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Histórico de Consultas</h1>
+          <h1 className="text-3xl font-seasons text-primary">Histórico de Consultas</h1>
           <p className="text-muted-foreground mt-2">
             Análise de consultas repetidas e estatísticas
           </p>
