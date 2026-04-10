@@ -1,5 +1,12 @@
 import { LeadOrigem } from './leads';
-import { DashboardFilters } from './dashboard';
+
+export interface DashboardFilters {
+  periodo: string;
+  startDate?: Date;
+  endDate?: Date;
+  tipoProcesso?: string;
+  origem?: string;
+}
 
 // Análise de Conversão
 export interface ConversionAnalytics {

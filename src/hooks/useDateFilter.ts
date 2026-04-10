@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { subDays } from 'date-fns';
-import { DashboardFilters } from '@/types/dashboard';
+import { DashboardFilters } from '@/types/analytics';
 
 export function useDateFilter() {
   const [filters, setFilters] = useState<DashboardFilters>({
