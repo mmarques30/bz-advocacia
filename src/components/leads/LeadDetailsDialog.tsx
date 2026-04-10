@@ -37,7 +37,13 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   const diasParado = lead?.dias_parado || 0;
   const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
   const [markingConcluido, setMarkingConcluido] = useState(false);
+  const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  const handleDialogClose = () => {
+    setSelectedProcessoId(null);
+    onClose();
+  };
 
   // Check if client has processes
   const { data: processosCount } = useQuery({
