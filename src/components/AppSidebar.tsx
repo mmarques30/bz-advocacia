@@ -128,10 +128,27 @@ const menuItems: MenuItem[] = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const { signOut } = useAuth();
+  const location = useLocation();
   const isCollapsed = state === "collapsed";
   
-  // Estado para controlar submenus abertos
-  const [openMenus, setOpenMenus] = useState<string[]>([]);
+  const activeGroup = menuItems.find(item =>
+    item.submenu?.some(sub => location.pathname.startsWith(sub.url))
+  )?.title;
+
+  const [openMenus, setOpenMenus] = useState<string[]>(
+    () => {
+      const initial = menuItems.find(item =>
+        item.submenu?.some(sub => location.pathname.startsWith(sub.url))
+      )?.title;
+      return initial ? [initial] : [];
+    }
+  );
+
+  useEffect(() => {
+    if (activeGroup && !openMenus.includes(activeGroup)) {
+      setOpenMenus(prev => [...prev, activeGroup]);
+    }
+  }, [location.pathname, activeGroup]);
   
   const toggleMenu = (title: string) => {
     setOpenMenus(prev => 
