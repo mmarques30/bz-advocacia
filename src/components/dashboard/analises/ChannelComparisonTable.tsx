@@ -1,20 +1,75 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChannelPerformance } from "@/types/analytics";
-import { ArrowUpDown } from "lucide-react";
-import { useState } from "react";
+import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 
 interface ChannelComparisonTableProps {
   data?: ChannelPerformance[];
   loading?: boolean;
 }
 
-type SortKey = 'totalLeads' | 'taxaConversao' | 'ticketMedio' | 'tempoMedioConversao';
-
 export function ChannelComparisonTable({ data, loading }: ChannelComparisonTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey>('taxaConversao');
-  const [sortDesc, setSortDesc] = useState(true);
+  // Pre-ordena por melhor conversao DESC (mesmo default da versao anterior).
+  // DataTable respeita a ordem recebida ate o usuario clicar em um cabecalho.
+  const sortedData = useMemo(
+    () => [...(data || [])].sort((a, b) => b.taxaConversao - a.taxaConversao),
+    [data],
+  );
+
+  const columns = useMemo<DataTableColumn<ChannelPerformance>[]>(
+    () => [
+      {
+        id: "origem",
+        header: "Canal",
+        sortable: true,
+        searchable: true,
+        sortValue: (c) => c.origem,
+        cell: (c) => <span className="font-medium capitalize">{c.origem}</span>,
+      },
+      {
+        id: "totalLeads",
+        header: "Leads",
+        sortable: true,
+        className: "text-right",
+        sortValue: (c) => c.totalLeads,
+        cell: (c) => <div className="text-right">{c.totalLeads}</div>,
+      },
+      {
+        id: "taxaConversao",
+        header: "Conversão (%)",
+        sortable: true,
+        className: "text-right",
+        sortValue: (c) => c.taxaConversao,
+        cell: (c) => (
+          <div className="text-right font-semibold">{c.taxaConversao.toFixed(1)}%</div>
+        ),
+      },
+      {
+        id: "ticketMedio",
+        header: "Ticket Médio",
+        sortable: true,
+        className: "text-right",
+        sortValue: (c) => c.ticketMedio,
+        cell: (c) => (
+          <div className="text-right">
+            R$ {c.ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </div>
+        ),
+      },
+      {
+        id: "tempoMedioConversao",
+        header: "Tempo Médio",
+        sortable: true,
+        className: "text-right",
+        sortValue: (c) => c.tempoMedioConversao,
+        cell: (c) => (
+          <div className="text-right">{Math.round(c.tempoMedioConversao)} dias</div>
+        ),
+      },
+    ],
+    [],
+  );
 
   if (loading) {
     return (
@@ -30,88 +85,27 @@ export function ChannelComparisonTable({ data, loading }: ChannelComparisonTable
     );
   }
 
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDesc(!sortDesc);
-    } else {
-      setSortKey(key);
-      setSortDesc(true);
-    }
-  };
-
-  const sortedData = [...(data || [])].sort((a, b) => {
-    const aVal = a[sortKey];
-    const bVal = b[sortKey];
-    return sortDesc ? bVal - aVal : aVal - bVal;
-  });
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Comparação de Canais</CardTitle>
-        <CardDescription>Ordenado por melhor conversão (clique nos cabeçalhos para reordenar)</CardDescription>
+        <CardDescription>
+          Ordenado por melhor conversão (clique nos cabeçalhos para reordenar)
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Canal</TableHead>
-              <TableHead 
-                className="text-right cursor-pointer hover:text-foreground transition-colors"
-                onClick={() => handleSort('totalLeads')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Leads
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="text-right cursor-pointer hover:text-foreground transition-colors"
-                onClick={() => handleSort('taxaConversao')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Conversão (%)
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="text-right cursor-pointer hover:text-foreground transition-colors"
-                onClick={() => handleSort('ticketMedio')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Ticket Médio
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
-              <TableHead 
-                className="text-right cursor-pointer hover:text-foreground transition-colors"
-                onClick={() => handleSort('tempoMedioConversao')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  Tempo Médio
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedData.map((channel) => (
-              <TableRow key={channel.origem}>
-                <TableCell className="font-medium capitalize">{channel.origem}</TableCell>
-                <TableCell className="text-right">{channel.totalLeads}</TableCell>
-                <TableCell className="text-right font-semibold">
-                  {channel.taxaConversao.toFixed(1)}%
-                </TableCell>
-                <TableCell className="text-right">
-                  R$ {channel.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </TableCell>
-                <TableCell className="text-right">
-                  {Math.round(channel.tempoMedioConversao)} dias
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <DataTable
+          data={sortedData}
+          columns={columns}
+          rowKey={(c) => c.origem}
+          // Esta tabela tipicamente tem &lt; 20 linhas (1 por canal), entao
+          // nao precisa de paginacao nem busca. Passamos searchPlaceholder=null
+          // para suprimir o input de busca, e pageSize=0 para desligar a
+          // paginacao client-side.
+          searchPlaceholder={null}
+          pageSize={0}
+          emptyMessage="Sem dados de canais no periodo"
+        />
       </CardContent>
     </Card>
   );
