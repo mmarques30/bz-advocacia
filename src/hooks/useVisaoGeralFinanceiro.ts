@@ -22,8 +22,46 @@ function useTransacoesPorAno(ano: number | null) {
   });
 }
 
+/**
+ * KPIs agregados da Visao Geral.
+ *
+ * Rodada 2: tenta chamar a RPC get_visao_geral_kpis (agrega no Postgres).
+ * Se a RPC nao estiver disponivel (ambiente sem migration aplicada), cai
+ * no fallback client-side via useTransacoesPorAno — que faz a agregacao
+ * em JS com `.limit(10000)`.
+ */
 export function useVisaoGeralKPIs(ano: number | null) {
-  const { data: transacoes, isLoading } = useTransacoesPorAno(ano);
+  const rpcQuery = useQuery({
+    queryKey: ["visao-geral-kpis-rpc", ano],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("get_visao_geral_kpis", {
+        _ano: ano ?? null,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return null;
+      return {
+        receitas: Number(row.receitas) || 0,
+        despesasPJ: Number(row.despesas_pj) || 0,
+        resultado: Number(row.resultado) || 0,
+        ticketMedio: Number(row.ticket_medio) || 0,
+        receitasCount: Number(row.receitas_count) || 0,
+      };
+    },
+    retry: false,
+  });
+
+  // Se a RPC respondeu (sucesso ou null), usa ela. Se deu erro, cai
+  // no caminho legado para preservar o dashboard.
+  const usaRpc = !rpcQuery.isError;
+
+  const { data: transacoes, isLoading: legacyLoading } = useTransacoesPorAno(
+    usaRpc ? null : ano,
+  );
+
+  if (usaRpc) {
+    return { data: rpcQuery.data, isLoading: rpcQuery.isLoading };
+  }
 
   const kpis = (() => {
     if (!transacoes) return null;
@@ -44,11 +82,48 @@ export function useVisaoGeralKPIs(ano: number | null) {
     return { receitas, despesasPJ, resultado, ticketMedio, receitasCount };
   })();
 
-  return { data: kpis, isLoading };
+  return { data: kpis, isLoading: legacyLoading };
 }
 
+/**
+ * Serie mensal de receitas x despesas do ano.
+ *
+ * Rodada 2: RPC get_receitas_despesas_mensal agrega no banco (retorna
+ * 12 linhas sempre, preenchendo zeros para meses sem dados). Fallback
+ * client-side preserva comportamento legado.
+ */
 export function useReceitasDespesasMensal(ano: number | null) {
-  const { data: transacoes, isLoading } = useTransacoesPorAno(ano);
+  const rpcQuery = useQuery({
+    queryKey: ["receitas-despesas-mensal-rpc", ano],
+    queryFn: async () => {
+      if (ano === null) return null;
+      const { data, error } = await (supabase as any).rpc(
+        "get_receitas_despesas_mensal",
+        { _ano: ano },
+      );
+      if (error) throw error;
+      return (data || []).map((row: any) => ({
+        mes: row.mes_nome,
+        receitas: Number(row.receitas) || 0,
+        despesas: Number(row.despesas) || 0,
+        resultado: Number(row.resultado) || 0,
+      }));
+    },
+    enabled: ano !== null,
+    retry: false,
+  });
+
+  const usaRpc = ano !== null && !rpcQuery.isError;
+  const { data: transacoes, isLoading: legacyLoading } = useTransacoesPorAno(
+    usaRpc ? null : ano,
+  );
+
+  if (usaRpc) {
+    return {
+      data: rpcQuery.data ?? [],
+      isLoading: rpcQuery.isLoading,
+    };
+  }
 
   const chartData = (() => {
     if (!transacoes) return [];
@@ -71,7 +146,7 @@ export function useReceitasDespesasMensal(ano: number | null) {
     });
   })();
 
-  return { data: chartData, isLoading };
+  return { data: chartData, isLoading: legacyLoading };
 }
 
 /**
@@ -180,21 +255,43 @@ export function useDespesasPJPorCategoria(ano: number | null) {
   return { data: chartData, isLoading };
 }
 
+/**
+ * Distribuicao por socia (conta financeira) no ano.
+ *
+ * Rodada 2: totalizadores (receitas/despesasPF/liquido) vem da RPC
+ * get_distribuicao_socia. Os arrays `receitasList` e `despesasList`
+ * ainda saem do caminho client-side porque a RPC agrega apenas, nao
+ * retorna detalhe linha-a-linha. Se a RPC falhar, cai 100% no
+ * fallback legado.
+ */
 export function useDistribuicaoSocia(ano: number | null, conta: string) {
-  const { data: transacoes, isLoading } = useTransacoesPorAno(ano);
+  const rpcQuery = useQuery({
+    queryKey: ["distribuicao-socia-rpc", ano, conta],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("get_distribuicao_socia", {
+        _ano: ano ?? null,
+        _conta: conta,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return null;
+      return {
+        receitas: Number(row.receitas) || 0,
+        despesasPF: Number(row.despesas_pf) || 0,
+        liquido: Number(row.liquido) || 0,
+      };
+    },
+    retry: false,
+  });
+
+  const { data: transacoes, isLoading: legacyLoading } = useTransacoesPorAno(ano);
+  const isLoading = rpcQuery.isLoading || legacyLoading;
 
   const result = (() => {
     if (!transacoes) return null;
 
+    // Legacy: o frontend usa "eliziane" mas o banco tem "liziane".
     const contaFilter = conta === "eliziane" ? "liziane" : conta;
-
-    const receitas = transacoes
-      .filter((t: any) => t.tipo_codigo === "receita" && t.conta === contaFilter)
-      .reduce((s: number, t: any) => s + Number(t.valor), 0);
-
-    const despesasPF = transacoes
-      .filter((t: any) => t.tipo_codigo === "despesa" && t.conta === contaFilter)
-      .reduce((s: number, t: any) => s + Number(t.valor), 0);
 
     const receitasList = transacoes
       .filter((t: any) => t.tipo_codigo === "receita" && t.conta === contaFilter)
@@ -214,10 +311,18 @@ export function useDistribuicaoSocia(ano: number | null, conta: string) {
         data: t.data_transacao,
       }));
 
+    // Totalizadores preferenciais: RPC quando disponivel; fallback de
+    // reduce client-side quando RPC falhou.
+    const totalizadores = !rpcQuery.isError && rpcQuery.data
+      ? rpcQuery.data
+      : (() => {
+          const receitas = receitasList.reduce((s, r) => s + r.valor, 0);
+          const despesasPF = despesasList.reduce((s, d) => s + d.valor, 0);
+          return { receitas, despesasPF, liquido: receitas - despesasPF };
+        })();
+
     return {
-      receitas,
-      despesasPF,
-      liquido: receitas - despesasPF,
+      ...totalizadores,
       receitasList,
       despesasList,
     };
