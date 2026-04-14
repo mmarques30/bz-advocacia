@@ -74,6 +74,11 @@ export function useReceitasDespesasMensal(ano: number | null) {
   return { data: chartData, isLoading };
 }
 
+/**
+ * Mapa parcial de categorias vindas do padrao legado
+ * "... (Categoria)" no final da descricao. As entradas mapeadas para
+ * "Outros" sao agrupamentos intencionais do produto — nao sao bugs.
+ */
 const CATEGORIA_MAP: Record<string, string> = {
   "Aluguel": "Aluguel",
   "Cartão de Crédito": "Cartão de Crédito",
@@ -89,12 +94,55 @@ const CATEGORIA_MAP: Record<string, string> = {
   "Custas Processuais": "Outros",
 };
 
-function extrairCategoriaDaDescricao(descricao: string): string {
-  // Parse "(Categoria)" from description
-  const match = descricao.match(/\(([^)]+)\)$/);
-  if (!match) return "Outros";
-  const cat = match[1];
-  return CATEGORIA_MAP[cat] || "Outros";
+/**
+ * Heuristica best-effort: dispositivos que conhecemos por substring
+ * para nao precisarem do padrao "(...)". Primeira variante contem-se
+ * na descricao → reinverte.
+ */
+const DESCRICAO_KEYWORDS: Array<{ match: RegExp; label: string }> = [
+  { match: /cart[ãa]o/i, label: "Cartão de Crédito" },
+  { match: /aluguel|condom[íi]nio|auxiliadora/i, label: "Aluguel" },
+  { match: /google|gpt|openai|anthropic|apify|meta ads/i, label: "Tecnologia/IA" },
+  { match: /meta$|facebook|instagram/i, label: "Marketing" },
+  { match: /\bdarf\b|\bdas\b|simples|imposto|irpf|irpj|pis|cofins/i, label: "Impostos" },
+  { match: /sal[áa]rio|folha|est[áa]gio|di[áa]rista|elaine/i, label: "Folha de Pagamento" },
+  { match: /estapar|estacion/i, label: "Outros" },
+  { match: /claro|vivo|tim|oi s\.a\./i, label: "Outros" },
+  { match: /ceee|rge|energia/i, label: "Outros" },
+  { match: /contabilidade|nexus/i, label: "Outros" },
+];
+
+/**
+ * Extrai uma categoria legivel da descricao de uma despesa.
+ *
+ * Ordem de tentativa:
+ *   1. Padrao legado "... (Categoria)" no fim → usa CATEGORIA_MAP.
+ *   2. Busca keywords na descricao inteira → mapeia para label conhecido.
+ *   3. Fallback: retorna a propria descricao (trim + Title Case da
+ *      primeira palavra), evitando que todas as despesas sem padrao
+ *      colapsem em uma unica fatia "Outros" no grafico.
+ */
+export function extrairCategoriaDaDescricao(descricao: string): string {
+  const desc = (descricao || "").trim();
+  if (!desc) return "Outros";
+
+  // 1) Padrao legado
+  const match = desc.match(/\(([^)]+)\)$/);
+  if (match) {
+    const cat = match[1].trim();
+    return CATEGORIA_MAP[cat] || "Outros";
+  }
+
+  // 2) Keywords
+  for (const { match: re, label } of DESCRICAO_KEYWORDS) {
+    if (re.test(desc)) return label;
+  }
+
+  // 3) Fallback: usa a descricao em si com primeira letra maiuscula.
+  //    Limita a ~30 chars para nao poluir o eixo do grafico.
+  const normalized = desc.replace(/\s+/g, " ");
+  const short = normalized.length > 30 ? `${normalized.slice(0, 28).trim()}…` : normalized;
+  return short.charAt(0).toUpperCase() + short.slice(1);
 }
 
 export function useDespesasPorCategoria(ano: number | null) {
