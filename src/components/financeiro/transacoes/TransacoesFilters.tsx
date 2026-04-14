@@ -12,9 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon, X, ChevronDown } from "lucide-react";
-import { useCategorias, useTipos, useSubcategorias, useAnosDisponiveis } from "@/hooks/useTransacoesFinanceiras";
+import { CalendarIcon, X } from "lucide-react";
+import { useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
 import type { TransacoesFilters as TFilters } from "@/types/transacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -27,43 +26,33 @@ interface Props {
   onFiltersChange: (filters: TFilters) => void;
 }
 
+const ANOS_OPCOES = [2024, 2025, 2026];
+
 export function TransacoesFilters({ filters, onFiltersChange }: Props) {
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
   const { data: subcategorias } = useSubcategorias(filters.categoria_codigo);
-  const { data: anosDisponiveis, isLoading: loadingAnos } = useAnosDisponiveis();
 
   const dateRange: DateRange | undefined = filters.dataInicio || filters.dataFim
     ? { from: filters.dataInicio, to: filters.dataFim }
     : undefined;
 
-  // Função para toggle de ano no array
-  const handleAnoToggle = (ano: number, checked: boolean) => {
-    const currentAnos = filters.anos || [];
-    let newAnos: number[];
-    
-    if (checked) {
-      newAnos = [...currentAnos, ano].sort((a, b) => b - a);
+  const handleAnoChange = (value: string) => {
+    if (value === "todos") {
+      onFiltersChange({
+        ...filters,
+        anos: undefined,
+        dataInicio: undefined,
+        dataFim: undefined,
+      });
     } else {
-      newAnos = currentAnos.filter(a => a !== ano);
+      onFiltersChange({
+        ...filters,
+        anos: [parseInt(value)],
+        dataInicio: undefined,
+        dataFim: undefined,
+      });
     }
-    
-    onFiltersChange({
-      ...filters,
-      anos: newAnos.length > 0 ? newAnos : undefined,
-      dataInicio: undefined,
-      dataFim: undefined,
-    });
-  };
-
-  // Limpar seleção de anos (mostrar todos)
-  const handleClearAnos = () => {
-    onFiltersChange({
-      ...filters,
-      anos: undefined,
-      dataInicio: undefined,
-      dataFim: undefined,
-    });
   };
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
@@ -71,7 +60,7 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
       ...filters,
       dataInicio: range?.from,
       dataFim: range?.to,
-      anos: undefined, // Limpar seleção de anos quando usar período personalizado
+      anos: undefined,
     });
   };
 
@@ -98,67 +87,30 @@ export function TransacoesFilters({ filters, onFiltersChange }: Props) {
     return "Selecionar período";
   };
 
-  // Gera o texto do botão de anos
-  const getAnosLabel = () => {
-    if (!filters.anos || filters.anos.length === 0) {
-      return "Todos os anos";
-    }
-    if (filters.anos.length === 1) {
-      return String(filters.anos[0]);
-    }
-    if (filters.anos.length === 2) {
-      return filters.anos.sort((a, b) => b - a).join(", ");
-    }
-    return `${filters.anos.length} anos`;
+  const getAnoValue = () => {
+    if (!filters.anos || filters.anos.length === 0) return "todos";
+    return filters.anos[0].toString();
   };
 
   return (
     <div className="flex flex-wrap gap-2 items-end">
-      {/* Multi-select de anos */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(
-              "h-9 text-xs w-[130px] justify-between text-left font-normal",
-              filters.anos && filters.anos.length > 0 && "border-primary"
-            )}
-          >
-            <span className="truncate">{getAnosLabel()}</span>
-            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[200px] p-0 z-50 bg-popover" align="start">
-          <div className="p-2 border-b">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-muted-foreground"
-              onClick={handleClearAnos}
-            >
-              Todos os anos
-            </Button>
-          </div>
-          <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto">
-            {loadingAnos ? (
-              <div className="text-sm text-muted-foreground p-2">Carregando...</div>
-            ) : (
-              (anosDisponiveis || []).map((ano) => (
-                <label
-                  key={ano}
-                  className="flex items-center gap-2 p-2 hover:bg-muted rounded-md cursor-pointer"
-                >
-                  <Checkbox
-                    checked={(filters.anos || []).includes(ano)}
-                    onCheckedChange={(checked) => handleAnoToggle(ano, !!checked)}
-                  />
-                  <span className="text-sm">{ano}</span>
-                </label>
-              ))
-            )}
-          </div>
-        </PopoverContent>
-      </Popover>
+      {/* Dropdown simples de ano */}
+      <Select value={getAnoValue()} onValueChange={handleAnoChange}>
+        <SelectTrigger className={cn(
+          "h-9 text-xs w-[130px]",
+          filters.anos && filters.anos.length > 0 && "border-primary"
+        )}>
+          <SelectValue placeholder="Ano" />
+        </SelectTrigger>
+        <SelectContent className="z-50 bg-popover">
+          <SelectItem value="todos">Todos os anos</SelectItem>
+          {ANOS_OPCOES.map((ano) => (
+            <SelectItem key={ano} value={ano.toString()}>
+              {ano}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Período personalizado */}
       <Popover>
