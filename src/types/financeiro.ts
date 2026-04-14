@@ -255,7 +255,16 @@ export interface KPIsDespesas {
 }
 
 export interface DespesaPorCategoria {
-  categoria: CategoriaDespesa;
+  /**
+   * Label de exibicao da categoria/subcategoria. Antes era `CategoriaDespesa`
+   * (enum fechado), mas o DB real tem subcategorias como "juliana",
+   * "eliziane", "operacional", "clientes" que nao existem no enum —
+   * todas caiam em 'outros' e colapsavam como varias fatias com o mesmo
+   * rotulo "Outros" no grafico. O hook agora resolve o label antes de
+   * agrupar, entao entradas com subcategoria desconhecida ganham um
+   * nome legivel (Title Case do codigo) em vez de todas virarem "Outros".
+   */
+  categoria: string;
   total: number;
   percentual: number;
   quantidade: number;
