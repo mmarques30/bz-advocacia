@@ -52,6 +52,11 @@ export interface DataTableProps<T> {
   rowKey?: (row: T, index: number) => React.Key;
   /** Optional click handler for an entire row. */
   onRowClick?: (row: T) => void;
+  /**
+   * Optional Tailwind class applied to each <tr>. Useful for highlighting
+   * overdue/flagged rows (e.g. `row => row.isAtrasada ? "bg-destructive/5" : ""`).
+   */
+  rowClassName?: (row: T, index: number) => string | undefined;
   /** Search box placeholder. Pass `null` to hide the search box. */
   searchPlaceholder?: string | null;
   /** Page size for client-side pagination. Pass 0 to disable. */
@@ -84,6 +89,7 @@ export function DataTable<T>({
   columns,
   rowKey,
   onRowClick,
+  rowClassName,
   searchPlaceholder = "Buscar...",
   pageSize = 25,
   emptyMessage = "Nenhum resultado encontrado.",
@@ -184,7 +190,10 @@ export function DataTable<T>({
                 <TableRow
                   key={rowKey ? rowKey(row, i) : i}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  className={onRowClick ? "cursor-pointer" : undefined}
+                  className={cn(
+                    onRowClick && "cursor-pointer",
+                    rowClassName?.(row, i),
+                  )}
                 >
                   {columns.map((c) => (
                     <TableCell key={c.id} className={c.className}>

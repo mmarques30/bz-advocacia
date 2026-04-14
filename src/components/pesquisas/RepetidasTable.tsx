@@ -1,14 +1,8 @@
+import { useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 
 interface ConsultaAgrupada {
   parametro: string;
@@ -29,44 +23,58 @@ const tipoLabels: Record<string, string> = {
 };
 
 export function RepetidasTable({ consultas }: RepetidasTableProps) {
-  if (!consultas || consultas.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Nenhuma consulta repetida encontrada
-      </div>
-    );
-  }
+  const columns = useMemo<DataTableColumn<ConsultaAgrupada>[]>(
+    () => [
+      {
+        id: "parametro",
+        header: "Parâmetro",
+        sortable: true,
+        searchable: true,
+        className: "font-mono text-sm",
+        cell: (c) => c.parametro,
+      },
+      {
+        id: "tipo",
+        header: "Tipo",
+        sortable: true,
+        searchable: true,
+        sortValue: (c) => tipoLabels[c.tipo] || c.tipo,
+        cell: (c) => tipoLabels[c.tipo] || c.tipo,
+      },
+      {
+        id: "quantidade",
+        header: "Qtd. Pesquisas",
+        sortable: true,
+        className: "text-center",
+        sortValue: (c) => c.quantidade,
+        cell: (c) => (
+          <div className="text-center">
+            <Badge variant={c.quantidade > 3 ? "destructive" : "secondary"}>
+              {c.quantidade}x
+            </Badge>
+          </div>
+        ),
+      },
+      {
+        id: "ultimaConsulta",
+        header: "Última Consulta",
+        sortable: true,
+        sortValue: (c) => new Date(c.ultimaConsulta).getTime(),
+        cell: (c) =>
+          format(new Date(c.ultimaConsulta), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+      },
+    ],
+    [],
+  );
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Parâmetro</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead className="text-center">Qtd. Pesquisas</TableHead>
-          <TableHead>Última Consulta</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {consultas.map((consulta, index) => (
-          <TableRow key={`${consulta.parametro}-${index}`}>
-            <TableCell className="font-mono text-sm">
-              {consulta.parametro}
-            </TableCell>
-            <TableCell>{tipoLabels[consulta.tipo] || consulta.tipo}</TableCell>
-            <TableCell className="text-center">
-              <Badge variant={consulta.quantidade > 3 ? "destructive" : "secondary"}>
-                {consulta.quantidade}x
-              </Badge>
-            </TableCell>
-            <TableCell>
-              {format(new Date(consulta.ultimaConsulta), "dd/MM/yyyy HH:mm", {
-                locale: ptBR,
-              })}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable
+      data={consultas || []}
+      columns={columns}
+      rowKey={(c, i) => `${c.parametro}-${i}`}
+      searchPlaceholder="Buscar por parâmetro ou tipo..."
+      emptyMessage="Nenhuma consulta repetida encontrada"
+      pageSize={25}
+    />
   );
 }

@@ -1,11 +1,21 @@
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MoreVertical, Eye, Edit, Trash2, AlertCircle, GitBranch } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, isPast, parseISO, isValid } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
+import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
+import { cn } from "@/lib/utils";
+import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 
 function safeFormatDate(dateStr: string | null, fmt = "dd/MM/yyyy"): string {
   if (!dateStr) return '-';
@@ -22,10 +32,6 @@ function safeIsPast(dateStr: string | null): boolean {
     return isValid(d) && isPast(d);
   } catch { return false; }
 }
-import { ptBR } from "date-fns/locale";
-import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
-import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
-import { cn } from "@/lib/utils";
 
 interface DemandasTableProps {
   demandas: Demanda[];
@@ -64,8 +70,16 @@ const categoriaColors: Record<string, string> = {
   geral: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
+const prioridadeOrder: Record<string, number> = {
+  urgente: 4, alta: 3, media: 2, baixa: 1,
+};
+const statusOrder: Record<string, number> = {
+  em_andamento: 3, pendente: 2, concluido: 1, cancelado: 0,
+};
+
 export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: DemandasTableProps) => {
   const advogadaLabels = useAdvogadaLabels();
+
   // Fetch subtask counts for all parent tasks
   const parentIds = demandas.map(d => d.id);
   const { data: subtaskCounts } = useQuery({
@@ -78,7 +92,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
         .in('parent_id', parentIds);
       if (error) throw error;
       const counts: Record<string, { total: number; concluidas: number }> = {};
-      data?.forEach((s: any) => {
+      data?.forEach((s: { parent_id: string | null; status: string }) => {
         if (!s.parent_id) return;
         if (!counts[s.parent_id]) counts[s.parent_id] = { total: 0, concluidas: 0 };
         counts[s.parent_id].total++;
@@ -89,117 +103,151 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
     enabled: parentIds.length > 0,
   });
 
+  const isAtrasada = (d: Demanda) =>
+    safeIsPast(d.data_limite) && !['concluido', 'cancelado'].includes(d.status);
+
+  const columns = useMemo<DataTableColumn<Demanda>[]>(
+    () => [
+      {
+        id: "titulo",
+        header: "Título",
+        sortable: true,
+        searchable: true,
+        sortValue: (d) => d.titulo,
+        className: "font-medium",
+        cell: (d) => (
+          <div className="flex items-center gap-2">
+            {isAtrasada(d) && <AlertCircle className="h-4 w-4 text-destructive" />}
+            <span className="font-medium">{d.titulo}</span>
+            {subtaskCounts?.[d.id] && (
+              <span className="flex items-center gap-1 text-xs text-muted-foreground font-normal">
+                <GitBranch className="h-3.5 w-3.5" />
+                {subtaskCounts[d.id].concluidas}/{subtaskCounts[d.id].total}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: "categoria",
+        header: "Categoria",
+        sortable: true,
+        searchable: true,
+        sortValue: (d) => CATEGORIA_LABELS[d.categoria as keyof typeof CATEGORIA_LABELS] || 'Geral',
+        cell: (d) => (
+          <span className={cn("text-xs px-2 py-1 rounded-full font-medium", categoriaColors[d.categoria || 'geral'])}>
+            {CATEGORIA_LABELS[d.categoria as keyof typeof CATEGORIA_LABELS] || 'Geral'}
+          </span>
+        ),
+      },
+      {
+        id: "tipo",
+        header: "Tipo",
+        sortable: true,
+        sortValue: (d) => TIPO_LABELS[d.tipo],
+        cell: (d) => <Badge variant={tipoVariant[d.tipo]}>{TIPO_LABELS[d.tipo]}</Badge>,
+      },
+      {
+        id: "status",
+        header: "Status",
+        sortable: true,
+        sortValue: (d) => statusOrder[d.status] ?? 0,
+        cell: (d) => <Badge variant={statusVariant[d.status]}>{STATUS_LABELS[d.status]}</Badge>,
+      },
+      {
+        id: "prioridade",
+        header: "Prioridade",
+        sortable: true,
+        sortValue: (d) => prioridadeOrder[d.prioridade] ?? 0,
+        cell: (d) => (
+          <Badge variant={prioridadeVariant[d.prioridade]}>
+            {PRIORIDADE_LABELS[d.prioridade]}
+          </Badge>
+        ),
+      },
+      {
+        id: "data_limite",
+        header: "Prazo",
+        sortable: true,
+        sortValue: (d) => (d.data_limite ? new Date(d.data_limite).getTime() : 0),
+        cell: (d) => (
+          <span className={cn(isAtrasada(d) && "text-destructive font-medium")}>
+            {safeFormatDate(d.data_limite)}
+          </span>
+        ),
+      },
+      {
+        id: "concluida_em",
+        header: "Concluída em",
+        sortable: true,
+        sortValue: (d) => (d.concluida_em ? new Date(d.concluida_em).getTime() : 0),
+        cell: (d) => safeFormatDate(d.concluida_em),
+      },
+      {
+        id: "advogada_responsavel",
+        header: "Advogada",
+        sortable: true,
+        searchable: true,
+        sortValue: (d) => advogadaLabels[d.advogada_responsavel] || '',
+        cell: (d) => advogadaLabels[d.advogada_responsavel] || '-',
+      },
+      {
+        id: "responsavel",
+        header: "Responsável",
+        sortable: true,
+        searchable: true,
+        sortValue: (d) => d.responsavel?.nome_completo || '',
+        cell: (d) => d.responsavel?.nome_completo || '-',
+      },
+      {
+        id: "actions",
+        header: "",
+        className: "w-[50px]",
+        cell: (d) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onView(d)}>
+                <Eye className="mr-2 h-4 w-4" />
+                Visualizar
+              </DropdownMenuItem>
+              {isAdmin && (
+                <>
+                  <DropdownMenuItem onClick={() => onEdit(d)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onDelete(d.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    [advogadaLabels, subtaskCounts, onView, onEdit, onDelete, isAdmin],
+  );
+
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Título</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Prioridade</TableHead>
-            <TableHead>Prazo</TableHead>
-            <TableHead>Concluída em</TableHead>
-            <TableHead>Advogada</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {demandas.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                Nenhuma demanda encontrada
-              </TableCell>
-            </TableRow>
-          ) : (
-            demandas.map((demanda) => {
-              const isAtrasada = safeIsPast(demanda.data_limite) && 
-                !['concluido', 'cancelado'].includes(demanda.status);
-              
-              return (
-                <TableRow key={demanda.id} className={cn(isAtrasada && "bg-destructive/5")}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {isAtrasada && <AlertCircle className="h-4 w-4 text-destructive" />}
-                      {demanda.titulo}
-                      {subtaskCounts?.[demanda.id] && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground font-normal">
-                          <GitBranch className="h-3.5 w-3.5" />
-                          {subtaskCounts[demanda.id].concluidas}/{subtaskCounts[demanda.id].total}
-                        </span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className={cn("text-xs px-2 py-1 rounded-full font-medium", categoriaColors[demanda.categoria || 'geral'])}>
-                      {CATEGORIA_LABELS[demanda.categoria as keyof typeof CATEGORIA_LABELS] || 'Geral'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={tipoVariant[demanda.tipo]}>
-                      {TIPO_LABELS[demanda.tipo]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[demanda.status]}>
-                      {STATUS_LABELS[demanda.status]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={prioridadeVariant[demanda.prioridade]}>
-                      {PRIORIDADE_LABELS[demanda.prioridade]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className={cn(isAtrasada && "text-destructive font-medium")}>
-                    {safeFormatDate(demanda.data_limite)}
-                  </TableCell>
-                  <TableCell>
-                    {safeFormatDate(demanda.concluida_em)}
-                  </TableCell>
-                  <TableCell>
-                    {advogadaLabels[demanda.advogada_responsavel] || '-'}
-                  </TableCell>
-                  <TableCell>
-                    {demanda.responsavel?.nome_completo || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onView(demanda)}>
-                          <Eye className="mr-2 h-4 w-4" />
-                          Visualizar
-                        </DropdownMenuItem>
-                        {isAdmin && (
-                          <>
-                            <DropdownMenuItem onClick={() => onEdit(demanda)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => onDelete(demanda.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={demandas}
+      columns={columns}
+      rowKey={(d) => d.id}
+      searchPlaceholder="Buscar por título, categoria ou responsável..."
+      emptyMessage="Nenhuma demanda encontrada"
+      pageSize={25}
+      // Realça linhas atrasadas com o mesmo tom da versao anterior.
+      rowClassName={(d) => (isAtrasada(d) ? "bg-destructive/5" : undefined)}
+    />
   );
 };
