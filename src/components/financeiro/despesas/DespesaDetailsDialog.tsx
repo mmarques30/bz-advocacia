@@ -1,5 +1,15 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +46,10 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoRecebido | "">("");
   const [status, setStatus] = useState<StatusDespesa>("pendente");
   const [observacoes, setObservacoes] = useState("");
+  // Confirmation state: quando o usuario tenta transicionar para 'pago',
+  // abrimos um AlertDialog com resumo (descricao, valor, data) para que
+  // ele valide antes de efetivamente salvar.
+  const [confirmPagoOpen, setConfirmPagoOpen] = useState(false);
 
   useEffect(() => {
     if (despesa) {
@@ -50,13 +64,8 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
     }
   }, [despesa]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!despesaId || !descricao || !valor || !data || !categoria) {
-      return;
-    }
-
+  const persist = () => {
+    if (!despesaId || !descricao || !valor || !data || !categoria) return;
     updateDespesa.mutate(
       {
         id: despesaId,
@@ -73,8 +82,27 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
         onSuccess: () => {
           onClose();
         },
-      }
+      },
     );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!despesaId || !descricao || !valor || !data || !categoria) {
+      return;
+    }
+
+    // Fluxo de validacao: se o usuario esta transicionando de
+    // pendente/atrasado -> pago, pedimos confirmacao explicita para
+    // evitar marcar como pago por engano.
+    const estavaPago = despesa?.status === "pago";
+    if (status === "pago" && !estavaPago) {
+      setConfirmPagoOpen(true);
+      return;
+    }
+
+    persist();
   };
 
   if (isLoading) {
@@ -241,6 +269,55 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
             </Button>
           </div>
         </form>
+
+        <AlertDialog open={confirmPagoOpen} onOpenChange={setConfirmPagoOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar pagamento?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-1">
+                  <p>Você está marcando esta despesa como paga. Confira os dados:</p>
+                  <ul className="list-disc pl-5 mt-2 text-sm">
+                    <li>
+                      <strong>Descrição:</strong> {descricao || "-"}
+                    </li>
+                    <li>
+                      <strong>Valor:</strong>{" "}
+                      {valor
+                        ? new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(parseFloat(valor))
+                        : "-"}
+                    </li>
+                    <li>
+                      <strong>Data:</strong>{" "}
+                      {data ? format(data, "dd/MM/yyyy", { locale: ptBR }) : "-"}
+                    </li>
+                    <li>
+                      <strong>Categoria:</strong>{" "}
+                      {categoria ? CATEGORIA_DESPESA_LABELS[categoria as CategoriaDespesa] : "-"}
+                    </li>
+                  </ul>
+                  <p className="pt-2 text-sm text-muted-foreground">
+                    Esta ação pode ser revertida editando novamente a despesa.
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Revisar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  setConfirmPagoOpen(false);
+                  persist();
+                }}
+              >
+                Confirmar pagamento
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

@@ -268,10 +268,18 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
   );
 }
 
-export const getDefaultDespesasGlobalFilters = (): DespesasGlobalFiltersState => ({
-  tipoDespesa: "todos",
-  dateRange: undefined,
-  categoria: "todos",
-  status: "todos",
-  conta: "todos",
-});
+export const getDefaultDespesasGlobalFilters = (): DespesasGlobalFiltersState => {
+  // Default: periodo = mes corrente. Evita que o usuario veja todas as
+  // despesas historicas por engano e cubra o caso reportado de "nao
+  // consegue filtrar despesas do mes".
+  const hoje = new Date();
+  const from = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const to = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  return {
+    tipoDespesa: "todos",
+    dateRange: { from, to },
+    categoria: "todos",
+    status: "todos",
+    conta: "todos",
+  };
+};

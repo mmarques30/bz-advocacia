@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, ChevronDown, ChevronUp, CalendarClock } from "lucide-react";
+import { Eye, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
@@ -30,11 +30,18 @@ import { useState } from "react";
 interface DespesasTableProps {
   filters: DespesasFilters;
   onSelectDespesa: (id: string) => void;
+  /**
+   * Abre o dialog "Nova Despesa" pre-preenchido com os dados desta
+   * despesa. Fluxo "Duplicar": usuario revisa e confirma antes de
+   * persistir um novo lancamento (tambem cobre o caso de "validar
+   * antes de pagar" — o original continua intacto).
+   */
+  onDuplicateDespesa?: (despesa: Despesa) => void;
 }
 
 const INITIAL_ITEMS = 3;
 
-export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) {
+export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: DespesasTableProps) {
   const { data: despesas, isLoading } = useDespesas(filters);
   const deleteDespesa = useDeleteDespesa();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -155,9 +162,20 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
                       variant="ghost"
                       size="icon"
                       onClick={() => onSelectDespesa(despesa.id)}
+                      title="Ver detalhes"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
+                    {onDuplicateDespesa && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDuplicateDespesa(despesa)}
+                        title="Duplicar despesa"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"
@@ -165,6 +183,7 @@ export function DespesasTable({ filters, onSelectDespesa }: DespesasTableProps) 
                         setDespesaToDelete(despesa.id);
                         setDeleteDialogOpen(true);
                       }}
+                      title="Excluir"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

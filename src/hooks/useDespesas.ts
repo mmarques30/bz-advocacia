@@ -100,8 +100,8 @@ export function useDespesas(filters?: DespesasFilters) {
 
       if (error) throw error;
 
-      // Mapear para formato Despesa
-      const despesas: Despesa[] = (data || []).map(transacao => ({
+      // Despesas importadas / legadas vivem em transacoes_financeiras.
+      const despesasLegadas: Despesa[] = (data || []).map(transacao => ({
         id: transacao.id,
         descricao: transacao.descricao || 'Sem descrição',
         valor: Math.abs(Number(transacao.valor)),
@@ -118,7 +118,37 @@ export function useDespesas(filters?: DespesasFilters) {
         conta: transacao.conta || null,
       }));
 
-      return despesas;
+      // Despesas criadas via form novo vivem em `despesas` (possuem
+      // campos ricos como status, forma_pagamento, processo_id, etc.).
+      // Uniao dos dois para cobrir ambos os ciclos de vida.
+      let despesasQuery = supabase
+        .from('despesas')
+        .select('*')
+        .order('data', { ascending: false });
+
+      if (filters?.search) {
+        despesasQuery = despesasQuery.ilike('descricao', `%${filters.search}%`);
+      }
+      if (filters?.categoria && filters.categoria.length > 0) {
+        despesasQuery = despesasQuery.in('categoria', filters.categoria);
+      }
+      if (filters?.status && filters.status.length > 0) {
+        despesasQuery = despesasQuery.in('status', filters.status);
+      }
+      if (filters?.data_inicio) {
+        despesasQuery = despesasQuery.gte('data', filters.data_inicio.toISOString().split('T')[0]);
+      }
+      if (filters?.data_fim) {
+        despesasQuery = despesasQuery.lte('data', filters.data_fim.toISOString().split('T')[0]);
+      }
+
+      const { data: despesasNovas } = await despesasQuery.limit(10000);
+      const despesasRicas: Despesa[] = (despesasNovas || []) as Despesa[];
+
+      // Merge + ordena por data DESC (mais recentes primeiro).
+      const todas = [...despesasRicas, ...despesasLegadas];
+      todas.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
+      return todas;
     },
   });
 }
@@ -130,6 +160,20 @@ export function useDespesa(despesaId: string | null) {
     queryFn: async () => {
       if (!despesaId) return null;
 
+      // 1) Tenta a tabela `despesas` primeiro (shape rico, com
+      //    status/forma_pagamento/processo_id). Despesas criadas
+      //    pelo form novo e as parcelas vivem aqui.
+      const rich = await supabase
+        .from('despesas')
+        .select('*')
+        .eq('id', despesaId)
+        .maybeSingle();
+
+      if (rich.data) {
+        return rich.data as Despesa;
+      }
+
+      // 2) Fallback: legacy em transacoes_financeiras (importadas).
       const { data, error } = await supabase
         .from('transacoes_financeiras')
         .select('*')
@@ -195,12 +239,65 @@ export function useCreateDespesa() {
   });
 }
 
-// Atualizar despesa
-export function useUpdateDespesa() {
+/**
+ * Resolve em qual tabela uma despesa vive (transacoes_financeiras ou despesas).
+ * As despesas exibidas no CRUD sao lidas de transacoes_financeiras (tipo_codigo=despesa),
+ * mas despesas novas criadas pelo form NewDespesaDialog vao para a tabela `despesas`.
+ * Update/delete precisam rotear para a tabela certa baseado em qual contem o id.
+ */
+async function resolveDespesaTable(
+  despesaId: string,
+): Promise<"transacoes_financeiras" | "despesas"> {
+  const { data: transacao } = await supabase
+    .from("transacoes_financeiras")
+    .select("id")
+    .eq("id", despesaId)
+    .maybeSingle();
+  if (transacao) return "transacoes_financeiras";
+  return "despesas";
+}
+
+/**
+ * Converte um payload shape Despesa para o shape aceito por
+ * transacoes_financeiras. Campos que nao existem em transacoes
+ * sao descartados; os unicos realmente usados sao descricao, valor,
+ * data, categoria (como subcategoria_codigo/categoria_codigo) e conta.
+ */
+function despesaToTransacaoPayload(
+  despesa: Partial<Despesa>,
+): Record<string, unknown> {
+  const payload: Record<string, unknown> = {};
+  if (despesa.descricao !== undefined) payload.descricao = despesa.descricao;
+  if (despesa.valor !== undefined) payload.valor = despesa.valor;
+  if (despesa.data !== undefined) payload.data_transacao = despesa.data;
+  if (despesa.conta !== undefined) payload.conta = despesa.conta;
+  if (despesa.categoria !== undefined) {
+    // Mantemos o codigo curto na subcategoria (backward compat com dados
+    // importados — "aluguel", "marketing", "juliana", etc.)
+    const curto = despesa.categoria.split("_")[0];
+    payload.subcategoria_codigo = curto;
+  }
+  return payload;
+}
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ id, ...despesa }: Partial<Despesa> & { id: string }) => {
+      const tabela = await resolveDespesaTable(id);
+
+      if (tabela === "transacoes_financeiras") {
+        // Registro importado / legado: atualiza em transacoes_financeiras.
+        const payload = despesaToTransacaoPayload(despesa);
+        const { data, error } = await supabase
+          .from("transacoes_financeiras")
+          .update(payload)
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        return data;
+      }
+
       const { data, error } = await supabase
         .from('despesas')
         .update(despesa)
@@ -232,10 +329,11 @@ export function useDeleteDespesa() {
 
   return useMutation({
     mutationFn: async (despesaId: string) => {
+      const tabela = await resolveDespesaTable(despesaId);
       const { error } = await supabase
-        .from('despesas')
+        .from(tabela)
         .delete()
-        .eq('id', despesaId);
+        .eq("id", despesaId);
 
       if (error) throw error;
     },

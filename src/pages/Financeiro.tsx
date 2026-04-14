@@ -49,6 +49,7 @@ import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
 import { DespesasCharts } from "@/components/financeiro/DespesasCharts";
 import { DespesasWidgets } from "@/components/financeiro/DespesasWidgets";
 import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
+import type { Despesa } from "@/types/financeiro";
 import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
 import { DespesasProjecaoTab } from "@/components/financeiro/DespesasProjecaoTab";
 
@@ -77,6 +78,7 @@ export default function Financeiro() {
   // Despesas state
   const [newDespesaOpen, setNewDespesaOpen] = useState(false);
   const [selectedDespesaId, setSelectedDespesaId] = useState<string | null>(null);
+  const [despesaParaDuplicar, setDespesaParaDuplicar] = useState<Despesa | null>(null);
   const [despesasGlobalFilters, setDespesasGlobalFilters] = useState<DespesasGlobalFiltersState>(getDefaultDespesasGlobalFilters());
   const [importDespesasOpen, setImportDespesasOpen] = useState(false);
 
@@ -240,22 +242,32 @@ export default function Financeiro() {
                 <DespesasCharts filters={despesasGlobalFilters} />
                 <DespesasWidgets filters={despesasGlobalFilters} />
               </div>
-              <DespesasTable 
+              <DespesasTable
                 filters={{
                   categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
                   status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
+                  // Propaga periodo (antes o filtro global "período" so afetava KPIs/charts e a
+                  // tabela ignorava, fazendo parecer que o filtro "nao funcionava").
+                  data_inicio: despesasGlobalFilters.dateRange?.from,
+                  data_fim: despesasGlobalFilters.dateRange?.to,
                 }}
                 onSelectDespesa={setSelectedDespesaId}
+                onDuplicateDespesa={(d) => {
+                  setDespesaParaDuplicar(d);
+                  setNewDespesaOpen(true);
+                }}
               />
             </TabsContent>
 
             <TabsContent value="projecao" className="space-y-6">
               <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
               <DespesasProjecaoTab />
-              <DespesasTable 
+              <DespesasTable
                 filters={{
                   categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
                   status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
+                  data_inicio: despesasGlobalFilters.dateRange?.from,
+                  data_fim: despesasGlobalFilters.dateRange?.to,
                 }}
                 onSelectDespesa={setSelectedDespesaId}
               />
@@ -296,7 +308,14 @@ export default function Financeiro() {
       <AcordoDetailsDialog acordoId={selectedAcordoId} open={!!selectedAcordoId} onClose={() => setSelectedAcordoId(null)} onRegistrarPagamento={setPagamentoParcelaId} />
       <RegistrarPagamentoDialog parcelaId={pagamentoParcelaId} open={!!pagamentoParcelaId} onClose={() => setPagamentoParcelaId(null)} />
       <ImportFaturamentoDialog open={importFaturamentoOpen} onClose={() => setImportFaturamentoOpen(false)} onSuccess={() => {}} />
-      <NewDespesaDialog open={newDespesaOpen} onClose={() => setNewDespesaOpen(false)} />
+      <NewDespesaDialog
+        open={newDespesaOpen}
+        onClose={() => {
+          setNewDespesaOpen(false);
+          setDespesaParaDuplicar(null);
+        }}
+        initialData={despesaParaDuplicar}
+      />
       <DespesaDetailsDialog despesaId={selectedDespesaId} open={!!selectedDespesaId} onClose={() => setSelectedDespesaId(null)} />
       <ImportDespesasDialog open={importDespesasOpen} onClose={() => setImportDespesasOpen(false)} onSuccess={() => {}} />
     </div>
