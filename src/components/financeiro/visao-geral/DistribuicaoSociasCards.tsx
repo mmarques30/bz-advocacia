@@ -23,15 +23,15 @@ function SociaCard({ nome, ano }: { nome: string; ano: number | null }) {
       <CardContent className="space-y-1">
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Recebido</span>
-          <span className="font-semibold text-emerald-600">{fmt(data?.receitas || 0)}</span>
+          <span className="font-semibold text-primary">{fmt(data?.receitas || 0)}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Despesas PF</span>
-          <span className="font-semibold text-red-500">{fmt(data?.despesasPF || 0)}</span>
+          <span className="font-semibold text-destructive">{fmt(data?.despesasPF || 0)}</span>
         </div>
         <div className="border-t pt-1 flex justify-between text-sm font-bold">
           <span>Líquido</span>
-          <span className={data?.liquido && data.liquido >= 0 ? "text-emerald-600" : "text-red-500"}>
+          <span className={data?.liquido && data.liquido >= 0 ? "text-primary" : "text-destructive"}>
             {fmt(data?.liquido || 0)}
           </span>
         </div>

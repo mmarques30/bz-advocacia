@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { useDistribuicaoSocia } from "@/hooks/useVisaoGeralFinanceiro";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -28,17 +27,17 @@ function SociaSection({ nome, ano }: { nome: string; ano: number | null }) {
       <CardContent className="space-y-4">
         {/* Resumo */}
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="p-2 rounded bg-emerald-50">
+          <div className="p-2 rounded bg-primary/10">
             <p className="text-xs text-muted-foreground">Recebido</p>
-            <p className="font-bold text-emerald-600">{fmt(data.receitas)}</p>
+            <p className="font-bold text-primary">{fmt(data.receitas)}</p>
           </div>
-          <div className="p-2 rounded bg-red-50">
+          <div className="p-2 rounded bg-destructive/10">
             <p className="text-xs text-muted-foreground">Despesas PF</p>
-            <p className="font-bold text-red-500">{fmt(data.despesasPF)}</p>
+            <p className="font-bold text-destructive">{fmt(data.despesasPF)}</p>
           </div>
-          <div className="p-2 rounded bg-blue-50">
+          <div className="p-2 rounded bg-secondary/10">
             <p className="text-xs text-muted-foreground">Líquido</p>
-            <p className={`font-bold ${data.liquido >= 0 ? "text-blue-600" : "text-red-500"}`}>
+            <p className={`font-bold ${data.liquido >= 0 ? "text-primary" : "text-destructive"}`}>
               {fmt(data.liquido)}
             </p>
           </div>
@@ -60,7 +59,7 @@ function SociaSection({ nome, ano }: { nome: string; ano: number | null }) {
                 {data.receitasList.map((r) => (
                   <TableRow key={r.id}>
                     <TableCell className="text-xs">{r.descricao}</TableCell>
-                    <TableCell className="text-xs text-right text-emerald-600 font-medium">
+                    <TableCell className="text-xs text-right text-primary font-medium">
                       {fmt(r.valor)}
                     </TableCell>
                     <TableCell className="text-xs">
@@ -90,7 +89,7 @@ function SociaSection({ nome, ano }: { nome: string; ano: number | null }) {
                   {data.despesasList.map((d) => (
                     <TableRow key={d.id}>
                       <TableCell className="text-xs">{d.descricao}</TableCell>
-                      <TableCell className="text-xs text-right text-red-500 font-medium">
+                      <TableCell className="text-xs text-right text-destructive font-medium">
                         {fmt(d.valor)}
                       </TableCell>
                       <TableCell className="text-xs">
@@ -129,8 +128,8 @@ export function DistribuicaoSociasTab({ ano }: Props) {
         <Card className="border-dashed">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-50">
-                <ArrowRightLeft className="h-5 w-5 text-amber-600" />
+              <div className="p-2 rounded-lg bg-[hsl(var(--chart-5))]/10">
+                <ArrowRightLeft className="h-5 w-5 text-[hsl(var(--chart-5))]" />
               </div>
               <div>
                 <p className="font-medium">Equalização entre Sócias</p>
