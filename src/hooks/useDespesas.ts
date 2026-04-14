@@ -279,6 +279,7 @@ function despesaToTransacaoPayload(
   }
   return payload;
 }
+export function useUpdateDespesa() {
   const queryClient = useQueryClient();
 
   return useMutation({
