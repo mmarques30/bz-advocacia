@@ -219,10 +219,19 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
       {
         onSuccess: () => {
           resetForm();
+          // Force the entire form to remount (Lovable fix) so any
+          // controlled-input state held by Radix/select internals is wiped.
           setFormKey((k) => k + 1);
+          // Also clear React Query's mutation bookkeeping so repeated
+          // submissions (the 3rd/4th in a row) don't short-circuit on a
+          // stale "success" frame.
+          createAcordo.reset();
           onClose();
         },
         onError: (error: any) => {
+          // Also reset on error so the user can retry without the previous
+          // error state blocking the button.
+          createAcordo.reset();
           toast.error(error?.message || "Erro ao registrar entrada de faturamento");
         },
       }

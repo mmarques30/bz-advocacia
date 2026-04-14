@@ -163,7 +163,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                         <TooltipTrigger asChild>
                           <Cake className="h-3.5 w-3.5 text-pink-500 shrink-0" />
                         </TooltipTrigger>
-                        <TooltipContent>Aniversariante hoje! 🎂</TooltipContent>
+                        <TooltipContent>Aniversariante hoje!</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   )}

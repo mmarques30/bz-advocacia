@@ -64,6 +64,11 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
       {
         onSuccess: () => {
           handleClose();
+          // Clear mutation state so subsequent submissions start fresh.
+          createDespesa.reset();
+        },
+        onError: () => {
+          createDespesa.reset();
         },
       }
     );
@@ -78,6 +83,7 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
     setFormaPagamento("");
     setStatus("pendente");
     setObservacoes("");
+    setConta("escritorio");
     onClose();
   };
 

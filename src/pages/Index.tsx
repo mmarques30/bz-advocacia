@@ -38,7 +38,7 @@ export default function Index() {
               <div className="flex justify-center mb-6">
                 <img src={logoBZ} alt="B&Z Advocacia" className="h-40 w-auto" />
               </div>
-              <h1 className="text-4xl font-bold text-card-foreground mb-2">
+              <h1 className="text-4xl font-seasons text-card-foreground mb-2">
                 Fale Conosco
               </h1>
               <p className="text-lg text-muted-foreground">
