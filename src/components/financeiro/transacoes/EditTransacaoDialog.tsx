@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUpdateTransacao, useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
+import { useAdvogadas } from "@/hooks/useAdvogadas";
 import { CONTA_LABELS } from "@/types/financeiro";
 import { toast } from "@/lib/toast";
 import type { TransacaoFinanceira } from "@/types/transacoes";
@@ -52,10 +53,12 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
   const [dataTransacao, setDataTransacao] = useState("");
   const [valor, setValor] = useState("");
   const [conta, setConta] = useState("escritorio");
+  const [responsavelProfileId, setResponsavelProfileId] = useState<string>("");
 
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
   const { data: subcategorias } = useSubcategorias(categoriaCodigo);
+  const { data: advogadas } = useAdvogadas();
   const updateTransacao = useUpdateTransacao();
 
   useEffect(() => {
@@ -69,6 +72,7 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
       setDataTransacao(transacao.data_transacao || "");
       setValor(transacao.valor.toString());
       setConta(transacao.conta || "escritorio");
+      setResponsavelProfileId(transacao.responsavel_profile_id || "");
     }
   }, [transacao]);
 
@@ -93,6 +97,7 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
         data_transacao: dataTransacao || null,
         valor: parseFloat(valor.replace(",", ".")),
         conta,
+        responsavel_profile_id: responsavelProfileId || null,
       });
 
       toast.success("Transação atualizada com sucesso");
@@ -234,6 +239,28 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          {advogadas && advogadas.length > 0 && (
+            <div className="space-y-2">
+              <Label>Advogada Responsável</Label>
+              <Select
+                value={responsavelProfileId || "__none__"}
+                onValueChange={(v) => setResponsavelProfileId(v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Nenhuma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhuma (B&Z)</SelectItem>
+                  {advogadas.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nome_completo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Descrição</Label>
