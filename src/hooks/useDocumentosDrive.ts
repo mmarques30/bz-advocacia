@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { DocumentoDrive } from "@/types/documentos-drive";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 import { validarLinkDrive, extrairFileId } from "@/lib/driveUtils";
 import { useCreateHistorico } from "./useProcessoHistorico";
 

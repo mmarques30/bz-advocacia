@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ProcessoPrazo } from "@/types/processos";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 
 export function useProcessoPrazos(processoId?: string) {
   return useQuery({

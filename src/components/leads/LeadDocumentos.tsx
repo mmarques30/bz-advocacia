@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Upload, FileText, Download, Trash, File } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 
 interface LeadDocumentosProps {
   lead: Lead;

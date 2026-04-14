@@ -1,4 +1,4 @@
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 
 export function formatPhoneForWhatsApp(phone: string): string {
   if (!phone) return "";

@@ -11,7 +11,7 @@ import {
 import { ExternalLink, MoreVertical, Copy, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { gerarLinkVisualizacao } from "@/lib/driveUtils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 import { ICONES_DOCUMENTO } from "@/lib/documentoIcons";
 
 interface DriveDocumentoCardProps {

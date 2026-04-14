@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
 import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
 interface LeadCardProps {

@@ -7,7 +7,7 @@ import { FolderOpen, ExternalLink, Link2, Check, Copy, Edit2 } from "lucide-reac
 import { ProcessoDriveDocumentosSection } from "../documentos/ProcessoDriveDocumentosSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 
 interface ProcessoDocumentosTabProps {
   processoId: string;

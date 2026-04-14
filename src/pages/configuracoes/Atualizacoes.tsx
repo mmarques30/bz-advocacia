@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CalendarDays, CalendarRange, Calendar, Copy, Check, Loader2, ChevronDown, Sparkles, Bug, Zap, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
