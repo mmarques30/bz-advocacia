@@ -4,10 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2, Copy } from "lucide-react";
 import { useFaturamentoDetalhado } from "@/hooks/useFinanceiro";
 import { useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import { EditTransacaoDialog } from "./transacoes/EditTransacaoDialog";
+import { NewTransacaoDialog } from "./transacoes/NewTransacaoDialog";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 import type { TransacaoFinanceira } from "@/types/transacoes";
 import { format } from "date-fns";
@@ -37,22 +38,23 @@ interface FaturamentoTableProps {
 
 const INITIAL_ITEMS = 3;
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+};
+
 export function FaturamentoTable({ filters }: FaturamentoTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null);
+  const [duplicatingTransacao, setDuplicatingTransacao] = useState<TransacaoFinanceira | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transacaoToDelete, setTransacaoToDelete] = useState<string | null>(null);
   
   const { data: faturamentos, isLoading } = useFaturamentoDetalhado(filters);
   const deleteTransacao = useDeleteTransacao();
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value);
-  };
 
   const filteredData = faturamentos?.filter(item => 
     item.descricao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -71,22 +73,27 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
     setIsExpanded(false);
   };
 
+  const toTransacao = (item: any): TransacaoFinanceira => ({
+    id: item.id,
+    mes: item.mes,
+    ano: item.ano,
+    mes_nome: item.mes_nome,
+    tipo_codigo: item.tipo_codigo,
+    categoria_codigo: item.categoria_codigo || item.categoria,
+    subcategoria_codigo: item.subcategoria_codigo || item.subcategoria,
+    descricao: item.descricao,
+    data_transacao: item.data_transacao || item.data,
+    valor: item.valor,
+    created_at: item.created_at || "",
+    conta: item.conta,
+  });
+
   const handleEdit = (item: any) => {
-    const transacao: TransacaoFinanceira = {
-      id: item.id,
-      mes: item.mes,
-      ano: item.ano,
-      mes_nome: item.mes_nome,
-      tipo_codigo: item.tipo_codigo,
-      categoria_codigo: item.categoria_codigo || item.categoria,
-      subcategoria_codigo: item.subcategoria_codigo || item.subcategoria,
-      descricao: item.descricao,
-      data_transacao: item.data_transacao || item.data,
-      valor: item.valor,
-      created_at: item.created_at || "",
-      conta: item.conta,
-    };
-    setEditingTransacao(transacao);
+    setEditingTransacao(toTransacao(item));
+  };
+
+  const handleDuplicate = (item: any) => {
+    setDuplicatingTransacao(toTransacao(item));
   };
 
   const handleDelete = async () => {
@@ -196,6 +203,10 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
                           <Pencil className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDuplicate(item)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => {
@@ -242,6 +253,12 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
         open={!!editingTransacao}
         onClose={() => setEditingTransacao(null)}
         transacao={editingTransacao}
+      />
+
+      <NewTransacaoDialog
+        open={!!duplicatingTransacao}
+        onClose={() => setDuplicatingTransacao(null)}
+        initialData={duplicatingTransacao}
       />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
