@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 import { format } from "date-fns";
 import { MessageCircle, Send, AlertCircle, Bot, User, Info, Cake } from "lucide-react";
 import type { LeadInteracao } from "@/hooks/useLeadInteracoes";

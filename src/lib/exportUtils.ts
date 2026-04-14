@@ -1,4 +1,4 @@
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/lib/toast";
 
 export function exportToPDF(data: any, title: string) {
   // Para simplificar, usamos window.print() com formatação otimizada
