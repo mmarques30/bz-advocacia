@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useBulkCreateTransacoes } from "@/hooks/useTransacoesFinanceiras";
+import { useAdvogadas, type Advogada } from "@/hooks/useAdvogadas";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
 import Papa from "papaparse";
@@ -50,6 +51,15 @@ interface ParsedRow {
   valor_total: string;
   parcela_atual: string;
   total_parcelas: string;
+  /**
+   * Fase C do refactor de advogadas: qualquer advogada cadastrada em
+   * profiles.is_advogada=true pode ter sua propria coluna
+   * `valor_<apelido>` no CSV/XLSX. Aqui guardamos os valores
+   * parseados em um dict keyed pelo codigo da subcategoria (apelido
+   * normalizado). As 3 colunas legadas acima continuam tratadas
+   * separadamente para preservar compat.
+   */
+  valoresOutrasSocias: Record<string, string>;
 }
 
 interface ProcessedRow extends ParsedRow {
@@ -57,6 +67,28 @@ interface ProcessedRow extends ParsedRow {
   errors: string[];
   mesNumero: number;
   valorNumerico: number;
+}
+
+/**
+ * Retorna o conjunto de codigos de subcategoria que sao tratados no
+ * caminho legado (eliziane, juliana, pj). Qualquer outro apelido vindo
+ * de useAdvogadas() cai no caminho dinamico.
+ */
+const CODIGOS_LEGADOS = new Set(["eliziane", "juliana", "liziane", "pj"]);
+
+function obterApelidosDinamicos(advogadas: Advogada[] | undefined): string[] {
+  if (!advogadas) return [];
+  const codigos = new Set<string>();
+  for (const a of advogadas) {
+    const keyLegacy = a.legacy_key; // 'juliana' | 'liziane' | null
+    const apelido = a.apelido;
+    // Se o apelido e legado, ja temos suporte explicito; nao precisa repetir.
+    if (keyLegacy && CODIGOS_LEGADOS.has(keyLegacy)) continue;
+    if (apelido && !CODIGOS_LEGADOS.has(apelido)) {
+      codigos.add(apelido);
+    }
+  }
+  return Array.from(codigos).sort();
 }
 
 const MESES_MAP: Record<string, number> = {
@@ -84,6 +116,11 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
 
   const bulkCreateTransacoes = useBulkCreateTransacoes();
   const queryClient = useQueryClient();
+  const { data: advogadas } = useAdvogadas();
+  // Apelidos dinamicos pra alem do legado (eliziane/juliana/pj).
+  // Um CSV com coluna `valor_bruna` tambem sera lido se houver profile
+  // `Bruna X` com is_advogada=true.
+  const apelidosDinamicos = obterApelidosDinamicos(advogadas);
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: currentYear - 2020 + 2 }, (_, i) => 2020 + i);
@@ -194,7 +231,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
 
   const validateRow = (row: ParsedRow): ProcessedRow => {
     const errors: string[] = [];
-    
+
     const mesNumero = parseMes(row.mes);
     if (mesNumero === 0) {
       errors.push("Mês inválido");
@@ -204,7 +241,21 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
       errors.push("Descrição é obrigatória");
     }
 
-    const valorNumerico = parseValor(row.valor_total);
+    const valorTotalNumerico = parseValor(row.valor_total);
+    // Linha tambem e valida se tiver valor em qualquer coluna individual
+    // (eliziane/juliana/pj ou apelido dinamico). Cobre CSVs onde o
+    // usuario preenche so a coluna da socia e nao o total agregado.
+    const valorEliziane = parseValor(row.valor_eliziane);
+    const valorJuliana = parseValor(row.valor_juliana);
+    const valorPJ = parseValor(row.valor_pj);
+    const valorOutrasSocias = Object.values(row.valoresOutrasSocias || {}).reduce(
+      (s, v) => s + parseValor(v),
+      0,
+    );
+    const somaIndividual =
+      valorEliziane + valorJuliana + valorPJ + valorOutrasSocias;
+    const valorNumerico = valorTotalNumerico > 0 ? valorTotalNumerico : somaIndividual;
+
     if (valorNumerico <= 0) {
       errors.push("Valor total inválido");
     }
@@ -230,12 +281,33 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
 
       if (fileName.endsWith(".csv")) {
         const text = await selectedFile.text();
-        const result = Papa.parse<ParsedRow>(text, {
+        const result = Papa.parse<Record<string, string>>(text, {
           header: true,
           skipEmptyLines: true,
           transformHeader: (header) => header.toLowerCase().trim().replace(/\s+/g, "_").replace(/\//g, "_"),
         });
-        data = result.data;
+        // Pos-processa cada linha pra tambem popular valoresOutrasSocias
+        // (mesma logica do XLSX path — manter simetria).
+        data = result.data.map((row) => {
+          const valoresOutrasSocias: Record<string, string> = {};
+          for (const apelido of apelidosDinamicos) {
+            const raw = row[`valor_${apelido}`] || row[apelido];
+            if (raw) valoresOutrasSocias[apelido] = raw;
+          }
+          return {
+            mes: row.mês || row.mes || "",
+            tipo: row.tipo || "",
+            descricao: row["cliente_descrição"] || row.cliente_descricao || row.descricao || row.cliente || "",
+            data: row.data || "",
+            valor_eliziane: row.valor_eliziane || row["eliziane"] || "0",
+            valor_juliana: row.valor_juliana || row["juliana"] || "0",
+            valor_pj: row.valor_pj || row["pj"] || "0",
+            valor_total: row.valor_total || row.total || row.valor || "0",
+            parcela_atual: row.parcela_atual || row.parcela || "1",
+            total_parcelas: row.total_parcelas || row.parcelas || "1",
+            valoresOutrasSocias,
+          };
+        });
       } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
         const buffer = await selectedFile.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array" });
@@ -248,6 +320,14 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
           Object.keys(row).forEach(key => {
             normalizedRow[key.toLowerCase().trim().replace(/\s+/g, "_").replace(/\//g, "_")] = row[key];
           });
+          // Valores de socias alem das legadas (eliziane/juliana/pj).
+          // Exemplo: adicionar profile "Bruna" com is_advogada=true e uma
+          // coluna "Valor Bruna" no XLSX passa a ser lida automaticamente.
+          const valoresOutrasSocias: Record<string, string> = {};
+          for (const apelido of apelidosDinamicos) {
+            const raw = normalizedRow[`valor_${apelido}`] || normalizedRow[apelido];
+            if (raw) valoresOutrasSocias[apelido] = raw;
+          }
           return {
             mes: normalizedRow.mês || normalizedRow.mes || "",
             tipo: normalizedRow.tipo || "",
@@ -259,6 +339,7 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
             valor_total: normalizedRow.valor_total || normalizedRow.total || normalizedRow.valor || "0",
             parcela_atual: normalizedRow.parcela_atual || normalizedRow.parcela || "1",
             total_parcelas: normalizedRow.total_parcelas || normalizedRow.parcelas || "1",
+            valoresOutrasSocias,
           };
         });
       } else {
@@ -362,9 +443,41 @@ export function ImportFaturamentoDialog({ open, onClose, onSuccess }: Props) {
             conta: null,
           });
         }
+
+        // Transacoes para as demais socias dinamicas (Fase C do refactor
+        // de advogadas). Qualquer advogada em profiles.is_advogada=true
+        // pode ter sua coluna `valor_<apelido>` lida aqui.
+        for (const [apelido, rawValor] of Object.entries(row.valoresOutrasSocias || {})) {
+          const valor = parseValor(rawValor);
+          if (valor > 0) {
+            transacoesLinha.push({
+              ano,
+              mes: row.mesNumero,
+              mes_nome: mesesNomes[row.mesNumero],
+              tipo_codigo: "receita",
+              categoria_codigo: "pf",
+              subcategoria_codigo: apelido,
+              descricao: row.descricao.trim(),
+              valor,
+              data_transacao: dataTransacao,
+              conta: null,
+            });
+          }
+        }
         
-        // Se não tem valores individuais, usar valor_total com lógica original
-        if (valorEliziane === 0 && valorJuliana === 0 && valorPJ === 0 && row.valorNumerico > 0) {
+        // Se não tem valores individuais (legados OU dinamicos), usar
+        // valor_total com lógica original. Nenhuma coluna `valor_<socia>`
+        // populada -> assume receita geral sem atribuicao especifica.
+        const temValorEmOutraSocia = Object.values(row.valoresOutrasSocias || {}).some(
+          (v) => parseValor(v) > 0,
+        );
+        if (
+          valorEliziane === 0 &&
+          valorJuliana === 0 &&
+          valorPJ === 0 &&
+          !temValorEmOutraSocia &&
+          row.valorNumerico > 0
+        ) {
           transacoesLinha.push({
             ano,
             mes: row.mesNumero,
