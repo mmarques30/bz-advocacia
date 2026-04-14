@@ -50,14 +50,35 @@ function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState): 
 // src/lib/categoriaDespesa.ts (pure functions, testaveis). Sao reusados
 // aqui e no grafico.
 
-// Listar despesas com filtros - busca de transacoes_financeiras
+/**
+ * Listar despesas.
+ *
+ * Rodada 4: le UNICAMENTE de transacoes_financeiras, que agora e fonte
+ * completa (Rodada 1 criou o trigger de espelhamento `despesas` -> trans,
+ * Rodada 4 fez o backfill das rows legadas). Se a row tiver origem em
+ * `despesas` (coluna origem_despesa_id), fazemos JOIN pra trazer os
+ * campos ricos (status, forma_pagamento, processo_id, etc.).
+ *
+ * Antes desta simplificacao, o hook fazia UNION de 2 tabelas e retornava
+ * duplicatas quando uma despesa nova aparecia em ambas (criada via form
+ * -> inserida em `despesas` + espelhada via trigger em transacoes).
+ */
 export function useDespesas(filters?: DespesasFilters) {
   return useQuery({
     queryKey: ['despesas', filters],
     queryFn: async () => {
-      let query = supabase
+      // Query moderna — transacoes_financeiras com LEFT JOIN em despesas
+      // via origem_despesa_id. Se a coluna nao existir ainda (ambiente
+      // sem a migration Rodada 4), cai no fallback legado UNION.
+      let query = (supabase as any)
         .from('transacoes_financeiras')
-        .select('*')
+        .select(`
+          *,
+          origem:despesas!origem_despesa_id (
+            status, forma_pagamento, processo_id, observacoes,
+            anexo_url, despesa_fixa_id, categoria
+          )
+        `)
         .eq('tipo_codigo', 'despesa')
         .order('data_transacao', { ascending: false });
 
@@ -66,7 +87,6 @@ export function useDespesas(filters?: DespesasFilters) {
       }
 
       if (filters?.categoria && filters.categoria.length > 0) {
-        // Mapear categorias de Despesa para categoria_codigo
         const categoriasCodigo = filters.categoria.map(cat => {
           const reverseMap: Record<CategoriaDespesa, string> = {
             'aluguel_condominio': 'aluguel',
@@ -85,9 +105,6 @@ export function useDespesas(filters?: DespesasFilters) {
         query = query.in('categoria_codigo', categoriasCodigo);
       }
 
-      // Não filtramos por status pois transacoes_financeiras não tem esse campo
-      // Todas são consideradas como "pago" (histórico)
-
       if (filters?.data_inicio) {
         query = query.gte('data_transacao', filters.data_inicio.toISOString().split('T')[0]);
       }
@@ -98,59 +115,106 @@ export function useDespesas(filters?: DespesasFilters) {
 
       const { data, error } = await query.limit(10000);
 
-      if (error) throw error;
-
-      // Despesas importadas / legadas vivem em transacoes_financeiras.
-      const despesasLegadas: Despesa[] = (data || []).map(transacao => ({
-        id: transacao.id,
-        descricao: transacao.descricao || 'Sem descrição',
-        valor: Math.abs(Number(transacao.valor)),
-        data: transacao.data_transacao,
-        categoria: mapCategoriaCodigo(transacao.categoria_codigo),
-        processo_id: null,
-        forma_pagamento: null,
-        status: 'pago' as StatusDespesa,
-        observacoes: null,
-        anexo_url: null,
-        created_at: transacao.created_at || '',
-        updated_at: transacao.created_at || '',
-        created_by: null,
-        conta: transacao.conta || null,
-      }));
-
-      // Despesas criadas via form novo vivem em `despesas` (possuem
-      // campos ricos como status, forma_pagamento, processo_id, etc.).
-      // Uniao dos dois para cobrir ambos os ciclos de vida.
-      let despesasQuery = supabase
-        .from('despesas')
-        .select('*')
-        .order('data', { ascending: false });
-
-      if (filters?.search) {
-        despesasQuery = despesasQuery.ilike('descricao', `%${filters.search}%`);
+      if (error) {
+        console.warn('useDespesas: query com JOIN origem falhou, usando fallback legado:', error);
+        return fallbackUnionLegacy(filters);
       }
-      if (filters?.categoria && filters.categoria.length > 0) {
-        despesasQuery = despesasQuery.in('categoria', filters.categoria);
-      }
+
+      const despesas: Despesa[] = (data || []).map((transacao: any) => {
+        const origem = transacao.origem || null;
+        return {
+          id: transacao.id,
+          descricao: transacao.descricao || 'Sem descrição',
+          valor: Math.abs(Number(transacao.valor)),
+          data: transacao.data_transacao,
+          // Se ha origem rica (criada via form novo), prefere a categoria
+          // normalizada da tabela `despesas` (enum cheio). Senao deriva
+          // do codigo curto gravado no transacoes.
+          categoria: (origem?.categoria as CategoriaDespesa) ||
+            mapCategoriaCodigo(transacao.categoria_codigo),
+          processo_id: origem?.processo_id || null,
+          forma_pagamento: origem?.forma_pagamento || null,
+          status: (origem?.status as StatusDespesa) || 'pago',
+          observacoes: origem?.observacoes || null,
+          anexo_url: origem?.anexo_url || null,
+          created_at: transacao.created_at || '',
+          updated_at: transacao.created_at || '',
+          created_by: null,
+          conta: transacao.conta || null,
+          despesa_fixa_id: origem?.despesa_fixa_id || null,
+        };
+      });
+
+      // Filtro por status aplicado client-side (so rows com origem rica
+      // tem status "real"; as demais sao consideradas "pago"). Migrar
+      // esse filtro para o banco exige adicionar a coluna status em
+      // transacoes_financeiras — fora do escopo desta rodada.
       if (filters?.status && filters.status.length > 0) {
-        despesasQuery = despesasQuery.in('status', filters.status);
-      }
-      if (filters?.data_inicio) {
-        despesasQuery = despesasQuery.gte('data', filters.data_inicio.toISOString().split('T')[0]);
-      }
-      if (filters?.data_fim) {
-        despesasQuery = despesasQuery.lte('data', filters.data_fim.toISOString().split('T')[0]);
+        return despesas.filter(d => filters.status!.includes(d.status));
       }
 
-      const { data: despesasNovas } = await despesasQuery.limit(10000);
-      const despesasRicas: Despesa[] = (despesasNovas || []) as Despesa[];
-
-      // Merge + ordena por data DESC (mais recentes primeiro).
-      const todas = [...despesasRicas, ...despesasLegadas];
-      todas.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
-      return todas;
+      return despesas;
     },
   });
+}
+
+/**
+ * Fallback quando a query com JOIN em origem_despesa_id falha (ambiente
+ * sem a migration Rodada 4). Faz a UNION antiga entre transacoes_financeiras
+ * e despesas, deduplicando por descricao+data+valor.
+ */
+async function fallbackUnionLegacy(filters?: DespesasFilters): Promise<Despesa[]> {
+  let transacoesQuery = supabase
+    .from('transacoes_financeiras')
+    .select('*')
+    .eq('tipo_codigo', 'despesa')
+    .order('data_transacao', { ascending: false });
+
+  if (filters?.search) transacoesQuery = transacoesQuery.ilike('descricao', `%${filters.search}%`);
+  if (filters?.data_inicio) transacoesQuery = transacoesQuery.gte('data_transacao', filters.data_inicio.toISOString().split('T')[0]);
+  if (filters?.data_fim) transacoesQuery = transacoesQuery.lte('data_transacao', filters.data_fim.toISOString().split('T')[0]);
+
+  const { data: transacoes } = await transacoesQuery.limit(10000);
+
+  let despesasQuery = supabase.from('despesas').select('*').order('data', { ascending: false });
+  if (filters?.search) despesasQuery = despesasQuery.ilike('descricao', `%${filters.search}%`);
+  if (filters?.categoria && filters.categoria.length > 0) despesasQuery = despesasQuery.in('categoria', filters.categoria);
+  if (filters?.status && filters.status.length > 0) despesasQuery = despesasQuery.in('status', filters.status);
+  if (filters?.data_inicio) despesasQuery = despesasQuery.gte('data', filters.data_inicio.toISOString().split('T')[0]);
+  if (filters?.data_fim) despesasQuery = despesasQuery.lte('data', filters.data_fim.toISOString().split('T')[0]);
+
+  const { data: despesasNovas } = await despesasQuery.limit(10000);
+
+  const legacy: Despesa[] = (transacoes || []).map((t: any) => ({
+    id: t.id,
+    descricao: t.descricao || 'Sem descrição',
+    valor: Math.abs(Number(t.valor)),
+    data: t.data_transacao,
+    categoria: mapCategoriaCodigo(t.categoria_codigo),
+    processo_id: null,
+    forma_pagamento: null,
+    status: 'pago' as StatusDespesa,
+    observacoes: null,
+    anexo_url: null,
+    created_at: t.created_at || '',
+    updated_at: t.created_at || '',
+    created_by: null,
+    conta: t.conta || null,
+  }));
+
+  const ricas: Despesa[] = (despesasNovas || []) as Despesa[];
+
+  // Dedupe simples: chave descricao+data+valor. Se uma despesa rica
+  // aparece tambem no transacoes (ja que o trigger espelha), mantemos
+  // a versao rica (prioritaria).
+  const chaveRicas = new Set(ricas.map((d) => `${d.descricao}|${d.data}|${d.valor}`));
+  const legacySemDupe = legacy.filter(
+    (d) => !chaveRicas.has(`${d.descricao}|${d.data}|${d.valor}`),
+  );
+
+  const todas = [...ricas, ...legacySemDupe];
+  todas.sort((a, b) => (a.data < b.data ? 1 : a.data > b.data ? -1 : 0));
+  return todas;
 }
 
 // Buscar detalhes de uma despesa
