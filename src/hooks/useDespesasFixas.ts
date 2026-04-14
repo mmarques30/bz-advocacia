@@ -97,6 +97,7 @@ export function useGerarDespesasFixasMes() {
     mutationFn: async () => {
       const hoje = new Date();
       const mesAtual = format(hoje, 'yyyy-MM');
+      const ultimoDia = format(endOfMonth(hoje), 'yyyy-MM-dd');
 
       // Buscar fixas ativas
       const { data: fixas, error: e1 } = await supabase
@@ -113,7 +114,7 @@ export function useGerarDespesasFixasMes() {
         .select('despesa_fixa_id')
         .not('despesa_fixa_id', 'is', null)
         .gte('data', `${mesAtual}-01`)
-        .lte('data', `${mesAtual}-31`);
+        .lte('data', ultimoDia);
 
       if (e2) throw e2;
 
