@@ -295,9 +295,7 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
           categoria_codigo,
           subcategoria_codigo,
           descricao,
-          valor,
-          responsavel_profile_id,
-          responsavel:profiles!responsavel_profile_id(nome_completo)
+          valor
         `)
         .eq("tipo_codigo", "receita");
 

@@ -51,9 +51,10 @@ export function useAdvogadas() {
     queryKey: ["advogadas"],
     queryFn: async () => {
       // Caminho novo: fonte unica via coluna is_advogada.
-      const { data: novos, error: errNovos } = await supabase
+      // Cast defensivo: a coluna pode não existir nos tipos gerados ainda.
+      const { data: novos, error: errNovos } = await (supabase
         .from("profiles")
-        .select("id, nome_completo")
+        .select("id, nome_completo") as any)
         .eq("is_advogada", true)
         .eq("ativo", true)
         .order("nome_completo");
