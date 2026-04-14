@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,12 +17,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateTransacao, useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
+import { CONTA_LABELS } from "@/types/financeiro";
 import { toast } from "sonner";
-
+import type { TransacaoFinanceira } from "@/types/transacoes";
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  initialData?: TransacaoFinanceira | null;
 }
 
 const MESES = [
@@ -40,7 +42,8 @@ const MESES = [
   { value: 12, label: "Dezembro" },
 ];
 
-export function NewTransacaoDialog({ open, onClose }: Props) {
+export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
+  const [formKey, setFormKey] = useState(0);
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
   const [ano, setAno] = useState<number>(new Date().getFullYear());
   const [tipoCodigo, setTipoCodigo] = useState<string>("");
@@ -49,11 +52,27 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
   const [descricao, setDescricao] = useState("");
   const [dataTransacao, setDataTransacao] = useState("");
   const [valor, setValor] = useState("");
+  const [conta, setConta] = useState("escritorio");
 
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
   const { data: subcategorias } = useSubcategorias(categoriaCodigo);
   const createTransacao = useCreateTransacao();
+
+  // Pre-fill from initialData (for duplication)
+  useEffect(() => {
+    if (initialData && open) {
+      setMes(initialData.mes);
+      setAno(initialData.ano);
+      setTipoCodigo(initialData.tipo_codigo);
+      setCategoriaCodigo(initialData.categoria_codigo);
+      setSubcategoriaCodigo(initialData.subcategoria_codigo);
+      setDescricao(initialData.descricao || "");
+      setDataTransacao(""); // Clear date for duplication
+      setValor(initialData.valor.toString());
+      setConta(initialData.conta || "escritorio");
+    }
+  }, [initialData, open]);
 
   const handleClose = () => {
     resetForm();
@@ -79,11 +98,12 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
         descricao: descricao || null,
         data_transacao: dataTransacao || null,
         valor: parseFloat(valor.replace(",", ".")),
-        conta: null,
+        conta,
       });
 
       toast.success("Transação criada com sucesso");
       resetForm();
+      setFormKey((k) => k + 1);
       onClose();
     } catch (error: any) {
       toast.error(error?.message || "Erro ao criar transação");
@@ -99,16 +119,17 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
     setDescricao("");
     setDataTransacao("");
     setValor("");
+    setConta("escritorio");
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Nova Transação</DialogTitle>
+          <DialogTitle>{initialData ? "Duplicar Transação" : "Nova Transação"}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Mês *</Label>
@@ -216,6 +237,22 @@ export function NewTransacaoDialog({ open, onClose }: Props) {
               value={valor}
               onChange={(e) => setValor(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Conta *</Label>
+            <Select value={conta} onValueChange={setConta}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CONTA_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

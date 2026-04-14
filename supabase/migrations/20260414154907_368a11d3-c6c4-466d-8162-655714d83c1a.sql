@@ -1,0 +1,1 @@
+ALTER TABLE despesas ADD COLUMN IF NOT EXISTS data_lancamento date DEFAULT CURRENT_DATE;

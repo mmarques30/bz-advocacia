@@ -150,6 +150,7 @@ interface EntradaSimplesFormProps {
 }
 
 function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
+  const [formKey, setFormKey] = useState(0);
   const { data: leads } = useLeads({ 
     search: "", 
     status: [], 
@@ -168,6 +169,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [dataRecebimento, setDataRecebimento] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [dataCompetencia, setDataCompetencia] = useState(format(new Date(), "yyyy-MM-dd"));
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoRecebido>("pix");
   const [observacoes, setObservacoes] = useState("");
   const [conta, setConta] = useState("escritorio");
@@ -178,6 +180,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
     setDescricao("");
     setValor("");
     setDataRecebimento(format(new Date(), "yyyy-MM-dd"));
+    setDataCompetencia(format(new Date(), "yyyy-MM-dd"));
     setFormaPagamento("pix");
     setObservacoes("");
     setConta("escritorio");
@@ -192,7 +195,6 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
       return;
     }
 
-    // Criar como acordo à vista com 1 parcela já paga
     createAcordo.mutate(
       {
         cliente_id: clienteId,
@@ -201,13 +203,13 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
         valor_total: Math.round(valorNum * 100) / 100,
         forma_pagamento: 'a_vista',
         numero_parcelas: 1,
-        data_primeiro_vencimento: dataRecebimento,
+        data_primeiro_vencimento: dataCompetencia,
         observacoes: observacoes || null,
         conta,
         parcelas: [{
           numero_parcela: 1,
           valor: Math.round(valorNum * 100) / 100,
-          data_vencimento: dataRecebimento,
+          data_vencimento: dataCompetencia,
           data_pagamento: dataRecebimento,
           valor_pago: Math.round(valorNum * 100) / 100,
           forma_pagamento_recebido: formaPagamento,
@@ -217,6 +219,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
       {
         onSuccess: () => {
           resetForm();
+          setFormKey((k) => k + 1);
           onClose();
         },
         onError: (error: any) => {
@@ -227,7 +230,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="cliente">Cliente *</Label>
         <Select value={clienteId} onValueChange={setClienteId} required>
@@ -296,6 +299,17 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
             required
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="data_competencia">Data de Competência</Label>
+        <Input
+          id="data_competencia"
+          type="date"
+          value={dataCompetencia}
+          onChange={(e) => setDataCompetencia(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">Mês de referência do pagamento (se diferente da data de recebimento)</p>
       </div>
 
       <div className="space-y-2">

@@ -29,9 +29,10 @@ import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinancei
 import type { TransacoesFilters, TransacaoFinanceira } from "@/types/transacoes";
 import { CONTA_LABELS } from "@/types/financeiro";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { EditTransacaoDialog } from "./EditTransacaoDialog";
+import { NewTransacaoDialog } from "./NewTransacaoDialog";
 
 interface Props {
   filters: TransacoesFilters;
@@ -55,6 +56,7 @@ export function TransacoesTable({ filters }: Props) {
   const deleteTransacao = useDeleteTransacao();
   
   const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null);
+  const [duplicatingTransacao, setDuplicatingTransacao] = useState<TransacaoFinanceira | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -176,6 +178,10 @@ export function TransacoesTable({ filters }: Props) {
                           <Pencil className="h-4 w-4 mr-2" />
                           Editar
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setDuplicatingTransacao(transacao)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicar
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setDeletingId(transacao.id)}
                           className="text-destructive focus:text-destructive"
@@ -219,6 +225,12 @@ export function TransacoesTable({ filters }: Props) {
         open={!!editingTransacao}
         onClose={() => setEditingTransacao(null)}
         transacao={editingTransacao}
+      />
+
+      <NewTransacaoDialog
+        open={!!duplicatingTransacao}
+        onClose={() => setDuplicatingTransacao(null)}
+        initialData={duplicatingTransacao}
       />
 
       <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>

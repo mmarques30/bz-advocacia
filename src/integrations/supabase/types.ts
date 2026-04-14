@@ -827,6 +827,7 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           data: string
+          data_lancamento: string | null
           descricao: string
           despesa_fixa_id: string | null
           forma_pagamento: string | null
@@ -844,6 +845,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           data: string
+          data_lancamento?: string | null
           descricao: string
           despesa_fixa_id?: string | null
           forma_pagamento?: string | null
@@ -861,6 +863,7 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           data?: string
+          data_lancamento?: string | null
           descricao?: string
           despesa_fixa_id?: string | null
           forma_pagamento?: string | null

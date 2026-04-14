@@ -37,7 +37,7 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
   const desfazerPagamento = useDesfazerPagamento();
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todas");
-  const [editParcela, setEditParcela] = useState<{ id: string; valor: number; numero_parcela: number } | null>(null);
+  const [editParcela, setEditParcela] = useState<{ id: string; valor: number; numero_parcela: number; data_vencimento?: string; status?: string; data_pagamento?: string | null } | null>(null);
   const [desfazerParcelaId, setDesfazerParcelaId] = useState<string | null>(null);
 
   if (!acordo) return null;
@@ -235,9 +235,9 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              <DropdownMenuItem onClick={() => setEditParcela({ id: parcela.id, valor: parcela.valor, numero_parcela: parcela.numero_parcela })}>
+                              <DropdownMenuItem onClick={() => setEditParcela({ id: parcela.id, valor: parcela.valor, numero_parcela: parcela.numero_parcela, data_vencimento: parcela.data_vencimento, status: parcela.status, data_pagamento: parcela.data_pagamento })}>
                                 <Pencil className="h-4 w-4 mr-2" />
-                                Editar Valor Esperado
+                                Editar Parcela
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

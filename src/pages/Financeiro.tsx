@@ -54,7 +54,7 @@ export default function Financeiro() {
   const [newDespesaOpen, setNewDespesaOpen] = useState(false);
   const [selectedDespesaId, setSelectedDespesaId] = useState<string | null>(null);
 
-  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({});
+  const [transacoesFilters, setTransacoesFilters] = useState<TFilters>({ anos: [new Date().getFullYear()] });
 
   const [faturamentoFilters, setFaturamentoFilters] = useState<FaturamentoFiltersState>(getDefaultFaturamentoFilters());
   const [importFaturamentoOpen, setImportFaturamentoOpen] = useState(false);

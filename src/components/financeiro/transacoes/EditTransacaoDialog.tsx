@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUpdateTransacao, useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
+import { CONTA_LABELS } from "@/types/financeiro";
 import { toast } from "sonner";
 import type { TransacaoFinanceira } from "@/types/transacoes";
 
@@ -50,6 +51,7 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
   const [descricao, setDescricao] = useState("");
   const [dataTransacao, setDataTransacao] = useState("");
   const [valor, setValor] = useState("");
+  const [conta, setConta] = useState("escritorio");
 
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
@@ -66,6 +68,7 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
       setDescricao(transacao.descricao || "");
       setDataTransacao(transacao.data_transacao || "");
       setValor(transacao.valor.toString());
+      setConta(transacao.conta || "escritorio");
     }
   }, [transacao]);
 
@@ -89,6 +92,7 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
         descricao: descricao || null,
         data_transacao: dataTransacao || null,
         valor: parseFloat(valor.replace(",", ".")),
+        conta,
       });
 
       toast.success("Transação atualizada com sucesso");
@@ -213,6 +217,22 @@ export function EditTransacaoDialog({ open, onClose, transacao }: Props) {
               value={valor}
               onChange={(e) => setValor(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Conta *</Label>
+            <Select value={conta} onValueChange={setConta}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CONTA_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
