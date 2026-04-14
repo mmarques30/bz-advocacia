@@ -1,12 +1,5 @@
+import { useMemo } from "react";
 import { Facebook, Instagram, Globe, Eye, MessageCircle } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
 
 interface Props {
   leads: CsvLead[] | undefined;
@@ -49,6 +43,139 @@ function openWhatsApp(phone: string) {
 }
 
 export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
+  const columns = useMemo<DataTableColumn<CsvLead>[]>(
+    () => [
+      {
+        id: "nome",
+        header: "Nome",
+        sortable: true,
+        searchable: true,
+        sortValue: (l) => l.nome,
+        cell: (l) => (
+          <span className="font-medium truncate max-w-[200px] block">{l.nome}</span>
+        ),
+      },
+      {
+        id: "plataforma",
+        header: "Origem",
+        sortable: true,
+        searchable: true,
+        sortValue: (l) => l.plataformaLabel,
+        cell: (l) => (
+          <div className="flex items-center gap-1.5">
+            <PlatformIcon platform={l.plataforma} />
+            <span className="text-sm">{l.plataformaLabel}</span>
+          </div>
+        ),
+      },
+      {
+        id: "tipoServico",
+        header: "Tipo",
+        sortable: true,
+        searchable: true,
+        className: "text-sm",
+        cell: (l) => l.tipoServico,
+      },
+      {
+        id: "adName",
+        header: "Anúncio",
+        sortable: true,
+        searchable: true,
+        className: "text-sm",
+        cell: (l) => (
+          <span className="truncate max-w-[150px] block" title={l.adName}>
+            {l.adName}
+          </span>
+        ),
+      },
+      {
+        id: "campaignName",
+        header: "Campanha",
+        sortable: true,
+        searchable: true,
+        className: "text-sm",
+        cell: (l) => (
+          <span className="truncate max-w-[150px] block" title={l.campaignName}>
+            {l.campaignName}
+          </span>
+        ),
+      },
+      {
+        id: "estagio",
+        header: "Estágio",
+        sortable: true,
+        searchable: true,
+        cell: (l) => (
+          <Badge variant="outline" className={getEstagioColor(l.estagio)}>
+            {l.estagio}
+          </Badge>
+        ),
+      },
+      {
+        id: "data",
+        header: "Data",
+        sortable: true,
+        className: "text-sm",
+        cell: (l) => l.data,
+      },
+      {
+        id: "diasParado",
+        header: "Dias Parado",
+        sortable: true,
+        sortValue: (l) => l.diasParado,
+        cell: (l) => (
+          <span className={cn(getDiasParadoColor(l.diasParado))}>
+            {l.diasParado} dias
+          </span>
+        ),
+      },
+      {
+        id: "actions",
+        header: "Ação",
+        className: "w-[100px]",
+        cell: (l) => (
+          <div className="flex items-center gap-1">
+            {l.telefone && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-green-600 hover:text-green-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openWhatsApp(l.telefone);
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Chamar no WhatsApp</TooltipContent>
+              </Tooltip>
+            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewDetails?.(l.id);
+                  }}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ver detalhes</TooltipContent>
+            </Tooltip>
+          </div>
+        ),
+      },
+    ],
+    [onViewDetails],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -59,96 +186,14 @@ export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
     );
   }
 
-  if (!leads || leads.length === 0) {
-    return (
-      <div className="text-center py-12 border rounded-lg bg-muted/20">
-        <p className="text-muted-foreground">Nenhum lead encontrado no CSV</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="border rounded-lg overflow-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Origem</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Anúncio</TableHead>
-            <TableHead>Campanha</TableHead>
-            <TableHead>Estágio</TableHead>
-            <TableHead>Data</TableHead>
-            <TableHead>Dias Parado</TableHead>
-            <TableHead className="w-[100px]">Ação</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {leads.map((lead) => (
-            <TableRow key={lead.id}>
-              <TableCell className="font-medium">
-                <span className="truncate max-w-[200px] block">{lead.nome}</span>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1.5">
-                  <PlatformIcon platform={lead.plataforma} />
-                  <span className="text-sm">{lead.plataformaLabel}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-sm">{lead.tipoServico}</TableCell>
-              <TableCell className="text-sm">
-                <span className="truncate max-w-[150px] block" title={lead.adName}>{lead.adName}</span>
-              </TableCell>
-              <TableCell className="text-sm">
-                <span className="truncate max-w-[150px] block" title={lead.campaignName}>{lead.campaignName}</span>
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className={getEstagioColor(lead.estagio)}>
-                  {lead.estagio}
-                </Badge>
-              </TableCell>
-              <TableCell className="text-sm">{lead.data}</TableCell>
-              <TableCell>
-                <span className={cn(getDiasParadoColor(lead.diasParado))}>
-                  {lead.diasParado} dias
-                </span>
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  {lead.telefone && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-green-600 hover:text-green-700"
-                          onClick={() => openWhatsApp(lead.telefone)}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Chamar no WhatsApp</TooltipContent>
-                    </Tooltip>
-                  )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onViewDetails?.(lead.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Ver detalhes</TooltipContent>
-                  </Tooltip>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      data={leads || []}
+      columns={columns}
+      rowKey={(l) => l.id}
+      searchPlaceholder="Buscar por nome, origem, tipo, anúncio ou campanha..."
+      emptyMessage="Nenhum lead encontrado no CSV"
+      pageSize={25}
+    />
   );
 }
