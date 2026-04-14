@@ -30,7 +30,7 @@ import type { TransacoesFilters, TransacaoFinanceira } from "@/types/transacoes"
 import { CONTA_LABELS } from "@/types/financeiro";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2, Copy } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { EditTransacaoDialog } from "./EditTransacaoDialog";
 import { NewTransacaoDialog } from "./NewTransacaoDialog";
 

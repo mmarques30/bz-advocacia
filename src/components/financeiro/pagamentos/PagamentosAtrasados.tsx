@@ -10,7 +10,7 @@ import { useUpdateDespesa } from "@/hooks/useDespesas";
 import { format, differenceInDays } from "date-fns";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function PagamentosAtrasados() {

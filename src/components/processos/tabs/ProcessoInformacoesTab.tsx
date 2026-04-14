@@ -12,7 +12,7 @@ import { useState } from "react";
 import { useUpdateProcesso } from "@/hooks/useProcessos";
 import { useCanEditProcesso } from "@/hooks/useUsuarios";
 import { useCreateHistorico } from "@/hooks/useProcessoHistorico";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface ProcessoInformacoesTabProps {
   processo: Processo;

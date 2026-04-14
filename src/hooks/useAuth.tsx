@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from "@/lib/toast";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);

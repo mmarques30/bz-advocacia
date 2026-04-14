@@ -29,7 +29,7 @@ import {
 import { MoreHorizontal, Trash2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { HistoricoFiltersState } from "./HistoricoFilters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

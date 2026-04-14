@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Notification } from '@/types/notifications';
-import { toast } from 'sonner';
+import { toast } from "@/lib/toast";
 
 export function useNotifications(filter: 'all' | 'unread' = 'all') {
   return useQuery({

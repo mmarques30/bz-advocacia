@@ -22,7 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Loader2, Sparkles, Check, AlertCircle } from "lucide-react";
 import { useAnalyzeDocument, useSaveModelo } from "@/hooks/useModelosDocumentos";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface UploadModeloDialogProps {
   open: boolean;

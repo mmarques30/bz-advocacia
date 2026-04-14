@@ -6,7 +6,7 @@ import { SituacaoFinanceiraCard } from "./SituacaoFinanceiraCard";
 import { RelatorioAndamentosRecentes } from "./RelatorioAndamentosRecentes";
 import { RelatorioProximosVencimentos } from "./RelatorioProximosVencimentos";
 import { RelatorioStatusProcessos } from "./RelatorioStatusProcessos";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface RelatorioClienteCompletoProps {
   clienteId: string;
