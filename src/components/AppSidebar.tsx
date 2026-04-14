@@ -100,8 +100,7 @@ const menuItems: MenuItem[] = [
     label: "Financeiro",
     icon: DollarSign,
     submenu: [
-      { title: "Análises", url: "/dashboard/financeiro" },
-      { title: "Contratos", url: "/dashboard/financeiro/acordos" },
+      { title: "Gestão Financeira", url: "/dashboard/financeiro" },
       { title: "Pagamentos", url: "/dashboard/financeiro/pagamentos" },
     ]
   },
