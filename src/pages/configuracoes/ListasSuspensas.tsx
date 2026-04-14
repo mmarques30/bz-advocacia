@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { useOpcoesSistema, useCreateOpcao, useUpdateOpcao, useDeleteOpcao, type OpcaoSistema } from "@/hooks/useOpcoesSistema";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const GRUPOS = [
   { key: 'origem_lead' as const, label: 'Origem de Leads' },

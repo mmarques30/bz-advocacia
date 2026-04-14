@@ -3,7 +3,7 @@ import { X, Send, Trash2, History, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ChatHistory, type ConversationSummary } from "@/components/chat/ChatHistory";

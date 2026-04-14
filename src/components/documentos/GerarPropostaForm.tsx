@@ -12,7 +12,7 @@ import { PropostaPreview } from "./PropostaPreview";
 import { PropostaPDF } from "./PropostaPDF";
 import { ClienteDataPanel } from "./ClienteDataPanel";
 import { pdf } from '@react-pdf/renderer';
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
 import { atualizarLeadParaPropostaEnviada } from "@/lib/leadStatusAutomation";

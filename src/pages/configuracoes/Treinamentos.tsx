@@ -12,7 +12,7 @@ import { useTreinamentos, useCreateTreinamento, useUpdateTreinamento, useDeleteT
 import { useIsAdvogada } from "@/hooks/useIsAdvogada";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const CATEGORIAS = ["geral", "vendas", "processos", "financeiro", "sistema"];
 

@@ -9,7 +9,7 @@ import { useUpdateDespesa } from "@/hooks/useDespesas";
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ProximosVencimentosProps {

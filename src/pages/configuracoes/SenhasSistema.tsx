@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Lock, Plus, Eye, EyeOff, Copy, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useSenhasSistema, useCreateSenha, useUpdateSenha, useDeleteSenha } from "@/hooks/useSenhasSistema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const CATEGORIAS = ["geral", "plataformas", "apis", "emails", "redes_sociais", "outros"];
 

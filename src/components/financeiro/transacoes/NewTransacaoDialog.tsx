@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useCreateTransacao, useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
 import { CONTA_LABELS } from "@/types/financeiro";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { TransacaoFinanceira } from "@/types/transacoes";
 
 interface Props {

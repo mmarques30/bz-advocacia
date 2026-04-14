@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Search, MapPin, Users, Briefcase, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useConsultaCNPJ, ConsultaCNPJResponse } from "@/hooks/useConsultaBrasilAPI";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const motivosConsulta = [
   "Análise processual",

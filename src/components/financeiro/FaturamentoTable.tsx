@@ -14,7 +14,7 @@ import type { TransacaoFinanceira } from "@/types/transacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CONTA_LABELS } from "@/types/financeiro";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   DropdownMenu,
   DropdownMenuContent,

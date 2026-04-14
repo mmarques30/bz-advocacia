@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X, Download } from "lucide-react";
 import { useBulkCreateLeads } from "@/hooks/useLeads";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 

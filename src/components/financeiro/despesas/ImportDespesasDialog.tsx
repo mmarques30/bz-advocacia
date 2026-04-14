@@ -29,7 +29,7 @@ import {
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useBulkCreateTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 

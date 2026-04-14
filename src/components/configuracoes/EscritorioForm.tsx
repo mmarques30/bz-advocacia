@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, MapPin, Image, Share2, Settings, Loader2 } from "lucide-react";
 import { useConfiguracoesEscritorio, ConfiguracoesEscritorio } from "@/hooks/useConfiguracoesEscritorio";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const configSchema = z.object({
   nome_escritorio: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),

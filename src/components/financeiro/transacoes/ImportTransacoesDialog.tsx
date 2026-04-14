@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { useBulkCreateTransacoes, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 

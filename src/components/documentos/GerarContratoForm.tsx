@@ -25,7 +25,7 @@ import { ComplementarDadosDialog } from "./ComplementarDadosDialog";
 import { ClienteDataPanel } from "./ClienteDataPanel";
 import { useModelosPersonalizados, ModeloConteudo } from "@/hooks/useModelosDocumentos";
 import { Save, FileDown, AlertCircle, Info, FileText } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { pdf } from "@react-pdf/renderer";
 import { ContratoPDF } from "./ContratoPDF";
 import { format } from "date-fns";

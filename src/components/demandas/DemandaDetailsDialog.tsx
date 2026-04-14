@@ -46,7 +46,7 @@ import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { ProcessoSearchInput } from "./ProcessoSearchInput";
 import { useIsAdvogada } from "@/hooks/useIsAdvogada";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const DEFAULT_STATUSES = [
   { value: 'pendente', label: 'Pendente' },

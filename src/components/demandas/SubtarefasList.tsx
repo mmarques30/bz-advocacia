@@ -10,7 +10,7 @@ import { useState } from "react";
 import { NewSubtarefaDialog } from "./NewSubtarefaDialog";
 import { Demanda } from "@/types/demandas";
 import { useIsAdvogada } from "@/hooks/useIsAdvogada";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface SubtarefasListProps {
   parentDemanda: Demanda;
