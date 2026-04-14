@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDespesasPorCategoria } from "@/hooks/useVisaoGeralFinanceiro";
+import { useDespesasPJPorCategoria } from "@/hooks/useVisaoGeralFinanceiro";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,7 +22,7 @@ interface Props {
 }
 
 export function DespesasPorCategoriaChart({ ano }: Props) {
-  const { data, isLoading } = useDespesasPorCategoria(ano);
+  const { data, isLoading } = useDespesasPJPorCategoria(ano);
 
   if (isLoading) return <Skeleton className="h-80" />;
 
