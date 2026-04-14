@@ -274,17 +274,31 @@ export function useResumoSubcategoria(ano?: number) {
   });
 }
 
-// Hook para receitas por responsável (baseado em subcategoria_codigo)
-// subcategoria_codigo = "eliziane" → Eliziane
-// subcategoria_codigo = "juliana" → Juliana
-// categoria_codigo = "pj" → B&Z Advocacia
+// Hook para receitas por responsável.
+//
+// Fase C do refactor de subcategoria_responsavel: le primeiro a FK
+// explicita (transacoes_financeiras.responsavel_profile_id → profiles)
+// e so cai na heuristica de string-match (subcategoria/descricao)
+// para transacoes antigas que ainda nao foram repopuladas.
+//
+// O resultado e estavel em nome exibido: busca-se o primeiro nome do
+// profile; quando a FK e null cai na regra antiga. Apos todas as
+// transacoes terem FK populada, a heuristica vira dead code e pode
+// ser removida na Fase D. Ver docs/migracao-subcategoria-responsavel.md
 export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
   return useQuery({
     queryKey: ["receitas-por-responsavel", filters],
     queryFn: async () => {
       let query = supabase
         .from("transacoes_financeiras")
-        .select("categoria_codigo, subcategoria_codigo, descricao, valor")
+        .select(`
+          categoria_codigo,
+          subcategoria_codigo,
+          descricao,
+          valor,
+          responsavel_profile_id,
+          responsavel:profiles!responsavel_profile_id(nome_completo)
+        `)
         .eq("tipo_codigo", "receita");
 
       // Apply filters
@@ -301,51 +315,108 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
 
       const { data: transacoes, error } = await query.limit(10000);
 
-      if (error) throw error;
+      if (error) {
+        // Se a coluna ainda nao existe (ambientes sem a migration aplicada),
+        // refaz a query no shape antigo.
+        const legacy = await supabase
+          .from("transacoes_financeiras")
+          .select("categoria_codigo, subcategoria_codigo, descricao, valor")
+          .eq("tipo_codigo", "receita")
+          .limit(10000);
+        if (legacy.error) throw legacy.error;
+        return aggregateReceitasLegacy(legacy.data || []);
+      }
 
       const totais = new Map<string, number>();
-      
+
       for (const t of transacoes || []) {
-        let responsavel = "B&Z Advocacia";
-        
-        // Verificar subcategoria primeiro (dados importados com sócia identificada)
-        const subcatLower = (t.subcategoria_codigo || "").toLowerCase();
-        
-        if (subcatLower === "eliziane") {
-          responsavel = "Eliziane";
-        } else if (subcatLower === "juliana") {
-          responsavel = "Juliana";
-        } else if (t.categoria_codigo === "pj") {
-          // Se for PJ, é B&Z
-          responsavel = "B&Z Advocacia";
-        } else if (t.categoria_codigo === "pf") {
-          // PF sem subcategoria identificada - tentar pela descrição como fallback
-          const descLower = (t.descricao || "").toLowerCase();
-          
-          if (descLower.includes("eliziane")) {
-            responsavel = "Eliziane";
-          } else if (descLower.includes("juliana")) {
-            responsavel = "Juliana";
-          } else {
-            responsavel = "PF (não identificado)";
-          }
+        const nomeFromFk = extractFirstName(
+          (t as any).responsavel?.nome_completo ?? null,
+        );
+        let responsavel: string;
+
+        if (nomeFromFk) {
+          // Caminho preferido: FK populada.
+          responsavel = nomeFromFk;
+        } else {
+          // Fallback legado para registros nao repopulados.
+          responsavel = resolveLegacyResponsavel(
+            t.subcategoria_codigo,
+            t.categoria_codigo,
+            t.descricao,
+          );
         }
-        
+
         const atual = totais.get(responsavel) || 0;
         totais.set(responsavel, atual + Number(t.valor));
       }
 
-      const total = Array.from(totais.values()).reduce((a, b) => a + b, 0);
-
-      return Array.from(totais.entries())
-        .map(([responsavel, valor]) => ({
-          responsavel,
-          total: valor,
-          percentual: total > 0 ? (valor / total) * 100 : 0,
-        }))
-        .sort((a, b) => b.total - a.total);
+      return finalizeTotais(totais);
     },
   });
+}
+
+/**
+ * Heuristica legada: ler responsavel a partir de subcategoria/descricao.
+ * Preservada para lidar com transacoes importadas antes da Fase A do refactor.
+ */
+function resolveLegacyResponsavel(
+  subcategoriaCodigo: string | null | undefined,
+  categoriaCodigo: string | null | undefined,
+  descricao: string | null | undefined,
+): string {
+  const subcatLower = (subcategoriaCodigo || "").toLowerCase();
+  if (subcatLower === "eliziane") return "Eliziane";
+  if (subcatLower === "juliana") return "Juliana";
+  if (categoriaCodigo === "pj") return "B&Z Advocacia";
+  if (categoriaCodigo === "pf") {
+    const descLower = (descricao || "").toLowerCase();
+    if (descLower.includes("eliziane")) return "Eliziane";
+    if (descLower.includes("juliana")) return "Juliana";
+    return "PF (não identificado)";
+  }
+  return "B&Z Advocacia";
+}
+
+function extractFirstName(nomeCompleto: string | null | undefined): string | null {
+  if (!nomeCompleto) return null;
+  const first = nomeCompleto.trim().split(/\s+/)[0];
+  return first || null;
+}
+
+function finalizeTotais(totais: Map<string, number>) {
+  const total = Array.from(totais.values()).reduce((a, b) => a + b, 0);
+  return Array.from(totais.entries())
+    .map(([responsavel, valor]) => ({
+      responsavel,
+      total: valor,
+      percentual: total > 0 ? (valor / total) * 100 : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+/**
+ * Fallback puro caso a coluna responsavel_profile_id nao exista ainda
+ * (ambientes sem a migration aplicada). Reproduz o comportamento pre-Fase-A.
+ */
+function aggregateReceitasLegacy(
+  transacoes: Array<{
+    categoria_codigo: string | null;
+    subcategoria_codigo: string | null;
+    descricao: string | null;
+    valor: number;
+  }>,
+) {
+  const totais = new Map<string, number>();
+  for (const t of transacoes) {
+    const responsavel = resolveLegacyResponsavel(
+      t.subcategoria_codigo,
+      t.categoria_codigo,
+      t.descricao,
+    );
+    totais.set(responsavel, (totais.get(responsavel) || 0) + Number(t.valor));
+  }
+  return finalizeTotais(totais);
 }
 
 // Hook para resumo por ano - aceita filtro opcional de anos para comparação
