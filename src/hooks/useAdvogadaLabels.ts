@@ -1,26 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { ADVOGADA_LABELS } from '@/types/demandas';
+import { ADVOGADA_LABELS } from "@/types/demandas";
+import { useAdvogadas } from "@/hooks/useAdvogadas";
 
+/**
+ * Retorna um map { juliana: "...", liziane: "..." } com os nomes
+ * atuais vindos de profiles. Mantido com a mesma API por compatibilidade
+ * com os consumidores existentes.
+ *
+ * A fonte de verdade hoje e `useAdvogadas()` (que le `profiles.is_advogada`).
+ * Este hook ainda existe como camada de compat; para novos codigos,
+ * prefira `useAdvogadas()` diretamente.
+ */
 export function useAdvogadaLabels(): Record<string, string> {
-  const { data } = useQuery({
-    queryKey: ['advogada-labels'],
-    queryFn: async () => {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('nome_completo')
-        .or('nome_completo.ilike.Juliana%,nome_completo.ilike.Eliziane%');
+  const { data: advogadas } = useAdvogadas();
 
-      const labels: Record<string, string> = { ...ADVOGADA_LABELS };
-      profiles?.forEach((p) => {
-        const nome = p.nome_completo.toLowerCase();
-        if (nome.startsWith('juliana')) labels.juliana = p.nome_completo;
-        else if (nome.startsWith('eliziane')) labels.liziane = p.nome_completo;
-      });
-      return labels;
-    },
-    staleTime: 1000 * 60 * 10,
+  const labels: Record<string, string> = { ...ADVOGADA_LABELS };
+  advogadas?.forEach((a) => {
+    if (a.legacy_key) {
+      labels[a.legacy_key] = a.nome_completo;
+    }
   });
-
-  return data ?? { ...ADVOGADA_LABELS };
+  return labels;
 }

@@ -192,7 +192,11 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
         });
       });
 
-      // Build dynamic labels from profiles
+      // Build dynamic labels from profiles.
+      // Legacy fallback is hardcoded so the UI stays nominal mesmo se a
+      // query falhar ou o banco nao tiver profiles populados ainda.
+      // Fase B do refactor de advogadas (ver docs/migracao-advogadas-hardcoded.md):
+      // a fonte real e profiles.is_advogada, resolvida por useAdvogadas().
       const advLabels: Record<string, string> = { juliana: 'Juliana Borges', liziane: 'Eliziane Taborda' };
       profiles?.forEach(p => {
         const nome = p.nome_completo.toLowerCase();
