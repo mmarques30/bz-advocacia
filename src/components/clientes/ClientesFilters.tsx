@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { ORIGEM_LABELS, TIPO_PROCESSO_OPTIONS, STATUS_CLIENTE_LABELS, StatusCliente } from "@/types/leads";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Cake } from "lucide-react";
 
 export interface ClientesFiltersType {
   search: string;
@@ -99,7 +100,10 @@ export function ClientesFilters({
           <div className="space-y-6">
             {/* Aniversariantes */}
             <div className="space-y-3">
-              <h3 className="font-medium text-sm">🎂 Aniversariantes</h3>
+              <h3 className="font-medium text-sm flex items-center gap-2">
+                <Cake className="h-4 w-4 text-pink-500" />
+                Aniversariantes
+              </h3>
               <div className="space-y-2">
                 {([
                   { value: 'hoje' as const, label: 'Hoje' },

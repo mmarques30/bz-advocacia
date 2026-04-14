@@ -69,25 +69,30 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
   });
 
   const processoId = watch('processo_id');
+  // Active processo id to fetch the lead from: prefer the one the user
+  // currently has selected in the form (covers both defaultProcessoId and
+  // manual selection via ProcessoSearchInput). Previously this query was
+  // keyed only on defaultProcessoId, so tasks created from a manually-chosen
+  // processo never had lead_id populated in demandas_internas.
+  const activeProcessoId = processoId || defaultProcessoId || null;
 
-  // Auto-fetch lead_id from the processo when defaultProcessoId is provided
   const { data: processoData } = useQuery({
-    queryKey: ['processo-lead', defaultProcessoId],
+    queryKey: ['processo-lead', activeProcessoId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('processos')
         .select('lead_id')
-        .eq('id', defaultProcessoId!)
+        .eq('id', activeProcessoId!)
         .single();
       if (error) throw error;
       return data;
     },
-    enabled: !!defaultProcessoId,
+    enabled: !!activeProcessoId,
   });
 
   const onSubmit = (data: FormData) => {
-    // Use lead_id from processo when available
-    const leadId = defaultProcessoId && processoData?.lead_id
+    // Use lead_id from the currently-linked processo when available.
+    const leadId = activeProcessoId && processoData?.lead_id
       ? processoData.lead_id
       : null;
 
