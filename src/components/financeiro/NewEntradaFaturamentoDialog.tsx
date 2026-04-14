@@ -302,6 +302,17 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="data_competencia">Data de Competência</Label>
+        <Input
+          id="data_competencia"
+          type="date"
+          value={dataCompetencia}
+          onChange={(e) => setDataCompetencia(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">Mês de referência do pagamento (se diferente da data de recebimento)</p>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="forma_pagamento">Forma de Pagamento *</Label>
         <Select value={formaPagamento} onValueChange={(v) => setFormaPagamento(v as FormaPagamentoRecebido)}>
           <SelectTrigger>

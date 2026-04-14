@@ -117,7 +117,7 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
             </div>
 
             <div className="space-y-2">
-              <Label>Data *</Label>
+              <Label>Data de Competência *</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -137,9 +137,11 @@ export function NewDespesaDialog({ open, onClose }: NewDespesaDialogProps) {
                     selected={data}
                     onSelect={setData}
                     locale={ptBR}
+                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
+              <p className="text-xs text-muted-foreground">Mês de referência da despesa</p>
             </div>
 
             <div className="space-y-2">
