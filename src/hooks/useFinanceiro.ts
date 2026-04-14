@@ -1,3 +1,22 @@
+/**
+ * Financial hooks for the BZ Advocacia dashboard.
+ *
+ * NOTE (2026-04): this file is large (900+ lines, 16 hooks) and is a
+ * known refactor target. When splitting, keep this file as a barrel that
+ * re-exports from the sub-modules so that existing import paths
+ * (`from "@/hooks/useFinanceiro"`) keep working. Suggested layout:
+ *   src/hooks/financeiro/
+ *     kpis.ts       — useKPIsFinanceiros, useProjetadoVsRealizado, useReceitasMesAtual
+ *     acordos.ts    — useAcordos, useAcordoDetalhes, useCreateAcordo
+ *     receitas.ts   — useReceitaMensal, useFluxoCaixa, useReceitasRecentes
+ *     distribuicao.ts — useDistribuicaoTipo, useDistribuicaoTipoAgregado, useTopSubcategorias
+ *     parcelas.ts   — useParcelasVencendo, useClientesInadimplentes
+ *     faturamento.ts — useFaturamentoDetalhado, useMaioresPagadores
+ *
+ * Phase 2.2 also added a server-side aggregation RPC
+ * (`get_financeiro_kpis(data_inicio, data_fim)`) that should replace
+ * the client-side summing done in useKPIsFinanceiros once we're ready.
+ */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
