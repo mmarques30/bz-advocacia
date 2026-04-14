@@ -1,21 +1,20 @@
-import { useState } from "react";
-import { Cake } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
-import { DashboardKPIStrip } from "@/components/dashboard/DashboardKPIStrip";
+import { AlertTriangle, CheckCircle } from "lucide-react";
 
-import { DashboardTarefasUrgentesCard } from "@/components/dashboard/DashboardTarefasUrgentesCard";
-import { DashboardDistribuicaoCard } from "@/components/dashboard/DashboardDistribuicaoCard";
-import { DashboardLeadsPendentesCard } from "@/components/dashboard/DashboardLeadsPendentesCard";
-import { DashboardEvolucaoProcessosCard } from "@/components/dashboard/DashboardEvolucaoProcessosCard";
+import { DashboardKPIStripV2 } from "@/components/dashboard/DashboardKPIStripV2";
+import { DashboardSituacaoTarefasCard } from "@/components/dashboard/DashboardSituacaoTarefasCard";
+import { DashboardCargaEquipeCard } from "@/components/dashboard/DashboardCargaEquipeCard";
+import { DashboardPrazosCard } from "@/components/dashboard/DashboardPrazosCard";
+import { DashboardEvolucaoProcessosV2 } from "@/components/dashboard/DashboardEvolucaoProcessosV2";
+import { DashboardPipelineLeadsCard } from "@/components/dashboard/DashboardPipelineLeadsCard";
+import { DashboardAniversariantesCard } from "@/components/dashboard/DashboardAniversariantesCard";
+import { useDashboardPrincipal } from "@/hooks/useDashboardPrincipal";
+import { useDashboardVisual } from "@/hooks/useDashboardVisual";
 import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
-import { ProcessoDetailsDialog } from "@/components/processos/ProcessoDetailsDialog";
-import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
-import { useDashboardPrincipal, type TarefaUrgente } from "@/hooks/useDashboardPrincipal";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
-import type { Demanda } from "@/types/demandas";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -28,165 +27,135 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { data, isLoading } = useDashboardPrincipal();
+  const { data: visual, isLoading: visualLoading } = useDashboardVisual();
   const { data: evolucaoData, isLoading: evolucaoLoading } = useProcessosEvolucao();
   const navigate = useNavigate();
-  const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
-  const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
 
   const userName = profile?.nome_completo || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const hoje = new Date();
   const dataFormatada = format(hoje, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
   const dataCapitalizada = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
 
-  const prazosHoje = data?.prazosHojeCount || 0;
+  const loading = isLoading || visualLoading;
 
-  // Build KPI cells
+  // Alerta crítico
+  const tarefasUrgentes = data?.tarefasUrgentes || 0;
+  const prazosHoje = data?.prazosHojeCount || 0;
+  const alertaCritico =
+    tarefasUrgentes > 0
+      ? { text: `${tarefasUrgentes} tarefa${tarefasUrgentes > 1 ? "s" : ""} urgente${tarefasUrgentes > 1 ? "s" : ""} precisam de atenção`, isUrgent: true }
+      : prazosHoje > 0
+      ? { text: `${prazosHoje} prazo${prazosHoje > 1 ? "s" : ""} vence${prazosHoje > 1 ? "m" : ""} hoje`, isUrgent: true }
+      : { text: "Escritório operando normalmente", isUrgent: false };
+
+  // KPI cells
+  const receitaFormatada = visual?.receitaMes
+    ? `R$ ${(visual.receitaMes / 1000).toFixed(1)}k`
+    : "R$ 0";
+
   const kpiCells = [
     {
       title: "Processos ativos",
       value: data?.processosAtivos || 0,
-      context: `${data?.processosConcluídosMes || 0} concluídos no mês`,
-      contextColor: "muted" as const,
+      subtitle: `${data?.processosConcluídosMes || 0} concluídos no mês`,
+      accentColor: "#378ADD",
     },
     {
-      title: "Prazos hoje",
-      value: prazosHoje,
-      context: prazosHoje > 0 ? `${prazosHoje} vencendo` : "Nenhum vencendo",
-      contextColor: prazosHoje > 0 ? "destructive" as const : "green" as const,
+      title: "Tarefas urgentes",
+      value: tarefasUrgentes,
+      subtitle: `${data?.tarefasAtivas || 0} ativas no total`,
+      accentColor: "#A32D2D",
+      valueColor: tarefasUrgentes > 0 ? "#A32D2D" : undefined,
     },
     {
       title: "Sem registro",
       value: data?.semRegistro || 0,
-      context: "Aguardam movimentação",
-      contextColor: "amber" as const,
-    },
-    {
-      title: "Tarefas ativas",
-      value: data?.tarefasAtivas || 0,
-      context: `${data?.tarefasUrgentes || 0} urgentes`,
-      contextColor: (data?.tarefasUrgentes || 0) > 0 ? "destructive" as const : "muted" as const,
+      subtitle: "Aguardam movimentação",
+      accentColor: "#B8860B",
+      valueColor: (data?.semRegistro || 0) > 0 ? "#B8860B" : undefined,
     },
     {
       title: "Leads no mês",
       value: data?.leadsNoMes || 0,
-      context: `${data?.leadsSemFollowUp || 0} sem follow-up`,
-      contextColor: (data?.leadsSemFollowUp || 0) > 0 ? "amber" as const : "muted" as const,
+      subtitle: (data?.leadsSemFollowUp || 0) > 0 ? (
+        <span style={{ color: "#B8860B" }}>{data?.leadsSemFollowUp} parado{(data?.leadsSemFollowUp || 0) > 1 ? "s" : ""}</span>
+      ) : (
+        "Todos acompanhados"
+      ),
+      accentColor: "#3B6D11",
+    },
+    {
+      title: "Receita do mês",
+      value: receitaFormatada,
+      subtitle: "Faturamento acumulado",
+      accentColor: "#B8860B",
+      valueColor: "#3B6D11",
     },
     {
       title: "Clientes ativos",
       value: data?.clientesAtivos || 0,
-      context: (data?.aniversariantesHoje || 0) > 0 ? (
-        <span
-          className="cursor-pointer underline decoration-dotted"
-          onClick={() => navigate("/dashboard/clientes?aniversariantes=hoje")}
-        >
-          <Cake className="inline-block w-3.5 h-3.5 mr-0.5 -mt-0.5" /> {data?.aniversariantesHoje} aniversariante{(data?.aniversariantesHoje || 0) > 1 ? 's' : ''} hoje
-        </span>
-      ) : (data?.clientesSemProcesso || 0) > 0 ? (
-        <span
-          className="cursor-pointer underline decoration-dotted"
-          onClick={() => navigate("/dashboard/clientes?semProcesso=true")}
-        >
-          {data?.clientesSemProcesso} sem processo
-        </span>
-      ) : (
-        `+${data?.clientesNovosMes || 0} este mês`
-      ),
-      contextColor: (data?.aniversariantesHoje || 0) > 0 ? "green" as const : (data?.clientesSemProcesso || 0) > 0 ? "amber" as const : "green" as const,
+      subtitle: `+${data?.clientesNovosMes || 0} este mês`,
+      accentColor: "#7C3AED",
     },
   ];
 
-  const handleTarefaClick = (tarefa: TarefaUrgente) => {
-    setSelectedDemanda({
-      id: tarefa.id,
-      titulo: tarefa.titulo,
-      prioridade: tarefa.prioridade as Demanda["prioridade"],
-      status: tarefa.status as Demanda["status"],
-      advogada_responsavel: tarefa.advogada_responsavel as Demanda["advogada_responsavel"],
-      data_limite: tarefa.data_limite,
-      descricao: null,
-      tipo: "tarefa",
-      categoria: "geral",
-      criado_por: null,
-      responsavel_id: null,
-      processo_id: null,
-      lead_id: null,
-      data_conclusao: null,
-      concluida_em: null,
-      parent_id: null,
-      ordem: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-  };
-
   return (
     <div className="space-y-5">
-      {/* Saudação + Data */}
+      {/* Saudação + Alerta */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-1">
         <div>
           <h1 className="text-3xl md:text-4xl font-seasons text-primary">
             {getGreeting()}, {userName}
           </h1>
-          <p className="text-base text-muted-foreground mt-1">Aqui está o resumo operacional do escritório</p>
+          <p className="text-sm text-muted-foreground mt-1">{dataCapitalizada}</p>
         </div>
-        <div className="text-right">
-          <p className="text-sm font-medium text-foreground">{dataCapitalizada}</p>
-          <p className="text-xs text-muted-foreground">
-            {prazosHoje > 0
-              ? `${prazosHoje} prazo${prazosHoje > 1 ? "s" : ""} vence${prazosHoje > 1 ? "m" : ""} hoje`
-              : "Nenhum prazo vencendo hoje"}
+        <div className="flex items-center gap-1.5 text-right">
+          {alertaCritico.isUrgent ? (
+            <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+          ) : (
+            <CheckCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+          )}
+          <p className={`text-sm font-medium ${alertaCritico.isUrgent ? "text-destructive" : "text-muted-foreground"}`}>
+            {alertaCritico.text}
           </p>
         </div>
       </div>
 
       {/* KPI Strip */}
-      <DashboardKPIStrip cells={kpiCells} loading={isLoading} />
+      <DashboardKPIStripV2 cells={kpiCells} loading={loading} />
 
-      {/* Line 1 — Tarefas urgentes */}
-      <div>
-        <DashboardTarefasUrgentesCard
-          tarefas={data?.tarefasUrgentesList || []}
-          loading={isLoading}
-          onTarefaClick={handleTarefaClick}
+      {/* Linha 1: 3 cards */}
+      <div className="grid gap-5 lg:grid-cols-3">
+        <DashboardSituacaoTarefasCard
+          data={visual?.tarefas || { urgentes: 0, atrasadas: 0, concluidasSemana: 0, pendentes: 0, totalAtivas: 0 }}
+          loading={loading}
+        />
+        <DashboardCargaEquipeCard data={visual?.heatmap || []} loading={loading} />
+        <DashboardPrazosCard
+          prazos={visual?.prazos || { atrasados: 0, hoje: 0, estaSemana: 0, dias30: 0 }}
+          proximosPrazos={visual?.proximosPrazos || []}
+          loading={loading}
         />
       </div>
 
-      {/* Line 2 — Distribuição + Leads */}
+      {/* Linha 2: 2 cards */}
       <div className="grid gap-5 lg:grid-cols-2">
-        <DashboardDistribuicaoCard
-          membros={data?.distribuicao || []}
-          loading={isLoading}
+        <DashboardEvolucaoProcessosV2
+          data={evolucaoData?.meses || []}
+          loading={evolucaoLoading}
         />
-        <DashboardLeadsPendentesCard
+        <DashboardPipelineLeadsCard
           funil={data?.leadsFunil || { novo: 0, em_contato: 0, proposta: 0, perdido: 0 }}
-          semFollowUp={data?.leadsSemFollowUpList || []}
           taxaConversao={data?.taxaConversaoMes || 0}
-          loading={isLoading}
+          leadsParados={data?.leadsSemFollowUpList || []}
+          loading={loading}
         />
       </div>
 
-
-      {/* Line 4 — Evolução de Processos */}
-      <DashboardEvolucaoProcessosCard
-        data={evolucaoData?.meses || []}
-        loading={evolucaoLoading}
-        abertos30d={evolucaoData?.abertos30d || 0}
-        variacao={evolucaoData?.variacao || 0}
-      />
-
-      {/* Dialogs */}
-      <ProcessoDetailsDialog
-        processoId={selectedProcessoId}
-        open={!!selectedProcessoId}
-        onClose={() => setSelectedProcessoId(null)}
-      />
-      <DemandaDetailsDialog
-        demanda={selectedDemanda}
-        open={!!selectedDemanda}
-        onOpenChange={(open) => { if (!open) setSelectedDemanda(null); }}
-        isEditing={false}
-        isAdmin={false}
+      {/* Aniversariantes */}
+      <DashboardAniversariantesCard
+        aniversariantes={visual?.aniversariantes || []}
+        loading={loading}
       />
     </div>
   );
