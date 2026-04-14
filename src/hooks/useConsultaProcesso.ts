@@ -6,24 +6,21 @@ import type { ConsultaProcessoRequest, ConsultaProcessoResponse } from "@/types/
 export function useConsultaProcesso() {
   const consultarProcesso = useMutation({
     mutationFn: async (data: ConsultaProcessoRequest): Promise<ConsultaProcessoResponse> => {
-      console.log("Iniciando consulta Datajud:", data);
-      
       const { data: result, error } = await supabase.functions.invoke(
         "consultas-datajud",
         { body: data }
       );
-      
+
       if (error) {
         console.error("Erro na consulta Datajud:", error);
         throw new Error(error.message || "Erro ao consultar processo");
       }
-      
+
       if (result?.error) {
         console.error("Erro retornado pela API:", result);
         throw new Error(result.error);
       }
-      
-      console.log("Consulta Datajud bem-sucedida:", result);
+
       return result as ConsultaProcessoResponse;
     },
     onSuccess: () => {

@@ -145,7 +145,17 @@ export function extrairCategoriaDaDescricao(descricao: string): string {
   return short.charAt(0).toUpperCase() + short.slice(1);
 }
 
-export function useDespesasPorCategoria(ano: number | null) {
+/**
+ * Especifico da aba Visao Geral: agrupa so despesas PJ pelo ano dado.
+ *
+ * NOTA de nome: existe um outro hook `useDespesasPorCategoria` em
+ * src/hooks/useDespesas.ts que aceita `filters` (periodo + categoria)
+ * e alimenta o pie chart da tela principal. Renomeamos este aqui para
+ * `useDespesasPJPorCategoria` porque os dois shapes eram incompativeis
+ * (numero | null vs. DespesasGlobalFiltersState) e convidavam a um
+ * auto-import trocado.
+ */
+export function useDespesasPJPorCategoria(ano: number | null) {
   const { data: transacoes, isLoading } = useTransacoesPorAno(ano);
 
   const chartData = (() => {
