@@ -1,13 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,29 +18,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Trash2, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { MoreHorizontal, Trash2, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import type { HistoricoFiltersState } from "./HistoricoFilters";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { DataTable, DataTableColumn } from "@/components/shared/DataTable";
+import type { TransacaoFinanceira } from "@/types/transacoes";
 
 interface Props {
   filters: HistoricoFiltersState;
   mode?: "preview" | "full";
 }
 
-const ITEMS_PER_PAGE = 20;
+const PAGE_SIZE_FULL = 20;
 const PREVIEW_LIMIT = 3;
+
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function HistoricoTable({ filters, mode = "full" }: Props) {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const { data: transacoes, isLoading, error } = useTransacoes({
-    anos: filters.ano ? [filters.ano] : undefined, // Converte ano único para array
+    anos: filters.ano ? [filters.ano] : undefined,
     dataInicio: filters.dataInicio || undefined,
     dataFim: filters.dataFim || undefined,
     tipo_codigo: filters.tipo || undefined,
@@ -59,24 +53,125 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    
     try {
       await deleteTransacao.mutateAsync(deleteId);
       toast.success("Transação excluída com sucesso");
       setDeleteId(null);
-    } catch (error) {
+    } catch (_error) {
       toast.error("Erro ao excluir transação");
     }
   };
 
+  const columns = useMemo<DataTableColumn<TransacaoFinanceira>[]>(
+    () => [
+      {
+        id: "data_transacao",
+        header: "Data",
+        sortable: true,
+        sortValue: (t) => (t.data_transacao ? new Date(t.data_transacao).getTime() : 0),
+        cell: (t) =>
+          t.data_transacao ? format(new Date(t.data_transacao), "dd/MM/yyyy") : "-",
+      },
+      {
+        id: "tipo_codigo",
+        header: "Tipo",
+        sortable: true,
+        searchable: true,
+        cell: (t) => (
+          <Badge
+            variant={t.tipo_codigo === "receita" ? "default" : "destructive"}
+            className={t.tipo_codigo === "receita" ? "bg-emerald-600" : ""}
+          >
+            {t.tipo_codigo === "receita" ? "Receita" : "Despesa"}
+          </Badge>
+        ),
+      },
+      {
+        id: "categoria_codigo",
+        header: "Categoria",
+        sortable: true,
+        searchable: true,
+        cell: (t) => (
+          <Badge variant="outline">
+            {t.categoria_codigo?.toUpperCase() || "-"}
+          </Badge>
+        ),
+      },
+      {
+        id: "descricao",
+        header: "Descrição",
+        sortable: true,
+        searchable: true,
+        className: "max-w-[250px]",
+        cell: (t) => (
+          <span className="block truncate" title={t.descricao || undefined}>
+            {t.descricao || "-"}
+          </span>
+        ),
+      },
+      {
+        id: "mes_ano",
+        header: "Mês/Ano",
+        sortable: true,
+        sortValue: (t) => t.ano * 100 + t.mes,
+        cell: (t) => `${t.mes_nome} / ${t.ano}`,
+      },
+      {
+        id: "valor",
+        header: "Valor",
+        sortable: true,
+        className: "text-right",
+        sortValue: (t) => Number(t.valor),
+        cell: (t) => (
+          <div className="text-right font-medium">
+            <span
+              className={
+                t.tipo_codigo === "receita" ? "text-emerald-600" : "text-destructive"
+              }
+            >
+              {brl.format(Number(t.valor))}
+            </span>
+          </div>
+        ),
+      },
+      {
+        id: "actions",
+        header: "",
+        className: "w-[50px]",
+        cell: (t) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => setDeleteId(t.id)}
+                className="text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
+      },
+    ],
+    [],
+  );
+
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
       </div>
     );
   }
@@ -90,22 +185,19 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
   }
 
   const filteredTransacoes = transacoes || [];
-  const totalPages = Math.ceil(filteredTransacoes.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedTransacoes = filteredTransacoes.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  
-  // For preview mode, show only first 3 items
-  const displayedTransacoes = mode === "preview" 
-    ? filteredTransacoes.slice(0, PREVIEW_LIMIT)
-    : paginatedTransacoes;
 
   const totalReceitas = filteredTransacoes
-    .filter(t => t.tipo_codigo === "receita")
+    .filter((t) => t.tipo_codigo === "receita")
     .reduce((sum, t) => sum + Number(t.valor), 0);
-  
+
   const totalDespesas = filteredTransacoes
-    .filter(t => t.tipo_codigo === "despesa")
+    .filter((t) => t.tipo_codigo === "despesa")
     .reduce((sum, t) => sum + Number(t.valor), 0);
+
+  // Preview mode: mostra so as 3 primeiras sem paginacao nem busca,
+  // e abaixo o botao para abrir a visao completa (mantem UX atual).
+  const dataToShow =
+    mode === "preview" ? filteredTransacoes.slice(0, PREVIEW_LIMIT) : filteredTransacoes;
 
   return (
     <div className="space-y-4">
@@ -115,132 +207,36 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
         <div className="flex gap-4">
           <span className="flex items-center gap-1 text-emerald-600">
             <TrendingUp className="h-4 w-4" />
-            Receitas: {totalReceitas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            Receitas: {brl.format(totalReceitas)}
           </span>
           <span className="flex items-center gap-1 text-destructive">
             <TrendingDown className="h-4 w-4" />
-            Despesas: {totalDespesas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            Despesas: {brl.format(totalDespesas)}
           </span>
         </div>
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Mês/Ano</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {displayedTransacoes.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Nenhuma transação encontrada
-                </TableCell>
-              </TableRow>
-            ) : (
-              displayedTransacoes.map((transacao) => (
-                <TableRow key={transacao.id}>
-                  <TableCell>
-                    {transacao.data_transacao
-                      ? format(new Date(transacao.data_transacao), "dd/MM/yyyy")
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={transacao.tipo_codigo === "receita" ? "default" : "destructive"}
-                      className={transacao.tipo_codigo === "receita" ? "bg-emerald-600" : ""}
-                    >
-                      {transacao.tipo_codigo === "receita" ? "Receita" : "Despesa"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">
-                      {transacao.categoria_codigo?.toUpperCase() || "-"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[250px] truncate">
-                    {transacao.descricao || "-"}
-                  </TableCell>
-                  <TableCell>
-                    {transacao.mes_nome} / {transacao.ano}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    <span className={transacao.tipo_codigo === "receita" ? "text-emerald-600" : "text-destructive"}>
-                      {Number(transacao.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => setDeleteId(transacao.id)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        data={dataToShow}
+        columns={columns}
+        rowKey={(t) => t.id}
+        // Preview mode suprime busca e paginacao; a tela completa liga tudo.
+        searchPlaceholder={mode === "preview" ? null : "Buscar por tipo, categoria ou descrição..."}
+        pageSize={mode === "preview" ? 0 : PAGE_SIZE_FULL}
+        emptyMessage="Nenhuma transação encontrada"
+      />
 
       {/* Preview mode: Show "Ver todas" button */}
       {mode === "preview" && filteredTransacoes.length > PREVIEW_LIMIT && (
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="w-full"
           onClick={() => navigate("/dashboard/financeiro/historico")}
         >
           Ver todas as {filteredTransacoes.length} transações
           <ExternalLink className="h-4 w-4 ml-2" />
         </Button>
-      )}
-
-      {/* Pagination - only in full mode */}
-      {mode === "full" && totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Página {currentPage} de {totalPages}
-          </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Próximo
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
-          </div>
-        </div>
       )}
 
       {/* Delete Confirmation */}
@@ -254,7 +250,10 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
