@@ -1,12 +1,15 @@
 project_id = "nvkxblrwblhvggndlfax"
 
+# -------------------------------------------------------------------
+# Public webhook endpoints — JWT disabled (authenticated via HMAC)
+# -------------------------------------------------------------------
 [functions.receive-sheet-lead]
 verify_jwt = false
 
-[functions.meta-auth]
+[functions.meta-callback]
 verify_jwt = true
 
-[functions.meta-callback]
+[functions.meta-auth]
 verify_jwt = true
 
 [functions.meta-metrics]
@@ -18,17 +21,42 @@ verify_jwt = true
 [functions.meta-report]
 verify_jwt = true
 
+# -------------------------------------------------------------------
+# External lookup functions — now require authenticated users to
+# prevent anonymous abuse of paid external APIs (Apify, DataJud, etc.)
+# -------------------------------------------------------------------
 [functions.consultas-brasilapi]
-verify_jwt = false
+verify_jwt = true
 
 [functions.consultas-cpf]
-verify_jwt = false
+verify_jwt = true
 
+[functions.consultas-api]
+verify_jwt = true
+
+[functions.consultas-datajud]
+verify_jwt = true
+
+[functions.consultas-imovel]
+verify_jwt = true
+
+[functions.consultas-veiculo]
+verify_jwt = true
+
+# -------------------------------------------------------------------
+# AI / document processing — require authenticated caller
+# -------------------------------------------------------------------
 [functions.analyze-document]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-chat]
-verify_jwt = false
+verify_jwt = true
 
 [functions.analyze-updates]
-verify_jwt = false
+verify_jwt = true
+
+# -------------------------------------------------------------------
+# WhatsApp send — authenticated only (prevents outbound abuse)
+# -------------------------------------------------------------------
+[functions.whatsapp-send]
+verify_jwt = true
