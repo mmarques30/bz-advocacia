@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { verifyHmac } from "../_shared/verifyHmac.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-signature, x-hub-signature-256, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 // ── Helpers ──────────────────────────────────────────────
@@ -186,6 +187,14 @@ serve(async (req) => {
     if (!text || text.trim() === '') {
       return new Response(JSON.stringify({ success: false, error: 'Request body is empty' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // HMAC verification (graceful rollout: enforced only when secret is set)
+    const hmac = await verifyHmac(req, text, 'SHEET_WEBHOOK_SECRET');
+    if (!hmac.ok) {
+      console.warn('HMAC verification failed:', hmac.reason);
+      return new Response(JSON.stringify({ success: false, error: 'Unauthorized: ' + hmac.reason }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     let payload: Record<string, unknown>;
