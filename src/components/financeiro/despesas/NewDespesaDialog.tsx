@@ -11,8 +11,10 @@ import { CalendarIcon, Info } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCreateDespesa } from "@/hooks/useDespesas";
 import { useProcessos } from "@/hooks/useProcessos";
+import { supabase } from "@/integrations/supabase/client";
 import {
   CATEGORIA_DESPESA_LABELS,
   FORMA_PAGAMENTO_RECEBIDO_LABELS,
@@ -55,6 +57,7 @@ export function NewDespesaDialog({ open, onClose, initialData }: NewDespesaDialo
   const [intervaloDias, setIntervaloDias] = useState<number>(30);
 
   const createDespesa = useCreateDespesa();
+  const queryClient = useQueryClient();
   const { data: processos } = useProcessos({ status: undefined });
   const { data: categoriasDespesaDb } = useOpcoesSistema("categoria_despesa", true);
 
@@ -126,9 +129,49 @@ export function NewDespesaDialog({ open, onClose, initialData }: NewDespesaDialo
       return;
     }
 
-    // Parcelas: cria N lancamentos com datas espacadas por intervaloDias.
-    // Valor de cada parcela = total / N (arredondado em centavos), com
-    // ajuste de diferenca na ultima para evitar perda por arredondamento.
+    // Multi-parcela: preferimos a RPC create_despesa_atomica (Rodada 1)
+    // que cria as N despesas numa unica transacao Postgres. Se a RPC
+    // nao estiver disponivel (ambiente staging ou migration nao
+    // aplicada), cai no fallback antigo de for-loop sequencial — com
+    // risco de parcelas orfas se der erro no meio.
+    try {
+      const { error: rpcError } = await (supabase as any).rpc(
+        "create_despesa_atomica",
+        {
+          p_descricao: descricao,
+          p_valor_total: valorNumerico,
+          p_data_primeira: format(data, "yyyy-MM-dd"),
+          p_categoria: categoria,
+          p_conta: conta,
+          p_numero_parcelas: n,
+          p_intervalo_dias: intervaloDias,
+          p_processo_id: processoId || null,
+          p_forma_pagamento: formaPagamento || null,
+          p_status_primeira: status,
+          p_observacoes: observacoes || null,
+        },
+      );
+
+      if (rpcError) throw rpcError;
+
+      // Invalida caches para que a tabela mostre as parcelas novas.
+      queryClient.invalidateQueries({ queryKey: ["despesas"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-despesas"] });
+      queryClient.invalidateQueries({ queryKey: ["despesas-por-categoria"] });
+      toast.success(`${n} parcelas de despesa criadas com sucesso`);
+      handleClose();
+      return;
+    } catch (rpcErr) {
+      console.warn(
+        "RPC create_despesa_atomica indisponivel, usando fallback sequencial:",
+        rpcErr,
+      );
+    }
+
+    // Fallback legado (pre-Rodada 1): for-loop mutateAsync.
+    // Atomicidade nao garantida — se a 3a falhar, as 2 primeiras ficam
+    // persistidas. Mantido para compatibilidade enquanto a RPC nao esta
+    // propagada em todos os ambientes.
     const valorParcelaBase = Math.round((valorNumerico / n) * 100) / 100;
     const somaBase = valorParcelaBase * (n - 1);
     const ultimaParcela = Math.round((valorNumerico - somaBase) * 100) / 100;
