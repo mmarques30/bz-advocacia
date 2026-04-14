@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useCreateTransacao, useCategorias, useTipos, useSubcategorias } from "@/hooks/useTransacoesFinanceiras";
+import { useAdvogadas } from "@/hooks/useAdvogadas";
 import { CONTA_LABELS } from "@/types/financeiro";
 import { toast } from "@/lib/toast";
 import type { TransacaoFinanceira } from "@/types/transacoes";
@@ -53,10 +54,12 @@ export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
   const [dataTransacao, setDataTransacao] = useState("");
   const [valor, setValor] = useState("");
   const [conta, setConta] = useState("escritorio");
+  const [responsavelProfileId, setResponsavelProfileId] = useState<string>("");
 
   const { data: categorias } = useCategorias();
   const { data: tipos } = useTipos();
   const { data: subcategorias } = useSubcategorias(categoriaCodigo);
+  const { data: advogadas } = useAdvogadas();
   const createTransacao = useCreateTransacao();
 
   // Pre-fill from initialData (for duplication)
@@ -71,8 +74,24 @@ export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
       setDataTransacao(""); // Clear date for duplication
       setValor(initialData.valor.toString());
       setConta(initialData.conta || "escritorio");
+      setResponsavelProfileId(initialData.responsavel_profile_id || "");
     }
   }, [initialData, open]);
+
+  // Auto-fill responsavel_profile_id quando a subcategoria indicar a socia.
+  // Isso reproduz o comportamento legado do backfill: subcategoria ==
+  // 'juliana'/'eliziane' → profile com aquele primeiro nome. Usuario pode
+  // sobrescrever manualmente no select.
+  useEffect(() => {
+    if (!subcategoriaCodigo || !advogadas) return;
+    const subLower = subcategoriaCodigo.toLowerCase();
+    const match = advogadas.find(
+      (a) => a.legacy_key === subLower || a.apelido === subLower,
+    );
+    if (match && !responsavelProfileId) {
+      setResponsavelProfileId(match.id);
+    }
+  }, [subcategoriaCodigo, advogadas, responsavelProfileId]);
 
   const handleClose = () => {
     resetForm();
@@ -99,6 +118,10 @@ export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
         data_transacao: dataTransacao || null,
         valor: parseFloat(valor.replace(",", ".")),
         conta,
+        // Grava a FK explicita quando o usuario selecionou uma advogada.
+        // Mantemos tambem o subcategoria_codigo legado para compat com
+        // consumidores que ainda fazem string match.
+        responsavel_profile_id: responsavelProfileId || null,
       });
 
       toast.success("Transação criada com sucesso");
@@ -120,6 +143,7 @@ export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
     setDataTransacao("");
     setValor("");
     setConta("escritorio");
+    setResponsavelProfileId("");
   };
 
   return (
@@ -254,6 +278,35 @@ export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
               </SelectContent>
             </Select>
           </div>
+
+          {/*
+            Advogada responsavel (Fase B do refactor de subcategoria):
+            grava a FK explicita em responsavel_profile_id para poder
+            eliminar a heuristica de string match em fase futura.
+            Pre-preenchido automaticamente quando a subcategoria for
+            "juliana"/"eliziane" (backfill do hook legado).
+          */}
+          {advogadas && advogadas.length > 0 && (
+            <div className="space-y-2">
+              <Label>Advogada Responsável</Label>
+              <Select
+                value={responsavelProfileId || "__none__"}
+                onValueChange={(v) => setResponsavelProfileId(v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Nenhuma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Nenhuma (B&Z)</SelectItem>
+                  {advogadas.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nome_completo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Descrição</Label>

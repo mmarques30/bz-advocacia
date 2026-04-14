@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
+import { useAdvogadas } from "@/hooks/useAdvogadas";
 import { ProcessoSearchInput } from "./ProcessoSearchInput";
 import { useEffect } from "react";
 
@@ -44,6 +45,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
   const createDemanda = useCreateDemanda();
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
   const advogadaLabels = useAdvogadaLabels();
+  const { data: advogadas } = useAdvogadas();
 
   const categorias = categoriasDb && categoriasDb.length > 0
     ? categoriasDb.map(o => ({ value: o.valor, label: o.label }))
@@ -215,8 +217,25 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
-                <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
+                {/*
+                  Fase C: fonte de dados dinamica via useAdvogadas() (profiles.is_advogada).
+                  value = legacy_key (juliana/liziane) quando disponivel — preserva compat
+                  com os consumidores que ainda fazem string match. Para advogadas novas,
+                  gravamos o apelido normalizado.
+                  Fallback hardcoded para o caso da query ainda nao ter respondido.
+                */}
+                {advogadas && advogadas.length > 0 ? (
+                  advogadas.map((a) => (
+                    <SelectItem key={a.id} value={a.legacy_key ?? a.apelido}>
+                      {a.nome_completo}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <>
+                    <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
+                    <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

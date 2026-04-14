@@ -38,6 +38,7 @@ import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { Demanda, CATEGORIA_LABELS, TIPO_LABELS, STATUS_LABELS, PRIORIDADE_LABELS } from "@/types/demandas";
 import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
+import { useAdvogadas } from "@/hooks/useAdvogadas";
 import { AlertCircle, GitBranch, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +66,7 @@ interface DemandaDetailsDialogProps {
 
 export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, isAdmin }: DemandaDetailsDialogProps) => {
   const advogadaLabels = useAdvogadaLabels();
+  const { data: advogadas } = useAdvogadas();
   const navigate = useNavigate();
   const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
   const statuses = statusDb && statusDb.length > 0
@@ -338,8 +340,26 @@ export const DemandaDetailsDialog = ({ demanda, open, onOpenChange, isEditing, i
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
-                  <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
+                  {/*
+                    Fase C: iteramos sobre useAdvogadas() (fonte profiles.is_advogada).
+                    O value gravado e a legacy_key quando disponivel (juliana/liziane)
+                    para manter compat com os consumidores legados; para qualquer
+                    advogada nova, usa-se o apelido normalizado.
+                    Fallback hardcoded quando a query ainda nao respondeu ou o
+                    ambiente nao tem profiles populados.
+                  */}
+                  {advogadas && advogadas.length > 0 ? (
+                    advogadas.map((a) => (
+                      <SelectItem key={a.id} value={a.legacy_key ?? a.apelido}>
+                        {a.nome_completo}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <>
+                      <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
+                      <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>

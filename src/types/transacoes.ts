@@ -36,6 +36,13 @@ export interface TransacaoFinanceira {
   valor: number;
   created_at: string;
   conta: string | null;
+  /**
+   * FK para profiles — substitui gradualmente a heuristica de string match
+   * em subcategoria_codigo/descricao para atribuir receitas por socia.
+   * Fase A do refactor: coluna adicionada com backfill. Fase B: forms
+   * comecam a gravar aqui. Ver docs/migracao-subcategoria-responsavel.md
+   */
+  responsavel_profile_id?: string | null;
 }
 
 export interface TransacoesFilters {

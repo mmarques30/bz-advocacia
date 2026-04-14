@@ -2,7 +2,17 @@ export type DemandaTipo = 'melhoria' | 'bug' | 'sugestao' | 'tarefa';
 export type DemandaPrioridade = 'baixa' | 'media' | 'alta' | 'urgente';
 export type DemandaStatus = 'pendente' | 'em_andamento' | 'concluido' | 'cancelado';
 export type DemandaCategoria = 'processos' | 'vendas' | 'pagamentos' | 'administrativo' | 'geral';
-export type AdvogadaResponsavel = 'juliana' | 'liziane';
+/**
+ * Legacy chaves de advogada conhecidas no sistema. A coluna no banco e TEXT
+ * (sem CHECK constraint), entao aceita valores alem desses — por isso usamos
+ * o literal union estendido com `(string & {})` para manter o autocomplete
+ * das duas chaves legadas sem bloquear novas advogadas adicionadas via
+ * profiles.is_advogada (Fase A+B do refactor).
+ *
+ * Ver docs/migracao-advogadas-hardcoded.md para o roadmap completo.
+ */
+export type AdvogadaResponsavelLegacy = 'juliana' | 'liziane';
+export type AdvogadaResponsavel = AdvogadaResponsavelLegacy | (string & {});
 
 export interface Demanda {
   id: string;
@@ -73,7 +83,7 @@ export const CATEGORIA_LABELS: Record<DemandaCategoria, string> = {
   geral: 'Geral',
 };
 
-export const ADVOGADA_LABELS: Record<AdvogadaResponsavel, string> = {
+export const ADVOGADA_LABELS: Record<AdvogadaResponsavelLegacy, string> = {
   juliana: 'Juliana Borges',
   liziane: 'Eliziane Taborda',
 };
