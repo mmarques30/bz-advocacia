@@ -12,11 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
-import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle, MessageSquare, AlertTriangle } from "lucide-react";
+import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle, MessageSquare, AlertTriangle, Wallet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { LeadContratosTab } from "./LeadContratosTab";
 import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
+import { ClienteFinanceiroTab } from "./ClienteFinanceiroTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
 import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
 import { supabase } from "@/integrations/supabase/client";
@@ -240,7 +241,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-7' : 'grid-cols-5'}`}>
+              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-8' : 'grid-cols-5'}`}>
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
                 <TabsTrigger value="contratos">{isCliente ? 'Contratos' : 'Propostas'}</TabsTrigger>
@@ -248,6 +249,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   <TabsTrigger value="tarefas" className="flex items-center gap-1">
                     <ClipboardList className="h-3.5 w-3.5" />
                     Tarefas
+                  </TabsTrigger>
+                )}
+                {isCliente && (
+                  <TabsTrigger value="financeiro" className="flex items-center gap-1">
+                    <Wallet className="h-3.5 w-3.5" />
+                    Financeiro
                   </TabsTrigger>
                 )}
                 <TabsTrigger value="mensagens" className="flex items-center gap-1">
@@ -391,6 +398,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               {isCliente && (
                 <TabsContent value="tarefas" className="mt-4">
                   <ClienteTarefasTab leadId={lead.id} />
+                </TabsContent>
+              )}
+
+              {isCliente && (
+                <TabsContent value="financeiro" className="mt-4">
+                  <ClienteFinanceiroTab leadId={lead.id} />
                 </TabsContent>
               )}
 
