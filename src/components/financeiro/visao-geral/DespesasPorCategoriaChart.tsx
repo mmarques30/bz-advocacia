@@ -3,14 +3,15 @@ import { useDespesasPorCategoria } from "@/hooks/useVisaoGeralFinanceiro";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Brand-aligned palette using design tokens and complementary hues
 const COLORS: Record<string, string> = {
-  "Aluguel": "#6366f1",
-  "Cartão de Crédito": "#f59e0b",
-  "Tecnologia/IA": "#06b6d4",
-  "Marketing": "#ec4899",
-  "Impostos": "#ef4444",
-  "Folha de Pagamento": "#8b5cf6",
-  "Outros": "#94a3b8",
+  "Aluguel": "hsl(30, 33%, 55%)",           // primary/bronze
+  "Cartão de Crédito": "hsl(38, 92%, 50%)", // chart-5/warning amber
+  "Tecnologia/IA": "hsl(220, 4%, 40%)",     // secondary/gray
+  "Marketing": "hsl(30, 33%, 42%)",          // darker bronze
+  "Impostos": "hsl(0, 84.2%, 60.2%)",       // destructive
+  "Folha de Pagamento": "hsl(72, 6%, 18%)", // foreground/dark
+  "Outros": "hsl(0, 0%, 65%)",              // muted gray
 };
 
 const formatCurrency = (v: number) =>
@@ -35,7 +36,10 @@ export function DespesasPorCategoriaChart({ ano }: Props) {
           <BarChart data={data} layout="vertical" barSize={20}>
             <XAxis type="number" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
             <YAxis type="category" dataKey="categoria" width={120} tick={{ fontSize: 11 }} />
-            <Tooltip formatter={(v: number) => [formatCurrency(v), "Total"]} />
+            <Tooltip
+              formatter={(v: number) => [formatCurrency(v), "Total"]}
+              contentStyle={{ borderRadius: "0.5rem", border: "1px solid hsl(0, 0%, 90%)" }}
+            />
             <Bar dataKey="valor" radius={[0, 4, 4, 0]}>
               {data?.map((entry, idx) => (
                 <Cell key={idx} fill={COLORS[entry.categoria] || COLORS["Outros"]} />
