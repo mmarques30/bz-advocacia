@@ -313,37 +313,17 @@ export function useReceitasPorResponsavel(filters?: TransacoesFilters) {
 
       const { data: transacoes, error } = await query.limit(10000);
 
-      if (error) {
-        // Se a coluna ainda nao existe (ambientes sem a migration aplicada),
-        // refaz a query no shape antigo.
-        const legacy = await supabase
-          .from("transacoes_financeiras")
-          .select("categoria_codigo, subcategoria_codigo, descricao, valor")
-          .eq("tipo_codigo", "receita")
-          .limit(10000);
-        if (legacy.error) throw legacy.error;
-        return aggregateReceitasLegacy(legacy.data || []);
-      }
+      if (error) throw error;
 
       const totais = new Map<string, number>();
 
       for (const t of transacoes || []) {
-        const nomeFromFk = extractFirstName(
-          (t as any).responsavel?.nome_completo ?? null,
+        // Fallback legado: ler responsavel a partir de subcategoria/descricao.
+        const responsavel = resolveLegacyResponsavel(
+          t.subcategoria_codigo,
+          t.categoria_codigo,
+          t.descricao,
         );
-        let responsavel: string;
-
-        if (nomeFromFk) {
-          // Caminho preferido: FK populada.
-          responsavel = nomeFromFk;
-        } else {
-          // Fallback legado para registros nao repopulados.
-          responsavel = resolveLegacyResponsavel(
-            t.subcategoria_codigo,
-            t.categoria_codigo,
-            t.descricao,
-          );
-        }
 
         const atual = totais.get(responsavel) || 0;
         totais.set(responsavel, atual + Number(t.valor));
