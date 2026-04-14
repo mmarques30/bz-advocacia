@@ -1,16 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
-import type { 
-  Despesa, 
-  DespesasFilters, 
-  KPIsDespesas, 
+import type {
+  Despesa,
+  DespesasFilters,
+  KPIsDespesas,
   DespesaPorCategoria,
   StatusDespesa,
-  CategoriaDespesa
+  CategoriaDespesa,
 } from "@/types/financeiro";
 import type { DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
 import { startOfMonth, endOfMonth, format } from "date-fns";
+import { mapCategoriaCodigo, resolveCategoriaLabel } from "@/lib/categoriaDespesa";
 
 // Helper para calcular datas baseado nos filtros
 // Retorna null para inicio/fim quando não há filtro específico (busca todos os dados)
@@ -45,22 +46,9 @@ function getDateRangeFromDespesasFilters(filters?: DespesasGlobalFiltersState): 
   return { inicio: null, fim: null };
 }
 
-// Mapear categoria_codigo para CategoriaDespesa
-function mapCategoriaCodigo(codigo: string | null): CategoriaDespesa {
-  const mapeamento: Record<string, CategoriaDespesa> = {
-    'aluguel': 'aluguel_condominio',
-    'salarios': 'salarios_encargos',
-    'honorarios': 'honorarios_terceiros',
-    'marketing': 'marketing_publicidade',
-    'materiais': 'materiais_expediente',
-    'telefonia': 'telefonia_internet',
-    'software': 'software_licencas',
-    'energia': 'energia_agua',
-    'impostos': 'impostos_taxas',
-  };
-  
-  return mapeamento[codigo || ''] || 'outros';
-}
+// mapCategoriaCodigo e resolveCategoriaLabel foram extraidos para
+// src/lib/categoriaDespesa.ts (pure functions, testaveis). Sao reusados
+// aqui e no grafico.
 
 // Listar despesas com filtros - busca de transacoes_financeiras
 export function useDespesas(filters?: DespesasFilters) {
@@ -337,24 +325,50 @@ export function useDespesasPorCategoria(filters?: DespesasGlobalFiltersState) {
       const despesas = data || [];
       const total = despesas.reduce((sum, d) => sum + Math.abs(Number(d.valor)), 0);
 
-      // Agrupar por subcategoria (mais detalhado) ou categoria
+      // Agrupar pelo LABEL resolvido (nao pelo codigo bruto). Isso evita que
+      // varias subcategorias desconhecidas virem multiplas entradas todas
+      // colapsadas em "Outros" no grafico — o bug original fazia 4 fatias
+      // com o mesmo rotulo mas valores diferentes.
       const porCategoria = despesas.reduce((acc, d) => {
-        const cat = d.subcategoria_codigo || d.categoria_codigo || 'outros';
-        if (!acc[cat]) {
-          acc[cat] = { total: 0, quantidade: 0 };
+        const label = resolveCategoriaLabel(d.subcategoria_codigo || d.categoria_codigo);
+        if (!acc[label]) {
+          acc[label] = { total: 0, quantidade: 0 };
         }
-        acc[cat].total += Math.abs(Number(d.valor));
-        acc[cat].quantidade += 1;
+        acc[label].total += Math.abs(Number(d.valor));
+        acc[label].quantidade += 1;
         return acc;
       }, {} as Record<string, { total: number; quantidade: number }>);
 
-      // Converter para array com percentual
-      return Object.entries(porCategoria).map(([categoria, { total: totalCat, quantidade }]) => ({
-        categoria: mapCategoriaCodigo(categoria),
-        total: totalCat,
-        quantidade,
-        percentual: total > 0 ? (totalCat / total) * 100 : 0,
-      })) as DespesaPorCategoria[];
+      // Converter para array com percentual. Fatias < 1% tendem a poluir o
+      // grafico com labels sobrepostas; agregamos as muito pequenas em "Outros".
+      const entries = Object.entries(porCategoria).map(
+        ([categoria, { total: totalCat, quantidade }]) => ({
+          categoria,
+          total: totalCat,
+          quantidade,
+          percentual: total > 0 ? (totalCat / total) * 100 : 0,
+        }),
+      );
+
+      const significativos = entries.filter((e) => e.percentual >= 1);
+      const pequenos = entries.filter((e) => e.percentual < 1);
+
+      if (pequenos.length > 0 && significativos.length > 0) {
+        const soma = pequenos.reduce((s, e) => s + e.total, 0);
+        const qtd = pequenos.reduce((s, e) => s + e.quantidade, 0);
+        significativos.push({
+          categoria: 'Outros',
+          total: soma,
+          quantidade: qtd,
+          percentual: total > 0 ? (soma / total) * 100 : 0,
+        });
+      } else if (pequenos.length > 0) {
+        // Se nao houver nada "significativo", mantem os dados originais
+        // para nao esconder a tabela inteira num "Outros" global.
+        return entries as DespesaPorCategoria[];
+      }
+
+      return significativos.sort((a, b) => b.total - a.total) as DespesaPorCategoria[];
     },
   });
 }

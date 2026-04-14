@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { useDespesasPorCategoria } from "@/hooks/useDespesas";
-import { CATEGORIA_DESPESA_LABELS } from "@/types/financeiro";
 import type { DespesasGlobalFiltersState } from "./DespesasGlobalFilters";
 
 interface DespesasChartsProps {
@@ -11,8 +10,12 @@ interface DespesasChartsProps {
 export function DespesasCharts({ filters }: DespesasChartsProps) {
   const { data: despesasPorCategoria } = useDespesasPorCategoria(filters);
 
-  const despesasChartData = despesasPorCategoria?.map(item => ({
-    name: CATEGORIA_DESPESA_LABELS[item.categoria],
+  // O hook ja resolve o label (subcategoria "juliana" -> "Juliana",
+  // "aluguel" -> "Aluguel e Condomínio", desconhecidas -> Title Case).
+  // Nao fazemos mais lookup em CATEGORIA_DESPESA_LABELS porque o type
+  // era um enum fechado que nao cobria subcategorias reais do banco.
+  const despesasChartData = despesasPorCategoria?.map((item) => ({
+    name: item.categoria,
     value: item.total,
     percentual: item.percentual,
   }));
