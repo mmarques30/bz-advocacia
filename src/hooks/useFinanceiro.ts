@@ -328,6 +328,40 @@ export function useCreateAcordo() {
     mutationFn: async (acordo: any) => {
       const { parcelas, ...acordoData } = acordo;
 
+      // Rodada 1: preferimos a RPC atomica (acordo + parcelas numa unica
+      // transacao Postgres). Se estiver indisponivel, cai no fluxo de
+      // 2 inserts separados mantendo o comportamento antigo.
+      try {
+        const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
+          "create_acordo_atomico",
+          {
+            p_acordo: acordoData,
+            p_parcelas: parcelas && parcelas.length > 0 ? parcelas : [],
+          },
+        );
+
+        if (rpcError) throw rpcError;
+
+        // A RPC retorna apenas o uuid; o hook que consome espera o row
+        // completo. Buscamos o row recem-criado para manter contrato.
+        const acordoId = rpcData as string;
+        const { data: novo, error: fetchError } = await supabase
+          .from("acordos_financeiros")
+          .select("*")
+          .eq("id", acordoId)
+          .single();
+        if (fetchError) throw fetchError;
+        return novo;
+      } catch (rpcErr) {
+        console.warn(
+          "RPC create_acordo_atomico indisponivel, usando fallback 2-step:",
+          rpcErr,
+        );
+      }
+
+      // Fallback legado (pre-Rodada 1). Mantido para ambientes sem a
+      // RPC aplicada. Atomicidade nao garantida — se insert das parcelas
+      // falhar, o acordo ja foi persistido.
       const { data: novoAcordo, error: acordoError } = await supabase
         .from("acordos_financeiros")
         .insert([acordoData])
