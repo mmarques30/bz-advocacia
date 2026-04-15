@@ -328,7 +328,7 @@ export function ImportClientesPlanilhaDialog({ open, onClose }: ImportClientesPl
               <p className="text-xl font-medium">Importação concluída!</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-emerald-50 dark:bg-emerald-950 rounded-lg p-4 text-center">
                 <p className="text-3xl font-bold text-emerald-600">{result.clientesCriados}</p>
                 <p className="text-sm text-emerald-700 dark:text-emerald-400">clientes criados</p>

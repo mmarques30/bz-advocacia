@@ -266,7 +266,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsList>
 
               <TabsContent value="info" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Mail className="h-4 w-4" />

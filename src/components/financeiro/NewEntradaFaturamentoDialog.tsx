@@ -102,7 +102,7 @@ export function NewEntradaFaturamentoDialog({ open, onClose }: NewEntradaFaturam
           </DialogHeader>
 
           {!tipoSelecionado ? (
-            <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
               {(Object.keys(TIPO_ENTRADA_FATURAMENTO_LABELS) as TipoEntradaFaturamento[]).map((tipo) => (
                 <button
                   key={tipo}
@@ -312,7 +312,7 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="valor">Valor *</Label>
           <Input

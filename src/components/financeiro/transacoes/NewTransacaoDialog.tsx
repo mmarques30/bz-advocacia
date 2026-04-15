@@ -154,7 +154,7 @@ export function NewTransacaoDialog({ open, onClose, initialData }: Props) {
         </DialogHeader>
 
         <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Mês *</Label>
               <Select

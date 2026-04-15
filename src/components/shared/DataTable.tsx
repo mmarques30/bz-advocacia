@@ -156,7 +156,12 @@ export function DataTable<T>({
         />
       )}
 
-      <div className="rounded-md border">
+      {/*
+        overflow-x-auto permite scroll horizontal em mobile (<768px)
+        quando a tabela tem mais colunas do que cabe. Antes, tabelas
+        financeiras ficavam truncadas/invisiveis em telas pequenas.
+      */}
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

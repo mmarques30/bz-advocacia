@@ -145,7 +145,7 @@ export function AcordosTable({ filters, onSelectAcordo, onRegistrarPagamento }: 
         cell: (r) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" aria-label="Abrir ações do contrato" onClick={(e) => e.stopPropagation()}>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

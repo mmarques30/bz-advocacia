@@ -163,6 +163,7 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                       size="icon"
                       onClick={() => onSelectDespesa(despesa.id)}
                       title="Ver detalhes"
+                      aria-label="Ver detalhes da despesa"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -172,6 +173,7 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                         size="icon"
                         onClick={() => onDuplicateDespesa(despesa)}
                         title="Duplicar despesa"
+                        aria-label="Duplicar despesa"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -184,6 +186,7 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                         setDeleteDialogOpen(true);
                       }}
                       title="Excluir"
+                      aria-label="Excluir despesa"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

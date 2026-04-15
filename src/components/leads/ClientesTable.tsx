@@ -187,6 +187,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                     className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                     onClick={() => openWhatsApp(lead.telefone, lead.nome_completo)}
                     title={`Enviar WhatsApp para ${lead.telefone}`}
+                    aria-label={`Enviar WhatsApp para ${lead.nome_completo}`}
                   >
                     <MessageCircle className="h-5 w-5" />
                   </Button>
@@ -199,6 +200,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                           size="icon"
                           className="h-8 w-8 opacity-40 cursor-not-allowed"
                           disabled
+                          aria-label="WhatsApp indisponível — telefone não cadastrado"
                         >
                           <MessageCircle className="h-5 w-5" />
                         </Button>
@@ -250,7 +252,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" aria-label={`Abrir ações de ${lead.nome_completo}`}>
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
