@@ -15,6 +15,9 @@
   "include": [
     "src/lib/toast.ts",
     "src/lib/importCsv.ts",
+    "src/lib/contratoUtils.ts",
+    "src/lib/whatsappUtils.ts",
+    "src/lib/categoriaDespesa.ts",
     "src/components/shared/DataTable.tsx",
     "src/hooks/useVisaoGeralFinanceiro.ts",
     "src/integrations/supabase/client.ts",
