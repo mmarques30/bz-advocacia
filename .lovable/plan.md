@@ -1,20 +1,22 @@
 
-## Fix: Missing function declaration in useDespesas.ts
 
-### Problem
-Line 282 in `src/hooks/useDespesas.ts` starts with `const queryClient = useQueryClient();` but there's no function declaration wrapping it. The `despesaToTransacaoPayload` helper function closes at line 281, and what should be `export function useUpdateDespesa()` is missing its declaration — the body is just floating at module scope.
+## Fix: Missing closing brace in kpis.ts
+
+The build error `src/hooks/financeiro/kpis.ts(231,1): error TS1005: '}' expected.` is caused by the `useReceitasMesAtual` function missing its closing `}`. The file ends at line 230 with `});` which closes the `useQuery` call, but the function body itself is never closed.
 
 ### Fix
-**File**: `src/hooks/useDespesas.ts`, line 282
 
-Insert the missing function declaration before `const queryClient`:
+**File**: `src/hooks/financeiro/kpis.ts`, line 230
+
+Add a closing `}` after line 230:
 
 ```typescript
-// line 281: }  ← end of despesaToTransacaoPayload
-
-export function useUpdateDespesa() {   // ← ADD THIS LINE
-  const queryClient = useQueryClient();
-  // ... rest stays the same
+      .sort((a, b) => b.total - a.total),
+      };
+    },
+  });
+}  // ← ADD THIS closing brace for useReceitasMesAtual
 ```
 
-Single line insertion. The closing `}` at line 324 already matches this function.
+Single character fix. No other files affected.
+
