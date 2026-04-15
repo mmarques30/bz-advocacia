@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { getDateRangeFromFilters } from "./_shared";
+import { warnIfTruncated } from "@/lib/queryGuards";
 
 import type { KPIsFinanceiros, ProjetadoVsRealizado } from "@/types/financeiro";
 
@@ -71,6 +72,7 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         .limit(10000);
 
       if (error) throw error;
+      warnIfTruncated(parcelas, "useKPIsFinanceiros/parcelas");
 
       const receitaParcelas = parcelas
         ?.filter(p => {
@@ -86,6 +88,7 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         .from("transacoes_financeiras")
         .select("*")
         .limit(10000);
+      warnIfTruncated(transacoes, "useKPIsFinanceiros/transacoes");
 
       const receitaImportada = transacoes
         ?.filter(t => {
@@ -208,6 +211,7 @@ export function useProjetadoVsRealizado(meses: number = 12) {
         .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC")
         .gte("data_transacao", dataMinimaIso)
         .limit(10000);
+      warnIfTruncated(transacoes, "useProjetadoVsRealizado/transacoes");
 
       const { data: parcelas } = await supabase
         .from("parcelas_financeiras")
@@ -215,6 +219,7 @@ export function useProjetadoVsRealizado(meses: number = 12) {
         .eq("status", "pago")
         .gte("data_pagamento", dataMinimaIso)
         .limit(10000);
+      warnIfTruncated(parcelas, "useProjetadoVsRealizado/parcelas");
 
       const { data: metas } = await supabase
         .from("metas_mensais")

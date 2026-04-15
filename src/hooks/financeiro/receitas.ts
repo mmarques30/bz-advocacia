@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { getDateRangeFromFilters } from "./_shared";
+import { warnIfTruncated } from "@/lib/queryGuards";
 
 import type { ReceitaMensal, FluxoCaixa } from "@/types/financeiro";
 
@@ -75,6 +76,7 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
       }
 
       const { data: parcelas } = await parcelasQuery.limit(10000);
+      warnIfTruncated(parcelas, "useFluxoCaixa/parcelas");
 
       // Buscar transações importadas (receitas) — push filtro de tipo
       // server-side para nao baixar despesas e depois descartar em JS.
@@ -91,6 +93,7 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
       }
 
       const { data: transacoes } = await transacoesQuery.limit(10000);
+      warnIfTruncated(transacoes, "useFluxoCaixa/transacoes");
 
       const fluxo: Record<string, number> = {};
 

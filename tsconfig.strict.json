@@ -18,6 +18,7 @@
     "src/lib/contratoUtils.ts",
     "src/lib/whatsappUtils.ts",
     "src/lib/categoriaDespesa.ts",
+    "src/lib/queryGuards.ts",
     "src/components/shared/DataTable.tsx",
     "src/hooks/useVisaoGeralFinanceiro.ts",
     "src/integrations/supabase/client.ts",
