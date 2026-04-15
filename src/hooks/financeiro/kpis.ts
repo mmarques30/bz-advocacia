@@ -10,13 +10,61 @@ import { getDateRangeFromFilters } from "./_shared";
 
 import type { KPIsFinanceiros, ProjetadoVsRealizado } from "@/types/financeiro";
 
+/**
+ * KPIs financeiros do periodo.
+ *
+ * Rodada 5: tenta a RPC server-side `get_financeiro_kpis` que faz tudo
+ * num unico round-trip. Se a RPC nao estiver disponivel (ambiente sem
+ * a migration), cai no caminho legado de baixar parcelas + transacoes
+ * inteiras e agregar em JS — preserva 100% o comportamento antigo.
+ */
 export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
   return useQuery({
     queryKey: ["kpis-financeiros", filters],
     queryFn: async (): Promise<KPIsFinanceiros> => {
-      const hoje = new Date();
       const { inicio: primeiroDiaMes, fim: ultimoDiaMes } = getDateRangeFromFilters(filters);
+      const fmtDate = (d: Date | null) => (d ? format(d, "yyyy-MM-dd") : null);
 
+      // 1) Caminho preferido: RPC server-side (1 query, agrega tudo).
+      try {
+        const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
+          "get_financeiro_kpis",
+          {
+            _data_inicio: fmtDate(primeiroDiaMes),
+            _data_fim: fmtDate(ultimoDiaMes),
+            _status:
+              filters?.status && filters.status !== "todos" ? filters.status : null,
+            _tipo_servico:
+              filters?.tipoServico && filters.tipoServico !== "todos"
+                ? filters.tipoServico
+                : null,
+            _conta:
+              filters?.conta && filters.conta !== "todos" ? filters.conta : null,
+          },
+        );
+        if (rpcError) throw rpcError;
+        const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+        if (row) {
+          return {
+            receita_mes: Number(row.receita_mes) || 0,
+            recebido_mes: Number(row.recebido_mes) || 0,
+            a_receber_mes: Number(row.a_receber_mes) || 0,
+            valor_atrasado: Number(row.valor_atrasado) || 0,
+            taxa_inadimplencia: Number(row.taxa_inadimplencia) || 0,
+            ticket_medio: Number(row.ticket_medio) || 0,
+            projecao: Number(row.projecao) || 0,
+          };
+        }
+      } catch (rpcErr) {
+        console.warn(
+          "RPC get_financeiro_kpis indisponivel, usando agregacao client-side:",
+          rpcErr,
+        );
+      }
+
+      // 2) Fallback legado (pre-Rodada 5): baixa tudo e agrega em JS.
+      //    Mantido para ambientes onde a migration nao foi aplicada.
+      const hoje = new Date();
       const { data: parcelas, error } = await supabase
         .from("parcelas_financeiras")
         .select("*")
@@ -24,7 +72,6 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
 
       if (error) throw error;
 
-      // Filtrar parcelas por período se definido
       const receitaParcelas = parcelas
         ?.filter(p => {
           if (p.status !== 'pago' || !p.data_pagamento) return false;
@@ -35,7 +82,6 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         })
         .reduce((sum, p) => sum + (p.valor_pago || 0), 0) || 0;
 
-      // Buscar transações importadas (tipo receita)
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
         .select("*")
@@ -70,17 +116,15 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         .reduce((sum, p) => sum + p.valor, 0) || 0;
 
       const totalParcelas = parcelas?.length || 0;
-      const parcelasAtrasadas = parcelas?.filter(p => 
+      const parcelasAtrasadas = parcelas?.filter(p =>
         p.status !== 'pago' && new Date(p.data_vencimento) < hoje
       ).length || 0;
 
-      const taxaInadimplencia = totalParcelas > 0 
-        ? (parcelasAtrasadas / totalParcelas) * 100 
+      const taxaInadimplencia = totalParcelas > 0
+        ? (parcelasAtrasadas / totalParcelas) * 100
         : 0;
 
       let acordosQuery = supabase.from("acordos_financeiros").select("*");
-      
-      // Aplicar filtros de status e tipo se existirem
       if (filters?.status && filters.status !== "todos") {
         acordosQuery = acordosQuery.eq("status", filters.status);
       }
@@ -97,7 +141,6 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         ? acordos.reduce((sum, a) => sum + a.valor_total, 0) / acordos.length
         : 0;
 
-      // Projeção: soma das parcelas pendentes de acordos ativos
       const projecao = parcelas
         ?.filter(p => p.status === 'pendente')
         .reduce((sum, p) => sum + p.valor, 0) || 0;
@@ -115,24 +158,51 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
   });
 }
 
+/**
+ * Comparativo Projetado vs Realizado dos ultimos N meses.
+ *
+ * Rodada 5: tenta a RPC server-side `get_projetado_vs_realizado` que
+ * faz tudo num GROUP BY mes/ano + LEFT JOIN com metas_mensais. O hook
+ * antigo fazia 1 query baixando todas as transacoes + 1 baixando todas
+ * as parcelas + N iteracoes de filter/reduce em JS. Agora 1 query so.
+ */
 export function useProjetadoVsRealizado(meses: number = 12) {
   return useQuery({
     queryKey: ["projetado-vs-realizado", meses],
     queryFn: async (): Promise<ProjetadoVsRealizado[]> => {
-      // Buscar receitas reais de transacoes_financeiras
+      // 1) Caminho preferido: RPC server-side.
+      try {
+        const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
+          "get_projetado_vs_realizado",
+          { _meses: meses },
+        );
+        if (rpcError) throw rpcError;
+        if (Array.isArray(rpcData)) {
+          return rpcData.map((row: any) => ({
+            mes: row.mes_label,
+            realizado: Number(row.realizado) || 0,
+            projetado: Number(row.projetado) || 0,
+          }));
+        }
+      } catch (rpcErr) {
+        console.warn(
+          "RPC get_projetado_vs_realizado indisponivel, usando agregacao client-side:",
+          rpcErr,
+        );
+      }
+
+      // 2) Fallback legado (pre-Rodada 5).
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
         .select("*")
         .limit(10000);
 
-      // Buscar parcelas pagas
       const { data: parcelas } = await supabase
         .from("parcelas_financeiras")
         .select("*")
         .eq("status", "pago")
         .limit(10000);
 
-      // Buscar metas mensais
       const { data: metas } = await supabase
         .from("metas_mensais")
         .select("*");
@@ -147,7 +217,6 @@ export function useProjetadoVsRealizado(meses: number = 12) {
         const mesNum = data.getMonth() + 1;
         const anoNum = data.getFullYear();
 
-        // Realizado: transações de receita + parcelas pagas
         const receitaTransacoes = (transacoes || [])
           .filter(t => {
             if (!t.data_transacao) return false;
@@ -167,9 +236,7 @@ export function useProjetadoVsRealizado(meses: number = 12) {
           .reduce((sum, p) => sum + (p.valor_pago || 0), 0);
 
         const realizado = receitaTransacoes + receitaParcelas;
-
-        // Projetado: buscar da tabela metas_mensais
-        const meta = (metas || []).find(m => m.mes === mesNum && m.ano === anoNum);
+        const meta = (metas || []).find((m: any) => m.mes === mesNum && m.ano === anoNum);
         const projetado = meta ? Number(meta.valor) : 0;
 
         resultado.push({
