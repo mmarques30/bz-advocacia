@@ -127,20 +127,23 @@ export function ImportClientesPlanilhaDialog({ open, onClose }: ImportClientesPl
     setStep('importing');
     setProgress(0);
 
-    // Simular progresso durante a importação
+    // Simular progresso durante a importação. Garantimos clearInterval
+    // via finally — antes, se a mutation rejeitasse com erro nao-Error
+    // ou se o componente fosse desmontado durante o await, o interval
+    // ficaria orfao acumulando timers a cada importacao.
     const progressInterval = setInterval(() => {
       setProgress(prev => Math.min(prev + 5, 90));
     }, 500);
 
     try {
       const importResult = await importMutation.mutateAsync(clientes);
-      clearInterval(progressInterval);
       setProgress(100);
       setResult(importResult);
       setStep('done');
     } catch (error) {
-      clearInterval(progressInterval);
       setStep('preview');
+    } finally {
+      clearInterval(progressInterval);
     }
   }, [clientes, importMutation]);
 
