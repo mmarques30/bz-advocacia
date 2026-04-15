@@ -337,13 +337,20 @@ export function useResultadoMensal(ano: number | null) {
   const result = (() => {
     if (!chartData || chartData.length === 0) return null;
 
-    const totalReceitas = chartData.reduce((s, d) => s + d.receitas, 0);
-    const totalDespesas = chartData.reduce((s, d) => s + d.despesas, 0);
+    const totalReceitas = chartData.reduce(
+      (s: number, d: { receitas: number }) => s + d.receitas,
+      0,
+    );
+    const totalDespesas = chartData.reduce(
+      (s: number, d: { despesas: number }) => s + d.despesas,
+      0,
+    );
     const lucro = totalReceitas - totalDespesas;
 
     const melhorMes = chartData.reduce(
-      (best, d) => (d.resultado > best.valor ? { mes: d.mes, valor: d.resultado } : best),
-      { mes: "", valor: -Infinity }
+      (best: { mes: string; valor: number }, d: { mes: string; resultado: number }) =>
+        d.resultado > best.valor ? { mes: d.mes, valor: d.resultado } : best,
+      { mes: "", valor: -Infinity },
     );
 
     return { totalReceitas, totalDespesas, lucro, melhorMes, dados: chartData };

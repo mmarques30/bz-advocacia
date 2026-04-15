@@ -8,12 +8,18 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
+  // Whitelist-based strict check: apenas arquivos estaveis entram aqui,
+  // para deixar o strict ganhar cobertura gradualmente sem travar o build.
+  // Edge functions (Deno runtime) sao checadas pelo `deno check` da Supabase,
+  // nao pelo tsc do frontend, entao ficam fora daqui.
   "include": [
     "src/lib/toast.ts",
     "src/lib/importCsv.ts",
     "src/components/shared/DataTable.tsx",
+    "src/hooks/useVisaoGeralFinanceiro.ts",
+    "src/integrations/supabase/client.ts",
+    "src/vite-env.d.ts",
     "src/__tests__/**/*.ts",
-    "src/__tests__/**/*.tsx",
-    "supabase/functions/_shared/**/*.ts"
+    "src/__tests__/**/*.tsx"
   ]
 }
