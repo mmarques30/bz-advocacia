@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/lib/toast";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
-import { getDateRangeFromFilters } from "./_shared";
+import { applyDateRangeFromFilters } from "./_shared";
 
 import type { DistribuicaoTipo, DistribuicaoTipoAgregado } from "@/types/financeiro";
 
@@ -14,41 +14,34 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
   return useQuery({
     queryKey: ["distribuicao-tipo", filters],
     queryFn: async (): Promise<DistribuicaoTipo[]> => {
-      let query = supabase
+      let acordosQuery = supabase
         .from("acordos_financeiros")
         .select("tipo_servico, valor_total, created_at");
 
       // Filtrar por status se especificado
       if (filters?.status && filters.status !== "todos") {
-        query = query.eq("status", filters.status);
+        acordosQuery = acordosQuery.eq("status", filters.status);
       }
 
-      const { data: acordos } = await query.limit(10000);
+      // Push date filter server-side — antes baixava ate 10k registros e
+      // filtrava em JS (silently truncava quando a base crescia).
+      acordosQuery = applyDateRangeFromFilters(acordosQuery, "created_at", filters);
 
-      // Buscar transações importadas
-      const { data: transacoes } = await supabase
+      const { data: acordos } = await acordosQuery.limit(10000);
+
+      // Transacoes importadas — so receitas, e so dentro do intervalo.
+      let transacoesQuery = supabase
         .from("transacoes_financeiras")
         .select("*")
-        .limit(10000);
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC");
+      transacoesQuery = applyDateRangeFromFilters(transacoesQuery, "data_transacao", filters);
 
-      // Filtrar por período se especificado
-      const { inicio, fim } = getDateRangeFromFilters(filters);
-      const acordosFiltrados = acordos?.filter(a => {
-        const dataAcordo = new Date(a.created_at);
-        if (inicio && dataAcordo < inicio) return false;
-        if (fim && dataAcordo > fim) return false;
-        return true;
-      }) || [];
+      const { data: transacoes } = await transacoesQuery.limit(10000);
 
-      const transacoesFiltradas = transacoes?.filter(t => {
-        if (!t.data_transacao) return false;
-        const dataTransacao = new Date(t.data_transacao);
-        const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-        if (!tipoReceita) return false;
-        if (inicio && dataTransacao < inicio) return false;
-        if (fim && dataTransacao > fim) return false;
-        return true;
-      }) || [];
+      const acordosFiltrados = acordos || [];
+      const transacoesFiltradas = (transacoes || []).filter(
+        (t) => !!t.data_transacao,
+      );
 
       // Agrupar por mês e tipo para série temporal
       const serieTemporal: Record<string, Record<string, number>> = {};
@@ -98,38 +91,30 @@ export function useDistribuicaoTipoAgregado(filters?: FaturamentoFiltersState) {
   return useQuery({
     queryKey: ["distribuicao-tipo-agregado", filters],
     queryFn: async (): Promise<DistribuicaoTipoAgregado[]> => {
-      let query = supabase
+      let acordosQuery = supabase
         .from("acordos_financeiros")
         .select("tipo_servico, valor_total, created_at");
 
       if (filters?.status && filters.status !== "todos") {
-        query = query.eq("status", filters.status);
+        acordosQuery = acordosQuery.eq("status", filters.status);
       }
 
-      const { data: acordos } = await query.limit(10000);
+      acordosQuery = applyDateRangeFromFilters(acordosQuery, "created_at", filters);
 
-      const { data: transacoes } = await supabase
+      const { data: acordos } = await acordosQuery.limit(10000);
+
+      let transacoesQuery = supabase
         .from("transacoes_financeiras")
         .select("*")
-        .limit(10000);
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC");
+      transacoesQuery = applyDateRangeFromFilters(transacoesQuery, "data_transacao", filters);
 
-      const { inicio, fim } = getDateRangeFromFilters(filters);
-      const acordosFiltrados = acordos?.filter(a => {
-        const dataAcordo = new Date(a.created_at);
-        if (inicio && dataAcordo < inicio) return false;
-        if (fim && dataAcordo > fim) return false;
-        return true;
-      }) || [];
+      const { data: transacoes } = await transacoesQuery.limit(10000);
 
-      const transacoesFiltradas = transacoes?.filter(t => {
-        if (!t.data_transacao) return false;
-        const dataTransacao = new Date(t.data_transacao);
-        const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-        if (!tipoReceita) return false;
-        if (inicio && dataTransacao < inicio) return false;
-        if (fim && dataTransacao > fim) return false;
-        return true;
-      }) || [];
+      const acordosFiltrados = acordos || [];
+      const transacoesFiltradas = (transacoes || []).filter(
+        (t) => !!t.data_transacao,
+      );
 
       const distribuicao: Record<string, { valor: number; quantidade: number }> = {};
       let totalValor = 0;
