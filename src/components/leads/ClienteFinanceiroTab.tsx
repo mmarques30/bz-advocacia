@@ -50,9 +50,9 @@ interface ParcelaRow {
 interface CreditoRow {
   id: string;
   descricao: string | null;
-  valor_estimado: number | null;
-  status: string;
-  created_at: string;
+  valor: number;
+  status: string | null;
+  created_at: string | null;
 }
 
 function safeFmt(dateStr: string | null | undefined, fmt = "dd/MM/yyyy"): string {
@@ -171,7 +171,7 @@ export function ClienteFinanceiroTab({ leadId }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("creditos_condicionais")
-        .select("id, descricao, valor_estimado, status, created_at")
+        .select("id, descricao, valor, status, created_at")
         .eq("cliente_id", leadId)
         .order("created_at", { ascending: false });
       if (error) throw error;
