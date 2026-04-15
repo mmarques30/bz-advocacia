@@ -121,6 +121,7 @@ function GrupoTab({ grupo }: { grupo: typeof GRUPOS[number] }) {
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8"
+                    aria-label={`Editar opção ${opcao.label}`}
                     onClick={() => { setEditingId(opcao.id); setEditLabel(opcao.label); }}
                   >
                     <Pencil className="h-3.5 w-3.5" />
@@ -129,6 +130,7 @@ function GrupoTab({ grupo }: { grupo: typeof GRUPOS[number] }) {
                     size="icon"
                     variant="ghost"
                     className="h-8 w-8 text-destructive"
+                    aria-label={`Excluir opção ${opcao.label}`}
                     onClick={() => handleDelete(opcao)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

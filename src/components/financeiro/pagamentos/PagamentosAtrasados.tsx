@@ -117,6 +117,7 @@ export function PagamentosAtrasados() {
                               variant="ghost"
                               className="h-7 w-7"
                               title="Marcar como pago"
+                              aria-label="Marcar despesa como paga"
                               onClick={() => handleMarcarPago(despesa)}
                             >
                               <CheckCircle className="h-4 w-4 text-chart-4" />
@@ -126,6 +127,7 @@ export function PagamentosAtrasados() {
                               variant="ghost"
                               className="h-7 w-7"
                               title="Editar despesa"
+                              aria-label="Editar despesa"
                               onClick={() => setEditDespesaId(despesa.id)}
                             >
                               <Pencil className="h-4 w-4" />
@@ -208,6 +210,7 @@ export function PagamentosAtrasados() {
                               variant="ghost"
                               className="h-7 w-7"
                               title="Registrar pagamento"
+                              aria-label="Registrar pagamento da parcela"
                               onClick={() => setRegistrarParcelaId(parcela.id)}
                             >
                               <CreditCard className="h-4 w-4 text-chart-4" />

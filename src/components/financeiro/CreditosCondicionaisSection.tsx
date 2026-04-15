@@ -93,16 +93,16 @@ export function CreditosCondicionaisSection() {
                         <div className="flex justify-end gap-1">
                           {c.status === "backlog" && (
                             <>
-                              <Button size="icon" variant="ghost" title="Ativar" onClick={() => setAtivarCredito(c)}>
+                              <Button size="icon" variant="ghost" title="Ativar" aria-label="Ativar crédito" onClick={() => setAtivarCredito(c)}>
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
-                              <Button size="icon" variant="ghost" title="Cancelar" onClick={() => cancelar.mutate(c.id)}>
+                              <Button size="icon" variant="ghost" title="Cancelar" aria-label="Cancelar crédito" onClick={() => cancelar.mutate(c.id)}>
                                 <Ban className="h-4 w-4" />
                               </Button>
                             </>
                           )}
                           {c.status === "a_receber" && (
-                            <Button size="icon" variant="ghost" title="Converter em Acordo" onClick={() => handleConverter(c)}>
+                            <Button size="icon" variant="ghost" title="Converter em Acordo" aria-label="Converter crédito em acordo" onClick={() => handleConverter(c)}>
                               <ArrowUpRight className="h-4 w-4" />
                             </Button>
                           )}

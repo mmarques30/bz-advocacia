@@ -483,6 +483,7 @@ export default function ProcessosCalendario() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7 text-destructive"
+                              aria-label="Excluir rotina"
                               onClick={(e) => { e.stopPropagation(); deleteRotina.mutate(item.id); }}
                             >
                               <Trash2 className="h-3 w-3" />

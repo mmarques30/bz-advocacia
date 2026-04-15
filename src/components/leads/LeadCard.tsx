@@ -75,6 +75,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
               className="h-6 w-6 shrink-0 text-green-600 hover:text-green-700"
               onClick={handlePrimeiroContato}
               title="Primeiro Contato via WhatsApp"
+              aria-label={`Primeiro contato via WhatsApp com ${lead.nome_completo}`}
             >
               <MessageSquare className="h-3.5 w-3.5" />
             </Button>

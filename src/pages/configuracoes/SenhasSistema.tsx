@@ -133,7 +133,7 @@ export default function SenhasSistema({ hideHeader = false }: { hideHeader?: boo
                     {s.usuario ? (
                       <div className="flex items-center gap-1">
                         <span className="text-sm">{s.usuario}</span>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(s.usuario!, "Usuário")}>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Copiar usuário" onClick={() => copyToClipboard(s.usuario!, "Usuário")}>
                           <Copy className="h-3 w-3" />
                         </Button>
                       </div>
@@ -142,10 +142,16 @@ export default function SenhasSistema({ hideHeader = false }: { hideHeader?: boo
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-mono">{visiblePasswords[s.id] ? s.senha : "••••••••"}</span>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => togglePassword(s.id)}>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6"
+                        aria-label={visiblePasswords[s.id] ? "Ocultar senha" : "Mostrar senha"}
+                        onClick={() => togglePassword(s.id)}
+                      >
                         {visiblePasswords[s.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => copyToClipboard(s.senha, "Senha")}>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" aria-label="Copiar senha" onClick={() => copyToClipboard(s.senha, "Senha")}>
                         <Copy className="h-3 w-3" />
                       </Button>
                     </div>
