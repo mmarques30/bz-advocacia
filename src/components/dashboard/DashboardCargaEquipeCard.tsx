@@ -10,7 +10,10 @@ interface Props {
 
 function getCellStyle(value: number, isUrgente: boolean): React.CSSProperties {
   if (isUrgente && value > 0) return { backgroundColor: "#FCEBEB", color: "#A32D2D" };
-  if (value === 0) return { backgroundColor: "hsl(var(--secondary))", color: "hsl(var(--muted-foreground))" };
+  // Fix: --secondary e --muted-foreground sao identicos (cinza 40%) — usar
+  // um como fundo e outro como texto deixava o "0" invisivel. Trocamos para
+  // --muted (cinza claro 95%) + --foreground (texto principal).
+  if (value === 0) return { backgroundColor: "hsl(var(--muted))", color: "hsl(var(--foreground))" };
   if (value <= 3) return { backgroundColor: "#E6F1FB", color: "#1a3a5c" };
   if (value <= 6) return { backgroundColor: "#B5D4F4", color: "#1a3a5c" };
   return { backgroundColor: "#378ADD", color: "#fff" };
@@ -87,7 +90,7 @@ export function DashboardCargaEquipeCard({ data, loading }: Props) {
             </div>
             <div className="flex items-center gap-2 mt-3 text-[10px] text-muted-foreground">
               <span>Intensidade:</span>
-              <span className="w-4 h-3 rounded" style={{ backgroundColor: "hsl(var(--secondary))" }} />
+              <span className="w-4 h-3 rounded border border-border" style={{ backgroundColor: "hsl(var(--muted))" }} />
               <span>0</span>
               <span className="w-4 h-3 rounded" style={{ backgroundColor: "#E6F1FB" }} />
               <span>1–3</span>

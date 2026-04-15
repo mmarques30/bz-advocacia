@@ -9,11 +9,15 @@ interface Props {
   loading?: boolean;
 }
 
+// Mesmo fix de DashboardSituacaoTarefasCard: --secondary e
+// --muted-foreground sao a mesma cor (cinza 40%), entao usar um como
+// fundo e outro como texto torna o numero invisivel. Trocado para
+// --muted (95%) + --foreground.
 const blocks = [
   { key: "atrasados" as const, label: "Atrasados", bg: "#FCEBEB", color: "#A32D2D" },
   { key: "hoje" as const, label: "Hoje", bg: "#FAEEDA", color: "#854F0B" },
   { key: "estaSemana" as const, label: "Esta semana", bg: "#EAF3DE", color: "#3B6D11" },
-  { key: "dias30" as const, label: "30 dias", bg: "hsl(var(--secondary))", color: "hsl(var(--muted-foreground))" },
+  { key: "dias30" as const, label: "30 dias", bg: "hsl(var(--muted))", color: "hsl(var(--foreground))" },
 ];
 
 function getDotColor(dias: number) {
@@ -49,12 +53,12 @@ export function DashboardPrazosCard({ prazos, proximosPrazos, loading }: Props) 
                 onClick={() => navigate("/dashboard/processos/calendario")}
                 className="rounded-lg p-3 text-center transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: isZero ? "hsl(var(--secondary))" : b.bg,
+                  backgroundColor: isZero ? "hsl(var(--muted))" : b.bg,
                 }}
               >
                 <p
                   className="text-2xl font-bold"
-                  style={{ color: isZero ? "hsl(var(--muted-foreground))" : b.color }}
+                  style={{ color: isZero ? "hsl(var(--foreground))" : b.color }}
                 >
                   {val}
                 </p>
