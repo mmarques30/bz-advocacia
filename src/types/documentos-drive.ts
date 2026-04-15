@@ -16,7 +16,14 @@ export type TipoDocumentoDrive =
 
 export interface DocumentoDrive {
   id: string;
-  processo_id: string;
+  processo_id: string | null;
+  /**
+   * Cliente direto a que o documento pertence. Opcional — um doc pode
+   * ser vinculado a processo (que por sua vez tem cliente) ou direto
+   * ao cliente (procuração geral, RG, comprovantes que nao sao de um
+   * processo especifico). Coluna adicionada em migration 20260415090549.
+   */
+  cliente_id: string | null;
   tipo_documento: TipoDocumentoDrive;
   nome: string;
   descricao: string | null;
