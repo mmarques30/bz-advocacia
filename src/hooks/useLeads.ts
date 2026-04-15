@@ -280,8 +280,15 @@ export function useBulkCreateLeads() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      // Antes: so console.error -> falha silenciosa pro usuario.
+      // Agora: alerta visual via toast garantindo feedback no UI.
       console.error("Bulk create error:", error);
+      toast({
+        title: "Erro ao importar leads",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 }
