@@ -43,13 +43,14 @@ export default function TagCard({ tag, onEdit, onDelete }: TagCardProps) {
             variant="ghost"
             size="icon"
             className="h-8 w-8"
+            aria-label={`Editar tag ${tag.nome}`}
             onClick={() => onEdit(tag)}
           >
             <Edit className="h-4 w-4" />
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" aria-label={`Excluir tag ${tag.nome}`}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </AlertDialogTrigger>

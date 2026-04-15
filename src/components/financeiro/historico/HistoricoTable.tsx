@@ -145,6 +145,7 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
+                aria-label="Abrir ações do lançamento"
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreHorizontal className="h-4 w-4" />

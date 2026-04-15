@@ -296,7 +296,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="numero_parcelas">Número de Parcelas {comEntrada ? "(sem contar entrada)" : ""} *</Label>
                   <Input

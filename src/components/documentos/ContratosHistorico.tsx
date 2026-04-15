@@ -162,14 +162,15 @@ export function ContratosHistorico() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" title="Visualizar">
+                          <Button variant="ghost" size="icon" title="Visualizar" aria-label="Visualizar contrato">
                             <Eye className="h-4 w-4" />
                           </Button>
                           {contrato.pdf_url && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               title="Baixar PDF"
+                              aria-label="Baixar PDF do contrato"
                               asChild
                             >
                               <a href={contrato.pdf_url} target="_blank" rel="noopener noreferrer">
@@ -177,10 +178,11 @@ export function ContratosHistorico() {
                               </a>
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             title="Excluir"
+                            aria-label="Excluir contrato"
                             onClick={() => setDeleteId(contrato.id)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />

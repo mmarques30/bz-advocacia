@@ -53,7 +53,12 @@ export function NotificationsDrawer() {
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={unreadCount ? `Notificações (${unreadCount} não lida${unreadCount > 1 ? 's' : ''})` : 'Notificações'}
+        >
           <Bell className="h-5 w-5" />
           {unreadCount && unreadCount > 0 && (
             <Badge 
@@ -152,7 +157,7 @@ export function NotificationsDrawer() {
                       
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Abrir ações da notificação">
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
