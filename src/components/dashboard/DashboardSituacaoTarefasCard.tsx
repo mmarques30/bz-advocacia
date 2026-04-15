@@ -9,11 +9,15 @@ interface Props {
   loading?: boolean;
 }
 
+// NOTA visual: os tokens --secondary e --muted-foreground sao a mesma cor
+// (cinza 40%), entao usar um como fundo e outro como texto deixa o numero
+// invisivel quando o card e renderizado. Para evitar isso, usamos --muted
+// (cinza claro 95%) como fundo do estado vazio e --foreground como texto.
 const blocks = [
   { key: "urgentes" as const, label: "Urgentes", bg: "#FCEBEB", color: "#A32D2D", filter: "?prioridade=urgente" },
   { key: "atrasadas" as const, label: "Atrasadas", bg: "#FAEEDA", color: "#854F0B", filter: "?atrasadas=true" },
   { key: "concluidasSemana" as const, label: "Concluídas (semana)", bg: "#EAF3DE", color: "#3B6D11", filter: "" },
-  { key: "pendentes" as const, label: "Pendentes", bg: "hsl(var(--secondary))", color: "hsl(var(--muted-foreground))", filter: "?status=pendente" },
+  { key: "pendentes" as const, label: "Pendentes", bg: "hsl(var(--muted))", color: "hsl(var(--foreground))", filter: "?status=pendente" },
 ];
 
 export function DashboardSituacaoTarefasCard({ data, loading }: Props) {
@@ -47,12 +51,12 @@ export function DashboardSituacaoTarefasCard({ data, loading }: Props) {
                 onClick={() => b.filter && navigate(`/dashboard/processos/demandas${b.filter}`)}
                 className="rounded-lg p-3 text-center transition-colors hover:opacity-80"
                 style={{
-                  backgroundColor: isZero ? "hsl(var(--secondary))" : b.bg,
+                  backgroundColor: isZero ? "hsl(var(--muted))" : b.bg,
                 }}
               >
                 <p
                   className="text-2xl font-bold"
-                  style={{ color: isZero ? "hsl(var(--muted-foreground))" : b.color }}
+                  style={{ color: isZero ? "hsl(var(--foreground))" : b.color }}
                 >
                   {val}
                 </p>

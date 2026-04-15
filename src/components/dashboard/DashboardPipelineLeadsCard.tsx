@@ -49,13 +49,25 @@ export function DashboardPipelineLeadsCard({
             return (
               <div key={s.key} className="flex items-center gap-2">
                 <span className="text-[11px] text-muted-foreground w-16 text-right">{s.label}</span>
-                <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: "hsl(var(--secondary))" }}>
+                {/*
+                  Trilho cinza claro (--muted) em vez de --secondary, que e
+                  cinza-escuro identico ao --muted-foreground e tornava o
+                  bar com valor 0 indistinguivel do contraste do card.
+                  Quando val=0, mostramos um "0" centralizado em texto
+                  muted no proprio trilho.
+                */}
+                <div className="relative flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: "hsl(var(--muted))" }}>
                   <div
                     className="h-full rounded-md flex items-center justify-center text-[11px] font-bold text-white transition-all"
                     style={{ width: `${width}%`, backgroundColor: val > 0 ? s.color : "transparent", minWidth: val > 0 ? 28 : 0 }}
                   >
                     {val > 0 && val}
                   </div>
+                  {val === 0 && (
+                    <span className="absolute inset-0 flex items-center justify-center text-[11px] font-medium text-muted-foreground">
+                      0
+                    </span>
+                  )}
                 </div>
               </div>
             );
