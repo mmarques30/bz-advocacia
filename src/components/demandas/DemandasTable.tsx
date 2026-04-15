@@ -206,7 +206,7 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
         cell: (d) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" aria-label="Abrir ações da demanda" onClick={(e) => e.stopPropagation()}>
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

@@ -84,7 +84,7 @@ export default function TemplateCard({
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Abrir ações do template">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

@@ -201,7 +201,7 @@ export default function PesquisasProcessos() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" aria-label="Informações sobre a API Datajud">
                   <Info className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -218,7 +218,7 @@ export default function PesquisasProcessos() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+                <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" aria-label="Informações sobre conformidade LGPD">
                   <ShieldCheck className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>

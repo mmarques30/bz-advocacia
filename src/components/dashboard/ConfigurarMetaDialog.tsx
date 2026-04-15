@@ -58,7 +58,7 @@ export function ConfigurarMetaDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Configurar metas">
           <Settings className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -143,6 +143,7 @@ export function ConfigurarMetaDialog() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-destructive hover:text-destructive"
+                      aria-label="Excluir meta"
                       onClick={() => deleteMeta.mutate(meta.id)}
                       disabled={deleteMeta.isPending}
                     >

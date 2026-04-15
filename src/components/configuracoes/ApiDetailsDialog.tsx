@@ -355,6 +355,7 @@ export function ApiDetailsDialog({ api, open, onOpenChange }: ApiDetailsDialogPr
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
+                        aria-label="Copiar URL do webhook"
                         onClick={() => {
                           navigator.clipboard.writeText(api.detalhes.webhookUrl || '');
                         }}
