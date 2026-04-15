@@ -151,21 +151,28 @@ interface EntradaSimplesFormProps {
 
 function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
   const [formKey, setFormKey] = useState(0);
-  const { data: leads } = useLeads({ 
-    search: "", 
-    status: [], 
-    origem: [], 
-    tipoProcesso: [], 
-    dateRange: { start: null, end: null }, 
-    diasParado: { min: 0, max: null }, 
+  const { data: leads } = useLeads({
+    search: "",
+    status: [],
+    origem: [],
+    tipoProcesso: [],
+    dateRange: { start: null, end: null },
+    diasParado: { min: 0, max: null },
     responsavel: null,
     statusCliente: [],
   });
-  const { data: processos } = useProcessos({ status: [] });
-  const createAcordo = useCreateAcordo();
 
   const [clienteId, setClienteId] = useState("");
   const [processoId, setProcessoId] = useState("");
+  // Filtra os processos pelo cliente selecionado. Antes, o select de
+  // processo mostrava TODOS os processos do escritorio, independente
+  // do cliente — usuario podia anexar a entrada ao processo errado.
+  const { data: processos } = useProcessos(
+    clienteId
+      ? { status: [], cliente_id: clienteId }
+      : { status: [] },
+  );
+  const createAcordo = useCreateAcordo();
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [dataRecebimento, setDataRecebimento] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -242,7 +249,17 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
     <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="cliente">Cliente *</Label>
-        <Select value={clienteId} onValueChange={setClienteId} required>
+        <Select
+          value={clienteId}
+          onValueChange={(novoCliente) => {
+            setClienteId(novoCliente);
+            // Reset processo: o selecionado anteriormente provavelmente
+            // pertence a outro cliente. Forca o usuario a reescolher
+            // dentro do novo escopo filtrado.
+            setProcessoId("");
+          }}
+          required
+        >
           <SelectTrigger>
             <SelectValue placeholder="Selecione o cliente" />
           </SelectTrigger>
@@ -258,9 +275,21 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="processo">Processo (opcional)</Label>
-        <Select value={processoId} onValueChange={setProcessoId}>
+        <Select
+          value={processoId}
+          onValueChange={setProcessoId}
+          disabled={!clienteId}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="Vincular a um processo" />
+            <SelectValue
+              placeholder={
+                clienteId
+                  ? processos && processos.length > 0
+                    ? "Vincular a um processo"
+                    : "Cliente sem processos cadastrados"
+                  : "Selecione o cliente primeiro"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">Nenhum</SelectItem>
