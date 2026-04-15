@@ -224,7 +224,8 @@ export function useReceitasMesAtual() {
             total: dados.total,
             quantidade: dados.quantidade,
           }))
-          .sort((a, b) => b.total - a.total),
+      .sort((a, b) => b.total - a.total),
       };
     },
   });
+}
