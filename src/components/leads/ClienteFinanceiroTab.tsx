@@ -440,7 +440,7 @@ export function ClienteFinanceiroTab({ leadId }: Props) {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold">
-                      {c.valor_estimado ? brl.format(Number(c.valor_estimado)) : "-"}
+                      {c.valor ? brl.format(Number(c.valor)) : "-"}
                     </p>
                     <Badge variant="outline" className="text-xs">
                       {c.status}
