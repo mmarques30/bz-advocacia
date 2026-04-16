@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { getDateRangeFromFilters } from "./_shared";
+import { warnIfTruncated } from "@/lib/queryGuards";
 
 import type { ReceitaMensal, FluxoCaixa } from "@/types/financeiro";
 
@@ -75,11 +76,14 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
       }
 
       const { data: parcelas } = await parcelasQuery.limit(10000);
+      warnIfTruncated(parcelas, "useFluxoCaixa/parcelas");
 
-      // Buscar transações importadas (receitas)
+      // Buscar transações importadas (receitas) — push filtro de tipo
+      // server-side para nao baixar despesas e depois descartar em JS.
       let transacoesQuery = supabase
         .from("transacoes_financeiras")
-        .select("*");
+        .select("*")
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC");
 
       if (inicio) {
         transacoesQuery = transacoesQuery.gte("data_transacao", format(inicio, "yyyy-MM-dd"));
@@ -89,6 +93,7 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
       }
 
       const { data: transacoes } = await transacoesQuery.limit(10000);
+      warnIfTruncated(transacoes, "useFluxoCaixa/transacoes");
 
       const fluxo: Record<string, number> = {};
 
@@ -109,14 +114,13 @@ export function useFluxoCaixa(filters?: FaturamentoFiltersState) {
         }
       });
 
-      // Adicionar transações importadas (receitas)
+      // Adicionar transações importadas (receitas). O filtro de tipo
+      // foi empurrado para o Postgres (via .or()), aqui ja temos so
+      // receitas — nao precisa refiltrar.
       transacoes?.forEach(t => {
         if (t.data_transacao) {
-          const tipoReceita = t.tipo_codigo === 'receita' || t.tipo_codigo === 'REC';
-          if (tipoReceita) {
-            const chave = getChave(t.data_transacao);
-            fluxo[chave] = (fluxo[chave] || 0) + (t.valor || 0);
-          }
+          const chave = getChave(t.data_transacao);
+          fluxo[chave] = (fluxo[chave] || 0) + (t.valor || 0);
         }
       });
 

@@ -70,7 +70,7 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
           </div>
         ) : processo ? (
           <Tabs defaultValue="informacoes" className="w-full">
-            <TabsList className="grid w-full grid-cols-8">
+            <TabsList className="flex w-full overflow-x-auto">
               <TabsTrigger value="informacoes">Informações</TabsTrigger>
               <TabsTrigger value="andamentos">Andamentos</TabsTrigger>
               <TabsTrigger value="tarefas">Tarefas</TabsTrigger>

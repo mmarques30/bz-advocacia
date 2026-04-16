@@ -97,16 +97,19 @@ export function useDashboardVisual() {
           .select("id", { count: "exact", head: true })
           .eq("status", "concluido")
           .gte("concluida_em", inicioSemanaISO),
-        // All pending prazos for breakdown
+        // All pending prazos for breakdown.
+        // Inclui status IS NULL para registros antigos que podem nao ter
+        // o campo preenchido (CHECK constraint permite NULL). Sem isso, o
+        // card de "Prazos processuais" pode ficar zerado mesmo com dados.
         supabase
           .from("processos_prazos")
           .select("id, data_prazo, status")
-          .eq("status", "pendente"),
+          .or("status.eq.pendente,status.is.null"),
         // Próximos 3 prazos with processo info
         supabase
           .from("processos_prazos")
           .select("id, descricao, data_prazo, processo_id")
-          .eq("status", "pendente")
+          .or("status.eq.pendente,status.is.null")
           .gte("data_prazo", hojeISO)
           .order("data_prazo", { ascending: true })
           .limit(3),
@@ -181,6 +184,9 @@ export function useDashboardVisual() {
       ).sort((a, b) => b.total - a.total);
 
       // Prazos breakdown
+      if (prazosR.error) {
+        console.warn("[dashboard-visual] Erro ao buscar prazos:", prazosR.error);
+      }
       const allPrazos = prazosR.data || [];
       const prazosBreakdown: PrazosBreakdown = { atrasados: 0, hoje: 0, estaSemana: 0, dias30: 0 };
       for (const p of allPrazos) {

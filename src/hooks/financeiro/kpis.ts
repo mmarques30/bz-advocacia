@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { getDateRangeFromFilters } from "./_shared";
+import { warnIfTruncated } from "@/lib/queryGuards";
 
 import type { KPIsFinanceiros, ProjetadoVsRealizado } from "@/types/financeiro";
 
@@ -71,6 +72,7 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         .limit(10000);
 
       if (error) throw error;
+      warnIfTruncated(parcelas, "useKPIsFinanceiros/parcelas");
 
       const receitaParcelas = parcelas
         ?.filter(p => {
@@ -86,6 +88,7 @@ export function useKPIsFinanceiros(filters?: FaturamentoFiltersState) {
         .from("transacoes_financeiras")
         .select("*")
         .limit(10000);
+      warnIfTruncated(transacoes, "useKPIsFinanceiros/transacoes");
 
       const receitaImportada = transacoes
         ?.filter(t => {
@@ -192,22 +195,36 @@ export function useProjetadoVsRealizado(meses: number = 12) {
       }
 
       // 2) Fallback legado (pre-Rodada 5).
+      //
+      // Antes de PR G/H, este fallback baixava ate 10k transacoes + 10k
+      // parcelas (independente do periodo) e filtrava em JS dentro do
+      // loop de N meses. Com a base crescendo, o .limit(10000) poderia
+      // esconder registros recentes. Empurramos a janela de N meses pra
+      // o Postgres (.gte na data minima) mantendo o limit como guardrail.
+      const hoje = new Date();
+      const dataMinima = startOfMonth(subMonths(hoje, meses - 1));
+      const dataMinimaIso = format(dataMinima, "yyyy-MM-dd");
+
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
         .select("*")
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC")
+        .gte("data_transacao", dataMinimaIso)
         .limit(10000);
+      warnIfTruncated(transacoes, "useProjetadoVsRealizado/transacoes");
 
       const { data: parcelas } = await supabase
         .from("parcelas_financeiras")
         .select("*")
         .eq("status", "pago")
+        .gte("data_pagamento", dataMinimaIso)
         .limit(10000);
+      warnIfTruncated(parcelas, "useProjetadoVsRealizado/parcelas");
 
       const { data: metas } = await supabase
         .from("metas_mensais")
         .select("*");
 
-      const hoje = new Date();
       const resultado: ProjetadoVsRealizado[] = [];
 
       for (let i = meses - 1; i >= 0; i--) {

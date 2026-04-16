@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { applyDateRangeFromFilters } from "./_shared";
+import { warnIfTruncated } from "@/lib/queryGuards";
 
 import type { DistribuicaoTipo, DistribuicaoTipoAgregado } from "@/types/financeiro";
 
@@ -28,6 +29,7 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
       acordosQuery = applyDateRangeFromFilters(acordosQuery, "created_at", filters);
 
       const { data: acordos } = await acordosQuery.limit(10000);
+      warnIfTruncated(acordos, "useDistribuicaoTipo/acordos");
 
       // Transacoes importadas — so receitas, e so dentro do intervalo.
       let transacoesQuery = supabase
@@ -37,6 +39,7 @@ export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
       transacoesQuery = applyDateRangeFromFilters(transacoesQuery, "data_transacao", filters);
 
       const { data: transacoes } = await transacoesQuery.limit(10000);
+      warnIfTruncated(transacoes, "useDistribuicaoTipo/transacoes");
 
       const acordosFiltrados = acordos || [];
       const transacoesFiltradas = (transacoes || []).filter(
@@ -102,6 +105,7 @@ export function useDistribuicaoTipoAgregado(filters?: FaturamentoFiltersState) {
       acordosQuery = applyDateRangeFromFilters(acordosQuery, "created_at", filters);
 
       const { data: acordos } = await acordosQuery.limit(10000);
+      warnIfTruncated(acordos, "useDistribuicaoTipoAgregado/acordos");
 
       let transacoesQuery = supabase
         .from("transacoes_financeiras")
@@ -110,6 +114,7 @@ export function useDistribuicaoTipoAgregado(filters?: FaturamentoFiltersState) {
       transacoesQuery = applyDateRangeFromFilters(transacoesQuery, "data_transacao", filters);
 
       const { data: transacoes } = await transacoesQuery.limit(10000);
+      warnIfTruncated(transacoes, "useDistribuicaoTipoAgregado/transacoes");
 
       const acordosFiltrados = acordos || [];
       const transacoesFiltradas = (transacoes || []).filter(
@@ -160,6 +165,7 @@ export function useTopSubcategorias(limite: number = 5) {
         .limit(10000);
 
       if (error) throw error;
+      warnIfTruncated(data, "useTopSubcategorias");
 
       // Agrupar por subcategoria
       const agrupado: Record<string, { total: number; quantidade: number }> = {};
