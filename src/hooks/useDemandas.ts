@@ -153,20 +153,39 @@ export const useCreateDemanda = () => {
       data_conclusao?: string | null;
       parent_id?: string | null;
       ordem?: number | null;
+      fase_processo?: string | null;
+      info_cliente?: string | null;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
+      const base = {
+        ...demanda,
+        criado_por: user?.id,
+        categoria: demanda.categoria || 'geral',
+      };
+
       const { data, error } = await supabase
         .from('demandas_internas')
-        .insert([{ 
-          ...demanda, 
-          criado_por: user?.id,
-          categoria: demanda.categoria || 'geral',
-        }])
+        .insert([base])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        const isColumnError =
+          error.message?.includes('info_cliente') ||
+          error.message?.includes('fase_processo');
+        if (isColumnError) {
+          const { fase_processo, info_cliente, ...safe } = base;
+          const { data: d2, error: e2 } = await supabase
+            .from('demandas_internas')
+            .insert([safe])
+            .select()
+            .single();
+          if (e2) throw e2;
+          return d2;
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {

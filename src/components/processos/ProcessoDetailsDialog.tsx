@@ -1,10 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Processo } from "@/types/processos";
 import { ProcessoInformacoesTab } from "./tabs/ProcessoInformacoesTab";
-import { ProcessoAndamentosTab } from "./tabs/ProcessoAndamentosTab";
 import { ProcessoTarefasTab } from "./tabs/ProcessoTarefasTab";
 import { ProcessoPrazosTab } from "./tabs/ProcessoPrazosTab";
 import { ProcessoDocumentosTab } from "./tabs/ProcessoDocumentosTab";
@@ -25,7 +24,7 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
     queryKey: ["processo-detalhes", processoId],
     queryFn: async () => {
       if (!processoId) return null;
-      
+
       const { data, error } = await supabase
         .from("processos")
         .select(`
@@ -49,10 +48,10 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
   if (!processoId) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <SheetContent side="right" className="w-full sm:w-[900px] sm:max-w-[900px] overflow-y-auto p-6">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
             {isLoading ? "Carregando..." : (
               <>
                 Processo {processo?.extrajudicial ? processo?.codigo_interno : (processo?.numero_processo || processo?.tipo)}
@@ -61,18 +60,17 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
                 )}
               </>
             )}
-          </DialogTitle>
-        </DialogHeader>
+          </SheetTitle>
+        </SheetHeader>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : processo ? (
-          <Tabs defaultValue="informacoes" className="w-full">
+          <Tabs defaultValue="informacoes" className="w-full mt-4">
             <TabsList className="flex w-full overflow-x-auto">
               <TabsTrigger value="informacoes">Informações</TabsTrigger>
-              <TabsTrigger value="andamentos">Andamentos</TabsTrigger>
               <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
               <TabsTrigger value="prazos">Prazos</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
@@ -83,10 +81,6 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
 
             <TabsContent value="informacoes" className="mt-6">
               <ProcessoInformacoesTab processo={processo} />
-            </TabsContent>
-
-            <TabsContent value="andamentos" className="mt-6">
-              <ProcessoAndamentosTab processoId={processo.id} />
             </TabsContent>
 
             <TabsContent value="tarefas" className="mt-6">
@@ -118,7 +112,7 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
             Processo não encontrado
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

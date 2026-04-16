@@ -154,7 +154,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
 
   return (
     <Sheet open={open} onOpenChange={handleDialogClose}>
-      <SheetContent side="right" className="w-full sm:w-[680px] sm:max-w-[680px] overflow-y-auto p-6">
+      <SheetContent side="right" className="w-full sm:w-[900px] sm:max-w-[900px] overflow-y-auto p-6">
         {lead ? (
           selectedProcessoId ? (
             <ProcessoDetailsInline
@@ -241,7 +241,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
             )}
 
             <Tabs defaultValue="info" className="mt-4">
-              <TabsList className={`grid w-full ${isCliente ? 'grid-cols-8' : 'grid-cols-5'}`}>
+              <TabsList className="flex w-full overflow-x-auto">
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
                 <TabsTrigger value="contratos">{isCliente ? 'Contratos' : 'Propostas'}</TabsTrigger>

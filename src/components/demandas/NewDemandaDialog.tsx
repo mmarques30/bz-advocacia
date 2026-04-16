@@ -30,6 +30,8 @@ interface FormData {
   responsavel_id: string;
   processo_id: string;
   data_limite: string;
+  fase_processo: string;
+  info_cliente: string;
 }
 
 export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewDemandaDialogProps) => {
@@ -44,6 +46,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
   });
   const createDemanda = useCreateDemanda();
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
+  const { data: fasesDb } = useOpcoesSistema('fase_processo', true);
   const advogadaLabels = useAdvogadaLabels();
   const { data: advogadas } = useAdvogadas();
 
@@ -111,6 +114,8 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
       lead_id: leadId,
       data_limite: data.data_limite || null,
       data_conclusao: null,
+      fase_processo: data.fase_processo || null,
+      info_cliente: data.info_cliente || null,
     }, {
       onSuccess: () => {
         reset();
@@ -145,7 +150,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Categoria *</Label>
               <Select onValueChange={(value) => setValue('categoria', value as any)} defaultValue="geral">
@@ -176,7 +181,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Prioridade *</Label>
               <Select onValueChange={(value) => setValue('prioridade', value as any)} defaultValue="media">
@@ -208,6 +213,39 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
               value={processoId || null}
               onChange={(id) => setValue('processo_id', id || '')}
             />
+          </div>
+
+          {/* Fase do processo + info para o cliente (bot WhatsApp) */}
+          <div className="space-y-2">
+            <Label>Fase do Processo</Label>
+            <Select onValueChange={(value) => setValue('fase_processo', value === '__none__' ? '' : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a fase (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma</SelectItem>
+                {(fasesDb && fasesDb.length > 0 ? fasesDb : [
+                  { valor: 'distribuicao', label: 'Distribuição' },
+                  { valor: 'audiencia', label: 'Audiência' },
+                  { valor: 'decisao', label: 'Decisão' },
+                ]).map((f) => (
+                  <SelectItem key={f.valor} value={f.valor}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="info_cliente">Informação para o Cliente</Label>
+            <Textarea
+              id="info_cliente"
+              {...register('info_cliente')}
+              placeholder="Ex: Petição inicial protocolada em 15/04. Aguardando distribuição."
+              rows={2}
+            />
+            <p className="text-xs text-muted-foreground">
+              Texto que o bot poderá enviar ao cliente quando perguntar sobre o processo.
+            </p>
           </div>
 
           <div className="space-y-2">

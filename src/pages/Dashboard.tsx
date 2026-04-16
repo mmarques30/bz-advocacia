@@ -15,6 +15,7 @@ import { useDashboardVisual } from "@/hooks/useDashboardVisual";
 import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useCheckIsAdmin } from "@/hooks/useUsuarios";
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const { data, isLoading } = useDashboardPrincipal();
   const { data: visual, isLoading: visualLoading } = useDashboardVisual();
   const { data: evolucaoData, isLoading: evolucaoLoading } = useProcessosEvolucao();
+  const { data: isAdmin } = useCheckIsAdmin();
   const navigate = useNavigate();
 
   const userName = profile?.nome_completo || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
@@ -84,13 +86,14 @@ export default function Dashboard() {
       ),
       accentColor: "#3B6D11",
     },
-    {
+    // Receita visivel apenas para admin — call 16/04: equipe nao deve ver.
+    ...(isAdmin ? [{
       title: "Receita do mês",
       value: receitaFormatada,
       subtitle: "Faturamento acumulado",
       accentColor: "#B8860B",
       valueColor: "#3B6D11",
-    },
+    }] : []),
     {
       title: "Clientes ativos",
       value: data?.clientesAtivos || 0,

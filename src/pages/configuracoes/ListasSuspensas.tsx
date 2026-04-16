@@ -17,6 +17,7 @@ const GRUPOS = [
   { key: 'categoria_despesa' as const, label: 'Categoria de Despesas' },
   { key: 'categoria_tarefa' as const, label: 'Categoria de Tarefas' },
   { key: 'status_tarefa' as const, label: 'Status de Tarefas' },
+  { key: 'fase_processo' as const, label: 'Fase do Processo' },
 ];
 
 function GrupoTab({ grupo }: { grupo: typeof GRUPOS[number] }) {
