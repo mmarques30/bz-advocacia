@@ -306,13 +306,17 @@ export function useDashboardPrincipal() {
       }));
 
       // === Leads funil ===
+      // Estagios validos no banco: novo, contato_inicial, em_analise,
+      // proposta_enviada, fechado, perdido. O mapeamento antigo usava
+      // nomes obsoletos (em_contato, contato, proposta) que nao batiam
+      // com nenhum registro real → pipeline zerado.
       const leadsPendentes = leadsPendentesR.data || [];
       const leadsFunil: LeadsFunil = { novo: 0, em_contato: 0, proposta: 0, perdido: 0 };
       leadsPendentes.forEach(l => {
         const e = l.estagio || "novo";
         if (e === "novo") leadsFunil.novo++;
-        else if (e === "em_contato" || e === "contato") leadsFunil.em_contato++;
-        else if (e === "proposta" || e === "proposta_enviada") leadsFunil.proposta++;
+        else if (e === "contato_inicial") leadsFunil.em_contato++;
+        else if (e === "em_analise" || e === "proposta_enviada") leadsFunil.proposta++;
         else if (e === "perdido") leadsFunil.perdido++;
       });
 
