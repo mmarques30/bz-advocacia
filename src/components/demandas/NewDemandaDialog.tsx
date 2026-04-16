@@ -116,7 +116,7 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
       data_conclusao: null,
       fase_processo: data.fase_processo || null,
       info_cliente: data.info_cliente || null,
-    } as any, {
+    }, {
       onSuccess: () => {
         reset();
         onOpenChange(false);
@@ -216,22 +216,24 @@ export const NewDemandaDialog = ({ open, onOpenChange, defaultProcessoId }: NewD
           </div>
 
           {/* Fase do processo + info para o cliente (bot WhatsApp) */}
-          {fasesDb && fasesDb.length > 0 && (
-            <div className="space-y-2">
-              <Label>Fase do Processo</Label>
-              <Select onValueChange={(value) => setValue('fase_processo', value === '__none__' ? '' : value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a fase (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Nenhuma</SelectItem>
-                  {fasesDb.map((f) => (
-                    <SelectItem key={f.valor} value={f.valor}>{f.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label>Fase do Processo</Label>
+            <Select onValueChange={(value) => setValue('fase_processo', value === '__none__' ? '' : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a fase (opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Nenhuma</SelectItem>
+                {(fasesDb && fasesDb.length > 0 ? fasesDb : [
+                  { valor: 'distribuicao', label: 'Distribuição' },
+                  { valor: 'audiencia', label: 'Audiência' },
+                  { valor: 'decisao', label: 'Decisão' },
+                ]).map((f) => (
+                  <SelectItem key={f.valor} value={f.valor}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="info_cliente">Informação para o Cliente</Label>
