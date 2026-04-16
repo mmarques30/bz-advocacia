@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Processo } from "@/types/processos";
 import { ProcessoInformacoesTab } from "./tabs/ProcessoInformacoesTab";
-import { ProcessoAndamentosTab } from "./tabs/ProcessoAndamentosTab";
 import { ProcessoTarefasTab } from "./tabs/ProcessoTarefasTab";
 import { ProcessoPrazosTab } from "./tabs/ProcessoPrazosTab";
 import { ProcessoDocumentosTab } from "./tabs/ProcessoDocumentosTab";
@@ -72,7 +71,6 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
           <Tabs defaultValue="informacoes" className="w-full">
             <TabsList className="flex w-full overflow-x-auto">
               <TabsTrigger value="informacoes">Informações</TabsTrigger>
-              <TabsTrigger value="andamentos">Andamentos</TabsTrigger>
               <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
               <TabsTrigger value="prazos">Prazos</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
@@ -83,10 +81,6 @@ export function ProcessoDetailsDialog({ processoId, open, onClose }: ProcessoDet
 
             <TabsContent value="informacoes" className="mt-6">
               <ProcessoInformacoesTab processo={processo} />
-            </TabsContent>
-
-            <TabsContent value="andamentos" className="mt-6">
-              <ProcessoAndamentosTab processoId={processo.id} />
             </TabsContent>
 
             <TabsContent value="tarefas" className="mt-6">

@@ -183,18 +183,33 @@ export function useDashboardVisual() {
         }
       ).sort((a, b) => b.total - a.total);
 
-      // Prazos breakdown
+      // Prazos breakdown — combina duas fontes:
+      // 1) processos_prazos (cadastro dedicado de prazos)
+      // 2) demandas_internas com data_limite (tarefas com deadline)
+      // Na call de 16/04 ficou claro que a equipe trabalha via tarefas,
+      // entao o card precisa refletir ambas as fontes.
       if (prazosR.error) {
         console.warn("[dashboard-visual] Erro ao buscar prazos:", prazosR.error);
       }
-      const allPrazos = prazosR.data || [];
+
+      // Helper que classifica uma data ISO no bucket correto
+      const classificarData = (dataISO: string, breakdown: PrazosBreakdown) => {
+        if (dataISO < hojeISO) breakdown.atrasados++;
+        else if (dataISO === hojeISO) breakdown.hoje++;
+        else if (dataISO <= fimSemanaISO) breakdown.estaSemana++;
+        else if (dataISO <= em30DiasISO) breakdown.dias30++;
+      };
+
       const prazosBreakdown: PrazosBreakdown = { atrasados: 0, hoje: 0, estaSemana: 0, dias30: 0 };
-      for (const p of allPrazos) {
-        if (!p.data_prazo) continue;
-        if (p.data_prazo < hojeISO) prazosBreakdown.atrasados++;
-        else if (p.data_prazo === hojeISO) prazosBreakdown.hoje++;
-        else if (p.data_prazo <= fimSemanaISO) prazosBreakdown.estaSemana++;
-        else if (p.data_prazo <= em30DiasISO) prazosBreakdown.dias30++;
+
+      // Fonte 1: processos_prazos
+      for (const p of prazosR.data || []) {
+        if (p.data_prazo) classificarData(p.data_prazo, prazosBreakdown);
+      }
+
+      // Fonte 2: tarefas ativas com data_limite (ja buscadas para heatmap)
+      for (const d of demandas) {
+        if (d.data_limite) classificarData(d.data_limite, prazosBreakdown);
       }
 
       // Próximos prazos com nome do cliente
