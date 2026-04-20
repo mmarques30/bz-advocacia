@@ -390,6 +390,89 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
             </>
           )}
 
+          <div className="space-y-3 rounded-lg border border-dashed p-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="com_exito"
+                checked={comExito}
+                onCheckedChange={(checked) => {
+                  setComExito(checked === true);
+                  if (!checked) {
+                    setExitoPercentual("");
+                    setExitoBase("");
+                    setExitoDataPrevista("");
+                  }
+                }}
+              />
+              <Label htmlFor="com_exito" className="font-normal cursor-pointer">
+                Possui percentual de êxito a receber no final?
+              </Label>
+            </div>
+
+            {comExito && (
+              <div className="space-y-3 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="exito_percentual">Percentual (%) *</Label>
+                    <Input
+                      id="exito_percentual"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={exitoPercentual}
+                      onChange={(e) => setExitoPercentual(e.target.value)}
+                      placeholder="Ex: 30"
+                      required={comExito}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exito_base">Valor base estimado (R$) *</Label>
+                    <Input
+                      id="exito_base"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={exitoBase}
+                      onChange={(e) => setExitoBase(e.target.value)}
+                      placeholder="Ex: valor da causa"
+                      required={comExito}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="exito_data_prevista">Previsão de êxito (opcional)</Label>
+                  <Input
+                    id="exito_data_prevista"
+                    type="date"
+                    value={exitoDataPrevista}
+                    onChange={(e) => setExitoDataPrevista(e.target.value)}
+                  />
+                </div>
+
+                {exitoPercentual && exitoBase && (
+                  <div className="rounded-md bg-primary/5 border border-primary/20 p-3">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Valor estimado de êxito: </span>
+                      <span className="font-semibold text-primary">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(
+                          (parseFloat(exitoBase) * parseFloat(exitoPercentual)) / 100,
+                        )}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Será lançado como crédito condicional vinculado a este contrato.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="conta">Conta *</Label>
             <Select value={conta} onValueChange={setConta}>
