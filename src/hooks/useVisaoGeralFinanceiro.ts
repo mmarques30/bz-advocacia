@@ -236,14 +236,21 @@ export function useDespesasPJPorCategoria(ano: number | null) {
   const chartData = (() => {
     if (!transacoes) return [];
 
+    // Inclui tudo que NAO e despesa pessoal (pf). Apos a migration de
+    // categorias, o categoria_codigo passou a guardar codigos contabeis
+    // especificos (aluguel, marketing, software...) alem do "pj" legado.
     const despesasPJ = transacoes.filter(
-      (t: any) => t.tipo_codigo === "despesa" && t.categoria_codigo === "pj"
+      (t: any) => t.tipo_codigo === "despesa" && t.categoria_codigo !== "pf"
     );
 
     const categorias = new Map<string, number>();
 
     for (const d of despesasPJ) {
-      const cat = extrairCategoriaDaDescricao(d.descricao || "");
+      const codigo = (d.categoria_codigo || "").toLowerCase();
+      const cat =
+        codigo && codigo !== "pj"
+          ? resolveCategoriaLabel(codigo)
+          : extrairCategoriaDaDescricao(d.descricao || "");
       categorias.set(cat, (categorias.get(cat) || 0) + Number(d.valor));
     }
 
