@@ -3,15 +3,28 @@ import { useDespesasPJPorCategoria } from "@/hooks/useVisaoGeralFinanceiro";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Brand-aligned palette using design tokens and complementary hues
+// Brand-aligned palette using design tokens and complementary hues.
+// Cobre tanto labels legados (extraidos da descricao) quanto labels novos
+// vindos de resolveCategoriaLabel (categorias contabeis pos-migration).
 const COLORS: Record<string, string> = {
-  "Aluguel": "hsl(30, 33%, 55%)",           // primary/bronze
-  "Cartão de Crédito": "hsl(38, 92%, 50%)", // chart-5/warning amber
-  "Tecnologia/IA": "hsl(220, 4%, 40%)",     // secondary/gray
-  "Marketing": "hsl(30, 33%, 42%)",          // darker bronze
-  "Impostos": "hsl(0, 84.2%, 60.2%)",       // destructive
-  "Folha de Pagamento": "hsl(72, 6%, 18%)", // foreground/dark
-  "Outros": "hsl(0, 0%, 65%)",              // muted gray
+  // Legados (descricao parsing)
+  "Aluguel": "hsl(30, 33%, 55%)",
+  "Cartão de Crédito": "hsl(38, 92%, 50%)",
+  "Tecnologia/IA": "hsl(220, 4%, 40%)",
+  "Marketing": "hsl(30, 33%, 42%)",
+  "Impostos": "hsl(0, 84.2%, 60.2%)",
+  "Folha de Pagamento": "hsl(72, 6%, 18%)",
+  // Codigos contabeis (resolveCategoriaLabel)
+  "Aluguel e Condomínio": "hsl(30, 33%, 55%)",
+  "Salários/Encargos": "hsl(72, 6%, 18%)",
+  "Honorários de Terceiros": "hsl(200, 30%, 45%)",
+  "Marketing/Publicidade": "hsl(30, 33%, 42%)",
+  "Materiais de Expediente": "hsl(45, 25%, 50%)",
+  "Telefonia/Internet": "hsl(220, 4%, 40%)",
+  "Software/Licenças": "hsl(260, 30%, 50%)",
+  "Energia/Água": "hsl(190, 50%, 45%)",
+  "Impostos/Taxas": "hsl(0, 84.2%, 60.2%)",
+  "Outros": "hsl(0, 0%, 65%)",
 };
 
 const formatCurrency = (v: number) =>
