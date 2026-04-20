@@ -46,6 +46,10 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const [conta, setConta] = useState("escritorio");
   const [comEntrada, setComEntrada] = useState(false);
   const [valorEntrada, setValorEntrada] = useState("");
+  const [comExito, setComExito] = useState(false);
+  const [exitoPercentual, setExitoPercentual] = useState("");
+  const [exitoBase, setExitoBase] = useState("");
+  const [exitoDataPrevista, setExitoDataPrevista] = useState("");
 
   const resetForm = () => {
     setClienteId("");
@@ -59,6 +63,10 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
     setConta("escritorio");
     setComEntrada(false);
     setValorEntrada("");
+    setComExito(false);
+    setExitoPercentual("");
+    setExitoBase("");
+    setExitoDataPrevista("");
     setPrefilledFromContrato(false);
   };
 
@@ -169,6 +177,13 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
         data_primeiro_vencimento: dataPrimeiroVencimento || null,
         conta,
         parcelas,
+        ...(comExito && exitoPercentual && exitoBase
+          ? {
+              exito_percentual: parseFloat(exitoPercentual),
+              exito_base: parseFloat(exitoBase),
+              exito_data_prevista: exitoDataPrevista || null,
+            }
+          : {}),
       },
       {
         onSuccess: () => {
