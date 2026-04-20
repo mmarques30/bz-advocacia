@@ -1,66 +1,35 @@
 
-## Resumo dos achados
 
-### 1. Importação Caixa B&Z — ✅ Importada, mas com observações
-Verificação no banco:
-- `transacoes_financeiras`: **1.187 registros** (629 receitas + 490 despesas + parciais)
-- Receitas totais: **R$ 1.477.167** distribuídas entre escritório, juliana e liziane
-- Despesas totais: **R$ 375.477**
-- Período: dados presentes nas contas `escritorio`, `juliana`, `liziane`
+## Plano: Extrair categoria contábil das descrições
 
-⚠️ Atenção: a conta foi importada como **`liziane`** (sem o "E" inicial). O sistema usa `eliziane` em outros lugares (CONTA_LABELS). Isso pode causar registros não aparecerem em filtros que esperam `eliziane`. Vamos padronizar para `eliziane` via UPDATE.
+### Diagnóstico final
+1. ✅ **Datas corretas** — período é mesmo 2023 a mar/2026.
+2. 🐛 **Categoria contábil perdida na importação** — está dentro da descrição como `"Nexus (Contabilidade)"`, `"Claro (Telefonia)"`, `"Auxiliadora Predial (Aluguel)"`. O campo `categoria_codigo` só guarda `pf`/`pj`, inutilizando o gráfico de despesas por categoria.
+3. ❓ **Gap em 2024** — mar a dez/24 têm só 4-10 lançamentos/mês. Pode ser real (escritório em outro sistema na época) ou abas não importadas. Vou perguntar antes de mexer.
 
-### 2. Erro ao editar despesa — FK violation 🐛
-Causa raiz em `src/hooks/useDespesas.ts` (linha 338-343):
+### O que vou fazer
 
-Quando o usuário edita uma despesa importada (que vive em `transacoes_financeiras`), o código faz:
-```ts
-const curto = despesa.categoria.split("_")[0];  // "outros"
-payload.subcategoria_codigo = curto;
-```
+**Passo 1 — Mapear categorias do XLSX**
+Reler o arquivo `Caixa_BeZ_-_2025_5.xlsx` em modo default (com pandas) para listar todas as categorias únicas que aparecem entre parênteses nas descrições (Aluguel, Marketing, Telefonia, Impostos, Energia, Folha de Pagamento, Tecnologia/IA, Custas Processuais, Cartão de Crédito, Estacionamento, Contabilidade, Serviços, Outros, etc.).
 
-Mas a tabela `subcategorias_financeiras` só aceita 4 valores: `clientes`, `eliziane`, `juliana`, `operacional`. Qualquer outra categoria ("outros", "aluguel", "marketing", etc.) viola a FK `transacoes_financeiras_subcategoria_codigo_fkey`.
+**Passo 2 — Criar mapa categoria → enum do sistema**
+Verificar o enum `CategoriaDespesa` em `src/types/financeiro.ts` e mapear cada categoria PT-BR encontrada para o código correspondente (ex: "Aluguel" → `aluguel_condominio`, "Telefonia" → `telefonia_internet`). Categorias sem match no enum ficam como `outros`.
 
-**Fix**: parar de gravar `subcategoria_codigo` no UPDATE. A subcategoria representa de QUEM é o lançamento (sócia/escritório), não a categoria contábil. Vamos remover esse campo do payload de update — manter apenas `descricao`, `valor`, `data_transacao` e `conta`. Categoria contábil já é representada por `categoria_codigo` quando aplicável.
+**Passo 3 — UPDATE em lote no banco**
+Rodar `UPDATE transacoes_financeiras` que:
+- Extrai conteúdo entre `(...)` no final da `descricao` via regex
+- Mapeia para `categoria_codigo` correto via `CASE WHEN`
+- Limpa a descrição removendo o sufixo `" (Categoria)"`
+- Aplica só nas 503 despesas afetadas
 
-### 3. Nome do cliente não aparece na tabela de Contratos 🐛
-Causa em `src/hooks/financeiro/acordos.ts` (linha 52-56 e 81-85):
+**Passo 4 — Validar**
+Após o update, conferir distribuição por categoria e amostrar 10 linhas para confirmar que descrição ficou limpa e categoria está correta.
 
-```ts
-cliente: acordo.cliente ? acordo.cliente[0] : undefined,
-```
+### Pergunta única antes de executar
+O gap em **2024 (março a dezembro)** é esperado, ou existe alguma aba/planilha histórica que não foi importada e precisa ser?
 
-A query usa embed por FK única (`!cliente_id`) — o PostgREST retorna **objeto**, não array. Aplicar `[0]` num objeto retorna `undefined`. Por isso aparece sempre "Cliente" (fallback).
+### Arquivos / áreas tocadas
+- Apenas dados em `transacoes_financeiras` (UPDATE via insert tool).
+- Sem mudanças de schema.
+- Sem mudanças de código (o frontend já lê `categoria_codigo` corretamente — só está vazio de conteúdo útil hoje).
 
-**Fix**: usar `acordo.cliente` direto (sem `[0]`). Mesma coisa para `processo`.
-
-### 4. Campo "Percentual de Êxito" no Novo Contrato ✨
-Adicionar ao `NewAcordoDialog.tsx`:
-- Checkbox "Possui percentual de êxito a receber no final?"
-- Quando marcado, exibir 2 campos:
-  - **Percentual (%)** — ex: 30
-  - **Valor base estimado (R$)** — base sobre a qual calcular (ex: valor da causa)
-- Cálculo automático: `valor_exito = base * (percentual / 100)`
-- Ao criar o contrato, gerar uma **parcela adicional condicional** com:
-  - status `pendente` 
-  - data de vencimento opcional (campo "Previsão de êxito")
-  - descrição "Honorários de êxito (X%)"
-- Salvar também na tabela `creditos_condicionais` (já existe, é exatamente o caso de uso) com `evento_gatilho="exito"`, vinculando ao `acordo_id` recém criado.
-
-Isso já lança automaticamente no financeiro como crédito previsto, sem inflar projeções até a ativação.
-
-### 5. Erros de build pré-existentes (corrigir junto)
-- `useOpcoesSistema.ts`: `GrupoOpcao` não inclui `'fase_processo'` → adicionar.
-- `useLeadsCsv.ts`: `CsvLead` não tem `nome_completo` → `LeadsCsvTable` deve usar `l.nome` (campo correto).
-
-## Plano de implementação
-
-1. **Banco**: padronizar `liziane` → `eliziane` em `transacoes_financeiras.conta` e `subcategoria_codigo` (insert tool).
-2. **`src/hooks/useDespesas.ts`**: remover `subcategoria_codigo` do `despesaToTransacaoPayload`. Adicionar `categoria_codigo` somente se for um valor mapeável conhecido (senão omitir).
-3. **`src/hooks/financeiro/acordos.ts`**: trocar `acordo.cliente[0]` por `acordo.cliente` e `acordo.processo[0]` por `acordo.processo` (linhas 54-55 e 83-84).
-4. **`src/components/financeiro/NewAcordoDialog.tsx`**: adicionar bloco de "Percentual de êxito" (checkbox + 2 inputs + data prevista) com cálculo em tempo real.
-5. **`src/hooks/useFinanceiro.ts` / `useCreateAcordo`**: aceitar campos opcionais `exito_percentual`, `exito_base`, `exito_data_prevista` e, se presentes, criar registro em `creditos_condicionais` após inserir o acordo.
-6. **`src/hooks/useOpcoesSistema.ts`**: incluir `'fase_processo'` em `GrupoOpcao`.
-7. **`src/components/leads/LeadsCsvTable.tsx`**: trocar `l.nome_completo` → `l.nome` (linhas 145 e 163).
-
-Sem mudanças de schema necessárias — `creditos_condicionais` já existe com a estrutura adequada.
