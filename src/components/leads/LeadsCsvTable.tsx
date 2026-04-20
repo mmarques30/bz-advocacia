@@ -142,7 +142,7 @@ export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-green-600 hover:text-green-700"
-                    aria-label={`Chamar ${l.nome_completo} no WhatsApp`}
+                    aria-label={`Chamar ${l.nome} no WhatsApp`}
                     onClick={(e) => {
                       e.stopPropagation();
                       openWhatsApp(l.telefone);
@@ -160,7 +160,7 @@ export function LeadsCsvTable({ leads, isLoading, onViewDetails }: Props) {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  aria-label={`Ver detalhes de ${l.nome_completo}`}
+                  aria-label={`Ver detalhes de ${l.nome}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onViewDetails?.(l.id);

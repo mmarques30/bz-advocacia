@@ -51,8 +51,8 @@ export function useAcordos(filters?: AcordosFilters) {
 
       return acordos.map(acordo => ({
         ...acordo,
-        cliente: acordo.cliente ? acordo.cliente[0] : undefined,
-        processo: acordo.processo ? acordo.processo[0] : undefined,
+        cliente: Array.isArray(acordo.cliente) ? acordo.cliente[0] : acordo.cliente,
+        processo: Array.isArray(acordo.processo) ? acordo.processo[0] : acordo.processo,
       }));
     },
   });
@@ -80,8 +80,8 @@ export function useAcordoDetalhes(acordoId: string | null) {
 
       return {
         ...data,
-        cliente: data.cliente?.[0],
-        processo: data.processo?.[0],
+        cliente: Array.isArray(data.cliente) ? data.cliente[0] : data.cliente,
+        processo: Array.isArray(data.processo) ? data.processo[0] : data.processo,
       } as AcordoFinanceiro;
     },
   });
