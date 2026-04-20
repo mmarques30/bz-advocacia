@@ -335,12 +335,12 @@ function despesaToTransacaoPayload(
   if (despesa.valor !== undefined) payload.valor = despesa.valor;
   if (despesa.data !== undefined) payload.data_transacao = despesa.data;
   if (despesa.conta !== undefined) payload.conta = despesa.conta;
-  if (despesa.categoria !== undefined) {
-    // Mantemos o codigo curto na subcategoria (backward compat com dados
-    // importados — "aluguel", "marketing", "juliana", etc.)
-    const curto = despesa.categoria.split("_")[0];
-    payload.subcategoria_codigo = curto;
-  }
+  // NOTA: nao gravamos `subcategoria_codigo` no UPDATE porque a FK
+  // `transacoes_financeiras_subcategoria_codigo_fkey` so aceita 4 valores
+  // (clientes, eliziane, juliana, operacional). A subcategoria representa
+  // de QUEM e o lancamento (socia/escritorio), nao a categoria contabil.
+  // Categorias livres ("aluguel", "marketing", "outros", etc.) ficam
+  // armazenadas apenas no campo `descricao`.
   return payload;
 }
 export function useUpdateDespesa() {
