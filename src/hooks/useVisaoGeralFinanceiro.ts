@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveCategoriaLabel } from "@/lib/categoriaDespesa";
 
 // Fetch all transacoes for a given year (or all if null)
 function useTransacoesPorAno(ano: number | null) {
