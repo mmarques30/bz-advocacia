@@ -151,7 +151,7 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const parcelas = formaPagamento === "parcelado" 
+    const parcelas = formaPagamento === "parcelado"
       ? parcelasPreview.map(p => ({
           numero_parcela: p.numero,
           valor: p.valor,
