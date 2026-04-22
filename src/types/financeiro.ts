@@ -1,5 +1,5 @@
 export type StatusAcordo = 'ativo' | 'concluido' | 'cancelado';
-export type FormaPagamento = 'a_vista' | 'parcelado';
+export type FormaPagamento = 'a_vista' | 'parcelado' | 'percentual_exito';
 export type TipoEntradaFaturamento = 'acordo' | 'receita_avulsa' | 'adiantamento' | 'reembolso';
 
 export const TIPO_ENTRADA_FATURAMENTO_LABELS: Record<TipoEntradaFaturamento, string> = {
