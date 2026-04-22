@@ -51,8 +51,8 @@ export function useAcordos(filters?: AcordosFilters) {
 
       return acordos.map(acordo => ({
         ...acordo,
-        cliente: acordo.cliente ? acordo.cliente[0] : undefined,
-        processo: acordo.processo ? acordo.processo[0] : undefined,
+        cliente: Array.isArray(acordo.cliente) ? acordo.cliente[0] : acordo.cliente,
+        processo: Array.isArray(acordo.processo) ? acordo.processo[0] : acordo.processo,
       }));
     },
   });
@@ -80,8 +80,8 @@ export function useAcordoDetalhes(acordoId: string | null) {
 
       return {
         ...data,
-        cliente: data.cliente?.[0],
-        processo: data.processo?.[0],
+        cliente: Array.isArray(data.cliente) ? data.cliente[0] : data.cliente,
+        processo: Array.isArray(data.processo) ? data.processo[0] : data.processo,
       } as AcordoFinanceiro;
     },
   });
@@ -93,11 +93,18 @@ export function useCreateAcordo() {
 
   return useMutation({
     mutationFn: async (acordo: any) => {
-      const { parcelas, ...acordoData } = acordo;
+      const {
+        parcelas,
+        exito_percentual,
+        exito_base,
+        exito_data_prevista,
+        ...acordoData
+      } = acordo;
 
       // Rodada 1: preferimos a RPC atomica (acordo + parcelas numa unica
       // transacao Postgres). Se estiver indisponivel, cai no fluxo de
       // 2 inserts separados mantendo o comportamento antigo.
+      let novoAcordo: any = null;
       try {
         const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
           "create_acordo_atomico",
@@ -109,8 +116,6 @@ export function useCreateAcordo() {
 
         if (rpcError) throw rpcError;
 
-        // A RPC retorna apenas o uuid; o hook que consome espera o row
-        // completo. Buscamos o row recem-criado para manter contrato.
         const acordoId = rpcData as string;
         const { data: novo, error: fetchError } = await supabase
           .from("acordos_financeiros")
@@ -118,36 +123,58 @@ export function useCreateAcordo() {
           .eq("id", acordoId)
           .single();
         if (fetchError) throw fetchError;
-        return novo;
+        novoAcordo = novo;
       } catch (rpcErr) {
         console.warn(
           "RPC create_acordo_atomico indisponivel, usando fallback 2-step:",
           rpcErr,
         );
+
+        const { data: criado, error: acordoError } = await supabase
+          .from("acordos_financeiros")
+          .insert([acordoData])
+          .select()
+          .single();
+
+        if (acordoError) throw acordoError;
+        novoAcordo = criado;
+
+        if (parcelas && parcelas.length > 0) {
+          const parcelasComAcordo = parcelas.map(p => ({
+            ...p,
+            acordo_id: novoAcordo.id,
+          }));
+
+          const { error: parcelasError } = await supabase
+            .from("parcelas_financeiras")
+            .insert(parcelasComAcordo);
+
+          if (parcelasError) throw parcelasError;
+        }
       }
 
-      // Fallback legado (pre-Rodada 1). Mantido para ambientes sem a
-      // RPC aplicada. Atomicidade nao garantida — se insert das parcelas
-      // falhar, o acordo ja foi persistido.
-      const { data: novoAcordo, error: acordoError } = await supabase
-        .from("acordos_financeiros")
-        .insert([acordoData])
-        .select()
-        .single();
-
-      if (acordoError) throw acordoError;
-
-      if (parcelas && parcelas.length > 0) {
-        const parcelasComAcordo = parcelas.map(p => ({
-          ...p,
-          acordo_id: novoAcordo.id,
-        }));
-
-        const { error: parcelasError } = await supabase
-          .from("parcelas_financeiras")
-          .insert(parcelasComAcordo);
-
-        if (parcelasError) throw parcelasError;
+      // Cria credito condicional para honorarios de exito (se aplicavel)
+      if (exito_percentual && exito_base) {
+        const valorExito =
+          (Number(exito_base) * Number(exito_percentual)) / 100;
+        if (valorExito > 0) {
+          const { error: ccError } = await supabase
+            .from("creditos_condicionais")
+            .insert({
+              cliente_id: acordoData.cliente_id,
+              processo_id: acordoData.processo_id ?? null,
+              acordo_id: novoAcordo.id,
+              conta: acordoData.conta ?? "escritorio",
+              valor: valorExito,
+              evento_gatilho: "exito",
+              status: "backlog",
+              data_ativacao: exito_data_prevista || null,
+              descricao: `Honorários de êxito (${exito_percentual}% sobre ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(exito_base))})`,
+            });
+          if (ccError) {
+            console.error("Erro ao criar credito condicional de exito:", ccError);
+          }
+        }
       }
 
       return novoAcordo;

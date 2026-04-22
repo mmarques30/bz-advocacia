@@ -12,7 +12,7 @@ export interface OpcaoSistema {
   created_at: string;
 }
 
-type GrupoOpcao = 'origem_lead' | 'tipo_processo' | 'categoria_despesa' | 'categoria_tarefa' | 'status_tarefa';
+type GrupoOpcao = 'origem_lead' | 'tipo_processo' | 'categoria_despesa' | 'categoria_tarefa' | 'status_tarefa' | 'fase_processo';
 
 export function useOpcoesSistema(grupo: GrupoOpcao, apenasAtivos = false) {
   return useQuery({

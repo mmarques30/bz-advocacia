@@ -46,7 +46,10 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const [conta, setConta] = useState("escritorio");
   const [comEntrada, setComEntrada] = useState(false);
   const [valorEntrada, setValorEntrada] = useState("");
-  const [percentualExito, setPercentualExito] = useState("");
+  const [comExito, setComExito] = useState(false);
+  const [exitoPercentual, setExitoPercentual] = useState("");
+  const [exitoBase, setExitoBase] = useState("");
+  const [exitoDataPrevista, setExitoDataPrevista] = useState("");
 
   const resetForm = () => {
     setClienteId("");
@@ -60,7 +63,10 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
     setConta("escritorio");
     setComEntrada(false);
     setValorEntrada("");
-    setPercentualExito("");
+    setComExito(false);
+    setExitoPercentual("");
+    setExitoBase("");
+    setExitoDataPrevista("");
     setPrefilledFromContrato(false);
   };
 
@@ -145,45 +151,21 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    let parcelas;
-    let totalParcelas;
-
-    if (formaPagamento === "parcelado") {
-      parcelas = parcelasPreview.map(p => ({
-        numero_parcela: p.numero,
-        valor: p.valor,
-        data_vencimento: p.data,
-        status: "pendente",
-      }));
-      totalParcelas = comEntrada ? parseInt(numeroParcelas) + 1 : parseInt(numeroParcelas);
-    } else if (formaPagamento === "percentual_exito") {
-      // Percentual de êxito: valor real depende do resultado do processo.
-      // Grava o percentual no observacoes e cria parcela(s) conforme entrada.
-      const entradaValor = comEntrada && valorEntrada ? parseFloat(valorEntrada) : 0;
-      parcelas = [];
-      if (entradaValor > 0) {
-        parcelas.push({
-          numero_parcela: 1,
-          valor: entradaValor,
-          data_vencimento: format(new Date(), "yyyy-MM-dd"),
+    const parcelas = formaPagamento === "parcelado"
+      ? parcelasPreview.map(p => ({
+          numero_parcela: p.numero,
+          valor: p.valor,
+          data_vencimento: p.data,
           status: "pendente",
-        });
-      }
-      totalParcelas = parcelas.length || 1;
-    } else {
-      // À vista
-      parcelas = [{
-        numero_parcela: 1,
-        valor: parseFloat(valorTotal),
-        data_vencimento: dataPrimeiroVencimento || format(new Date(), "yyyy-MM-dd"),
-        status: "pendente",
-      }];
-      totalParcelas = 1;
-    }
+        }))
+      : [{
+          numero_parcela: 1,
+          valor: parseFloat(valorTotal),
+          data_vencimento: dataPrimeiroVencimento || format(new Date(), "yyyy-MM-dd"),
+          status: "pendente",
+        }];
 
-    const observacoesFinais = formaPagamento === "percentual_exito"
-      ? `Percentual de êxito: ${percentualExito}%${observacoes ? ` | ${observacoes}` : ''}`
-      : observacoes || undefined;
+    const totalParcelas = comEntrada ? parseInt(numeroParcelas) + 1 : (formaPagamento === "parcelado" ? parseInt(numeroParcelas) : 1);
 
     createAcordo.mutate(
       {
@@ -195,7 +177,13 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
         data_primeiro_vencimento: dataPrimeiroVencimento || null,
         conta,
         parcelas,
-        observacoes: observacoesFinais,
+        ...(comExito && exitoPercentual && exitoBase
+          ? {
+              exito_percentual: parseFloat(exitoPercentual),
+              exito_base: parseFloat(exitoBase),
+              exito_data_prevista: exitoDataPrevista || null,
+            }
+          : {}),
       },
       {
         onSuccess: () => {
@@ -282,84 +270,8 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
                   Parcelado
                 </Label>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="percentual_exito" id="percentual_exito" />
-                <Label htmlFor="percentual_exito" className="font-normal cursor-pointer">
-                  Percentual de Êxito
-                </Label>
-              </div>
             </RadioGroup>
           </div>
-
-          {formaPagamento === "percentual_exito" && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="percentual_exito_valor">Percentual de Êxito (%) *</Label>
-                <Input
-                  id="percentual_exito_valor"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={percentualExito}
-                  onChange={(e) => setPercentualExito(e.target.value)}
-                  required
-                  placeholder="Ex: 20"
-                />
-                {valorTotal && percentualExito && (
-                  <p className="text-xs text-muted-foreground">
-                    Sobre o valor total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valorTotal) * parseFloat(percentualExito) / 100)} (estimativa)
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="com_entrada_exito"
-                  checked={comEntrada}
-                  onCheckedChange={(checked) => {
-                    setComEntrada(checked === true);
-                    if (!checked) setValorEntrada("");
-                  }}
-                />
-                <Label htmlFor="com_entrada_exito" className="font-normal cursor-pointer">
-                  Com entrada fixa?
-                </Label>
-              </div>
-
-              {comEntrada && (
-                <div className="space-y-2">
-                  <Label htmlFor="valor_entrada_exito">Valor da Entrada *</Label>
-                  <Input
-                    id="valor_entrada_exito"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={valorEntrada}
-                    onChange={(e) => setValorEntrada(e.target.value)}
-                    required
-                    placeholder="0.00"
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="forma">Forma de Pagamento</Label>
-                <Select value={formaPagamentoRecebido} onValueChange={setFormaPagamentoRecebido}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(FORMA_PAGAMENTO_RECEBIDO_LABELS).map(([key, label]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
 
           {formaPagamento === "parcelado" && (
             <>
@@ -477,6 +389,89 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
               )}
             </>
           )}
+
+          <div className="space-y-3 rounded-lg border border-dashed p-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="com_exito"
+                checked={comExito}
+                onCheckedChange={(checked) => {
+                  setComExito(checked === true);
+                  if (!checked) {
+                    setExitoPercentual("");
+                    setExitoBase("");
+                    setExitoDataPrevista("");
+                  }
+                }}
+              />
+              <Label htmlFor="com_exito" className="font-normal cursor-pointer">
+                Possui percentual de êxito a receber no final?
+              </Label>
+            </div>
+
+            {comExito && (
+              <div className="space-y-3 pl-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="exito_percentual">Percentual (%) *</Label>
+                    <Input
+                      id="exito_percentual"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={exitoPercentual}
+                      onChange={(e) => setExitoPercentual(e.target.value)}
+                      placeholder="Ex: 30"
+                      required={comExito}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="exito_base">Valor base estimado (R$) *</Label>
+                    <Input
+                      id="exito_base"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={exitoBase}
+                      onChange={(e) => setExitoBase(e.target.value)}
+                      placeholder="Ex: valor da causa"
+                      required={comExito}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="exito_data_prevista">Previsão de êxito (opcional)</Label>
+                  <Input
+                    id="exito_data_prevista"
+                    type="date"
+                    value={exitoDataPrevista}
+                    onChange={(e) => setExitoDataPrevista(e.target.value)}
+                  />
+                </div>
+
+                {exitoPercentual && exitoBase && (
+                  <div className="rounded-md bg-primary/5 border border-primary/20 p-3">
+                    <p className="text-sm">
+                      <span className="text-muted-foreground">Valor estimado de êxito: </span>
+                      <span className="font-semibold text-primary">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(
+                          (parseFloat(exitoBase) * parseFloat(exitoPercentual)) / 100,
+                        )}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Será lançado como crédito condicional vinculado a este contrato.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="conta">Conta *</Label>
