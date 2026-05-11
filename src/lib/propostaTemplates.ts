@@ -206,6 +206,14 @@ export const MODELOS_PROPOSTA: PropostaTemplate[] = [
     servico_padrao: 'assessoria jurídica em ação de direito do consumidor',
     template: TEMPLATE_PROPOSTA_CONSUMIDOR,
   },
+  {
+    id: 'proposta-generica',
+    nome: 'Proposta - Genérica',
+    tipo: 'outro',
+    descricao: 'Modelo genérico para qualquer tipo de ação ou serviço jurídico',
+    servico_padrao: '',
+    template: TEMPLATE_PROPOSTA_DIVORCIO,
+  },
 ];
 
 export const TEXTO_INSTITUCIONAL = `Nosso escritório nasceu em meados de 2018, quando, ainda recém-formadas, decidimos nos unir e trilhar esse caminho de mãos dadas.
