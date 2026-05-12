@@ -5,7 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Loader2, Sparkles } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { FileText, Download, Loader2, Sparkles, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useLeads } from "@/hooks/useLeads";
 import { MODELOS_PROPOSTA } from "@/lib/propostaTemplates";
 import { PropostaPreview } from "./PropostaPreview";
@@ -28,6 +31,7 @@ export const GerarPropostaForm = () => {
   const [percentualExito, setPercentualExito] = useState<number>(0);
   const [condicoesAdicionais, setCondicoesAdicionais] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [leadPopoverOpen, setLeadPopoverOpen] = useState(false);
 
   const { data: allLeads = [], isLoading: leadsLoading } = useLeads({
     search: '',
@@ -40,8 +44,11 @@ export const GerarPropostaForm = () => {
     statusCliente: [],
   });
 
-  // Filtrar apenas leads (não-fechados) para propostas
-  const leads = useMemo(() => allLeads.filter(l => l.estagio !== 'fechado'), [allLeads]);
+  // Todos os leads/clientes ordenados alfabeticamente
+  const leads = useMemo(
+    () => [...allLeads].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR')),
+    [allLeads],
+  );
 
   const { data: modelosPersonalizados = [] } = useModelosPersonalizados('proposta');
 
@@ -99,6 +106,12 @@ export const GerarPropostaForm = () => {
         handleModeloChange('proposta-inventario');
       } else if (tipoProcesso.includes('indenização') || tipoProcesso.includes('indenizacao')) {
         handleModeloChange('proposta-indenizacao');
+      } else if (tipoProcesso.includes('trabalhist')) {
+        handleModeloChange('proposta-trabalhista');
+      } else if (tipoProcesso.includes('consumidor')) {
+        handleModeloChange('proposta-consumidor');
+      } else {
+        handleModeloChange('proposta-generica');
       }
     }
   };
@@ -177,28 +190,59 @@ export const GerarPropostaForm = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 space-y-6">
-          {/* Lead */}
+          {/* Lead — combobox buscável */}
           <div className="space-y-2">
-            <Label>Lead *</Label>
-            <Select value={leadSelecionado} onValueChange={handleLeadChange}>
-              <SelectTrigger>
-                <SelectValue placeholder={leadsLoading ? "Carregando..." : "Selecione o lead"} />
-              </SelectTrigger>
-              <SelectContent>
-                {leads.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    <span className="flex items-center gap-1">
-                      {lead.nome_completo} - {lead.tipo_processo}
-                      <span className="text-xs text-muted-foreground ml-1">
-                        · {ESTAGIO_LABELS[lead.estagio] || lead.estagio}
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Lead / Cliente *</Label>
+            <Popover open={leadPopoverOpen} onOpenChange={setLeadPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={leadPopoverOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  {leadSelecionado
+                    ? leads.find(l => l.id === leadSelecionado)?.nome_completo || "Selecione..."
+                    : leadsLoading ? "Carregando..." : "Digite o nome para buscar..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-full p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar por nome..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum lead encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {leads.map((lead) => (
+                        <CommandItem
+                          key={lead.id}
+                          value={`${lead.nome_completo} ${lead.tipo_processo || ''}`}
+                          onSelect={() => {
+                            handleLeadChange(lead.id);
+                            setLeadPopoverOpen(false);
+                          }}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", leadSelecionado === lead.id ? "opacity-100" : "opacity-0")} />
+                          <span className="flex-1">
+                            {lead.nome_completo}
+                            {lead.tipo_processo && (
+                              <span className="text-xs text-muted-foreground ml-1">
+                                — {lead.tipo_processo}
+                              </span>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {ESTAGIO_LABELS[lead.estagio] || lead.estagio}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <p className="text-xs text-muted-foreground">
-              Propostas são geradas para leads em fase de negociação. Após aceita, o lead é convertido em cliente.
+              Selecione o lead ou cliente para gerar a proposta.
             </p>
           </div>
 
