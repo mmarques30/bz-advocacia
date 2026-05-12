@@ -1,278 +1,349 @@
-// Edge Function: whatsapp-inbound
-// Recebe webhook da Z-API quando o lead manda mensagem.
-// Classifica via Claude, salva tudo, decide próxima ação.
+// Edge Function: whatsapp-inbound (V3 full intake)
+//
+// Coração do SDR. Recebe webhook da Z-API.
+// - Ignora grupos.
+// - Ignora clientes existentes (telefone com processo ativo).
+// - Ignora leads com bot pausado ou em status que não é "novo"/"em_atendimento_bot".
+// - Cria lead se não existir e inicia M0.
+// - Roteia entre os 4 fluxos (saúde, inventário, qualificação geral, fora-escopo).
 
 import {
+  buscarAdvogadoPorArea,
   buscarLeadPorTelefone,
+  buscarServicosPorArea,
+  criarLead,
+  ehClienteExistente,
   getSupabaseAdmin,
   historicoMensagens,
   registrarEvento,
   registrarMensagem,
-  buscarAdvogadoPorArea,
+  type Lead,
 } from "../_shared/db.ts";
-import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
+import { ehGrupo, normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
 import { claudeJson } from "../_shared/claude.ts";
 import {
-  mensagemForaEscopo,
-  mensagemMQLFrio,
-  mensagemSQL,
-  PERGUNTAS_FALLBACK,
-  SYSTEM_PROMPT_CLASSIFICADOR,
+  AVISO_LGPD,
+  mensagemBoasVindas,
+  mensagemForaEscopoEducada,
+  mensagemHandoffGeral,
+  mensagemHandoffInventario,
+  mensagemHandoffSaude,
+  mensagemOptOut,
+  SYSTEM_PROMPT,
+  URL_PAGAMENTO_GENERICO,
 } from "../_shared/prompts.ts";
 
-interface ZapiInboundPayload {
-  // Estrutura simplificada — Z-API envia mais campos, mas só usamos esses.
+interface ZapiInbound {
   phone: string;
   fromMe?: boolean;
+  isGroup?: boolean;
   isStatusReply?: boolean;
+  senderName?: string;
+  chatName?: string;
   text?: { message: string };
-  // Alguns formatos legados vêm sem o wrapper text.message
   message?: string;
 }
 
-interface ClaudeResponse {
-  area: string;
+interface ClaudeOut {
+  area_codigo: string;
+  fluxo: "saude" | "inventario" | "qualificacao_geral" | "fora_escopo";
   proxima_acao:
-    | "enviar_M1"
-    | "enviar_M2"
-    | "enviar_M3"
-    | "encerrar_sql"
-    | "encerrar_mql_frio"
-    | "fora_escopo"
+    | "enviar_M1" | "enviar_M2" | "enviar_M3"
+    | "encerrar_saude" | "encerrar_inventario"
+    | "encerrar_qualificacao_geral" | "encerrar_fora_escopo"
     | "aguardar";
-  resposta_estruturada: Record<string, unknown>;
-  score: number;
-  motivo: string;
-  mensagem_para_enviar: string;
+  resposta_estruturada?: Record<string, unknown>;
+  score?: number;
+  motivo?: string;
+  mensagem_para_enviar?: string;
 }
+
+const STATUS_BOT_ATIVO = ["novo", "em_atendimento_bot"];
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-  let payload: ZapiInboundPayload;
+  let payload: ZapiInbound;
   try {
     payload = await req.json();
   } catch {
     return new Response("Bad JSON", { status: 400 });
   }
 
-  // Ignora mensagens enviadas POR NÓS (fromMe) e status updates
+  // Ignora mensagens enviadas POR NÓS e status updates
   if (payload.fromMe || payload.isStatusReply) {
-    return new Response(JSON.stringify({ ignored: true }), { status: 200 });
+    return new Response(JSON.stringify({ ignored: "fromMe_ou_status" }), { status: 200 });
   }
 
-  const texto = payload.text?.message ?? payload.message ?? "";
-  if (!texto.trim()) {
-    return new Response(JSON.stringify({ ignored: "sem_texto" }), { status: 200 });
+  // Ignora grupos
+  if (ehGrupo(payload)) {
+    return new Response(JSON.stringify({ ignored: "grupo" }), { status: 200 });
   }
+
+  const texto = (payload.text?.message ?? payload.message ?? "").trim();
+  if (!texto) return new Response(JSON.stringify({ ignored: "sem_texto" }), { status: 200 });
 
   const supabase = getSupabaseAdmin();
   const telefone = normalizarTelefone(payload.phone);
 
-  // Localiza lead
-  const lead = await buscarLeadPorTelefone(supabase, telefone);
+  // Busca lead
+  let lead = await buscarLeadPorTelefone(supabase, telefone);
+
+  // Lead novo → cria
   if (!lead) {
-    await registrarEvento(supabase, null, "msg_de_telefone_desconhecido", { telefone, texto });
-    return new Response(JSON.stringify({ ignored: "lead_nao_encontrado" }), { status: 200 });
+    const nomePerfil = payload.senderName?.trim() || payload.chatName?.trim() || "Lead WhatsApp";
+    lead = await criarLead(supabase, {
+      telefone,
+      nome: nomePerfil,
+      origem: "whatsapp_direto",
+      origem_sdr: "whatsapp_direto",
+    });
+    if (!lead) {
+      await registrarEvento(supabase, null, "criarLead_falhou", { telefone });
+      return new Response("Erro ao criar lead", { status: 500 });
+    }
+    await registrarEvento(supabase, lead.id, "lead_criado_via_whatsapp", { telefone, nomePerfil });
+  } else {
+    // Filtros de quem NÃO recebe atendimento do bot
+    const cliente = await ehClienteExistente(supabase, lead.id);
+    if (cliente) {
+      await registrarMensagem(supabase, lead.id, "lead", texto, { ignorado: "cliente_existente" });
+      await registrarEvento(supabase, lead.id, "msg_cliente_ignorada", { telefone });
+      return new Response(JSON.stringify({ ignored: "cliente_existente" }), { status: 200 });
+    }
+    if (lead.bot_pausado) {
+      await registrarMensagem(supabase, lead.id, "lead", texto, { bot_pausado: true });
+      return new Response(JSON.stringify({ ignored: "bot_pausado" }), { status: 200 });
+    }
+    if (!STATUS_BOT_ATIVO.includes(lead.status_sdr)) {
+      await registrarMensagem(supabase, lead.id, "lead", texto, { status_sdr: lead.status_sdr });
+      return new Response(JSON.stringify({ ignored: `status:${lead.status_sdr}` }), { status: 200 });
+    }
   }
 
   // Salva a mensagem recebida
   await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
 
-  // Comando "parar"
+  // Opt-out
   if (/^\s*parar\s*$/i.test(texto)) {
-    await supabase
-      .from("leads")
+    await supabase.from("leads_geral")
       .update({ status_sdr: "perdido", bot_pausado: true })
       .eq("id", lead.id);
-    const msg = `Tudo certo, ${lead.nome}. Removendo seu contato do nosso atendimento ativo. Se mudar de ideia, é só mandar mensagem aqui. ✱`;
+    const msg = mensagemOptOut(lead.nome);
     await zapiSendText(telefone, msg);
-    await registrarMensagem(supabase, lead.id, "bot", msg);
+    await registrarMensagem(supabase, lead.id, "bot", msg, { acao: "opt_out" });
     return new Response(JSON.stringify({ acao: "opt_out" }), { status: 200 });
   }
 
-  // Se bot está pausado, só grava e devolve (humano vai responder pelo painel)
-  if (lead.bot_pausado) {
-    return new Response(JSON.stringify({ acao: "bot_pausado_humano_assume" }), { status: 200 });
+  // Se é a primeira interação com esse lead (etapa M0 e sem histórico do bot),
+  // primeiro mandamos as boas-vindas + LGPD e marcamos etapa = M1.
+  // Se o lead já está em M1+, deixamos o Claude decidir.
+  const historico = await historicoMensagens(supabase, lead.id, 20);
+  const temHistoricoBot = historico.some((h) => h.origem === "bot");
+
+  if (!temHistoricoBot && lead.etapa_qualificacao === "M0") {
+    const boas = mensagemBoasVindas(lead.nome);
+    await zapiSendText(telefone, boas);
+    await registrarMensagem(supabase, lead.id, "bot", boas, { tipo: "boas_vindas" });
+    // pequena pausa antes do LGPD
+    await new Promise((r) => setTimeout(r, 1200));
+    await zapiSendText(telefone, AVISO_LGPD);
+    await registrarMensagem(supabase, lead.id, "bot", AVISO_LGPD, { tipo: "lgpd" });
+
+    // Avança etapa pra M1 (próxima resposta do lead já vai pro classificador)
+    await supabase.from("leads_geral")
+      .update({ etapa_qualificacao: "M1" })
+      .eq("id", lead.id);
+
+    return new Response(JSON.stringify({ acao: "boas_vindas_enviadas" }), { status: 200 });
   }
 
-  // Monta contexto pra Claude
-  const historico = await historicoMensagens(supabase, lead.id, 12);
+  // Roteamento via Claude
   const contexto = {
     nome: lead.nome,
-    tipo_de_processo_form: lead.tipo_de_processo,
-    origem: lead.origem,
+    fluxo_atual: lead.fluxo_sdr,
     etapa_atual: lead.etapa_qualificacao,
     area_atual: lead.area_normalizada,
     score_atual: lead.score,
+    tipo_de_processo_form: lead.tipo_de_processo,
   };
 
-  const userPrompt = `Contexto do lead:
+  const userPrompt = `Contexto:
 ${JSON.stringify(contexto, null, 2)}
 
-Histórico (mais antigo → mais recente):
+Histórico (antigo → recente):
 ${historico.map((m) => `[${m.origem}] ${m.conteudo}`).join("\n")}
 
-Última mensagem do lead (a que você precisa interpretar):
+Última mensagem do lead:
 "${texto}"
 
-Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
+Decida a próxima ação e retorne o JSON.`;
 
-  const classificacao = await claudeJson<ClaudeResponse>(
-    SYSTEM_PROMPT_CLASSIFICADOR,
+  const r = await claudeJson<ClaudeOut>(
+    SYSTEM_PROMPT,
     [{ role: "user", content: userPrompt }],
     { maxTokens: 1024, temperature: 0.3 },
   );
 
-  if (!classificacao.ok || !classificacao.data) {
-    await registrarEvento(supabase, lead.id, "claude_falhou", {
-      erro: classificacao.error,
-      raw: classificacao.rawText,
-    });
-    return new Response(JSON.stringify({ erro: classificacao.error }), { status: 500 });
+  if (!r.ok || !r.data) {
+    await registrarEvento(supabase, lead.id, "claude_falhou", { erro: r.error, raw: r.rawText });
+    return new Response(JSON.stringify({ erro: r.error }), { status: 500 });
   }
 
-  const r = classificacao.data;
+  const out = r.data;
 
-  // Atualiza área normalizada e score
-  await supabase
-    .from("leads")
-    .update({
-      area_normalizada: r.area,
-      score: r.score,
-      motivo_qualificacao: r.motivo,
-    })
-    .eq("id", lead.id);
+  // Atualiza área + score + fluxo
+  await supabase.from("leads_geral").update({
+    area_normalizada: out.area_codigo,
+    fluxo_sdr: out.fluxo,
+    score: out.score ?? lead.score,
+    motivo_qualificacao: out.motivo ?? null,
+  }).eq("id", lead.id);
 
-  // Salva a qualificação da etapa atual (se for M1/M2/M3)
-  const etapaCodigo = lead.etapa_qualificacao;
-  if (["M1", "M2", "M3"].includes(etapaCodigo)) {
-    await supabase.from("qualificacoes").upsert(
-      {
-        lead_id: lead.id,
-        pergunta_codigo: etapaCodigo,
-        pergunta_texto: PERGUNTAS_FALLBACK[r.area]?.[etapaCodigo as "M1" | "M2" | "M3"] ?? "(dinâmica)",
-        resposta_texto: texto,
-        resposta_estruturada: r.resposta_estruturada,
-      },
-      { onConflict: "lead_id,pergunta_codigo" },
-    );
+  // Salva qualificação se for resposta de M1/M2/M3
+  const etapaAtual = lead.etapa_qualificacao;
+  if (["M1", "M2", "M3"].includes(etapaAtual)) {
+    await supabase.from("qualificacoes_sdr").upsert({
+      lead_id: lead.id,
+      pergunta_codigo: etapaAtual,
+      pergunta_texto: `(${out.fluxo}) ${etapaAtual}`,
+      resposta_texto: texto,
+      resposta_estruturada: out.resposta_estruturada ?? {},
+    }, { onConflict: "lead_id,pergunta_codigo" });
   }
 
-  // Decide o que mandar e o próximo estado
-  let mensagemFinal = r.mensagem_para_enviar?.trim() || "";
-  let novaEtapa = lead.etapa_qualificacao;
+  // Decide próxima mensagem e estado
+  let mensagemFinal = (out.mensagem_para_enviar ?? "").trim();
+  let novaEtapa = etapaAtual;
   let novoStatus = lead.status_sdr;
   let pausarBot = false;
-  let advogadoIdNotificar: string | null = null;
+  let notificarAdvogadoArea: string | null = null;
 
-  switch (r.proxima_acao) {
+  switch (out.proxima_acao) {
     case "enviar_M1":
       novaEtapa = "M2";
-      if (!mensagemFinal) mensagemFinal = PERGUNTAS_FALLBACK[r.area]?.M1 ?? "Pode me contar um pouco mais sobre a sua situação?";
       break;
     case "enviar_M2":
       novaEtapa = "M3";
-      if (!mensagemFinal) mensagemFinal = PERGUNTAS_FALLBACK[r.area]?.M2 ?? "Pode me contar um pouco mais?";
       break;
     case "enviar_M3":
       novaEtapa = "finalizado";
-      if (!mensagemFinal) mensagemFinal = PERGUNTAS_FALLBACK[r.area]?.M3 ?? "Última pergunta: tem mais algum detalhe importante?";
       break;
-    case "encerrar_sql": {
+
+    case "encerrar_saude": {
       novaEtapa = "finalizado";
       novoStatus = "sql_aguardando_humano";
       pausarBot = true;
-      const advogado = await buscarAdvogadoPorArea(supabase, r.area);
-      advogadoIdNotificar = advogado?.id ?? null;
-      if (advogado) {
-        await supabase
-          .from("leads")
-          .update({ humano_responsavel: advogado.id })
-          .eq("id", lead.id);
-      }
-      if (!mensagemFinal) mensagemFinal = mensagemSQL(lead.nome, advogado?.nome ?? "um advogado do nosso time");
+      notificarAdvogadoArea = "saude";
+      const servicos = await buscarServicosPorArea(supabase, "saude");
+      const link = servicos[0]?.link_pagamento ?? URL_PAGAMENTO_GENERICO;
+      mensagemFinal = mensagemFinal || mensagemHandoffSaude(lead.nome, link);
       break;
     }
-    case "encerrar_mql_frio":
+
+    case "encerrar_inventario": {
       novaEtapa = "finalizado";
-      novoStatus = "mql_frio";
-      if (!mensagemFinal) mensagemFinal = mensagemMQLFrio(lead.nome);
+      novoStatus = "sql_aguardando_humano";
+      pausarBot = true;
+      notificarAdvogadoArea = "inventario";
+      mensagemFinal = mensagemFinal || mensagemHandoffInventario(lead.nome);
       break;
-    case "fora_escopo":
+    }
+
+    case "encerrar_qualificacao_geral": {
       novaEtapa = "finalizado";
-      novoStatus = "perdido";
-      if (!mensagemFinal) mensagemFinal = mensagemForaEscopo(lead.nome, r.area);
+      novoStatus = "sql_aguardando_humano";
+      pausarBot = true;
+      notificarAdvogadoArea = out.area_codigo;
+      const servicos = await buscarServicosPorArea(supabase, out.area_codigo);
+      const areaNome = servicos[0]?.area_nome ?? out.area_codigo;
+      mensagemFinal = mensagemFinal || mensagemHandoffGeral(lead.nome, areaNome);
       break;
+    }
+
+    case "encerrar_fora_escopo": {
+      novaEtapa = "finalizado";
+      novoStatus = "aguardando_triagem";
+      pausarBot = true;
+      notificarAdvogadoArea = "geral";
+      mensagemFinal = mensagemFinal || mensagemForaEscopoEducada(lead.nome);
+      break;
+    }
+
     case "aguardar":
-      // não muda etapa, manda repergunta leve
-      if (!mensagemFinal) mensagemFinal = "Desculpa, não consegui te entender direito. Pode reformular em poucas palavras? 🤓";
+      mensagemFinal = mensagemFinal ||
+        "Desculpa, não consegui te entender direito. Pode reformular em poucas palavras? 🤓";
       break;
   }
 
-  // Envia
-  const envio = await zapiSendText(telefone, mensagemFinal);
-  await registrarMensagem(supabase, lead.id, "bot", mensagemFinal, { zapi: envio, acao: r.proxima_acao });
+  // Envia + loga
+  const env = await zapiSendText(telefone, mensagemFinal);
+  await registrarMensagem(supabase, lead.id, "bot", mensagemFinal, {
+    acao: out.proxima_acao,
+    fluxo: out.fluxo,
+    zapi: env,
+  });
 
   // Atualiza lead
-  await supabase
-    .from("leads")
-    .update({
-      etapa_qualificacao: novaEtapa,
-      status_sdr: novoStatus,
-      bot_pausado: pausarBot ? true : lead.bot_pausado,
-    })
-    .eq("id", lead.id);
+  await supabase.from("leads_geral").update({
+    etapa_qualificacao: novaEtapa,
+    status_sdr: novoStatus,
+    bot_pausado: pausarBot ? true : lead.bot_pausado,
+  }).eq("id", lead.id);
 
-  // Notifica advogado se SQL
-  if (advogadoIdNotificar) {
-    await notificarAdvogado(supabase, lead.id, advogadoIdNotificar);
+  // Notifica advogado se virou handoff
+  if (notificarAdvogadoArea) {
+    await notificarAdvogado(supabase, lead.id, notificarAdvogadoArea);
   }
 
   await registrarEvento(supabase, lead.id, "msg_processada", {
-    acao: r.proxima_acao,
-    area: r.area,
-    score: r.score,
+    acao: out.proxima_acao,
+    fluxo: out.fluxo,
+    area: out.area_codigo,
+    score: out.score,
   });
 
-  return new Response(JSON.stringify({ ok: true, acao: r.proxima_acao }), {
+  return new Response(JSON.stringify({ ok: true, acao: out.proxima_acao }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
 });
 
-// Notifica o advogado por WhatsApp interno (e por e-mail se houver SMTP configurado).
-async function notificarAdvogado(supabase: any, leadId: string, advogadoId: string) {
-  const { data: adv } = await supabase
-    .from("advogados")
-    .select("nome, email, telefone")
-    .eq("id", advogadoId)
-    .single();
-  if (!adv) return;
+async function notificarAdvogado(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  leadId: string,
+  areaCodigo: string,
+) {
+  const adv = await buscarAdvogadoPorArea(supabase, areaCodigo);
+  if (!adv) {
+    await registrarEvento(supabase, leadId, "advogado_nao_encontrado", { area: areaCodigo });
+    return;
+  }
+
+  await supabase.from("leads_geral").update({ humano_responsavel: adv.id }).eq("id", leadId);
 
   const { data: lead } = await supabase
-    .from("leads")
-    .select("nome, telefone, area_normalizada, tipo_de_processo, score")
+    .from("leads_geral")
+    .select("nome, telefone, area_normalizada, fluxo_sdr, score")
     .eq("id", leadId)
     .single();
 
   const urlPainel = Deno.env.get("URL_PAINEL") ?? "https://painel.example.com";
   const texto =
-`Novo SQL na sua fila 🤓
+`Novo lead pra você 🤓
 
-• Nome: ${lead.nome}
-• WhatsApp: ${lead.telefone}
-• Área: ${lead.area_normalizada ?? lead.tipo_de_processo ?? "n/d"}
-• Score: ${lead.score}
+• Nome: ${lead?.nome ?? "Lead"}
+• WhatsApp: ${lead?.telefone}
+• Fluxo: ${lead?.fluxo_sdr}
+• Área: ${lead?.area_normalizada}
+• Score: ${lead?.score ?? 0}
 
 Abrir conversa: ${urlPainel}/leads/${leadId}`;
 
   if (adv.telefone) {
     await zapiSendText(adv.telefone, texto);
   }
-
   await registrarEvento(supabase, leadId, "advogado_notificado", {
-    advogado_id: advogadoId,
-    canal: adv.telefone ? "whatsapp" : "email",
+    advogado_id: adv.id, area: areaCodigo,
   });
 }
