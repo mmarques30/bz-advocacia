@@ -325,14 +325,12 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   });
 });
 
-async function notificarAdvogado(supabase: any, leadId: string, advogadoId: string) {
-  const { data: adv } = await supabase
-    .from("advogados_sdr")
-    .select("nome, email, telefone")
-    .eq("id", advogadoId)
-    .maybeSingle();
-  if (!adv) return;
-
+async function notificarAdvogado(
+  supabase: any,
+  leadId: string,
+  advogadoId: string | null,
+  acao: string,
+) {
   const { data: lead } = await supabase
     .from("leads_geral")
     .select("full_name, phone_number, contato_whatsapp, area_normalizada, tipo_servico, score")
@@ -340,24 +338,48 @@ async function notificarAdvogado(supabase: any, leadId: string, advogadoId: stri
     .maybeSingle();
   if (!lead) return;
 
+  // Resolve advogado: específico → fallback "geral" → qualquer ativo
+  let adv: { nome: string; email: string | null; telefone: string | null } | null = null;
+  if (advogadoId) {
+    const { data } = await supabase
+      .from("advogados_sdr")
+      .select("nome, email, telefone")
+      .eq("id", advogadoId)
+      .maybeSingle();
+    adv = (data as any) ?? null;
+  }
+  if (!adv) {
+    const fallback = await buscarAdvogadoPorArea(supabase, lead.area_normalizada ?? "geral");
+    if (fallback) adv = { nome: fallback.nome, email: fallback.email, telefone: fallback.telefone };
+  }
+
   const urlPainel = Deno.env.get("URL_PAINEL") ?? "https://painel.example.com";
   const tel = lead.contato_whatsapp ?? lead.phone_number ?? "";
+  const titulo = acao === "encerrar_sql"
+    ? "Novo SQL na sua fila 🤓"
+    : acao === "encerrar_mql_frio"
+    ? "MQL frio encerrado pelo bot 🤓"
+    : "Lead fora de escopo encerrado 🤓";
+
   const texto =
-`Novo SQL na sua fila 🤓
+`${titulo}
 
 • Nome: ${lead.full_name ?? "(sem nome)"}
 • WhatsApp: ${tel}
 • Área: ${lead.area_normalizada ?? lead.tipo_servico ?? "n/d"}
 • Score: ${lead.score ?? 0}
+• Ação: ${acao}
 
 Abrir conversa: ${urlPainel}/leads/${leadId}`;
 
-  if (adv.telefone) {
+  if (adv?.telefone) {
     await zapiSendText(adv.telefone, texto);
   }
 
   await registrarEvento(supabase, leadId, "advogado_notificado", {
     advogado_id: advogadoId,
-    canal: adv.telefone ? "whatsapp" : "email",
+    advogado_resolvido: adv?.nome ?? null,
+    canal: adv?.telefone ? "whatsapp" : "sem_canal",
+    acao,
   });
 }
