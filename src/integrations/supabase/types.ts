@@ -518,6 +518,7 @@ export type Database = {
           status_cliente: string | null
           tags: string[] | null
           telefone: string
+          telefone_digits: string | null
           tem_filhos: boolean | null
           tipo_processo: string
           ultimo_contato_em: string | null
@@ -571,6 +572,7 @@ export type Database = {
           status_cliente?: string | null
           tags?: string[] | null
           telefone: string
+          telefone_digits?: string | null
           tem_filhos?: boolean | null
           tipo_processo: string
           ultimo_contato_em?: string | null
@@ -624,6 +626,7 @@ export type Database = {
           status_cliente?: string | null
           tags?: string[] | null
           telefone?: string
+          telefone_digits?: string | null
           tem_filhos?: boolean | null
           tipo_processo?: string
           ultimo_contato_em?: string | null
@@ -1501,6 +1504,7 @@ export type Database = {
           preferencia_contato: string | null
           score: number | null
           status_sdr: string | null
+          telefone_digits: string | null
           tipo_servico: string | null
           ultima_mensagem_em: string | null
           updated_at: string | null
@@ -1539,6 +1543,7 @@ export type Database = {
           preferencia_contato?: string | null
           score?: number | null
           status_sdr?: string | null
+          telefone_digits?: string | null
           tipo_servico?: string | null
           ultima_mensagem_em?: string | null
           updated_at?: string | null
@@ -1577,6 +1582,7 @@ export type Database = {
           preferencia_contato?: string | null
           score?: number | null
           status_sdr?: string | null
+          telefone_digits?: string | null
           tipo_servico?: string | null
           ultima_mensagem_em?: string | null
           updated_at?: string | null
