@@ -10,6 +10,13 @@ import {
 } from "../_shared/db.ts";
 import { zapiSendText } from "../_shared/zapi.ts";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 interface AssumirPayload {
   lead_id: string;
   advogado_id: string;
@@ -18,21 +25,22 @@ interface AssumirPayload {
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+  if (!auth.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
   let payload: AssumirPayload;
   try {
     payload = await req.json();
   } catch {
-    return new Response("Bad JSON", { status: 400 });
+    return new Response("Bad JSON", { status: 400, headers: corsHeaders });
   }
 
   const { lead_id, advogado_id } = payload;
   if (!lead_id || !advogado_id) {
-    return new Response("lead_id e advogado_id obrigatórios", { status: 400 });
+    return new Response("lead_id e advogado_id obrigatórios", { status: 400, headers: corsHeaders });
   }
 
   const supabase = getSupabaseAdmin();
@@ -42,14 +50,14 @@ Deno.serve(async (req) => {
     .select("id, full_name, phone_number, contato_whatsapp, status_sdr")
     .eq("id", lead_id)
     .maybeSingle();
-  if (!lead) return new Response("Lead não encontrado", { status: 404 });
+  if (!lead) return new Response("Lead não encontrado", { status: 404, headers: corsHeaders });
 
   const { data: adv } = await supabase
     .from("advogados_sdr")
     .select("id, nome")
     .eq("id", advogado_id)
     .maybeSingle();
-  if (!adv) return new Response("Advogado não encontrado", { status: 404 });
+  if (!adv) return new Response("Advogado não encontrado", { status: 404, headers: corsHeaders });
 
   await supabase
     .from("leads_geral")
@@ -77,6 +85,6 @@ Deno.serve(async (req) => {
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: { "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });

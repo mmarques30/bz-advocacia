@@ -9,6 +9,7 @@ import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { LeadBotBadge } from "./LeadBotBadge";
+import { AtenderAgoraButton } from "./AtenderAgoraButton";
 
 interface LeadCardProps {
   lead: Lead;
@@ -87,8 +88,9 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           )}
         </div>
 
-        <div className="flex">
+        <div className="flex items-center justify-between gap-2">
           <LeadBotBadge lead={lead} />
+          {isHot && <AtenderAgoraButton lead={lead} />}
         </div>
 
         {tipoServico && (

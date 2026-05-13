@@ -4,7 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap } from "lucide-react";
+import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap, Bell, BellOff, Volume2, VolumeX } from "lucide-react";
+import { useSdrAlerts } from "@/hooks/useSdrAlerts";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -179,6 +180,9 @@ function LeadsTab({
     [filteredLeads],
   );
 
+  const { soundEnabled, setSoundEnabled, notifPermission, notifEnabled, requestNotifications } =
+    useSdrAlerts(filteredLeads, setSelectedLead);
+
   return (
     <div className="space-y-4 mt-4">
       {aguardandoCount > 0 && (
@@ -262,10 +266,44 @@ function LeadsTab({
           </Button>
         </div>
 
-        <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as 'table' | 'kanban')}>
-          <ToggleGroupItem value="table" aria-label="Tabela"><Table2 className="h-4 w-4" /></ToggleGroupItem>
-          <ToggleGroupItem value="kanban" aria-label="Kanban"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
-        </ToggleGroup>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            title={soundEnabled ? "Som ativo" : "Som desativado"}
+          >
+            {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+            <span className="ml-1.5 text-xs">{soundEnabled ? "Som ativo" : "Som off"}</span>
+          </Button>
+
+          {notifPermission === "denied" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              title="Habilite notificações nas configurações do navegador para este site"
+            >
+              <BellOff className="h-4 w-4" />
+              <span className="ml-1.5 text-xs">Notificações bloqueadas</span>
+            </Button>
+          ) : notifEnabled && notifPermission === "granted" ? (
+            <Button variant="outline" size="sm" disabled title="Notificações ativas">
+              <Bell className="h-4 w-4 text-green-600" />
+              <span className="ml-1.5 text-xs">Notificações ativas</span>
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={requestNotifications}>
+              <Bell className="h-4 w-4" />
+              <span className="ml-1.5 text-xs">Ativar notificações</span>
+            </Button>
+          )}
+
+          <ToggleGroup type="single" value={view} onValueChange={(v) => v && setView(v as 'table' | 'kanban')}>
+            <ToggleGroupItem value="table" aria-label="Tabela"><Table2 className="h-4 w-4" /></ToggleGroupItem>
+            <ToggleGroupItem value="kanban" aria-label="Kanban"><LayoutGrid className="h-4 w-4" /></ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
 
       <TooltipProvider>
