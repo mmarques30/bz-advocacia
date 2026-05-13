@@ -200,6 +200,7 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                 </TableHead>
               )}
               <TableHead>Nome</TableHead>
+              <TableHead>Bot SDR</TableHead>
               <TableHead>Origem</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Estágio</TableHead>
