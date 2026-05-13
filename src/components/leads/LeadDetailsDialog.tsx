@@ -260,7 +260,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </div>
             )}
 
-            <Tabs defaultValue="info" className="mt-4">
+            <Tabs defaultValue={defaultTab} key={`${lead.id}-${defaultTab}`} className="mt-4">
               <TabsList className="flex w-full overflow-x-auto">
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
