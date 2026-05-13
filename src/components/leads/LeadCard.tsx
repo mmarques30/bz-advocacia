@@ -88,10 +88,12 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex">
           <LeadBotBadge lead={lead} />
-          {isHot && <AtenderAgoraButton lead={lead} />}
         </div>
+        {isHot && (
+          <AtenderAgoraButton lead={lead} className="w-full h-8 text-xs px-2" />
+        )}
 
         {tipoServico && (
           <div className="flex items-center gap-1.5 text-muted-foreground">
