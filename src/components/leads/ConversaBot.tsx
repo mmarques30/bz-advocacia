@@ -25,6 +25,7 @@ interface Props {
   bot_pausado?: boolean | null;
   // Compacto pra usar dentro de aba
   className?: string;
+  autoFocus?: boolean;
 }
 
 const podeEnviar = (status: string | null | undefined, bot_pausado: boolean | null | undefined) => {
@@ -32,11 +33,19 @@ const podeEnviar = (status: string | null | undefined, bot_pausado: boolean | nu
   return ["assumido_humano", "agendado", "cliente"].includes(status || "");
 };
 
-export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className }: Props) {
+export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, autoFocus = false }: Props) {
   const queryClient = useQueryClient();
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && textareaRef.current) {
+      const t = setTimeout(() => textareaRef.current?.focus(), 150);
+      return () => clearTimeout(t);
+    }
+  }, [autoFocus, leadGeralId]);
 
   const { data: mensagens = [], isLoading } = useQuery({
     queryKey: ["mensagens-sdr", leadGeralId],
