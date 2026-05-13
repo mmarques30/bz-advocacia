@@ -5,12 +5,13 @@ import { toast } from "@/lib/toast";
 async function resolverAdvogadoId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
 
-  // a) mapeamento por auth user_id (se existir coluna user_id em advogados_sdr)
-  if (user?.id) {
+  // a) mapeamento por email (advogados_sdr.email == auth user email)
+  if (user?.email) {
     const { data: meu } = await supabase
       .from("advogados_sdr" as any)
       .select("id")
-      .eq("user_id", user.id)
+      .eq("email", user.email)
+      .eq("ativo", true)
       .maybeSingle();
     if (meu && (meu as any).id) return (meu as any).id;
   }
