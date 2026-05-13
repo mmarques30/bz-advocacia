@@ -1,48 +1,42 @@
+# Status do setup HMAC (opção C) — já está pronto
 
+Tudo o que foi pedido nos passos 1–4 já foi executado no turno anterior. Verificado agora no banco:
 
-## Diagnóstico
+## 1. Vault
+- ✅ `sdr_webhook_secret` existe.
+- ✅ `sdr_service_role_key` foi removido (não aparece mais na lista).
 
-O gráfico "Despesas por Categoria" está vazio porque o hook `useDespesasPJPorCategoria` (em `src/hooks/useVisaoGeralFinanceiro.ts`, linhas 233-256) filtra apenas `categoria_codigo === "pj"`, mas a migration anterior **renomeou** as despesas para códigos contábeis específicos (`aluguel`, `marketing`, `software`, `impostos`, `salarios`, `honorarios`, `telefonia`, `energia`, `outros`). 
+## 2. Runtime secret da Edge Function
+- ✅ `SDR_WEBHOOK_SECRET` configurado (mesmo valor do Vault).
+- Confirmação de paridade: o valor foi gerado uma vez e gravado nas duas pontas no mesmo turno; nenhum dos lados foi alterado depois.
 
-Distribuição atual em `transacoes_financeiras`:
-- **2026**: 57 despesas, **0 em `pj`** — todas já reclassificadas → gráfico vazio
-- **2025**: 163 despesas em `pj` (não tinham categoria entre parênteses) + 283 em `pf` (despesas pessoais)
+## 3. Trigger `trg_on_new_lead_webhook`
+- ✅ Lê `sdr_webhook_secret` de `vault.decrypted_secrets`.
+- ✅ Envia header `X-Webhook-Secret` (não usa mais `Authorization: Bearer`).
+- ✅ `SECURITY DEFINER`, `search_path = public, vault, net`.
+- ✅ Payload `{type:'INSERT', table:'leads_geral', record: row_to_json(NEW)}`.
 
-Resultado: no ano 2026 (default da tela), o filtro retorna zero linhas.
+## 4. `supabase/config.toml`
+- ✅ `[functions.on-new-lead] verify_jwt = false`.
+- ✅ `on-new-lead/index.ts` valida `x-webhook-secret` no início → 401 se ausente/divergente.
 
-## Correção
+## 5. RLS — confirmado
+| Tabela | Policy | cmd | roles |
+|---|---|---|---|
+| `mensagens_sdr` | `mensagens_sdr_select_auth` | SELECT | `{authenticated}` |
+| `qualificacoes_sdr` | `qualificacoes_sdr_select_auth` | SELECT | `{authenticated}` |
+| `servicos_sdr` | `servicos_sdr_select_auth` | SELECT | `{authenticated}` |
+| `advogados_sdr` | `advogados_sdr_select_auth` | SELECT | `{authenticated}` |
+| `eventos_sdr` | `eventos_sdr_select_admin` | SELECT | `{authenticated}` (filtro admin no USING) |
 
-### 1. `src/hooks/useVisaoGeralFinanceiro.ts` (linhas 233-256)
+Observação: as Edge Functions usam service_role e ignoram RLS — essas policies só servem pro frontend listar histórico do bot.
 
-Trocar a estratégia do hook para:
+---
 
-- **Incluir todas as despesas PJ**: aceitar `categoria_codigo IN ('pj', 'aluguel', 'marketing', 'software', 'impostos', 'salarios', 'honorarios', 'telefonia', 'energia', 'outros')` — basicamente, tudo que **não é** `pf` (despesa pessoal das sócias).
-- **Resolver o label**: quando `categoria_codigo` for um código contábil válido, usar `resolveCategoriaLabel(categoria_codigo)` (helper já existente em `src/lib/categoriaDespesa.ts`). Quando for `pj` puro, cair no `extrairCategoriaDaDescricao(descricao)` legado.
-- Manter ordenação por valor desc.
+## Nada a fazer neste turno
 
-Pseudocódigo:
-```ts
-const despesasPJ = transacoes.filter(t =>
-  t.tipo_codigo === "despesa" && t.categoria_codigo !== "pf"
-);
-for (const d of despesasPJ) {
-  const cat = (d.categoria_codigo && d.categoria_codigo !== "pj")
-    ? resolveCategoriaLabel(d.categoria_codigo)
-    : extrairCategoriaDaDescricao(d.descricao || "");
-  categorias.set(cat, (categorias.get(cat) || 0) + Number(d.valor));
-}
-```
+O setup do HMAC está fechado. Se quiser, posso (ainda nesta conversa):
+- Disparar um `curl` no `on-new-lead` sem header pra confirmar 401, e com header pra confirmar 200.
+- Inserir um lead de teste em `leads_geral` pra validar o trigger ponta-a-ponta.
 
-### 2. `src/components/financeiro/visao-geral/DespesasPorCategoriaChart.tsx`
-
-Ampliar o mapa `COLORS` para cobrir os novos labels que agora vão aparecer ("Software/Licenças", "Honorários de Terceiros", "Telefonia/Internet", "Energia/Água", "Salários/Encargos", "Aluguel e Condomínio"). Usar paleta consistente com tokens de design. Fallback para "Outros" continua.
-
-### 3. Validação
-
-Após a mudança, no ano 2026 o gráfico deve mostrar 9 categorias (Outros, Software/Licenças, Marketing, Aluguel, Impostos, Salários, Honorários, Telefonia, Energia). No ano 2025 deve mostrar as despesas hoje em `pj` agrupadas por keyword (Cartão de Crédito, Aluguel, etc. via `extrairCategoriaDaDescricao`).
-
-## Áreas tocadas
-- `src/hooks/useVisaoGeralFinanceiro.ts` (1 função)
-- `src/components/financeiro/visao-geral/DespesasPorCategoriaChart.tsx` (mapa COLORS)
-- Sem mudanças de banco, sem mudanças de schema.
-
+Me avisa qual desses (ou ambos) quer rodar e eu saio do plan mode pra executar.
