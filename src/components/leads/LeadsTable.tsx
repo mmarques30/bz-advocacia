@@ -210,9 +210,13 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
           </TableHeader>
           <TableBody>
             {leads.map((lead) => (
-              <TableRow key={lead.id} className={cn(selectedIds.has(lead.id) && "bg-primary/5")}>
+              <TableRow
+                key={lead.id}
+                className={cn("cursor-pointer hover:bg-muted/40", selectedIds.has(lead.id) && "bg-primary/5")}
+                onClick={() => onViewDetails(lead)}
+              >
                 {enableBulkSelect && (
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={selectedIds.has(lead.id)}
                       onCheckedChange={() => toggleSelect(lead.id)}
@@ -272,7 +276,7 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                     {lead.dias_parado || 0} dias
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" aria-label="Abrir ações do lead">
