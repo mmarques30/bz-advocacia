@@ -54,13 +54,16 @@ export async function buscarLeadPorTelefone(
   supabase: SupabaseClient,
   telefone: string,
 ): Promise<Lead | null> {
-  const variacoes = [
-    telefone,
-    telefone.replace(/^55/, ""),
-    "+" + telefone,
-  ];
+  // Importa local pra evitar ciclo
+  const { variacoesTelefone } = await import("./zapi.ts");
+  const base = variacoesTelefone(telefone);
+  const variacoes = new Set<string>();
+  for (const t of base) {
+    variacoes.add(t);
+    variacoes.add(t.replace(/^55/, ""));
+    variacoes.add("+" + t);
+  }
 
-  // Tenta match exato em contato_whatsapp depois phone_number
   for (const campo of ["contato_whatsapp", "phone_number"] as const) {
     for (const tel of variacoes) {
       const { data } = await supabase
@@ -75,7 +78,7 @@ export async function buscarLeadPorTelefone(
   }
 
   // Fallback: like nos últimos 8 dígitos em qualquer dos campos
-  const ultimos = telefone.slice(-8);
+  const ultimos = telefone.replace(/\D/g, "").slice(-8);
   for (const campo of ["contato_whatsapp", "phone_number"] as const) {
     const { data } = await supabase
       .from("leads_geral")
@@ -87,6 +90,40 @@ export async function buscarLeadPorTelefone(
     if (data) return data as Lead;
   }
   return null;
+}
+
+export interface CriarLeadInput {
+  nome: string;
+  telefone: string; // já normalizado
+  platform: string;
+  origem: string;
+}
+
+export async function criarLeadWhatsApp(
+  supabase: SupabaseClient,
+  input: CriarLeadInput,
+): Promise<Lead | null> {
+  const id = `sdr_wa_${Date.now()}_${input.telefone.slice(-6)}`;
+  const { data, error } = await supabase
+    .from("leads_geral")
+    .insert({
+      id,
+      full_name: input.nome,
+      phone_number: input.telefone,
+      contato_whatsapp: input.telefone,
+      platform: input.platform,
+      origem_sdr: input.origem,
+      status_sdr: "novo",
+      etapa_qualificacao: "M0",
+      created_time: new Date().toISOString(),
+    })
+    .select(LEAD_COLS)
+    .maybeSingle();
+  if (error) {
+    console.error("[criarLeadWhatsApp] erro:", error);
+    return null;
+  }
+  return (data as Lead) ?? null;
 }
 
 export async function registrarMensagem(

@@ -4,6 +4,7 @@
 
 import {
   buscarLeadPorTelefone,
+  criarLeadWhatsApp,
   getSupabaseAdmin,
   historicoMensagens,
   nomePrimeiro,
@@ -61,6 +62,18 @@ Deno.serve(async (req) => {
 
   const supabase = getSupabaseAdmin();
 
+  // Idempotência por messageId — evita reprocessar retries da Z-API
+  const messageId = (payload as any).messageId as string | undefined;
+  if (messageId) {
+    const { error: lockErr } = await supabase
+      .from("mensagens_inbound_lock")
+      .insert({ message_id: messageId });
+    if (lockErr && (lockErr.code === "23505" || lockErr.message?.includes("duplicate"))) {
+      await registrarEvento(supabase, null, "webhook_duplicado_ignorado", { messageId });
+      return new Response(JSON.stringify({ ignored: "duplicate_messageId" }), { status: 200 });
+    }
+  }
+
   // Log bruto do payload para debug temporario
   await registrarEvento(supabase, null, "raw_payload_debug", payload);
 
@@ -92,11 +105,45 @@ Deno.serve(async (req) => {
 
   const telefone = normalizarTelefone(payload.phone);
 
-  // Localiza lead
-  const lead = await buscarLeadPorTelefone(supabase, telefone);
+  // Localiza lead — se não existir, cria automaticamente
+  let lead = await buscarLeadPorTelefone(supabase, telefone);
   if (!lead) {
-    await registrarEvento(supabase, null, "msg_de_telefone_desconhecido", { telefone, texto });
-    return new Response(JSON.stringify({ ignored: "lead_nao_encontrado" }), { status: 200 });
+    const p = payload as any;
+    const senderName: string | undefined = p.senderName ?? p.chatName ?? p.notifyName;
+    const rawKeys = Object.keys(p ?? {});
+    const blob = JSON.stringify(p ?? {}).toLowerCase();
+
+    // Heurística click-to-WhatsApp / Meta Ads
+    const hasReferralFields = rawKeys.some((k) =>
+      /referral|ctwa|sourceid|source_id|adid|ad_id|momentmetadata/i.test(k)
+    );
+    let platform = "whatsapp_organico";
+    if (hasReferralFields) {
+      platform = blob.includes("instagram") ? "instagram_ads" : "facebook_ads";
+    }
+
+    await registrarEvento(supabase, null, "lead_auto_criado_payload_debug", {
+      telefone, raw_keys: rawKeys, senderName, platform,
+    });
+
+    lead = await criarLeadWhatsApp(supabase, {
+      nome: senderName ?? "Lead WhatsApp",
+      telefone,
+      platform,
+      origem: platform,
+    });
+    if (!lead) {
+      await registrarEvento(supabase, null, "lead_auto_criar_falhou", { telefone });
+      return new Response(JSON.stringify({ erro: "criar_lead_falhou" }), { status: 500 });
+    }
+
+    // Registra a mensagem do lead e devolve 200 — o trigger on-new-lead
+    // dispara M0 + LGPD. Evita corrida com o classificador.
+    await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, primeira_msg: true });
+    return new Response(
+      JSON.stringify({ ok: true, acao: "lead_auto_criado", lead_id: lead.id }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   // Salva a mensagem recebida

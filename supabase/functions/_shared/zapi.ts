@@ -27,6 +27,24 @@ export function normalizarTelefone(telefone: string): string {
 }
 
 /**
+ * Gera variações do telefone com/sem o "9" do celular brasileiro,
+ * pra tolerar cadastros com 12 ou 13 dígitos no lookup do lead.
+ */
+export function variacoesTelefone(telefone: string): string[] {
+  const base = normalizarTelefone(telefone);
+  const out = new Set<string>([base]);
+  // 55 + DDD(2) + 8 dígitos = 12 → injeta 9 depois do DDD
+  if (base.length === 12) {
+    out.add(base.slice(0, 4) + "9" + base.slice(4));
+  }
+  // 55 + DDD(2) + 9 + 8 dígitos = 13 → remove o 9
+  if (base.length === 13 && base[4] === "9") {
+    out.add(base.slice(0, 4) + base.slice(5));
+  }
+  return [...out];
+}
+
+/**
  * Envia mensagem de texto via Z-API.
  */
 export async function zapiSendText(
