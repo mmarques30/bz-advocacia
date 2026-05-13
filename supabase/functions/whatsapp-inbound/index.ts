@@ -62,6 +62,18 @@ Deno.serve(async (req) => {
 
   const supabase = getSupabaseAdmin();
 
+  // Idempotência por messageId — evita reprocessar retries da Z-API
+  const messageId = (payload as any).messageId as string | undefined;
+  if (messageId) {
+    const { error: lockErr } = await supabase
+      .from("mensagens_inbound_lock")
+      .insert({ message_id: messageId });
+    if (lockErr && (lockErr.code === "23505" || lockErr.message?.includes("duplicate"))) {
+      await registrarEvento(supabase, null, "webhook_duplicado_ignorado", { messageId });
+      return new Response(JSON.stringify({ ignored: "duplicate_messageId" }), { status: 200 });
+    }
+  }
+
   // Log bruto do payload para debug temporario
   await registrarEvento(supabase, null, "raw_payload_debug", payload);
 
