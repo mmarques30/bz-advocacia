@@ -160,6 +160,10 @@ function LeadsTab({
     if (!originFilteredLeads) return undefined;
     let result = nomeFilter ? originFilteredLeads.filter(l => l.nome_completo === nomeFilter) : [...originFilteredLeads];
     result.sort((a, b) => {
+      // Sempre prioriza leads quentes do bot
+      const aHot = a.status_sdr === "sql_aguardando_humano" ? 1 : 0;
+      const bHot = b.status_sdr === "sql_aguardando_humano" ? 1 : 0;
+      if (aHot !== bHot) return bHot - aHot;
       switch (sortOrder) {
         case "mais_antiga": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case "nome_az": return a.nome_completo.localeCompare(b.nome_completo);
@@ -169,6 +173,11 @@ function LeadsTab({
     });
     return result;
   }, [originFilteredLeads, nomeFilter, sortOrder]);
+
+  const aguardandoCount = useMemo(
+    () => (filteredLeads || []).filter(l => l.status_sdr === "sql_aguardando_humano").length,
+    [filteredLeads],
+  );
 
   return (
     <div className="space-y-4 mt-4">
