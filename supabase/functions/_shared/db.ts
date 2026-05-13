@@ -1,8 +1,12 @@
 // Cliente Supabase (service role) + helpers do CRM B&Z.
 //
-// Trabalha com a tabela `leads_geral` (CRM existente da B&Z) e as
-// tabelas novas do SDR: mensagens_sdr, qualificacoes_sdr, advogados_sdr,
-// eventos_sdr, servicos_sdr.
+// Trabalha com a tabela `leads_geral` (CRM existente da B&Z, schema Meta
+// Lead Ads: full_name, phone_number, contato_whatsapp, created_time,
+// tipo_servico, platform) + colunas SDR adicionadas via migration V3.
+//
+// Estratégia: usar PostgREST aliasing no select para expor nomes
+// "amigáveis" (nome, telefone, ...) ao restante do código do bot,
+// mantendo as colunas reais nos INSERT/UPDATE.
 
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
@@ -17,7 +21,7 @@ export function getSupabaseAdmin(): SupabaseClient {
 export interface Lead {
   id: string;
   nome: string | null;
-  telefone: string;
+  telefone: string | null;
   tipo_de_processo: string | null;
   origem: string | null;
   status_sdr: string;
@@ -31,6 +35,45 @@ export interface Lead {
   origem_sdr: string | null;
 }
 
+// Select com aliases pra normalizar o schema Meta → nomes do bot
+const LEAD_SELECT = `
+  id,
+  nome:full_name,
+  telefone:phone_number,
+  contato_whatsapp,
+  tipo_de_processo:tipo_servico,
+  origem:platform,
+  status_sdr,
+  fluxo_sdr,
+  area_normalizada,
+  score,
+  bot_pausado,
+  etapa_qualificacao,
+  humano_responsavel,
+  ultima_mensagem_em,
+  origem_sdr,
+  created_time
+`;
+
+function normalizeLead(row: any): Lead {
+  return {
+    id: row.id,
+    nome: row.nome ?? null,
+    telefone: row.telefone ?? row.contato_whatsapp ?? null,
+    tipo_de_processo: row.tipo_de_processo ?? null,
+    origem: row.origem ?? row.origem_sdr ?? null,
+    status_sdr: row.status_sdr ?? "novo",
+    fluxo_sdr: row.fluxo_sdr ?? null,
+    area_normalizada: row.area_normalizada ?? null,
+    score: row.score ?? 0,
+    bot_pausado: row.bot_pausado ?? false,
+    etapa_qualificacao: row.etapa_qualificacao ?? "M0",
+    humano_responsavel: row.humano_responsavel ?? null,
+    ultima_mensagem_em: row.ultima_mensagem_em ?? null,
+    origem_sdr: row.origem_sdr ?? null,
+  };
+}
+
 export async function buscarLeadPorTelefone(
   supabase: SupabaseClient,
   telefone: string,
@@ -41,22 +84,23 @@ export async function buscarLeadPorTelefone(
   for (const t of variacoes) {
     const { data } = await supabase
       .from("leads_geral")
-      .select("*")
-      .eq("telefone", t)
-      .order("created_at", { ascending: false })
+      .select(LEAD_SELECT)
+      .or(`phone_number.eq.${t},contato_whatsapp.eq.${t}`)
+      .order("created_time", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (data) return data as Lead;
+    if (data) return normalizeLead(data);
   }
+
   // Fallback: like nos últimos 8 dígitos
   const { data } = await supabase
     .from("leads_geral")
-    .select("*")
-    .like("telefone", `%${ultimos8}`)
-    .order("created_at", { ascending: false })
+    .select(LEAD_SELECT)
+    .or(`phone_number.like.%${ultimos8},contato_whatsapp.like.%${ultimos8}`)
+    .order("created_time", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return (data as Lead) ?? null;
+  return data ? normalizeLead(data) : null;
 }
 
 export async function criarLead(
@@ -69,30 +113,34 @@ export async function criarLead(
     origem_sdr: string;
   },
 ): Promise<Lead | null> {
+  // leads_geral.id é TEXT (formato Meta). Bot gera próprio prefixo.
+  const id = `sdr_${crypto.randomUUID()}`;
   const { data, error } = await supabase
     .from("leads_geral")
     .insert({
-      telefone: args.telefone,
-      nome: args.nome,
-      tipo_de_processo: args.tipo_de_processo ?? null,
-      origem: args.origem ?? args.origem_sdr,
+      id,
+      full_name: args.nome,
+      phone_number: args.telefone,
+      contato_whatsapp: args.telefone,
+      tipo_servico: args.tipo_de_processo ?? null,
+      platform: args.origem ?? "whatsapp",
       origem_sdr: args.origem_sdr,
       status_sdr: "em_atendimento_bot",
       etapa_qualificacao: "M0",
       bot_pausado: false,
+      created_time: new Date().toISOString(),
     })
-    .select("*")
+    .select(LEAD_SELECT)
     .single();
   if (error) {
     console.error("criarLead error:", error);
     return null;
   }
-  return data as Lead;
+  return normalizeLead(data);
 }
 
 /**
  * Cliente = telefone aparece em algum registro da tabela `processos`.
- * Se o relacionamento processos→leads_geral não for via lead_id, ajuste a query.
  */
 export async function ehClienteExistente(
   supabase: SupabaseClient,
