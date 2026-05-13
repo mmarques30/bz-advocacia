@@ -1,48 +1,101 @@
+# Plano — SDR Bot: Webhook por Shared Secret + Adaptação de Schema
 
+Resolve dois problemas de uma vez:
+1. Eliminar dependência do `service_role` no Vault (substituir por shared secret HMAC-style).
+2. Adaptar as Edge Functions ao schema real de `leads_geral` (nomes Meta, não os do bot).
 
-## Diagnóstico
+---
 
-O gráfico "Despesas por Categoria" está vazio porque o hook `useDespesasPJPorCategoria` (em `src/hooks/useVisaoGeralFinanceiro.ts`, linhas 233-256) filtra apenas `categoria_codigo === "pj"`, mas a migration anterior **renomeou** as despesas para códigos contábeis específicos (`aluguel`, `marketing`, `software`, `impostos`, `salarios`, `honorarios`, `telefonia`, `energia`, `outros`). 
+## Parte 1 — Trocar autenticação do trigger (service_role → shared secret)
 
-Distribuição atual em `transacoes_financeiras`:
-- **2026**: 57 despesas, **0 em `pj`** — todas já reclassificadas → gráfico vazio
-- **2025**: 163 despesas em `pj` (não tinham categoria entre parênteses) + 283 em `pf` (despesas pessoais)
+### 1.1 Migration
+- `create extension if not exists pgcrypto;` (se necessário — pg_net já está)
+- Recriar `public.trg_on_new_lead_webhook()`:
+  - Lê secret `sdr_webhook_secret` do `vault.decrypted_secrets` (não mais `sdr_service_role_key`).
+  - Envia `X-Webhook-Secret: <valor>` em vez de `Authorization: Bearer ...`.
+  - Mantém `SECURITY DEFINER` e `search_path = public, vault, net`.
+  - Mantém payload `{type, table, record}`.
+- `update vault.secrets set secret = <gerado> where name = 'sdr_service_role_key'` → renomear para `sdr_webhook_secret` (ou criar novo e deletar o antigo).
+  - Valor: gerado via `gen_random_uuid()::text` direto no SQL (nunca passa pelo chat).
+- Trigger continua `AFTER INSERT ON leads_geral`.
 
-Resultado: no ano 2026 (default da tela), o filtro retorna zero linhas.
+### 1.2 `supabase/config.toml`
+- `[functions.on-new-lead]` → `verify_jwt = false` (passa a ser webhook público autenticado por header).
 
-## Correção
+### 1.3 `supabase/functions/on-new-lead/index.ts`
+- No início do handler:
+  ```ts
+  const expected = Deno.env.get("SDR_WEBHOOK_SECRET");
+  const got = req.headers.get("x-webhook-secret");
+  if (!expected || got !== expected) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  ```
+- Resto da lógica permanece igual.
 
-### 1. `src/hooks/useVisaoGeralFinanceiro.ts` (linhas 233-256)
+### 1.4 Runtime secret
+- Adicionar `SDR_WEBHOOK_SECRET` nos secrets do projeto (mesmo valor gerado e gravado no Vault). Vou solicitar via `add_secret` mostrando o valor gerado pela migration nos logs (ou gerar no client).
+  - **Alternativa mais limpa:** gerar o UUID antes e gravá-lo nos dois lugares (Vault + runtime secret) na mesma migration/turn.
 
-Trocar a estratégia do hook para:
+---
 
-- **Incluir todas as despesas PJ**: aceitar `categoria_codigo IN ('pj', 'aluguel', 'marketing', 'software', 'impostos', 'salarios', 'honorarios', 'telefonia', 'energia', 'outros')` — basicamente, tudo que **não é** `pf` (despesa pessoal das sócias).
-- **Resolver o label**: quando `categoria_codigo` for um código contábil válido, usar `resolveCategoriaLabel(categoria_codigo)` (helper já existente em `src/lib/categoriaDespesa.ts`). Quando for `pj` puro, cair no `extrairCategoriaDaDescricao(descricao)` legado.
-- Manter ordenação por valor desc.
+## Parte 2 — Adaptar Edge Functions ao schema real de `leads_geral`
 
-Pseudocódigo:
-```ts
-const despesasPJ = transacoes.filter(t =>
-  t.tipo_codigo === "despesa" && t.categoria_codigo !== "pf"
-);
-for (const d of despesasPJ) {
-  const cat = (d.categoria_codigo && d.categoria_codigo !== "pj")
-    ? resolveCategoriaLabel(d.categoria_codigo)
-    : extrairCategoriaDaDescricao(d.descricao || "");
-  categorias.set(cat, (categorias.get(cat) || 0) + Number(d.valor));
-}
-```
+Mapa de colunas (esperado pelo bot → real):
+- `nome` → `full_name`
+- `telefone` → `phone_number` (fallback `contato_whatsapp`)
+- `created_at` → `created_time`
+- `tipo_de_processo` → `tipo_servico`
+- `origem` → `platform` (e `origem_sdr` quando bot cria)
 
-### 2. `src/components/financeiro/visao-geral/DespesasPorCategoriaChart.tsx`
+### 2.1 `supabase/functions/_shared/db.ts`
+- Atualizar `type Lead` para usar nomes reais + alias.
+- Em `buscarLeadPorTelefone`: query por `phone_number = X OR contato_whatsapp = X`.
+- Em `criarLead`: gerar `id = 'sdr_' || crypto.randomUUID()`, gravar em `full_name`/`phone_number`/`origem_sdr`/`platform='whatsapp'`, deixar `created_time = now()`.
+- Em `historicoMensagens`, `ehClienteExistente`, `buscarServicosPorArea`, `buscarAdvogadoPorArea`: revisar referências a colunas.
+- Adicionar getters: `lead.nome` retorna `full_name`, `lead.telefone` retorna `phone_number ?? contato_whatsapp`, `lead.tipo_de_processo` retorna `tipo_servico`. Ou refatorar consumidores — escolher a opção menos invasiva (provavelmente getters/normalização no `buscarLeadPorTelefone`).
 
-Ampliar o mapa `COLORS` para cobrir os novos labels que agora vão aparecer ("Software/Licenças", "Honorários de Terceiros", "Telefonia/Internet", "Energia/Água", "Salários/Encargos", "Aluguel e Condomínio"). Usar paleta consistente com tokens de design. Fallback para "Outros" continua.
+### 2.2 Funções consumidoras
+- `whatsapp-inbound/index.ts`, `on-new-lead/index.ts`, `cron-followup/index.ts`, `assumir-conversa/index.ts`, `enviar-msg-humano/index.ts`: garantir que usem o objeto `Lead` normalizado.
+- `on-new-lead`: filtro `lead.origem_sdr === 'whatsapp_direto'` continua válido.
+- `notificarAdvogado` em `whatsapp-inbound`: select usa `full_name, phone_number` em vez de `nome, telefone`.
 
-### 3. Validação
+### 2.3 UPDATEs em `leads_geral`
+- Trocar qualquer `update({ nome, telefone, ... })` por `update({ full_name, phone_number, ... })`.
 
-Após a mudança, no ano 2026 o gráfico deve mostrar 9 categorias (Outros, Software/Licenças, Marketing, Aluguel, Impostos, Salários, Honorários, Telefonia, Energia). No ano 2025 deve mostrar as despesas hoje em `pj` agrupadas por keyword (Cartão de Crédito, Aluguel, etc. via `extrairCategoriaDaDescricao`).
+---
 
-## Áreas tocadas
-- `src/hooks/useVisaoGeralFinanceiro.ts` (1 função)
-- `src/components/financeiro/visao-geral/DespesasPorCategoriaChart.tsx` (mapa COLORS)
-- Sem mudanças de banco, sem mudanças de schema.
+## Parte 3 — Verificação
 
+- Deploy das 5 funções (auto via Lovable Cloud).
+- `curl_edge_functions` em `on-new-lead` sem header → 401.
+- `curl_edge_functions` em `on-new-lead` com header correto + payload fake → 200 e log do `lead_sem_telefone` (ou `skipped`).
+- INSERT de teste em `leads_geral` (após confirmação da Mariana) para validar o trigger ponta-a-ponta.
+
+---
+
+## O que NÃO muda
+
+- Schema de `leads_geral` (mantém colunas Meta, sem alias view).
+- RLS das tabelas SDR.
+- `verify_jwt` das outras 4 funções (`whatsapp-inbound=false`, `cron-followup=false`, `assumir-conversa=true`, `enviar-msg-humano=true`).
+- Secrets já existentes (Z-API, Anthropic, etc.).
+
+---
+
+## Pendências do usuário após implementação
+
+1. Configurar webhook da Z-API → `whatsapp-inbound`.
+2. Cadastrar advogados em `advogados_sdr`.
+3. (Opcional) Trocar `URL_PAGAMENTO_GENERICO` pelo link real de saúde.
+
+---
+
+## Resumo técnico das mudanças de arquivo
+
+- `supabase/migrations/<novo>.sql` — recriar trigger + rotacionar secret no Vault
+- `supabase/config.toml` — `on-new-lead` vira `verify_jwt = false`
+- `supabase/functions/on-new-lead/index.ts` — checagem de `x-webhook-secret`
+- `supabase/functions/_shared/db.ts` — normalização de schema (mapa Meta ↔ bot)
+- Possíveis ajustes pontuais nas 4 outras edge functions se referenciarem campos legados
+- Novo runtime secret: `SDR_WEBHOOK_SECRET`
