@@ -181,6 +181,18 @@ function LeadsTab({
 
   return (
     <div className="space-y-4 mt-4">
+      {aguardandoCount > 0 && (
+        <Card className="p-4 border-orange-300 bg-orange-50 flex items-center gap-3 animate-pulse">
+          <Zap className="h-6 w-6 text-orange-600 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-orange-900">
+              {aguardandoCount} {aguardandoCount === 1 ? "lead aguardando" : "leads aguardando"} você atender agora
+            </p>
+            <p className="text-xs text-orange-800">Bot já qualificou — só falta resposta humana</p>
+          </div>
+        </Card>
+      )}
+
       <LeadsOrganicSummary leads={filteredLeads} loading={isLoading} />
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
