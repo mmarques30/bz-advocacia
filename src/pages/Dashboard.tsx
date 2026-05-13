@@ -1,15 +1,12 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useNavigate } from "react-router-dom";
 import { AlertTriangle, CheckCircle } from "lucide-react";
 
 import { DashboardKPIStripV2 } from "@/components/dashboard/DashboardKPIStripV2";
 import { DashboardSituacaoTarefasCard } from "@/components/dashboard/DashboardSituacaoTarefasCard";
-import { DashboardCargaEquipeCard } from "@/components/dashboard/DashboardCargaEquipeCard";
 import { DashboardPrazosCard } from "@/components/dashboard/DashboardPrazosCard";
 import { DashboardEvolucaoProcessosV2 } from "@/components/dashboard/DashboardEvolucaoProcessosV2";
 import { DashboardPipelineLeadsCard } from "@/components/dashboard/DashboardPipelineLeadsCard";
-import { DashboardAniversariantesCard } from "@/components/dashboard/DashboardAniversariantesCard";
 import { useDashboardPrincipal } from "@/hooks/useDashboardPrincipal";
 import { useDashboardVisual } from "@/hooks/useDashboardVisual";
 import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
@@ -31,8 +28,6 @@ export default function Dashboard() {
   const { data: visual, isLoading: visualLoading } = useDashboardVisual();
   const { data: evolucaoData, isLoading: evolucaoLoading } = useProcessosEvolucao();
   const { data: isAdmin } = useCheckIsAdmin();
-  const navigate = useNavigate();
-
   const userName = profile?.nome_completo || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
   const hoje = new Date();
   const dataFormatada = format(hoje, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -70,13 +65,6 @@ export default function Dashboard() {
       valueColor: tarefasUrgentes > 0 ? "#A32D2D" : undefined,
     },
     {
-      title: "Sem registro",
-      value: data?.semRegistro || 0,
-      subtitle: "Aguardam movimentação",
-      accentColor: "#B8860B",
-      valueColor: (data?.semRegistro || 0) > 0 ? "#B8860B" : undefined,
-    },
-    {
       title: "Leads no mês",
       value: data?.leadsNoMes || 0,
       subtitle: (data?.leadsSemFollowUp || 0) > 0 ? (
@@ -87,19 +75,19 @@ export default function Dashboard() {
       accentColor: "#3B6D11",
     },
     // Receita visivel apenas para admin — call 16/04: equipe nao deve ver.
+    // Non-admin vê Clientes ativos no lugar.
     ...(isAdmin ? [{
       title: "Receita do mês",
       value: receitaFormatada,
       subtitle: "Faturamento acumulado",
       accentColor: "#B8860B",
       valueColor: "#3B6D11",
-    }] : []),
-    {
+    }] : [{
       title: "Clientes ativos",
       value: data?.clientesAtivos || 0,
       subtitle: `+${data?.clientesNovosMes || 0} este mês`,
       accentColor: "#7C3AED",
-    },
+    }]),
   ];
 
   return (
@@ -127,13 +115,12 @@ export default function Dashboard() {
       {/* KPI Strip */}
       <DashboardKPIStripV2 cells={kpiCells} loading={loading} />
 
-      {/* Linha 1: 3 cards */}
-      <div className="grid gap-5 lg:grid-cols-3">
+      {/* Linha 1: Tarefas + Prazos */}
+      <div className="grid gap-5 lg:grid-cols-2">
         <DashboardSituacaoTarefasCard
           data={visual?.tarefas || { urgentes: 0, atrasadas: 0, concluidasSemana: 0, pendentes: 0, totalAtivas: 0 }}
           loading={loading}
         />
-        <DashboardCargaEquipeCard data={visual?.heatmap || []} loading={loading} />
         <DashboardPrazosCard
           prazos={visual?.prazos || { atrasados: 0, hoje: 0, estaSemana: 0, dias30: 0 }}
           proximosPrazos={visual?.proximosPrazos || []}
@@ -141,7 +128,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Linha 2: 2 cards */}
+      {/* Linha 2: Evolução + Pipeline */}
       <div className="grid gap-5 lg:grid-cols-2">
         <DashboardEvolucaoProcessosV2
           data={evolucaoData?.meses || []}
@@ -154,12 +141,6 @@ export default function Dashboard() {
           loading={loading}
         />
       </div>
-
-      {/* Aniversariantes */}
-      <DashboardAniversariantesCard
-        aniversariantes={visual?.aniversariantes || []}
-        loading={loading}
-      />
     </div>
   );
 }
