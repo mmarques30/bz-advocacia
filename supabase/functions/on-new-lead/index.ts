@@ -34,21 +34,19 @@ Deno.serve(async (req) => {
     { auth: { persistSession: false } },
   );
 
-  // --- HMAC validation: secret lido direto do Vault (única fonte de verdade) ---
+  // --- HMAC validation: secret lido direto do Vault via RPC (única fonte) ---
   const got = req.headers.get("x-webhook-secret");
   let expected: string | null = null;
   try {
-    const r = await supabase
-      .schema("vault")
-      .from("decrypted_secrets")
-      .select("decrypted_secret")
-      .eq("name", "sdr_webhook_secret")
-      .maybeSingle();
-    expected = (r.data as { decrypted_secret: string } | null)?.decrypted_secret ?? null;
-  } catch (_) {
+    const { data, error } = await supabase.rpc("get_sdr_webhook_secret");
+    if (error) console.error("[on-new-lead] rpc error:", error);
+    expected = (data as string | null) ?? null;
+  } catch (e) {
+    console.error("[on-new-lead] rpc threw:", e);
     expected = null;
   }
   if (!expected || got !== expected) {
+    console.warn("[on-new-lead] HMAC reject. has_expected=", !!expected, "has_got=", !!got);
     return new Response("Unauthorized", { status: 401 });
   }
 
