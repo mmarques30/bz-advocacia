@@ -104,6 +104,35 @@ Deno.serve(async (req) => {
   const telefone = normalizarTelefone(payload.phone);
 
   // ============================================================
+  // GUARD CRÍTICO: telefone já cadastrado no CRM (contact_submissions)
+  // que NÃO seja espelho de lead do bot (lead_geral_id IS NULL) →
+  // é cliente/lead em atendimento manual. Bot fica completamente fora.
+  // ============================================================
+  {
+    const ultimos8 = telefone.slice(-8);
+    const likeTel = `%${ultimos8}`;
+    const { data: jaTemCRM } = await supabase
+      .from("contact_submissions")
+      .select("id, telefone, whatsapp_id, origem, lead_geral_id, created_at")
+      .or(`telefone.like.${likeTel},whatsapp_id.like.${likeTel}`)
+      .is("lead_geral_id", null)
+      .limit(1)
+      .maybeSingle();
+    if (jaTemCRM) {
+      await registrarEvento(supabase, null, "lead_no_crm_existente_ignorado", {
+        telefone,
+        contact_submission_id: (jaTemCRM as any).id,
+        origem: (jaTemCRM as any).origem,
+        fromMe: !!payload.fromMe,
+      });
+      return new Response(
+        JSON.stringify({ ignored: "lead_no_crm" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+  // ============================================================
   // fromMe=true → humano da B&Z respondeu pelo celular.
   // payload.phone = telefone do LEAD (a outra parte da conversa).
   // Pausa o bot e marca a conversa como assumida por humano.
