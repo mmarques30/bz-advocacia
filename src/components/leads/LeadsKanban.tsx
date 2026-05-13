@@ -178,6 +178,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
                     key={lead.id}
                     lead={lead}
                     onViewDetails={onViewDetails}
+                    onAssumed={onAssumed}
                   />
                 ))}
                 {colLeads.length === 0 && (
