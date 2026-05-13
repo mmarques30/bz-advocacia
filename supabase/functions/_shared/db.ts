@@ -1,4 +1,5 @@
 // Cliente Supabase (service role) usado dentro das Edge Functions.
+// Helpers alinhados ao schema real V4: leads_geral + *_sdr.
 
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
@@ -11,63 +12,81 @@ export function getSupabaseAdmin(): SupabaseClient {
 }
 
 export interface Lead {
-  id: string;
-  nome: string;
-  telefone: string;
-  tipo_de_processo: string | null;
-  origem: string | null;
-  status_sdr: string;
+  id: string;                        // text (sdr_*, fb_*, etc.)
+  full_name: string | null;
+  phone_number: string | null;
+  contato_whatsapp: string | null;
+  tipo_servico: string | null;
+  origem_sdr: string | null;
+  status_sdr: string | null;
   area_normalizada: string | null;
-  score: number;
-  bot_pausado: boolean;
-  etapa_qualificacao: string;
+  score: number | null;
+  bot_pausado: boolean | null;
+  etapa_qualificacao: string | null;
   humano_responsavel: string | null;
   ultima_mensagem_em: string | null;
+}
+
+const LEAD_COLS =
+  "id, full_name, phone_number, contato_whatsapp, tipo_servico, origem_sdr, status_sdr, area_normalizada, score, bot_pausado, etapa_qualificacao, humano_responsavel, ultima_mensagem_em";
+
+export function nomePrimeiro(lead: Pick<Lead, "full_name">): string {
+  return (lead.full_name ?? "").split(" ")[0] || "tudo bem";
+}
+
+export function telefoneDoLead(lead: Pick<Lead, "contato_whatsapp" | "phone_number">): string {
+  return (lead.contato_whatsapp ?? lead.phone_number ?? "").trim();
 }
 
 export async function buscarLeadPorId(
   supabase: SupabaseClient,
   leadId: string,
 ): Promise<Lead | null> {
-  const { data, error } = await supabase
-    .from("leads")
-    .select("*")
+  const { data } = await supabase
+    .from("leads_geral")
+    .select(LEAD_COLS)
     .eq("id", leadId)
-    .single();
-  if (error) return null;
-  return data as Lead;
+    .maybeSingle();
+  return (data as Lead) ?? null;
 }
 
 export async function buscarLeadPorTelefone(
   supabase: SupabaseClient,
   telefone: string,
 ): Promise<Lead | null> {
-  // Tenta primeiro com o telefone completo, depois com variações comuns
   const variacoes = [
     telefone,
     telefone.replace(/^55/, ""),
     "+" + telefone,
   ];
-  for (const tel of variacoes) {
+
+  // Tenta match exato em contato_whatsapp depois phone_number
+  for (const campo of ["contato_whatsapp", "phone_number"] as const) {
+    for (const tel of variacoes) {
+      const { data } = await supabase
+        .from("leads_geral")
+        .select(LEAD_COLS)
+        .eq(campo, tel)
+        .order("created_time", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) return data as Lead;
+    }
+  }
+
+  // Fallback: like nos últimos 8 dígitos em qualquer dos campos
+  const ultimos = telefone.slice(-8);
+  for (const campo of ["contato_whatsapp", "phone_number"] as const) {
     const { data } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("telefone", tel)
-      .order("created_at", { ascending: false })
+      .from("leads_geral")
+      .select(LEAD_COLS)
+      .like(campo, `%${ultimos}`)
+      .order("created_time", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();
     if (data) return data as Lead;
   }
-  // Fallback: like nos últimos 8 dígitos
-  const ultimosDigitos = telefone.slice(-8);
-  const { data } = await supabase
-    .from("leads")
-    .select("*")
-    .like("telefone", `%${ultimosDigitos}`)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return (data as Lead) ?? null;
+  return null;
 }
 
 export async function registrarMensagem(
@@ -77,12 +96,13 @@ export async function registrarMensagem(
   conteudo: string,
   metadata: Record<string, unknown> = {},
 ) {
-  await supabase.from("mensagens").insert({
+  const { error } = await supabase.from("mensagens_sdr").insert({
     lead_id: leadId,
     origem,
     conteudo,
     metadata,
   });
+  if (error) console.error("[registrarMensagem] erro:", error);
 }
 
 export async function registrarEvento(
@@ -91,11 +111,12 @@ export async function registrarEvento(
   tipo: string,
   payload: Record<string, unknown> = {},
 ) {
-  await supabase.from("eventos_bot").insert({
+  const { error } = await supabase.from("eventos_sdr").insert({
     lead_id: leadId,
     tipo,
     payload,
   });
+  if (error) console.error("[registrarEvento] erro:", error);
 }
 
 export async function historicoMensagens(
@@ -104,8 +125,8 @@ export async function historicoMensagens(
   limit = 10,
 ): Promise<{ origem: string; conteudo: string }[]> {
   const { data } = await supabase
-    .from("mensagens")
-    .select("origem, conteudo")
+    .from("mensagens_sdr")
+    .select("origem, conteudo, enviada_em")
     .eq("lead_id", leadId)
     .order("enviada_em", { ascending: false })
     .limit(limit);
@@ -115,13 +136,13 @@ export async function historicoMensagens(
 export async function buscarAdvogadoPorArea(
   supabase: SupabaseClient,
   area: string,
-): Promise<{ id: string; nome: string; email: string; telefone: string | null } | null> {
+): Promise<{ id: string; nome: string; email: string | null; telefone: string | null } | null> {
   const { data } = await supabase
-    .from("advogados")
+    .from("advogados_sdr")
     .select("id, nome, email, telefone, areas")
     .eq("ativo", true)
     .contains("areas", [area])
     .limit(1)
     .maybeSingle();
-  return data as any;
+  return (data as any) ?? null;
 }
