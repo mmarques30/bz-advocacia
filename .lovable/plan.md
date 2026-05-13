@@ -1,42 +1,68 @@
-# Status do setup HMAC (opção C) — já está pronto
+# Testes HMAC + ponta-a-ponta do bot SDR
 
-Tudo o que foi pedido nos passos 1–4 já foi executado no turno anterior. Verificado agora no banco:
+## TESTE 1 — curl no `on-new-lead`
 
-## 1. Vault
-- ✅ `sdr_webhook_secret` existe.
-- ✅ `sdr_service_role_key` foi removido (não aparece mais na lista).
+**1a) Sem header** (esperado: 401)
+```bash
+curl -i -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"type":"INSERT","table":"leads_geral","record":{"id":"test1"}}' \
+  https://nvkxblrwblhvggndlfax.functions.supabase.co/on-new-lead
+```
 
-## 2. Runtime secret da Edge Function
-- ✅ `SDR_WEBHOOK_SECRET` configurado (mesmo valor do Vault).
-- Confirmação de paridade: o valor foi gerado uma vez e gravado nas duas pontas no mesmo turno; nenhum dos lados foi alterado depois.
+**1b) Com header `X-Webhook-Secret`** lendo o valor do Vault via `supabase--read_query` em `vault.decrypted_secrets where name='sdr_webhook_secret'`, depois `curl` com o header. Esperado: 200.
 
-## 3. Trigger `trg_on_new_lead_webhook`
-- ✅ Lê `sdr_webhook_secret` de `vault.decrypted_secrets`.
-- ✅ Envia header `X-Webhook-Secret` (não usa mais `Authorization: Bearer`).
-- ✅ `SECURITY DEFINER`, `search_path = public, vault, net`.
-- ✅ Payload `{type:'INSERT', table:'leads_geral', record: row_to_json(NEW)}`.
+Reporto os dois status codes.
 
-## 4. `supabase/config.toml`
-- ✅ `[functions.on-new-lead] verify_jwt = false`.
-- ✅ `on-new-lead/index.ts` valida `x-webhook-secret` no início → 401 se ausente/divergente.
+## TESTE 2 — Insert real em `leads_geral`
 
-## 5. RLS — confirmado
-| Tabela | Policy | cmd | roles |
-|---|---|---|---|
-| `mensagens_sdr` | `mensagens_sdr_select_auth` | SELECT | `{authenticated}` |
-| `qualificacoes_sdr` | `qualificacoes_sdr_select_auth` | SELECT | `{authenticated}` |
-| `servicos_sdr` | `servicos_sdr_select_auth` | SELECT | `{authenticated}` |
-| `advogados_sdr` | `advogados_sdr_select_auth` | SELECT | `{authenticated}` |
-| `eventos_sdr` | `eventos_sdr_select_admin` | SELECT | `{authenticated}` (filtro admin no USING) |
+**Passo A — cadastrar Time B&Z** (via `supabase--insert`):
+```sql
+insert into public.advogados_sdr (nome, email, telefone, areas)
+values (
+  'Time B&Z',
+  'time@bnz.com.br',
+  '5531990643023',
+  '{saude,inventario,familia,civel,consumidor,trabalhista,previdenciario,geral}'
+);
+```
 
-Observação: as Edge Functions usam service_role e ignoram RLS — essas policies só servem pro frontend listar histórico do bot.
+**Passo B — insert do lead fake** (via `supabase--insert`):
+```sql
+insert into public.leads_geral (
+  id, full_name, phone_number, contato_whatsapp,
+  tipo_servico, platform, lead_status, origem_sdr,
+  created_time
+) values (
+  'sdr_test_' || gen_random_uuid()::text,
+  'Teste Mariana',
+  '5531990643023',
+  '5531990643023',
+  'Saúde',
+  'teste_manual',
+  'Pendente',
+  'manual_test',
+  now()
+);
+```
 
----
+**Passo C — aguardar ~10s e verificar:**
+- `supabase--read_query`:
+  ```sql
+  select origem, conteudo, enviada_em
+  from mensagens_sdr
+  where lead_id like 'sdr_test_%'
+  order by enviada_em;
+  ```
+- `supabase--edge_function_logs` em `on-new-lead` para ver invocação + qualquer erro.
+- `supabase--analytics_query` em `postgres_logs` para erros do trigger `trg_on_new_lead_webhook` no mesmo período.
 
-## Nada a fazer neste turno
+## Entrega
+Devolvo:
+1. Status codes 1a e 1b.
+2. Linhas de `mensagens_sdr` (ou vazio + diagnóstico).
+3. Erros relevantes nos logs (edge + Postgres).
 
-O setup do HMAC está fechado. Se quiser, posso (ainda nesta conversa):
-- Disparar um `curl` no `on-new-lead` sem header pra confirmar 401, e com header pra confirmar 200.
-- Inserir um lead de teste em `leads_geral` pra validar o trigger ponta-a-ponta.
-
-Me avisa qual desses (ou ambos) quer rodar e eu saio do plan mode pra executar.
+## Riscos / observações
+- O `id` "test_fake" do TESTE 1b não existe — o `on-new-lead` vai tentar inserir mensagens com `lead_id` inválido e provavelmente quebrar no log (esperado, foco é o status code da validação HMAC).
+- O insert real dispara Z-API → 2 mensagens reais para `5531990643023`. Confirmar que esse número é o seu antes de aprovar.
