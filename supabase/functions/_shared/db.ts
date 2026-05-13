@@ -158,14 +158,16 @@ function mapPlatformToOrigem(platform: string | null | undefined): string {
 }
 
 function mapStatusSdrToCrm(s: string | null | undefined): { status: string; estagio: string } {
+  // estagio CHECK: novo | contato_inicial | em_analise | proposta_enviada | fechado | perdido
   switch (s) {
     case "perdido":
+      return { status: "fechado", estagio: "perdido" };
     case "mql_frio":
       return { status: "fechado", estagio: "fechado" };
     case "sql_aguardando_humano":
-      return { status: "qualificado", estagio: "qualificado" };
+      return { status: "qualificado", estagio: "em_analise" };
     case "assumido_humano":
-      return { status: "em_andamento", estagio: "em_atendimento" };
+      return { status: "em_andamento", estagio: "contato_inicial" };
     case "em_atendimento_bot":
       return { status: "em_andamento", estagio: "novo" };
     default:
