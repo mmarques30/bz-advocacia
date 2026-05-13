@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadsHeader } from "@/components/leads/LeadsHeader";
 import { ClientesFilters, ClientesFiltersType } from "@/components/clientes/ClientesFilters";
 import { ClientesTable } from "@/components/leads/ClientesTable";
 import { ClientesKanban } from "@/components/clientes/ClientesKanban";
+import { ClientesEventosTab } from "@/components/clientes/ClientesEventosTab";
 import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { ImportLeadsDialog } from "@/components/leads/ImportLeadsDialog";
 import { ImportClientesPlanilhaDialog } from "@/components/leads/ImportClientesPlanilhaDialog";
-import { DashboardAniversariantesCard } from "@/components/dashboard/DashboardAniversariantesCard";
 import { useLeads } from "@/hooks/useLeads";
-import { useAniversariantes } from "@/hooks/useAniversariantes";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadsFilters as LeadsFiltersType, Lead } from "@/types/leads";
 
@@ -26,7 +26,6 @@ export default function Clientes() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leadToEdit, setLeadToEdit] = useState<Lead | null>(null);
 
-  // Filtros específicos para clientes
   const [clientesFilters, setClientesFilters] = useState<ClientesFiltersType>({
     search: "",
     origem: [],
@@ -38,7 +37,6 @@ export default function Clientes() {
     aniversariantes: (searchParams.get("aniversariantes") as 'hoje' | 'semana' | 'mes') || null,
   });
 
-  // Read URL param on mount
   useEffect(() => {
     const needsClean = searchParams.get("semProcesso") === "true" || searchParams.get("aniversariantes");
     if (searchParams.get("semProcesso") === "true") {
@@ -55,10 +53,9 @@ export default function Clientes() {
     }
   }, []);
 
-  // Converter filtros de clientes para o formato esperado pelo hook useLeads
   const leadsFilters: LeadsFiltersType = {
     search: clientesFilters.search,
-    status: ['fechado'], // Sempre filtrar apenas clientes (fechados)
+    status: ['fechado'],
     origem: clientesFilters.origem as any[],
     tipoProcesso: clientesFilters.tipoProcesso,
     dateRange: { start: null, end: null },
@@ -68,9 +65,7 @@ export default function Clientes() {
   };
 
   const { data: leads, isLoading } = useLeads(leadsFilters);
-  const { data: aniversariantes } = useAniversariantes();
 
-  // Fetch lead_ids that have processes (for semProcesso filter)
   const { data: leadIdsComProcesso } = useQuery({
     queryKey: ["lead-ids-com-processo"],
     queryFn: async () => {
@@ -95,7 +90,6 @@ export default function Clientes() {
       const todayDay = today.getDate();
       const todayMonth = today.getMonth() + 1;
       const todayDayOfWeek = today.getDay();
-      // Compute end of week (Sunday)
       const endOfWeek = new Date(today);
       endOfWeek.setDate(today.getDate() + (7 - todayDayOfWeek));
 
@@ -106,7 +100,6 @@ export default function Clientes() {
           return m === todayMonth && d === todayDay;
         }
         if (clientesFilters.aniversariantes === 'semana') {
-          // Create a date in current year for comparison
           const bday = new Date(today.getFullYear(), m - 1, d);
           return bday >= today && bday <= endOfWeek;
         }
@@ -129,16 +122,12 @@ export default function Clientes() {
     clientesFilters.aniversariantes !== null,
   ].filter(Boolean).length;
 
-  const handleViewDetails = (lead: Lead) => {
-    setSelectedLead(lead);
-  };
-
+  const handleViewDetails = (lead: Lead) => setSelectedLead(lead);
   const handleEdit = (lead: Lead) => {
     setLeadToEdit(lead);
     setShowNewLead(true);
     setSelectedLead(null);
   };
-
   const handleCloseNewLead = () => {
     setShowNewLead(false);
     setLeadToEdit(null);
@@ -153,77 +142,45 @@ export default function Clientes() {
         </p>
       </div>
 
-      {aniversariantes && aniversariantes.length > 0 && (
-        <DashboardAniversariantesCard
-          aniversariantes={aniversariantes}
-        />
-      )}
+      <Tabs defaultValue="clientes" className="space-y-5">
+        <TabsList>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="eventos">Eventos</TabsTrigger>
+        </TabsList>
 
-      <LeadsHeader
-        view={view}
-        onViewChange={setView}
-        onOpenFilters={() => setShowFilters(true)}
-        onNewLead={() => {
-          setLeadToEdit(null);
-          setShowNewLead(true);
-        }}
-        onImport={() => setShowImport(true)}
-        onImportPlanilha={() => setShowImportPlanilha(true)}
-        search={clientesFilters.search}
-        onSearchChange={(search) => setClientesFilters({ ...clientesFilters, search })}
-        activeFiltersCount={activeFiltersCount}
-        isClienteTab={true}
-        clienteFilterId={clienteFilterId}
-        onClienteFilterChange={setClienteFilterId}
-      />
+        <TabsContent value="clientes" className="space-y-5">
+          <LeadsHeader
+            view={view}
+            onViewChange={setView}
+            onOpenFilters={() => setShowFilters(true)}
+            onNewLead={() => { setLeadToEdit(null); setShowNewLead(true); }}
+            onImport={() => setShowImport(true)}
+            onImportPlanilha={() => setShowImportPlanilha(true)}
+            search={clientesFilters.search}
+            onSearchChange={(search) => setClientesFilters({ ...clientesFilters, search })}
+            activeFiltersCount={activeFiltersCount}
+            isClienteTab={true}
+            clienteFilterId={clienteFilterId}
+            onClienteFilterChange={setClienteFilterId}
+          />
 
-      {view === 'table' ? (
-        <ClientesTable
-          leads={filteredLeads}
-          isLoading={isLoading}
-          onViewDetails={handleViewDetails}
-          onEdit={handleEdit}
-        />
-      ) : (
-        <ClientesKanban
-          leads={filteredLeads}
-          isLoading={isLoading}
-          onViewDetails={handleViewDetails}
-        />
-      )}
+          {view === 'table' ? (
+            <ClientesTable leads={filteredLeads} isLoading={isLoading} onViewDetails={handleViewDetails} onEdit={handleEdit} />
+          ) : (
+            <ClientesKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={handleViewDetails} />
+          )}
+        </TabsContent>
 
-      <ClientesFilters
-        open={showFilters}
-        onClose={() => setShowFilters(false)}
-        filters={clientesFilters}
-        onFiltersChange={setClientesFilters}
-      />
+        <TabsContent value="eventos">
+          <ClientesEventosTab />
+        </TabsContent>
+      </Tabs>
 
-      <NewLeadDialog
-        open={showNewLead}
-        onClose={handleCloseNewLead}
-        lead={leadToEdit}
-        isCliente={true}
-      />
-
-      <ImportLeadsDialog
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        isCliente={true}
-      />
-
-      <ImportClientesPlanilhaDialog
-        open={showImportPlanilha}
-        onClose={() => setShowImportPlanilha(false)}
-      />
-
-      <LeadDetailsDialog
-        open={selectedLead !== null}
-        onClose={() => setSelectedLead(null)}
-        lead={selectedLead}
-        onEdit={handleEdit}
-        isCliente={true}
-      />
+      <ClientesFilters open={showFilters} onClose={() => setShowFilters(false)} filters={clientesFilters} onFiltersChange={setClientesFilters} />
+      <NewLeadDialog open={showNewLead} onClose={handleCloseNewLead} lead={leadToEdit} isCliente={true} />
+      <ImportLeadsDialog open={showImport} onClose={() => setShowImport(false)} isCliente={true} />
+      <ImportClientesPlanilhaDialog open={showImportPlanilha} onClose={() => setShowImportPlanilha(false)} />
+      <LeadDetailsDialog open={selectedLead !== null} onClose={() => setSelectedLead(null)} lead={selectedLead} onEdit={handleEdit} isCliente={true} />
     </div>
   );
 }
