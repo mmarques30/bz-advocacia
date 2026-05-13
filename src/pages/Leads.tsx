@@ -150,7 +150,7 @@ function LeadsTab({
       }
 
       const { data } = await query;
-      if (data) setNomes([...new Set(data.map(d => d.nome_completo))]);
+      if (data) setNomes([...new Set(data.map(d => d.nome_completo).filter((n): n is string => !!n && n.trim() !== ''))]);
     };
     fetchNomes();
   }, [filterOrigins, excludeOrigins, isAdsTab]);
