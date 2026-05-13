@@ -27,6 +27,7 @@ import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
 import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 interface LeadDetailsDialogProps {
   open: boolean;
