@@ -20,7 +20,8 @@ Deno.serve(async (req) => {
   const supabase = getSupabaseAdmin();
 
   const { data: lead } = await supabase
-    .from("leads_geral").select("id, nome, telefone, status_sdr")
+    .from("leads_geral")
+    .select("id, nome:full_name, telefone:phone_number, contato_whatsapp, status_sdr")
     .eq("id", lead_id).single();
   if (!lead) return new Response("Lead não encontrado", { status: 404 });
 
@@ -35,10 +36,11 @@ Deno.serve(async (req) => {
     status_sdr: "assumido_humano",
   }).eq("id", lead_id);
 
-  if (body.enviar_transicao !== false) {
+  const tel = (lead as any).telefone ?? (lead as any).contato_whatsapp;
+  if (body.enviar_transicao !== false && tel) {
     const txt = body.mensagem_transicao ??
-      `Oi ${lead.nome ?? ""}, aqui é ${adv.nome}. Acabei de assumir a sua conversa pelo nosso time. Vou olhar seu caso com atenção e já te respondo aqui. ✱`;
-    const r = await zapiSendText(lead.telefone, txt);
+      `Oi ${(lead as any).nome ?? ""}, aqui é ${adv.nome}. Acabei de assumir a sua conversa pelo nosso time. Vou olhar seu caso com atenção e já te respondo aqui. ✱`;
+    const r = await zapiSendText(tel, txt);
     await registrarMensagem(supabase, lead_id, "humano", txt, { advogado_id, zapi: r, tipo: "transicao" });
   }
 

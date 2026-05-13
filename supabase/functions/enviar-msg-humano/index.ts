@@ -21,14 +21,19 @@ Deno.serve(async (req) => {
 
   const supabase = getSupabaseAdmin();
   const { data: lead } = await supabase
-    .from("leads_geral").select("id, telefone, bot_pausado").eq("id", lead_id).single();
+    .from("leads_geral")
+    .select("id, telefone:phone_number, contato_whatsapp, bot_pausado")
+    .eq("id", lead_id).single();
   if (!lead) return new Response("Lead não encontrado", { status: 404 });
 
   if (!lead.bot_pausado) {
     await supabase.from("leads_geral").update({ bot_pausado: true }).eq("id", lead_id);
   }
 
-  const r = await zapiSendText(lead.telefone, mensagem);
+  const tel = (lead as any).telefone ?? (lead as any).contato_whatsapp;
+  if (!tel) return new Response("Lead sem telefone", { status: 400 });
+
+  const r = await zapiSendText(tel, mensagem);
   await registrarMensagem(supabase, lead_id, "humano", mensagem, { advogado_id, zapi: r });
   await registrarEvento(supabase, lead_id, "humano_enviou_msg", { advogado_id, ok: r.ok });
 
