@@ -34,9 +34,10 @@ interface LeadDetailsDialogProps {
   lead: Lead | null;
   onEdit: (lead: Lead) => void;
   isCliente?: boolean;
+  initialTab?: string;
 }
 
-export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false }: LeadDetailsDialogProps) {
+export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false, initialTab }: LeadDetailsDialogProps) {
   const diasParado = lead?.dias_parado || 0;
   const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
   const [markingConcluido, setMarkingConcluido] = useState(false);
