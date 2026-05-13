@@ -1,0 +1,2 @@
+UPDATE leads_geral SET area_normalizada='saude', fluxo_sdr='saude' WHERE id IN ('sdr_test_a6462615-d45a-4dcf-8891-491ff2814df9','sdr_test_913b35ef-87fe-414c-a8e4-e3ccde546c12');
+UPDATE contact_submissions cs SET tipo_processo='Saúde' FROM leads_geral lg WHERE cs.lead_geral_id=lg.id AND lg.area_normalizada IN ('saude','medicamentos_de_alto_custo','saúde');

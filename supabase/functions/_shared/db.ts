@@ -142,9 +142,14 @@ export async function criarLeadWhatsApp(
 // =====================================================================
 
 function mapAreaToTipoProcesso(area: string | null | undefined): string {
-  const a = (area ?? "").toLowerCase();
+  const a = (area ?? "").toLowerCase().trim();
   if (a === "saude" || a === "saúde" || a === "medicamentos_de_alto_custo") return "Saúde";
-  if (a === "inventario" || a === "inventário") return "Inventário";
+  if (a === "inventario" || a === "inventário" || a === "sucessoes" || a === "sucessões") return "Inventário";
+  if (a === "familia" || a === "família") return "Família";
+  if (a === "civel" || a === "cível") return "Cível";
+  if (a === "consumidor") return "Consumidor";
+  if (a === "trabalhista") return "Trabalhista";
+  if (a === "previdenciario" || a === "previdenciário") return "Previdenciário";
   return "Outro";
 }
 
