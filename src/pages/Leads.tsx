@@ -268,13 +268,13 @@ function LeadsTab({
         </ToggleGroup>
       </div>
 
-      {view === 'table' ? (
-        <TooltipProvider>
+      <TooltipProvider>
+        {view === 'table' ? (
           <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} enableBulkSelect={isAdsTab} />
-        </TooltipProvider>
-      ) : (
-        <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
-      )}
+        ) : (
+          <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
+        )}
+      </TooltipProvider>
 
       <LeadsFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} filters={filters} onFiltersChange={setFilters} />
       <NewLeadDialog open={newLeadOpen || editLead !== null} onClose={() => { setNewLeadOpen(false); setEditLead(null); }} lead={editLead} />
