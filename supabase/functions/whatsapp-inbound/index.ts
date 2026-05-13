@@ -324,7 +324,7 @@ async function notificarAdvogado(
 
   const { data: lead } = await supabase
     .from("leads_geral")
-    .select("nome, telefone, area_normalizada, fluxo_sdr, score")
+    .select("nome:full_name, telefone:phone_number, contato_whatsapp, area_normalizada, fluxo_sdr, score")
     .eq("id", leadId)
     .single();
 
