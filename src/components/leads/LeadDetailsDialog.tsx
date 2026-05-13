@@ -415,6 +415,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 </TabsContent>
               )}
 
+              {lead.lead_geral_id && (
+                <TabsContent value="conversa-bot" className="mt-4">
+                  <ConversaBot
+                    leadGeralId={lead.lead_geral_id}
+                    status_sdr={lead.status_sdr}
+                    bot_pausado={lead.bot_pausado}
+                  />
+                </TabsContent>
+              )}
+
               <TabsContent value="mensagens" className="mt-4">
                 <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} dataNascimento={lead.data_nascimento} />
               </TabsContent>
