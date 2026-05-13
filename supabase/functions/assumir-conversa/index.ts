@@ -10,6 +10,13 @@ import {
 } from "../_shared/db.ts";
 import { zapiSendText } from "../_shared/zapi.ts";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 interface AssumirPayload {
   lead_id: string;
   advogado_id: string;
@@ -18,10 +25,11 @@ interface AssumirPayload {
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: corsHeaders });
 
   const auth = req.headers.get("Authorization") ?? "";
-  if (!auth.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
+  if (!auth.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
   let payload: AssumirPayload;
   try {
