@@ -27,6 +27,7 @@ import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
 import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 interface LeadDetailsDialogProps {
   open: boolean;
@@ -34,9 +35,10 @@ interface LeadDetailsDialogProps {
   lead: Lead | null;
   onEdit: (lead: Lead) => void;
   isCliente?: boolean;
+  initialTab?: string;
 }
 
-export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false }: LeadDetailsDialogProps) {
+export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false, initialTab }: LeadDetailsDialogProps) {
   const diasParado = lead?.dias_parado || 0;
   const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
   const [markingConcluido, setMarkingConcluido] = useState(false);
@@ -154,9 +156,21 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
     if (city) summaryParts.push(city);
   }
 
+  const hasBot = !!lead?.lead_geral_id;
+  const sideBySide = hasBot;
+  const defaultTab = initialTab || "info";
+
   return (
     <Sheet open={open} onOpenChange={handleDialogClose}>
-      <SheetContent side="right" className="w-full sm:w-[900px] sm:max-w-[900px] overflow-y-auto p-6">
+      <SheetContent
+        side="right"
+        className={cn(
+          "overflow-hidden p-0",
+          sideBySide
+            ? "w-full sm:w-[700px] lg:w-[1200px] sm:max-w-[1200px]"
+            : "w-full sm:w-[900px] sm:max-w-[900px]"
+        )}
+      >
         {lead ? (
           selectedProcessoId ? (
             <ProcessoDetailsInline
@@ -165,7 +179,11 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               clienteNome={lead.nome_completo}
             />
           ) : (
-          <>
+          <div className="flex h-full max-h-screen">
+          <div className={cn(
+            "overflow-y-auto p-6",
+            sideBySide ? "flex-1 lg:w-[420px] lg:flex-none lg:border-r" : "flex-1"
+          )}>
             <SheetHeader className="space-y-1 pr-6">
               <div className="flex items-center gap-3">
                 <SheetTitle className="text-2xl">{lead.nome_completo}</SheetTitle>
@@ -242,7 +260,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </div>
             )}
 
-            <Tabs defaultValue="info" className="mt-4">
+            <Tabs defaultValue={defaultTab} key={`${lead.id}-${defaultTab}`} className="mt-4">
               <TabsList className="flex w-full overflow-x-auto">
                 <TabsTrigger value="info">Informações</TabsTrigger>
                 {isCliente && <TabsTrigger value="processos">Processos</TabsTrigger>}
@@ -260,7 +278,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   </TabsTrigger>
                 )}
                 {lead.lead_geral_id && (
-                  <TabsTrigger value="conversa-bot" className="flex items-center gap-1">
+                  <TabsTrigger value="conversa-bot" className={cn("flex items-center gap-1", sideBySide && "lg:hidden")}>
                     <Bot className="h-3.5 w-3.5" />
                     Conversa Bot
                   </TabsTrigger>
@@ -416,11 +434,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               )}
 
               {lead.lead_geral_id && (
-                <TabsContent value="conversa-bot" className="mt-4">
+                <TabsContent value="conversa-bot" className={cn("mt-4", sideBySide && "lg:hidden")}>
                   <ConversaBot
                     leadGeralId={lead.lead_geral_id}
                     status_sdr={lead.status_sdr}
                     bot_pausado={lead.bot_pausado}
+                    autoFocus={initialTab === "conversa-bot"}
                   />
                 </TabsContent>
               )}
@@ -470,7 +489,29 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 </div>
               </TabsContent>
             </Tabs>
-          </>
+          </div>
+          {sideBySide && lead.lead_geral_id && (
+            <div className="hidden lg:flex flex-1 flex-col bg-muted/10 border-l">
+              <div className="px-4 py-3 border-b bg-background flex items-center gap-2">
+                <Bot className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold truncate">{lead.nome_completo}</span>
+                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-red-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+                  ao vivo
+                </span>
+              </div>
+              <div className="flex-1 min-h-0 p-3">
+                <ConversaBot
+                  leadGeralId={lead.lead_geral_id}
+                  status_sdr={lead.status_sdr}
+                  bot_pausado={lead.bot_pausado}
+                  className="!h-full"
+                  autoFocus={initialTab === "conversa-bot"}
+                />
+              </div>
+            </div>
+          )}
+          </div>
           )
         ) : (
           <div className="py-8 text-center text-muted-foreground">

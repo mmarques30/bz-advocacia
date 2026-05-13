@@ -14,6 +14,7 @@ import { AtenderAgoraButton } from "./AtenderAgoraButton";
 interface LeadCardProps {
   lead: Lead;
   onClick: () => void;
+  onAssumed?: (lead: Lead) => void;
 }
 
 function calcDiasDesdeContato(createdAt: string): number {
@@ -21,7 +22,7 @@ function calcDiasDesdeContato(createdAt: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function LeadCard({ lead, onClick }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onAssumed }: LeadCardProps) {
   const dias = calcDiasDesdeContato(lead.created_at);
   const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
     ? lead.outro_tipo_processo
@@ -92,7 +93,7 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           <LeadBotBadge lead={lead} />
         </div>
         {isHot && (
-          <AtenderAgoraButton lead={lead} className="w-full h-8 text-xs px-2" />
+          <AtenderAgoraButton lead={lead} className="w-full h-8 text-xs px-2" onAssumed={onAssumed} />
         )}
 
         {tipoServico && (

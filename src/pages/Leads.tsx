@@ -92,11 +92,17 @@ function LeadsTab({
   const [filters, setFilters] = useState<FiltersType>(isAdsTab ? adsDefaultFilters : defaultFilters);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
   const [nomes, setNomes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>("mais_recente");
+
+  const handleAssumed = (lead: Lead) => {
+    setInitialTab("conversa-bot");
+    setSelectedLead(lead);
+  };
 
   useEffect(() => {
     const fetchNomes = async () => {
@@ -308,15 +314,21 @@ function LeadsTab({
 
       <TooltipProvider>
         {view === 'table' ? (
-          <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} enableBulkSelect={isAdsTab} />
+          <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} enableBulkSelect={isAdsTab} onAssumed={handleAssumed} />
         ) : (
-          <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
+          <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onAssumed={handleAssumed} />
         )}
       </TooltipProvider>
 
       <LeadsFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} filters={filters} onFiltersChange={setFilters} />
       <NewLeadDialog open={newLeadOpen || editLead !== null} onClose={() => { setNewLeadOpen(false); setEditLead(null); }} lead={editLead} />
-      <LeadDetailsDialog open={selectedLead !== null} onClose={() => setSelectedLead(null)} lead={selectedLead} onEdit={(lead) => { setSelectedLead(null); setEditLead(lead); }} />
+      <LeadDetailsDialog
+        open={selectedLead !== null}
+        onClose={() => { setSelectedLead(null); setInitialTab(undefined); }}
+        lead={selectedLead}
+        initialTab={initialTab}
+        onEdit={(lead) => { setSelectedLead(null); setEditLead(lead); }}
+      />
     </div>
   );
 }

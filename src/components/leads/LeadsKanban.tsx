@@ -41,9 +41,10 @@ interface LeadsKanbanProps {
   leads: Lead[] | undefined;
   isLoading: boolean;
   onViewDetails: (lead: Lead) => void;
+  onAssumed?: (lead: Lead) => void;
 }
 
-function SortableLeadCard({ lead, onViewDetails }: { lead: Lead; onViewDetails: (lead: Lead) => void }) {
+function SortableLeadCard({ lead, onViewDetails, onAssumed }: { lead: Lead; onViewDetails: (lead: Lead) => void; onAssumed?: (lead: Lead) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead.id,
   });
@@ -56,7 +57,7 @@ function SortableLeadCard({ lead, onViewDetails }: { lead: Lead; onViewDetails: 
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LeadCard lead={lead} onClick={() => onViewDetails(lead)} />
+      <LeadCard lead={lead} onClick={() => onViewDetails(lead)} onAssumed={onAssumed} />
     </div>
   );
 }
@@ -84,7 +85,7 @@ const columns: { id: string; titulo: string; color: string }[] = [
   { id: "perdido", titulo: "Perdido", color: "border-t-red-500" },
 ];
 
-export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: LeadsKanbanProps) {
   const updateStage = useUpdateLeadStage();
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
@@ -177,6 +178,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProp
                     key={lead.id}
                     lead={lead}
                     onViewDetails={onViewDetails}
+                    onAssumed={onAssumed}
                   />
                 ))}
                 {colLeads.length === 0 && (

@@ -49,9 +49,10 @@ interface LeadsTableProps {
   onViewDetails: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
   enableBulkSelect?: boolean;
+  onAssumed?: (lead: Lead) => void;
 }
 
-export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulkSelect = false }: LeadsTableProps) {
+export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulkSelect = false, onAssumed }: LeadsTableProps) {
   const updateStage = useUpdateLeadStage();
   const deleteLead = useDeleteLead();
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
@@ -244,7 +245,7 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                   <div className="flex items-center gap-2">
                     <LeadBotBadge lead={lead} />
                     {lead.status_sdr === "sql_aguardando_humano" && (
-                      <AtenderAgoraButton lead={lead} />
+                      <AtenderAgoraButton lead={lead} onAssumed={onAssumed} />
                     )}
                   </div>
                 </TableCell>

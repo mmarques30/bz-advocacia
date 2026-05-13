@@ -8,10 +8,13 @@ interface Props {
   lead: Lead;
   size?: "sm" | "default";
   className?: string;
+  onAssumed?: (lead: Lead) => void;
 }
 
-export function AtenderAgoraButton({ lead, size = "sm", className }: Props) {
-  const assumir = useAssumirLead();
+export function AtenderAgoraButton({ lead, size = "sm", className, onAssumed }: Props) {
+  const assumir = useAssumirLead({
+    onAssumed: () => onAssumed?.(lead),
+  });
   if (lead.status_sdr !== "sql_aguardando_humano") return null;
 
   return (
