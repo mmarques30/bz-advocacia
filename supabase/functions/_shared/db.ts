@@ -174,12 +174,35 @@ export async function buscarAdvogadoPorArea(
   supabase: SupabaseClient,
   area: string,
 ): Promise<{ id: string; nome: string; email: string | null; telefone: string | null } | null> {
-  const { data } = await supabase
+  // Tenta área específica primeiro
+  const tentativas = [area, "geral"].filter((a, i, arr) => a && arr.indexOf(a) === i);
+  for (const a of tentativas) {
+    const { data } = await supabase
+      .from("advogados_sdr")
+      .select("id, nome, email, telefone, areas")
+      .eq("ativo", true)
+      .contains("areas", [a])
+      .limit(1)
+      .maybeSingle();
+    if (data) return data as any;
+  }
+  // Fallback final: qualquer advogado ativo
+  const { data: anyAdv } = await supabase
     .from("advogados_sdr")
     .select("id, nome, email, telefone, areas")
     .eq("ativo", true)
-    .contains("areas", [area])
     .limit(1)
     .maybeSingle();
-  return (data as any) ?? null;
+  return (anyAdv as any) ?? null;
+}
+
+export function fluxoFromArea(area: string | null | undefined): string {
+  const a = (area ?? "").toLowerCase();
+  if (a === "saude" || a === "saúde") return "saude";
+  if (a === "inventario" || a === "inventário") return "inventario";
+  if (["familia","família","civel","cível","consumidor","trabalhista","previdenciario","previdenciário"].includes(a)) {
+    return "qualificacao_geral";
+  }
+  if (!a) return "qualificacao_geral";
+  return "fora_escopo";
 }
