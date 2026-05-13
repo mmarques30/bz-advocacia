@@ -155,9 +155,21 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
     if (city) summaryParts.push(city);
   }
 
+  const hasBot = !!lead?.lead_geral_id;
+  const sideBySide = hasBot;
+  const defaultTab = initialTab || "info";
+
   return (
     <Sheet open={open} onOpenChange={handleDialogClose}>
-      <SheetContent side="right" className="w-full sm:w-[900px] sm:max-w-[900px] overflow-y-auto p-6">
+      <SheetContent
+        side="right"
+        className={cn(
+          "overflow-hidden p-0",
+          sideBySide
+            ? "w-full sm:w-[700px] lg:w-[1200px] sm:max-w-[1200px]"
+            : "w-full sm:w-[900px] sm:max-w-[900px]"
+        )}
+      >
         {lead ? (
           selectedProcessoId ? (
             <ProcessoDetailsInline
