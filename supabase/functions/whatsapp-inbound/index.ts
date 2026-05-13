@@ -61,6 +61,9 @@ Deno.serve(async (req) => {
 
   const supabase = getSupabaseAdmin();
 
+  // Log bruto do payload para debug temporario
+  await registrarEvento(supabase, null, "raw_payload_debug", payload);
+
   // SEMPRE loga o que chegou no endpoint, antes de qualquer filtro.
   await registrarEvento(supabase, null, "webhook_recebido", {
     phone: payload.phone,
