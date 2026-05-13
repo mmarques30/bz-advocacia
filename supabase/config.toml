@@ -71,7 +71,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.on-new-lead]
-verify_jwt = true
+verify_jwt = false
 
 [functions.assumir-conversa]
 verify_jwt = true
