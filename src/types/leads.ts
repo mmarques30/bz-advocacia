@@ -44,7 +44,26 @@ export interface Lead {
   nacionalidade: string | null;
   profissao: string | null;
   data_nascimento: string | null;
+  // Vínculo com o bot SDR (leads_geral)
+  lead_geral_id?: string | null;
+  status_sdr?: string | null;
+  fluxo_sdr?: string | null;
+  area_normalizada?: string | null;
+  score?: number | null;
+  etapa_qualificacao?: string | null;
+  bot_pausado?: boolean | null;
+  ultima_mensagem_em?: string | null;
 }
+
+export type StatusSdr =
+  | 'novo'
+  | 'em_atendimento_bot'
+  | 'sql_aguardando_humano'
+  | 'assumido_humano'
+  | 'agendado'
+  | 'cliente'
+  | 'mql_frio'
+  | 'perdido';
 
 export interface LeadNota {
   id: string;
