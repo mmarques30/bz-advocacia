@@ -8,6 +8,7 @@ import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { LeadBotBadge } from "./LeadBotBadge";
 
 interface LeadCardProps {
   lead: Lead;
