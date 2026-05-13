@@ -86,17 +86,23 @@ export function BacklogLeads() {
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id ?? null;
 
-      // Cria lead em leads_geral
+      // Cria lead em leads_geral (mesma estrutura usada pelo bot)
+      const novoId = `sdr_wa_${Date.now()}_${row.telefone.slice(-6)}`;
       const { data: novoLead, error: errLead } = await supabase
         .from("leads_geral")
         .insert({
-          nome: row.nome ?? "Lead WhatsApp",
-          telefone: row.telefone,
-          origem: "humano_iniciou",
-          plataforma: "whatsapp_organico",
+          id: novoId,
+          full_name: row.nome ?? "Lead WhatsApp",
+          phone_number: row.telefone,
+          contato_whatsapp: row.telefone,
+          platform: "whatsapp_organico",
+          origem_sdr: "humano_iniciou",
           status_sdr: "assumido_humano",
+          etapa_qualificacao: "M0",
+          is_organic: true,
           bot_pausado: true,
           assumido_em: new Date().toISOString(),
+          created_time: new Date().toISOString(),
         })
         .select("id")
         .single();
