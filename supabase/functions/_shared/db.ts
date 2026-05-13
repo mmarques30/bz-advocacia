@@ -77,13 +77,13 @@ export async function buscarLeadPorTelefone(
     }
   }
 
-  // Fallback: like nos últimos 8 dígitos em qualquer dos campos
+  // Fallback: usa coluna gerada telefone_digits (apenas dígitos)
   const ultimos = telefone.replace(/\D/g, "").slice(-8);
-  for (const campo of ["contato_whatsapp", "phone_number"] as const) {
+  {
     const { data } = await supabase
       .from("leads_geral")
       .select(LEAD_COLS)
-      .like(campo, `%${ultimos}`)
+      .like("telefone_digits", `%${ultimos}`)
       .order("created_time", { ascending: false, nullsFirst: false })
       .limit(1)
       .maybeSingle();

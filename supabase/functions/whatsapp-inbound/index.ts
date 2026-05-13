@@ -112,11 +112,10 @@ Deno.serve(async (req) => {
   // ============================================================
   {
     const ultimos8 = telefone.slice(-8);
-    const likeTel = `%${ultimos8}`;
     const { data: csExisting } = await supabase
       .from("contact_submissions")
       .select("id, estagio, status, responsavel_id, ultimo_contato_em, created_at")
-      .or(`telefone.like.${likeTel},whatsapp_id.like.${likeTel}`)
+      .like("telefone_digits", `%${ultimos8}`)
       .is("lead_geral_id", null)
       .order("created_at", { ascending: false })
       .limit(1)
