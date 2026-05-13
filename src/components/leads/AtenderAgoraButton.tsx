@@ -1,0 +1,39 @@
+import { Check, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Lead } from "@/types/leads";
+import { useAssumirLead } from "@/hooks/useAssumirLead";
+import { cn } from "@/lib/utils";
+
+interface Props {
+  lead: Lead;
+  size?: "sm" | "default";
+  className?: string;
+}
+
+export function AtenderAgoraButton({ lead, size = "sm", className }: Props) {
+  const assumir = useAssumirLead();
+  if (lead.status_sdr !== "sql_aguardando_humano") return null;
+
+  return (
+    <Button
+      size={size}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!lead.lead_geral_id) return;
+        assumir.mutate(lead.lead_geral_id);
+      }}
+      disabled={assumir.isPending || !lead.lead_geral_id}
+      className={cn(
+        "bg-green-600 hover:bg-green-700 text-white gap-1.5",
+        className,
+      )}
+    >
+      {assumir.isPending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Check className="h-3.5 w-3.5" />
+      )}
+      Atender agora
+    </Button>
+  );
+}
