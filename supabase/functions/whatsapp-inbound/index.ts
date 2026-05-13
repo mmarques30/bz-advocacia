@@ -13,6 +13,7 @@ import {
   telefoneDoLead,
   buscarAdvogadoPorArea,
   fluxoFromArea,
+  espelharContactSubmission,
   Lead,
 } from "../_shared/db.ts";
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
@@ -169,6 +170,13 @@ Deno.serve(async (req) => {
       telefone,
       time_bz_id: timeBzId,
     });
+
+    // Espelha estado "assumido_humano" no kanban
+    await espelharContactSubmission(
+      supabase,
+      { ...leadFromMe, status_sdr: "assumido_humano" },
+      { platform: "whatsapp_organico", mensagem: "Time B&Z assumiu via celular" },
+    );
 
     return new Response(
       JSON.stringify({ ok: true, acao: "humano_assumiu_via_celular", lead_id: leadFromMe.id }),
@@ -407,6 +415,13 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       bot_pausado: pausarBot ? true : (lead.bot_pausado ?? false),
     })
     .eq("id", lead.id);
+
+  // Espelha o estado atual no kanban (contact_submissions)
+  await espelharContactSubmission(supabase, {
+    ...lead,
+    area_normalizada: r.area,
+    status_sdr: novoStatus,
+  });
 
   // SEMPRE notifica em encerramento (SQL, MQL frio, fora_escopo) — mesmo sem advogado da área
   if (encerramento) {

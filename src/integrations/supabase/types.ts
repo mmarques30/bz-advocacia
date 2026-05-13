@@ -488,6 +488,7 @@ export type Database = {
           estado_civil: string | null
           estagio: string | null
           id: string
+          lead_geral_id: string | null
           lgpd_consent: boolean
           mensagem: string
           nacionalidade: string | null
@@ -540,6 +541,7 @@ export type Database = {
           estado_civil?: string | null
           estagio?: string | null
           id?: string
+          lead_geral_id?: string | null
           lgpd_consent?: boolean
           mensagem: string
           nacionalidade?: string | null
@@ -592,6 +594,7 @@ export type Database = {
           estado_civil?: string | null
           estagio?: string | null
           id?: string
+          lead_geral_id?: string | null
           lgpd_consent?: boolean
           mensagem?: string
           nacionalidade?: string | null
