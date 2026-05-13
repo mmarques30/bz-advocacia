@@ -1,67 +1,69 @@
 // Edge Function: cron-followup
-// Disparada por pg_cron a cada 6h (ou outro intervalo).
-// Reengaja leads em atendimento que não respondem há 24-72h.
+// Disparada pelo pg_cron a cada 6h.
+// Verifica leads em atendimento que não respondem há 24h+ e dispara mensagem de reengajamento.
 
 import { getSupabaseAdmin, registrarEvento, registrarMensagem } from "../_shared/db.ts";
 import { zapiSendText } from "../_shared/zapi.ts";
 
-Deno.serve(async () => {
+Deno.serve(async (_req) => {
   const supabase = getSupabaseAdmin();
-  const agora = new Date();
-  const lim24 = new Date(agora.getTime() - 24 * 3600 * 1000).toISOString();
-  const lim72 = new Date(agora.getTime() - 72 * 3600 * 1000).toISOString();
-  const lim168 = new Date(agora.getTime() - 168 * 3600 * 1000).toISOString();
 
-  // Follow-up 1: 24h-72h
+  // Leads que estão em atendimento, com última mensagem entre 24h-72h atrás
+  const agora = new Date();
+  const limite24 = new Date(agora.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const limite72 = new Date(agora.getTime() - 72 * 60 * 60 * 1000).toISOString();
+
   const { data: leads24 } = await supabase
-    .from("leads_geral")
+    .from("leads")
     .select("id, nome, telefone, ultima_mensagem_em, etapa_qualificacao")
     .eq("status_sdr", "em_atendimento_bot")
     .eq("bot_pausado", false)
-    .lt("ultima_mensagem_em", lim24)
-    .gt("ultima_mensagem_em", lim72);
+    .lt("ultima_mensagem_em", limite24)
+    .gt("ultima_mensagem_em", limite72);
 
-  let fu1 = 0;
-  for (const l of leads24 ?? []) {
+  const fu1Total = (leads24 ?? []).length;
+  for (const lead of leads24 ?? []) {
     const msg =
-`Oi ${l.nome ?? ""}, passando aqui rapidinho 🤓
+`Oi ${lead.nome}, passando aqui rapidinho 🤓
 
-Vi que começamos uma conversa ontem mas não finalizamos. Se quiser, é só continuar de onde parou — estou aqui.
+Vi que começamos uma conversa ontem mas não conseguimos terminar. Se quiser, é só continuar de onde parou — estou aqui.
 
 Caso tenha resolvido por outro caminho, sem problema, é só me avisar.`;
-    const r = await zapiSendText(l.telefone, msg);
-    await registrarMensagem(supabase, l.id, "bot", msg, { tipo: "followup_24h", zapi: r });
-    await registrarEvento(supabase, l.id, "followup_24h_enviado", { ok: r.ok });
-    fu1++;
+    const r = await zapiSendText(lead.telefone, msg);
+    await registrarMensagem(supabase, lead.id, "bot", msg, { tipo: "followup_24h", zapi: r });
+    await registrarEvento(supabase, lead.id, "followup_24h_enviado", { ok: r.ok });
   }
 
-  // Follow-up 2: 72h-168h, depois marca como perdido
+  // Leads com última mensagem entre 72h e 168h (1 semana) — último contato
+  const limite168 = new Date(agora.getTime() - 168 * 60 * 60 * 1000).toISOString();
   const { data: leads72 } = await supabase
-    .from("leads_geral")
-    .select("id, nome, telefone")
+    .from("leads")
+    .select("id, nome, telefone, ultima_mensagem_em")
     .eq("status_sdr", "em_atendimento_bot")
     .eq("bot_pausado", false)
-    .lt("ultima_mensagem_em", lim72)
-    .gt("ultima_mensagem_em", lim168);
+    .lt("ultima_mensagem_em", limite72)
+    .gt("ultima_mensagem_em", limite168);
 
-  let fu2 = 0;
-  for (const l of leads72 ?? []) {
+  const fu2Total = (leads72 ?? []).length;
+  for (const lead of leads72 ?? []) {
     const msg =
-`${l.nome ?? ""}, último contato pra não te incomodar mais.
+`${lead.nome}, último contato pra não te incomodar mais.
 
-Se ainda quiser conversar com um advogado, basta responder qualquer coisa aqui. Se preferir buscar outra solução, fica tudo certo entre a gente.
+Se ainda quiser conversar com um advogado, basta responder qualquer coisa aqui que eu retomo. Se preferir buscar outra solução, fica tudo certo entre a gente.
 
 Boa semana ✱`;
-    const r = await zapiSendText(l.telefone, msg);
-    await registrarMensagem(supabase, l.id, "bot", msg, { tipo: "followup_72h", zapi: r });
-    await registrarEvento(supabase, l.id, "followup_72h_enviado", { ok: r.ok });
-    await supabase.from("leads_geral").update({
-      status_sdr: "perdido", etapa_qualificacao: "finalizado",
-    }).eq("id", l.id);
-    fu2++;
+    const r = await zapiSendText(lead.telefone, msg);
+    await registrarMensagem(supabase, lead.id, "bot", msg, { tipo: "followup_72h", zapi: r });
+    await registrarEvento(supabase, lead.id, "followup_72h_enviado", { ok: r.ok });
+    // Marca como perdido depois desse último follow-up
+    await supabase
+      .from("leads")
+      .update({ status_sdr: "perdido", etapa_qualificacao: "finalizado" })
+      .eq("id", lead.id);
   }
 
-  return new Response(JSON.stringify({ ok: true, fu1, fu2 }), {
-    status: 200, headers: { "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({ ok: true, followup_24h: fu1Total, followup_72h: fu2Total }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
 });
