@@ -240,6 +240,9 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                   </div>
                 </TableCell>
                 <TableCell>
+                  <LeadBotBadge lead={lead} />
+                </TableCell>
+                <TableCell>
                   <div className="flex items-center gap-1.5">
                     <Badge variant="outline" className={getOrigemBadgeColor(lead.origem)}>
                       {ORIGEM_LABELS[lead.origem] || lead.origem}
