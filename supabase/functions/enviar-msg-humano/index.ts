@@ -1,8 +1,12 @@
 // Edge Function: enviar-msg-humano
-// Chamada pelo painel Lovable quando o advogado digita uma mensagem
-// na tela de conversa e clica "Enviar". Despacha via Z-API e registra.
+// Painel chama quando o advogado envia mensagem manual.
 
-import { getSupabaseAdmin, registrarEvento, registrarMensagem } from "../_shared/db.ts";
+import {
+  getSupabaseAdmin,
+  registrarEvento,
+  registrarMensagem,
+  telefoneDoLead,
+} from "../_shared/db.ts";
 import { zapiSendText } from "../_shared/zapi.ts";
 
 interface EnviarPayload {
@@ -32,18 +36,20 @@ Deno.serve(async (req) => {
   const supabase = getSupabaseAdmin();
 
   const { data: lead } = await supabase
-    .from("leads")
-    .select("id, telefone, humano_responsavel, bot_pausado")
+    .from("leads_geral")
+    .select("id, phone_number, contato_whatsapp, humano_responsavel, bot_pausado")
     .eq("id", lead_id)
-    .single();
+    .maybeSingle();
   if (!lead) return new Response("Lead não encontrado", { status: 404 });
 
-  // Garante que o bot está pausado pra esse lead
   if (!lead.bot_pausado) {
-    await supabase.from("leads").update({ bot_pausado: true }).eq("id", lead_id);
+    await supabase.from("leads_geral").update({ bot_pausado: true }).eq("id", lead_id);
   }
 
-  const resultado = await zapiSendText(lead.telefone, mensagem);
+  const tel = telefoneDoLead(lead as any);
+  if (!tel) return new Response("Lead sem telefone", { status: 400 });
+
+  const resultado = await zapiSendText(tel, mensagem);
 
   await registrarMensagem(supabase, lead_id, "humano", mensagem, {
     advogado_id,

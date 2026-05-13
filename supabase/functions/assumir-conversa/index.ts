@@ -1,8 +1,13 @@
 // Edge Function: assumir-conversa
-// Chamada pelo painel Lovable quando o advogado clica em "Assumir conversa".
-// Marca o lead como assumido, pausa o bot e (opcional) envia uma transição pro lead.
+// Painel chama quando o advogado clica "Assumir conversa".
 
-import { getSupabaseAdmin, registrarEvento, registrarMensagem } from "../_shared/db.ts";
+import {
+  getSupabaseAdmin,
+  nomePrimeiro,
+  registrarEvento,
+  registrarMensagem,
+  telefoneDoLead,
+} from "../_shared/db.ts";
 import { zapiSendText } from "../_shared/zapi.ts";
 
 interface AssumirPayload {
@@ -15,7 +20,6 @@ interface AssumirPayload {
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-  // Validação simples por header — o painel Lovable passa anon key + jwt do user.
   const auth = req.headers.get("Authorization") ?? "";
   if (!auth.startsWith("Bearer ")) return new Response("Unauthorized", { status: 401 });
 
@@ -27,26 +31,28 @@ Deno.serve(async (req) => {
   }
 
   const { lead_id, advogado_id } = payload;
-  if (!lead_id || !advogado_id) return new Response("lead_id e advogado_id obrigatórios", { status: 400 });
+  if (!lead_id || !advogado_id) {
+    return new Response("lead_id e advogado_id obrigatórios", { status: 400 });
+  }
 
   const supabase = getSupabaseAdmin();
 
   const { data: lead } = await supabase
-    .from("leads")
-    .select("id, nome, telefone, status_sdr")
+    .from("leads_geral")
+    .select("id, full_name, phone_number, contato_whatsapp, status_sdr")
     .eq("id", lead_id)
-    .single();
+    .maybeSingle();
   if (!lead) return new Response("Lead não encontrado", { status: 404 });
 
   const { data: adv } = await supabase
-    .from("advogados")
+    .from("advogados_sdr")
     .select("id, nome")
     .eq("id", advogado_id)
-    .single();
+    .maybeSingle();
   if (!adv) return new Response("Advogado não encontrado", { status: 404 });
 
   await supabase
-    .from("leads")
+    .from("leads_geral")
     .update({
       humano_responsavel: advogado_id,
       assumido_em: new Date().toISOString(),
@@ -55,11 +61,11 @@ Deno.serve(async (req) => {
     })
     .eq("id", lead_id);
 
-  // Envia mensagem de transição opcional (recomendado)
   if (payload.enviar_transicao !== false) {
+    const tel = telefoneDoLead(lead as any);
     const texto = payload.mensagem_transicao ??
-      `Oi ${lead.nome}, aqui é ${adv.nome}. Acabei de assumir a sua conversa pelo nosso time. Vou olhar seu caso com atenção e já te respondo aqui. ✱`;
-    const resultado = await zapiSendText(lead.telefone, texto);
+      `Oi ${nomePrimeiro(lead as any)}, aqui é ${adv.nome}. Acabei de assumir a sua conversa pelo nosso time. Vou olhar seu caso com atenção e já te respondo aqui. ✱`;
+    const resultado = tel ? await zapiSendText(tel, texto) : { ok: false, status: 0 };
     await registrarMensagem(supabase, lead_id, "humano", texto, {
       advogado_id,
       zapi: resultado,
@@ -67,9 +73,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  await registrarEvento(supabase, lead_id, "advogado_assumiu", {
-    advogado_id,
-  });
+  await registrarEvento(supabase, lead_id, "advogado_assumiu", { advogado_id });
 
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
