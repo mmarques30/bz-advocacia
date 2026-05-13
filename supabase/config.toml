@@ -60,3 +60,21 @@ verify_jwt = true
 # -------------------------------------------------------------------
 [functions.whatsapp-send]
 verify_jwt = true
+
+# -------------------------------------------------------------------
+# SDR Bot (V3) — porteiro WhatsApp da B&Z
+# -------------------------------------------------------------------
+[functions.whatsapp-inbound]
+verify_jwt = false
+
+[functions.cron-followup]
+verify_jwt = false
+
+[functions.on-new-lead]
+verify_jwt = true
+
+[functions.assumir-conversa]
+verify_jwt = true
+
+[functions.enviar-msg-humano]
+verify_jwt = true

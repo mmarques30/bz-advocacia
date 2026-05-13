@@ -77,6 +77,36 @@ export type Database = {
           },
         ]
       }
+      advogados_sdr: {
+        Row: {
+          areas: string[]
+          ativo: boolean
+          created_at: string | null
+          email: string | null
+          id: string
+          nome: string
+          telefone: string | null
+        }
+        Insert: {
+          areas?: string[]
+          ativo?: boolean
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+        }
+        Update: {
+          areas?: string[]
+          ativo?: boolean
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+        }
+        Relationships: []
+      }
       apify_config: {
         Row: {
           actor_id: string | null
@@ -1018,6 +1048,45 @@ export type Database = {
           },
         ]
       }
+      eventos_sdr: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          payload: Json | null
+          tipo: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          payload?: Json | null
+          tipo: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          payload?: Json | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_sdr_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_geral"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_sdr_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_ativos"
+            referencedColumns: ["lead_id"]
+          },
+        ]
+      }
       financeiro: {
         Row: {
           created_at: string | null
@@ -1300,25 +1369,37 @@ export type Database = {
           ad_name: string | null
           adset_id: string | null
           adset_name: string | null
+          area_normalizada: string | null
+          assumido_em: string | null
           bem_inventariar: string | null
+          bot_pausado: boolean | null
+          call_agendada_em: string | null
           campaign_id: string | null
           campaign_name: string | null
           contato_whatsapp: string | null
           created_time: string | null
+          etapa_qualificacao: string | null
+          fluxo_sdr: string | null
           form_id: string | null
           form_name: string | null
           full_name: string | null
+          humano_responsavel: string | null
           id: string
           is_converted: boolean | null
           is_organic: boolean | null
           is_qualified: boolean | null
           is_quality: boolean | null
           lead_status: string | null
+          motivo_qualificacao: string | null
           observacoes: string | null
+          origem_sdr: string | null
           phone_number: string | null
           platform: string | null
           preferencia_contato: string | null
+          score: number | null
+          status_sdr: string | null
           tipo_servico: string | null
+          ultima_mensagem_em: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1326,25 +1407,37 @@ export type Database = {
           ad_name?: string | null
           adset_id?: string | null
           adset_name?: string | null
+          area_normalizada?: string | null
+          assumido_em?: string | null
           bem_inventariar?: string | null
+          bot_pausado?: boolean | null
+          call_agendada_em?: string | null
           campaign_id?: string | null
           campaign_name?: string | null
           contato_whatsapp?: string | null
           created_time?: string | null
+          etapa_qualificacao?: string | null
+          fluxo_sdr?: string | null
           form_id?: string | null
           form_name?: string | null
           full_name?: string | null
+          humano_responsavel?: string | null
           id: string
           is_converted?: boolean | null
           is_organic?: boolean | null
           is_qualified?: boolean | null
           is_quality?: boolean | null
           lead_status?: string | null
+          motivo_qualificacao?: string | null
           observacoes?: string | null
+          origem_sdr?: string | null
           phone_number?: string | null
           platform?: string | null
           preferencia_contato?: string | null
+          score?: number | null
+          status_sdr?: string | null
           tipo_servico?: string | null
+          ultima_mensagem_em?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1352,28 +1445,48 @@ export type Database = {
           ad_name?: string | null
           adset_id?: string | null
           adset_name?: string | null
+          area_normalizada?: string | null
+          assumido_em?: string | null
           bem_inventariar?: string | null
+          bot_pausado?: boolean | null
+          call_agendada_em?: string | null
           campaign_id?: string | null
           campaign_name?: string | null
           contato_whatsapp?: string | null
           created_time?: string | null
+          etapa_qualificacao?: string | null
+          fluxo_sdr?: string | null
           form_id?: string | null
           form_name?: string | null
           full_name?: string | null
+          humano_responsavel?: string | null
           id?: string
           is_converted?: boolean | null
           is_organic?: boolean | null
           is_qualified?: boolean | null
           is_quality?: boolean | null
           lead_status?: string | null
+          motivo_qualificacao?: string | null
           observacoes?: string | null
+          origem_sdr?: string | null
           phone_number?: string | null
           platform?: string | null
           preferencia_contato?: string | null
+          score?: number | null
+          status_sdr?: string | null
           tipo_servico?: string | null
+          ultima_mensagem_em?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_geral_humano_responsavel_fkey"
+            columns: ["humano_responsavel"]
+            isOneToOne: false
+            referencedRelation: "advogados_sdr"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads_status_overrides: {
         Row: {
@@ -1464,6 +1577,48 @@ export type Database = {
           titulo?: string
         }
         Relationships: []
+      }
+      mensagens_sdr: {
+        Row: {
+          conteudo: string
+          enviada_em: string | null
+          id: string
+          lead_id: string
+          metadata: Json | null
+          origem: string
+        }
+        Insert: {
+          conteudo: string
+          enviada_em?: string | null
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+          origem: string
+        }
+        Update: {
+          conteudo?: string
+          enviada_em?: string | null
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+          origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mensagens_sdr_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_geral"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_sdr_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_ativos"
+            referencedColumns: ["lead_id"]
+          },
+        ]
       }
       meta_campanhas: {
         Row: {
@@ -2194,6 +2349,51 @@ export type Database = {
         }
         Relationships: []
       }
+      qualificacoes_sdr: {
+        Row: {
+          created_at: string | null
+          id: string
+          lead_id: string
+          pergunta_codigo: string
+          pergunta_texto: string
+          resposta_estruturada: Json | null
+          resposta_texto: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lead_id: string
+          pergunta_codigo: string
+          pergunta_texto: string
+          resposta_estruturada?: Json | null
+          resposta_texto?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lead_id?: string
+          pergunta_codigo?: string
+          pergunta_texto?: string
+          resposta_estruturada?: Json | null
+          resposta_texto?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualificacoes_sdr_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads_geral"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qualificacoes_sdr_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_ativos"
+            referencedColumns: ["lead_id"]
+          },
+        ]
+      }
       relatorios_compartilhados: {
         Row: {
           cliente_id: string
@@ -2417,6 +2617,56 @@ export type Database = {
           usuario?: string | null
         }
         Relationships: []
+      }
+      servicos_sdr: {
+        Row: {
+          advogado_id: string | null
+          area_codigo: string
+          area_nome: string
+          ativo: boolean | null
+          created_at: string | null
+          fluxo: string
+          id: string
+          link_pagamento: string | null
+          modalidade_honorarios: string | null
+          servico: string
+          valor_consulta: number | null
+        }
+        Insert: {
+          advogado_id?: string | null
+          area_codigo: string
+          area_nome: string
+          ativo?: boolean | null
+          created_at?: string | null
+          fluxo: string
+          id?: string
+          link_pagamento?: string | null
+          modalidade_honorarios?: string | null
+          servico: string
+          valor_consulta?: number | null
+        }
+        Update: {
+          advogado_id?: string | null
+          area_codigo?: string
+          area_nome?: string
+          ativo?: boolean | null
+          created_at?: string | null
+          fluxo?: string
+          id?: string
+          link_pagamento?: string | null
+          modalidade_honorarios?: string | null
+          servico?: string
+          valor_consulta?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "servicos_sdr_advogado_id_fkey"
+            columns: ["advogado_id"]
+            isOneToOne: false
+            referencedRelation: "advogados_sdr"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sheet_leads_raw: {
         Row: {
@@ -3278,6 +3528,14 @@ export type Database = {
           raw_nome: string | null
           raw_telefone: string | null
           tipo_divergencia: string | null
+        }
+        Relationships: []
+      }
+      vw_clientes_ativos: {
+        Row: {
+          lead_id: string | null
+          nome: string | null
+          telefone: string | null
         }
         Relationships: []
       }
