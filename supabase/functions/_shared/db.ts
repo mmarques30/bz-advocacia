@@ -115,6 +115,7 @@ export async function criarLeadWhatsApp(
       origem_sdr: input.origem,
       status_sdr: "novo",
       etapa_qualificacao: "M0",
+      is_organic: !input.platform.endsWith("_ads"),
       created_time: new Date().toISOString(),
     })
     .select(LEAD_COLS)
@@ -123,7 +124,133 @@ export async function criarLeadWhatsApp(
     console.error("[criarLeadWhatsApp] erro:", error);
     return null;
   }
+  // Espelha imediatamente em contact_submissions pra aparecer no kanban.
+  if (data) {
+    await espelharContactSubmission(supabase, data as Lead, {
+      platform: input.platform,
+      mensagem: `Lead criado via WhatsApp Bot SDR (${input.origem})`,
+    });
+  }
   return (data as Lead) ?? null;
+}
+
+// =====================================================================
+// Espelhamento leads_geral → contact_submissions
+// O kanban (/dashboard/leads) lê APENAS de contact_submissions.
+// Mantemos 1 registro contact_submissions por lead_geral, ligados por
+// contact_submissions.lead_geral_id (UNIQUE).
+// =====================================================================
+
+function mapAreaToTipoProcesso(area: string | null | undefined): string {
+  const a = (area ?? "").toLowerCase();
+  if (a === "saude" || a === "saúde" || a === "medicamentos_de_alto_custo") return "Saúde";
+  if (a === "inventario" || a === "inventário") return "Inventário";
+  return "Outro";
+}
+
+function mapPlatformToOrigem(platform: string | null | undefined): string {
+  const p = (platform ?? "").toLowerCase();
+  if (p === "instagram_ads") return "instagram";
+  if (p === "facebook_ads") return "facebook";
+  if (p === "meta_ads") return "meta";
+  // whatsapp_organico, teste_manual, humano_iniciou etc. → cai em "Orgânicos"
+  return "whatsapp_organico";
+}
+
+function mapStatusSdrToCrm(s: string | null | undefined): { status: string; estagio: string } {
+  switch (s) {
+    case "perdido":
+    case "mql_frio":
+      return { status: "fechado", estagio: "fechado" };
+    case "sql_aguardando_humano":
+      return { status: "qualificado", estagio: "qualificado" };
+    case "assumido_humano":
+      return { status: "em_andamento", estagio: "em_atendimento" };
+    case "em_atendimento_bot":
+      return { status: "em_andamento", estagio: "novo" };
+    default:
+      return { status: "novo", estagio: "novo" };
+  }
+}
+
+export async function espelharContactSubmission(
+  supabase: SupabaseClient,
+  lead: Pick<Lead,
+    "id" | "full_name" | "phone_number" | "contato_whatsapp"
+    | "area_normalizada" | "tipo_servico" | "status_sdr"
+  > & { platform?: string | null },
+  opts: { platform?: string; mensagem?: string } = {},
+): Promise<void> {
+  const telefone = (lead.contato_whatsapp ?? lead.phone_number ?? "").trim();
+  if (!telefone) return;
+
+  const platform = opts.platform ?? lead.platform ?? "whatsapp_organico";
+  const tipo_processo = mapAreaToTipoProcesso(lead.area_normalizada ?? lead.tipo_servico);
+  const origem = mapPlatformToOrigem(platform);
+  const { status, estagio } = mapStatusSdrToCrm(lead.status_sdr);
+  const agora = new Date().toISOString();
+
+  // 1) Já vinculado? só atualiza campos relevantes ao kanban.
+  const { data: ligado } = await supabase
+    .from("contact_submissions")
+    .select("id")
+    .eq("lead_geral_id", lead.id)
+    .maybeSingle();
+
+  if (ligado) {
+    await supabase
+      .from("contact_submissions")
+      .update({
+        nome_completo: lead.full_name ?? "Lead WhatsApp",
+        telefone,
+        tipo_processo,
+        origem,
+        status,
+        estagio,
+        data_ultima_atividade: agora,
+        ultimo_contato_em: agora,
+      })
+      .eq("id", (ligado as any).id);
+    return;
+  }
+
+  // 2) Existe um contact_submissions com mesmo telefone sem vínculo?
+  //    Apenas linka — preserva tudo do registro original (não sobrescreve).
+  const { data: porTelefone } = await supabase
+    .from("contact_submissions")
+    .select("id")
+    .eq("telefone", telefone)
+    .is("lead_geral_id", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (porTelefone) {
+    await supabase
+      .from("contact_submissions")
+      .update({ lead_geral_id: lead.id, ultimo_contato_em: agora })
+      .eq("id", (porTelefone as any).id);
+    return;
+  }
+
+  // 3) Cria novo registro espelho.
+  const { error } = await supabase.from("contact_submissions").insert({
+    nome_completo: lead.full_name ?? "Lead WhatsApp",
+    telefone,
+    email: "",
+    tipo_processo,
+    como_conheceu: "bot",
+    mensagem: opts.mensagem ?? "Lead criado via WhatsApp Bot SDR",
+    lgpd_consent: true,
+    origem,
+    estagio,
+    status,
+    lead_geral_id: lead.id,
+    whatsapp_id: telefone,
+    primeiro_contato_em: agora,
+    ultimo_contato_em: agora,
+  });
+  if (error) console.error("[espelharContactSubmission] insert erro:", error);
 }
 
 export async function registrarMensagem(
