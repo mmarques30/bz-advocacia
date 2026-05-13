@@ -88,8 +88,9 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           )}
         </div>
 
-        <div className="flex">
+        <div className="flex items-center justify-between gap-2">
           <LeadBotBadge lead={lead} />
+          {isHot && <AtenderAgoraButton lead={lead} />}
         </div>
 
         {tipoServico && (
