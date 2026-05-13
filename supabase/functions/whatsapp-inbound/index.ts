@@ -213,11 +213,12 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
 
   const r = classificacao.data;
 
-  // Atualiza área normalizada e score
+  // Atualiza área normalizada, fluxo e score
   await supabase
     .from("leads_geral")
     .update({
       area_normalizada: r.area,
+      fluxo_sdr: fluxoFromArea(r.area),
       score: r.score,
       motivo_qualificacao: r.motivo,
     })
