@@ -87,6 +87,10 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
           )}
         </div>
 
+        <div className="flex">
+          <LeadBotBadge lead={lead} />
+        </div>
+
         {tipoServico && (
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Briefcase className="h-3 w-3 flex-shrink-0" />
