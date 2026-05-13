@@ -1,0 +1,1 @@
+grant execute on function public.get_sdr_webhook_secret() to service_role;
