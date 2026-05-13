@@ -3541,6 +3541,7 @@ export type Database = {
       }
     }
     Functions: {
+      get_sdr_webhook_secret: { Args: never; Returns: string }
       has_page_access: {
         Args: { _page_key: string; _user_id: string }
         Returns: boolean
