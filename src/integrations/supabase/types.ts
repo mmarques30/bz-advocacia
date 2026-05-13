@@ -1415,6 +1415,57 @@ export type Database = {
           },
         ]
       }
+      leads_backlog: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          id: string
+          lead_geral_id: string | null
+          nome: string | null
+          origem: string
+          payload: Json | null
+          primeira_mensagem: string | null
+          rejeitado_motivo: string | null
+          status: string
+          telefone: string
+          telefone_raw: string | null
+          updated_at: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          lead_geral_id?: string | null
+          nome?: string | null
+          origem?: string
+          payload?: Json | null
+          primeira_mensagem?: string | null
+          rejeitado_motivo?: string | null
+          status?: string
+          telefone: string
+          telefone_raw?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          id?: string
+          lead_geral_id?: string | null
+          nome?: string | null
+          origem?: string
+          payload?: Json | null
+          primeira_mensagem?: string | null
+          rejeitado_motivo?: string | null
+          status?: string
+          telefone?: string
+          telefone_raw?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads_geral: {
         Row: {
           ad_id: string | null
