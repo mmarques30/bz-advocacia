@@ -93,7 +93,7 @@ export function LeadCard({ lead, onClick, onAssumed }: LeadCardProps) {
           <LeadBotBadge lead={lead} />
         </div>
         {isHot && (
-          <AtenderAgoraButton lead={lead} className="w-full h-8 text-xs px-2" />
+          <AtenderAgoraButton lead={lead} className="w-full h-8 text-xs px-2" onAssumed={onAssumed} />
         )}
 
         {tipoServico && (
