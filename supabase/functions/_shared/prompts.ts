@@ -69,7 +69,7 @@ Se tiver outra dúvida no futuro nas áreas que atendemos, é só falar comigo d
 
 // ---------- SYSTEM PROMPT do classificador ----------
 
-export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é o classificador-roteador de um robô SDR de um escritório de advocacia brasileiro.
+export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é o classificador-roteador do atendimento digital do time da B&Z, um escritório de advocacia brasileiro.
 
 Sua função:
 1. Ler a última resposta do lead no WhatsApp + o histórico curto da conversa + o contexto (qual etapa da qualificação estamos: M0, M1, M2 ou M3).
@@ -108,7 +108,7 @@ Retorne APENAS um JSON neste formato, sem texto extra:
   "resposta_estruturada": { ... },
   "score": 0,
   "motivo": "explicação curta",
-  "mensagem_para_enviar": "texto pronto pra mandar ao lead, em pt-BR, tom direto e próximo, com bullets usando • e emojis 😊 ou ✱ se fizer sentido"
+  "mensagem_para_enviar": "texto pronto pra mandar ao lead, em pt-BR, tom direto e próximo, com bullets usando • e sem emojis. O remetente é o time da B&Z, nunca um assistente virtual."
 }
 
 Revise antes de enviar: nunca escreva palavras grudadas. Sempre inclua espaço entre todas as palavras. Frases tipo 'Apenasqueremos' ou 'aindavou' são erros — corrija pra 'Apenas queremos', 'ainda vou'.
