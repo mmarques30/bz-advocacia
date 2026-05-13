@@ -3,7 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { resolverAdvogadoId } from "@/lib/advogadoSdr";
 
-export function useAssumirLead() {
+interface UseAssumirLeadOptions {
+  onAssumed?: (leadGeralId: string) => void;
+}
+
+export function useAssumirLead(options: UseAssumirLeadOptions = {}) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -24,11 +28,12 @@ export function useAssumirLead() {
         },
       });
       if (error) throw error;
-      return data;
+      return { ...data, leadGeralId };
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["leads"] });
       toast.success("Você assumiu este lead. Mensagem enviada ao cliente.");
+      if (data?.leadGeralId) options.onAssumed?.(data.leadGeralId);
     },
     onError: (err: any) => {
       toast.error(err?.message || "Erro ao assumir lead");
