@@ -171,6 +171,13 @@ Deno.serve(async (req) => {
       time_bz_id: timeBzId,
     });
 
+    // Espelha estado "assumido_humano" no kanban
+    await espelharContactSubmission(
+      supabase,
+      { ...leadFromMe, status_sdr: "assumido_humano" },
+      { platform: "whatsapp_organico", mensagem: "Time B&Z assumiu via celular" },
+    );
+
     return new Response(
       JSON.stringify({ ok: true, acao: "humano_assumiu_via_celular", lead_id: leadFromMe.id }),
       { status: 200, headers: { "Content-Type": "application/json" } },
