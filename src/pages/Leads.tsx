@@ -180,6 +180,9 @@ function LeadsTab({
     [filteredLeads],
   );
 
+  const { soundEnabled, setSoundEnabled, notifPermission, notifEnabled, requestNotifications } =
+    useSdrAlerts(filteredLeads, setSelectedLead);
+
   return (
     <div className="space-y-4 mt-4">
       {aguardandoCount > 0 && (
