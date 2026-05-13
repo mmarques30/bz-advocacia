@@ -259,6 +259,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     Financeiro
                   </TabsTrigger>
                 )}
+                {lead.lead_geral_id && (
+                  <TabsTrigger value="conversa-bot" className="flex items-center gap-1">
+                    <Bot className="h-3.5 w-3.5" />
+                    Conversa Bot
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="mensagens" className="flex items-center gap-1">
                   <MessageCircle className="h-3.5 w-3.5" />
                   Mensagens
