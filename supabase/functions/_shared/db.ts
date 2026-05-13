@@ -92,11 +92,22 @@ export async function buscarLeadPorTelefone(
   return null;
 }
 
+export interface AdContext {
+  ad_id?: string | null;
+  ad_name?: string | null;
+  ad_body?: string | null;
+  source_url?: string | null;
+  ctwa_clid?: string | null;
+  greeting?: string | null;
+  source_app?: string | null;
+}
+
 export interface CriarLeadInput {
   nome: string;
   telefone: string; // já normalizado
   platform: string;
   origem: string;
+  adContext?: AdContext | null;
 }
 
 export async function criarLeadWhatsApp(
@@ -104,6 +115,7 @@ export async function criarLeadWhatsApp(
   input: CriarLeadInput,
 ): Promise<Lead | null> {
   const id = `sdr_wa_${Date.now()}_${input.telefone.slice(-6)}`;
+  const ad = input.adContext ?? null;
   const { data, error } = await supabase
     .from("leads_geral")
     .insert({
@@ -117,6 +129,8 @@ export async function criarLeadWhatsApp(
       etapa_qualificacao: "M0",
       is_organic: !input.platform.endsWith("_ads"),
       created_time: new Date().toISOString(),
+      ad_id: ad?.ad_id ?? null,
+      ad_name: ad?.ad_name ?? null,
     })
     .select(LEAD_COLS)
     .maybeSingle();
