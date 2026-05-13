@@ -41,9 +41,10 @@ interface LeadsKanbanProps {
   leads: Lead[] | undefined;
   isLoading: boolean;
   onViewDetails: (lead: Lead) => void;
+  onAssumed?: (lead: Lead) => void;
 }
 
-function SortableLeadCard({ lead, onViewDetails }: { lead: Lead; onViewDetails: (lead: Lead) => void }) {
+function SortableLeadCard({ lead, onViewDetails, onAssumed }: { lead: Lead; onViewDetails: (lead: Lead) => void; onAssumed?: (lead: Lead) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead.id,
   });
@@ -56,7 +57,7 @@ function SortableLeadCard({ lead, onViewDetails }: { lead: Lead; onViewDetails: 
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LeadCard lead={lead} onClick={() => onViewDetails(lead)} />
+      <LeadCard lead={lead} onClick={() => onViewDetails(lead)} onAssumed={onAssumed} />
     </div>
   );
 }
