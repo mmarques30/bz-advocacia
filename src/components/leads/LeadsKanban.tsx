@@ -85,7 +85,7 @@ const columns: { id: string; titulo: string; color: string }[] = [
   { id: "perdido", titulo: "Perdido", color: "border-t-red-500" },
 ];
 
-export function LeadsKanban({ leads, isLoading, onViewDetails }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: LeadsKanbanProps) {
   const updateStage = useUpdateLeadStage();
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor));
