@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase } from "lucide-react";
+import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -160,6 +160,10 @@ function LeadsTab({
     if (!originFilteredLeads) return undefined;
     let result = nomeFilter ? originFilteredLeads.filter(l => l.nome_completo === nomeFilter) : [...originFilteredLeads];
     result.sort((a, b) => {
+      // Sempre prioriza leads quentes do bot
+      const aHot = a.status_sdr === "sql_aguardando_humano" ? 1 : 0;
+      const bHot = b.status_sdr === "sql_aguardando_humano" ? 1 : 0;
+      if (aHot !== bHot) return bHot - aHot;
       switch (sortOrder) {
         case "mais_antiga": return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case "nome_az": return a.nome_completo.localeCompare(b.nome_completo);
@@ -170,8 +174,25 @@ function LeadsTab({
     return result;
   }, [originFilteredLeads, nomeFilter, sortOrder]);
 
+  const aguardandoCount = useMemo(
+    () => (filteredLeads || []).filter(l => l.status_sdr === "sql_aguardando_humano").length,
+    [filteredLeads],
+  );
+
   return (
     <div className="space-y-4 mt-4">
+      {aguardandoCount > 0 && (
+        <Card className="p-4 border-orange-300 bg-orange-50 flex items-center gap-3 animate-pulse">
+          <Zap className="h-6 w-6 text-orange-600 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-orange-900">
+              {aguardandoCount} {aguardandoCount === 1 ? "lead aguardando" : "leads aguardando"} você atender agora
+            </p>
+            <p className="text-xs text-orange-800">Bot já qualificou — só falta resposta humana</p>
+          </div>
+        </Card>
+      )}
+
       <LeadsOrganicSummary leads={filteredLeads} loading={isLoading} />
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -247,13 +268,13 @@ function LeadsTab({
         </ToggleGroup>
       </div>
 
-      {view === 'table' ? (
-        <TooltipProvider>
+      <TooltipProvider>
+        {view === 'table' ? (
           <LeadsTable leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} onEdit={setEditLead} enableBulkSelect={isAdsTab} />
-        </TooltipProvider>
-      ) : (
-        <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
-      )}
+        ) : (
+          <LeadsKanban leads={filteredLeads} isLoading={isLoading} onViewDetails={setSelectedLead} />
+        )}
+      </TooltipProvider>
 
       <LeadsFilters open={filtersOpen} onClose={() => setFiltersOpen(false)} filters={filters} onFiltersChange={setFilters} />
       <NewLeadDialog open={newLeadOpen || editLead !== null} onClose={() => { setNewLeadOpen(false); setEditLead(null); }} lead={editLead} />

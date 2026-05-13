@@ -104,31 +104,52 @@ Deno.serve(async (req) => {
   const telefone = normalizarTelefone(payload.phone);
 
   // ============================================================
-  // GUARD CRÍTICO: telefone já cadastrado no CRM (contact_submissions)
-  // que NÃO seja espelho de lead do bot (lead_geral_id IS NULL) →
-  // é cliente/lead em atendimento manual. Bot fica completamente fora.
+  // GUARD INTELIGENTE: telefone já no CRM (contact_submissions) sem
+  // vínculo com bot (lead_geral_id IS NULL)
+  //   - Atendimento manual ATIVO  → bot fica fora
+  //   - 'novo' antigo / 'perdido' → bot adota (segue o fluxo;
+  //     espelhamento linka o registro existente em vez de duplicar)
   // ============================================================
   {
     const ultimos8 = telefone.slice(-8);
     const likeTel = `%${ultimos8}`;
-    const { data: jaTemCRM } = await supabase
+    const { data: csExisting } = await supabase
       .from("contact_submissions")
-      .select("id, telefone, whatsapp_id, origem, lead_geral_id, created_at")
+      .select("id, estagio, status, responsavel_id, ultimo_contato_em, created_at")
       .or(`telefone.like.${likeTel},whatsapp_id.like.${likeTel}`)
       .is("lead_geral_id", null)
+      .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (jaTemCRM) {
-      await registrarEvento(supabase, null, "lead_no_crm_existente_ignorado", {
+
+    if (csExisting) {
+      const cs: any = csExisting;
+      const ESTAGIOS_ATIVOS = ["contato_inicial", "em_analise", "proposta_enviada", "fechado"];
+      const estagioAtivo = ESTAGIOS_ATIVOS.includes(cs.estagio);
+      const temResponsavel = !!cs.responsavel_id;
+
+      if (estagioAtivo || temResponsavel) {
+        await registrarEvento(supabase, null, "lead_no_crm_existente_ignorado", {
+          telefone,
+          contact_submission_id: cs.id,
+          estagio: cs.estagio,
+          tem_responsavel: temResponsavel,
+          fromMe: !!payload.fromMe,
+        });
+        return new Response(
+          JSON.stringify({ ignored: "lead_no_crm" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      // 'novo' antigo ou 'perdido' → bot adota; segue o fluxo abaixo.
+      // O espelhamento linka o registro existente automaticamente.
+      await registrarEvento(supabase, null, "lead_no_crm_adotado_pelo_bot", {
         telefone,
-        contact_submission_id: (jaTemCRM as any).id,
-        origem: (jaTemCRM as any).origem,
-        fromMe: !!payload.fromMe,
+        contact_submission_id: cs.id,
+        estagio_anterior: cs.estagio,
+        ultimo_contato_em: cs.ultimo_contato_em,
       });
-      return new Response(
-        JSON.stringify({ ignored: "lead_no_crm" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
     }
   }
 

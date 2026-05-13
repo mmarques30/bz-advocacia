@@ -69,6 +69,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "acordos_financeiros_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "acordos_financeiros_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -691,6 +698,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "contratos_gerados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "contratos_gerados_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -827,6 +841,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demandas_internas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
             referencedColumns: ["id"]
           },
           {
@@ -1247,6 +1268,13 @@ export type Database = {
             referencedRelation: "contact_submissions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_acquisition_events_contact_submission_id_fkey"
+            columns: ["contact_submission_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_comunicacoes: {
@@ -1286,6 +1314,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_comunicacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
             referencedColumns: ["id"]
           },
         ]
@@ -1329,6 +1364,13 @@ export type Database = {
             referencedRelation: "contact_submissions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_interacoes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
         ]
       }
       lead_notas: {
@@ -1362,6 +1404,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_notas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
             referencedColumns: ["id"]
           },
         ]
@@ -2122,6 +2171,13 @@ export type Database = {
             referencedRelation: "contact_submissions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "processos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
         ]
       }
       processos_andamentos: {
@@ -2449,6 +2505,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relatorios_compartilhados_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
             referencedColumns: ["id"]
           },
         ]
@@ -3380,6 +3443,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "whatsapp_historico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "whatsapp_historico_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
@@ -3554,6 +3624,30 @@ export type Database = {
           lead_id: string | null
           nome: string | null
           telefone: string | null
+        }
+        Relationships: []
+      }
+      vw_pipeline_b_z: {
+        Row: {
+          area_normalizada: string | null
+          bot_pausado: boolean | null
+          created_at: string | null
+          data_ultima_atividade: string | null
+          estagio: string | null
+          etapa_qualificacao: string | null
+          fluxo_sdr: string | null
+          id: string | null
+          lead_geral_id: string | null
+          nome_completo: string | null
+          origem: string | null
+          origem_atendimento: string | null
+          responsavel_id: string | null
+          score: number | null
+          status: string | null
+          status_sdr: string | null
+          telefone: string | null
+          tipo_processo: string | null
+          ultima_mensagem_em: string | null
         }
         Relationships: []
       }

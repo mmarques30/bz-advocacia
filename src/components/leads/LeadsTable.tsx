@@ -40,6 +40,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { LeadBotBadge } from "./LeadBotBadge";
 
 interface LeadsTableProps {
   leads: Lead[] | undefined;
@@ -199,6 +200,7 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                 </TableHead>
               )}
               <TableHead>Nome</TableHead>
+              <TableHead>Bot SDR</TableHead>
               <TableHead>Origem</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Estágio</TableHead>
@@ -212,7 +214,11 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
             {leads.map((lead) => (
               <TableRow
                 key={lead.id}
-                className={cn("cursor-pointer hover:bg-muted/40", selectedIds.has(lead.id) && "bg-primary/5")}
+                className={cn(
+                  "cursor-pointer hover:bg-muted/40",
+                  selectedIds.has(lead.id) && "bg-primary/5",
+                  lead.status_sdr === "sql_aguardando_humano" && "bg-orange-50 hover:bg-orange-100",
+                )}
                 onClick={() => onViewDetails(lead)}
               >
                 {enableBulkSelect && (
@@ -232,6 +238,9 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                       {lead.nome_completo}
                     </span>
                   </div>
+                </TableCell>
+                <TableCell>
+                  <LeadBotBadge lead={lead} />
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5">

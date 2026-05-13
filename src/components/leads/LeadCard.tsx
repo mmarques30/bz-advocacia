@@ -8,6 +8,7 @@ import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { LeadBotBadge } from "./LeadBotBadge";
 
 interface LeadCardProps {
   lead: Lead;
@@ -60,9 +61,13 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
     toast({ title: "Mensagem de primeiro contato enviada" });
   };
 
+  const isHot = lead.status_sdr === "sql_aguardando_humano";
   return (
     <Card
-      className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+      className={cn(
+        "p-3 cursor-pointer hover:shadow-md transition-shadow",
+        isHot && "ring-2 ring-orange-500 border-orange-300",
+      )}
       onClick={onClick}
     >
       <div className="space-y-1.5">
@@ -80,6 +85,10 @@ export function LeadCard({ lead, onClick }: LeadCardProps) {
               <MessageSquare className="h-3.5 w-3.5" />
             </Button>
           )}
+        </div>
+
+        <div className="flex">
+          <LeadBotBadge lead={lead} />
         </div>
 
         {tipoServico && (

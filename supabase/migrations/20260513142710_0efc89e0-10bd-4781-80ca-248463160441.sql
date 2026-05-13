@@ -1,0 +1,1 @@
+ALTER VIEW public.vw_pipeline_b_z SET (security_invoker = true);
