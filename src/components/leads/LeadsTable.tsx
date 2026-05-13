@@ -49,9 +49,10 @@ interface LeadsTableProps {
   onViewDetails: (lead: Lead) => void;
   onEdit: (lead: Lead) => void;
   enableBulkSelect?: boolean;
+  onAssumed?: (lead: Lead) => void;
 }
 
-export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulkSelect = false }: LeadsTableProps) {
+export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulkSelect = false, onAssumed }: LeadsTableProps) {
   const updateStage = useUpdateLeadStage();
   const deleteLead = useDeleteLead();
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
