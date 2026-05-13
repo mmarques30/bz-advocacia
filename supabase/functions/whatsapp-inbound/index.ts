@@ -395,8 +395,35 @@ Deno.serve(async (req) => {
     score_atual: lead.score,
   };
 
+  // Se o lead veio de anúncio (CTWA), busca o contexto do anúncio pra
+  // injetar no prompt do classificador. Resolve o caso do lead que só
+  // manda "Oi" mas o anúncio era sobre área específica.
+  let adContextoStr = "";
+  {
+    const { data: leadAd } = await supabase
+      .from("leads_geral")
+      .select("platform, ad_name")
+      .eq("id", lead.id)
+      .maybeSingle();
+    const plat = (leadAd as any)?.platform as string | undefined;
+    if (plat && plat.endsWith("_ads")) {
+      const { data: ev } = await supabase
+        .from("eventos_sdr")
+        .select("payload")
+        .eq("lead_id", lead.id)
+        .eq("tipo", "lead_criado_via_anuncio")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const ad = (ev as any)?.payload ?? null;
+      if (ad) {
+        adContextoStr = `\n\nIMPORTANTE — Este lead chegou clicando em um anúncio (${plat}). Use o conteúdo do anúncio abaixo pra inferir a área mesmo que a primeira mensagem seja genérica:\n• Título do anúncio: ${ad.ad_name ?? "(sem título)"}\n• Texto do anúncio: ${ad.ad_body ?? "(sem texto)"}\n• Mensagem inicial automática que o lead viu: ${ad.greeting ?? "(nenhuma)"}\n`;
+      }
+    }
+  }
+
   const userPrompt = `Contexto do lead:
-${JSON.stringify(contexto, null, 2)}
+${JSON.stringify(contexto, null, 2)}${adContextoStr}
 
 Histórico (mais antigo → mais recente):
 ${historico.map((m) => `[${m.origem}] ${m.conteudo}`).join("\n")}
