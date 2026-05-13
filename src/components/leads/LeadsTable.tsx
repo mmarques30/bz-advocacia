@@ -241,7 +241,12 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                   </div>
                 </TableCell>
                 <TableCell>
-                  <LeadBotBadge lead={lead} />
+                  <div className="flex items-center gap-2">
+                    <LeadBotBadge lead={lead} />
+                    {lead.status_sdr === "sql_aguardando_humano" && (
+                      <AtenderAgoraButton lead={lead} />
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5">
