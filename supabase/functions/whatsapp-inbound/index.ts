@@ -292,20 +292,42 @@ Deno.serve(async (req) => {
   if (!lead) {
     const p = payload as any;
     const senderName: string | undefined = p.senderName ?? p.chatName ?? p.notifyName;
-    const rawKeys = Object.keys(p ?? {});
-    const blob = JSON.stringify(p ?? {}).toLowerCase();
 
-    // Heurística click-to-WhatsApp / Meta Ads
-    const hasReferralFields = rawKeys.some((k) =>
-      /referral|ctwa|sourceid|source_id|adid|ad_id|momentmetadata/i.test(k)
+    // ============================================================
+    // Detecção determinística de Click-to-WhatsApp Ads (CTWA)
+    // ============================================================
+    const adReply = p.externalAdReply ?? null;
+    const veioDeAnuncio = !!adReply && (
+      adReply.clickToWhatsappCall === true || adReply.sourceType === "ad"
     );
+
     let platform = "whatsapp_organico";
-    if (hasReferralFields) {
-      platform = blob.includes("instagram") ? "instagram_ads" : "facebook_ads";
+    let adContext: {
+      ad_id: string | null;
+      ad_name: string | null;
+      ad_body: string | null;
+      source_url: string | null;
+      ctwa_clid: string | null;
+      greeting: string | null;
+      source_app: string | null;
+    } | null = null;
+
+    if (veioDeAnuncio) {
+      const sourceApp = (adReply.sourceApp ?? "facebook").toString().toLowerCase();
+      platform = sourceApp === "instagram" ? "instagram_ads" : "facebook_ads";
+      adContext = {
+        ad_id: adReply.sourceId ?? null,
+        ad_name: adReply.title ?? null,
+        ad_body: adReply.body ?? null,
+        source_url: adReply.sourceUrl ?? null,
+        ctwa_clid: adReply.ctwaClid ?? null,
+        greeting: adReply.greetingMessageBody ?? null,
+        source_app: sourceApp,
+      };
     }
 
     await registrarEvento(supabase, null, "lead_auto_criado_payload_debug", {
-      telefone, raw_keys: rawKeys, senderName, platform,
+      telefone, senderName, platform, veioDeAnuncio, adContext,
     });
 
     lead = await criarLeadWhatsApp(supabase, {
@@ -313,17 +335,23 @@ Deno.serve(async (req) => {
       telefone,
       platform,
       origem: platform,
+      adContext,
     });
     if (!lead) {
       await registrarEvento(supabase, null, "lead_auto_criar_falhou", { telefone });
       return new Response(JSON.stringify({ erro: "criar_lead_falhou" }), { status: 500 });
     }
 
+    // Persiste contexto do anúncio pra ser usado pelo classificador depois
+    if (veioDeAnuncio && adContext) {
+      await registrarEvento(supabase, lead.id, "lead_criado_via_anuncio", adContext);
+    }
+
     // Registra a mensagem do lead e devolve 200 — o trigger on-new-lead
     // dispara M0 + LGPD. Evita corrida com o classificador.
     await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, primeira_msg: true });
     return new Response(
-      JSON.stringify({ ok: true, acao: "lead_auto_criado", lead_id: lead.id }),
+      JSON.stringify({ ok: true, acao: "lead_auto_criado", lead_id: lead.id, veioDeAnuncio }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   }
