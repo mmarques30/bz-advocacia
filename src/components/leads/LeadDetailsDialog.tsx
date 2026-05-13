@@ -179,7 +179,11 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               clienteNome={lead.nome_completo}
             />
           ) : (
-          <>
+          <div className="flex h-full max-h-screen">
+          <div className={cn(
+            "overflow-y-auto p-6",
+            sideBySide ? "flex-1 lg:w-[420px] lg:flex-none lg:border-r" : "flex-1"
+          )}>
             <SheetHeader className="space-y-1 pr-6">
               <div className="flex items-center gap-3">
                 <SheetTitle className="text-2xl">{lead.nome_completo}</SheetTitle>
