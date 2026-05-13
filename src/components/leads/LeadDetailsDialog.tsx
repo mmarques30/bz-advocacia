@@ -278,7 +278,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   </TabsTrigger>
                 )}
                 {lead.lead_geral_id && (
-                  <TabsTrigger value="conversa-bot" className="flex items-center gap-1">
+                  <TabsTrigger value="conversa-bot" className={cn("flex items-center gap-1", sideBySide && "lg:hidden")}>
                     <Bot className="h-3.5 w-3.5" />
                     Conversa Bot
                   </TabsTrigger>
