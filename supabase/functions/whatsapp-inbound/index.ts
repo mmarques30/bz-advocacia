@@ -12,6 +12,7 @@ import {
   registrarMensagem,
   telefoneDoLead,
   buscarAdvogadoPorArea,
+  fluxoFromArea,
   Lead,
 } from "../_shared/db.ts";
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
