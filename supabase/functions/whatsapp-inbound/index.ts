@@ -4,6 +4,7 @@
 
 import {
   buscarLeadPorTelefone,
+  criarLeadWhatsApp,
   getSupabaseAdmin,
   historicoMensagens,
   nomePrimeiro,
