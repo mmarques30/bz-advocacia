@@ -222,10 +222,10 @@ export async function espelharContactSubmission(
   }
 
   // 2) Existe um contact_submissions com mesmo telefone sem vínculo?
-  //    Apenas linka — preserva tudo do registro original (não sobrescreve).
+  //    Linka — preserva o registro original. Se estava 'perdido', reabre.
   const { data: porTelefone } = await supabase
     .from("contact_submissions")
-    .select("id")
+    .select("id, estagio")
     .eq("telefone", telefone)
     .is("lead_geral_id", null)
     .order("created_at", { ascending: false })
@@ -233,9 +233,18 @@ export async function espelharContactSubmission(
     .maybeSingle();
 
   if (porTelefone) {
+    const updates: Record<string, unknown> = {
+      lead_geral_id: lead.id,
+      ultimo_contato_em: agora,
+      data_ultima_atividade: agora,
+    };
+    if ((porTelefone as any).estagio === "perdido") {
+      updates.estagio = "novo";
+      updates.status = "novo";
+    }
     await supabase
       .from("contact_submissions")
-      .update({ lead_geral_id: lead.id, ultimo_contato_em: agora })
+      .update(updates)
       .eq("id", (porTelefone as any).id);
     return;
   }
