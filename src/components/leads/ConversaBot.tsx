@@ -183,6 +183,7 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
           </div>
         )}
         <Textarea
+          ref={textareaRef}
           placeholder="Escreva sua resposta... (Ctrl+Enter envia)"
           value={mensagem}
           onChange={(e) => setMensagem(e.target.value)}
