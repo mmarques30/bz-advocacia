@@ -27,7 +27,9 @@ import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsOrganicSummary } from "@/components/leads/LeadsOrganicSummary";
+import { BacklogLeads } from "@/components/leads/BacklogLeads";
 import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
+import { useQuery } from "@tanstack/react-query";
 
 const defaultFilters: FiltersType = {
   search: "",
@@ -49,6 +51,18 @@ const adsDefaultFilters: FiltersType = {
 export default function Leads() {
   const [activeTab, setActiveTab] = useState("leads");
 
+  const { data: backlogPending } = useQuery({
+    queryKey: ["leads_backlog_count", "pendente"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("leads_backlog")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente");
+      return count ?? 0;
+    },
+    refetchInterval: 30000,
+  });
+
   return (
     <div className="space-y-6">
       <div>
@@ -62,6 +76,14 @@ export default function Leads() {
         <TabsList>
           <TabsTrigger value="leads">Leads Orgânicos</TabsTrigger>
           <TabsTrigger value="anuncios">Leads Anúncios</TabsTrigger>
+          <TabsTrigger value="backlog" className="relative">
+            Backlog de Leads
+            {backlogPending ? (
+              <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1">
+                {backlogPending}
+              </Badge>
+            ) : null}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads">
@@ -70,6 +92,10 @@ export default function Leads() {
 
         <TabsContent value="anuncios">
           <LeadsTab filterOrigins={['facebook', 'instagram', 'meta', 'tiktok', 'linkedin', 'google']} excludeOrigins={null} isAdsTab />
+        </TabsContent>
+
+        <TabsContent value="backlog">
+          <BacklogLeads />
         </TabsContent>
       </Tabs>
     </div>
