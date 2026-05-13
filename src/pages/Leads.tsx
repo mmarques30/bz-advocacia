@@ -27,7 +27,9 @@ import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsOrganicSummary } from "@/components/leads/LeadsOrganicSummary";
+import { BacklogLeads } from "@/components/leads/BacklogLeads";
 import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
+import { useQuery } from "@tanstack/react-query";
 
 const defaultFilters: FiltersType = {
   search: "",
