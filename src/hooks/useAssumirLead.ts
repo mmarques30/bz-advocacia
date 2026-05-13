@@ -1,38 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
-
-async function resolverAdvogadoId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // a) mapeamento por email (advogados_sdr.email == auth user email)
-  if (user?.email) {
-    const { data: meu } = await supabase
-      .from("advogados_sdr" as any)
-      .select("id")
-      .eq("email", user.email)
-      .eq("ativo", true)
-      .maybeSingle();
-    if (meu && (meu as any).id) return (meu as any).id;
-  }
-
-  // b) fallback: primeiro advogado com 'geral' nas areas
-  const { data: geral } = await supabase
-    .from("advogados_sdr" as any)
-    .select("id, areas")
-    .contains("areas", ["geral"] as any)
-    .limit(1)
-    .maybeSingle();
-  if (geral && (geral as any).id) return (geral as any).id;
-
-  // c) último fallback: qualquer advogado
-  const { data: qualquer } = await supabase
-    .from("advogados_sdr" as any)
-    .select("id")
-    .limit(1)
-    .maybeSingle();
-  return (qualquer as any)?.id ?? null;
-}
+import { resolverAdvogadoId } from "@/lib/advogadoSdr";
 
 export function useAssumirLead() {
   const queryClient = useQueryClient();
