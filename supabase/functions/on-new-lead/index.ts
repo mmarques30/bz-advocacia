@@ -28,9 +28,26 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // --- HMAC validation ---
-  const expected = Deno.env.get("SDR_WEBHOOK_SECRET");
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    { auth: { persistSession: false } },
+  );
+
+  // --- HMAC validation: secret lido direto do Vault (única fonte de verdade) ---
   const got = req.headers.get("x-webhook-secret");
+  let expected: string | null = null;
+  try {
+    const r = await supabase
+      .schema("vault")
+      .from("decrypted_secrets")
+      .select("decrypted_secret")
+      .eq("name", "sdr_webhook_secret")
+      .maybeSingle();
+    expected = (r.data as { decrypted_secret: string } | null)?.decrypted_secret ?? null;
+  } catch (_) {
+    expected = null;
+  }
   if (!expected || got !== expected) {
     return new Response("Unauthorized", { status: 401 });
   }
@@ -57,12 +74,6 @@ Deno.serve(async (req) => {
       headers: { "Content-Type": "application/json" },
     });
   }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { persistSession: false } },
-  );
 
   // Idempotência: se já tem mensagem do bot pra esse lead, não reenvia.
   const { count } = await supabase
