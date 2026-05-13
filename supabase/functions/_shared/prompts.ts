@@ -13,7 +13,7 @@ export function mensagemM0(nome: string, tipoDeProcessoForm?: string | null): st
 
 Recebemos seu contato sobre *${tipoDeProcessoForm}* e queremos te ajudar o quanto antes.
 
-Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo?`)
+Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo?`
     );
   }
 
