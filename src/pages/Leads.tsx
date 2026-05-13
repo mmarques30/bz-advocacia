@@ -92,11 +92,17 @@ function LeadsTab({
   const [filters, setFilters] = useState<FiltersType>(isAdsTab ? adsDefaultFilters : defaultFilters);
   const [newLeadOpen, setNewLeadOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
   const [nomes, setNomes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>("mais_recente");
+
+  const handleAssumed = (lead: Lead) => {
+    setInitialTab("conversa-bot");
+    setSelectedLead(lead);
+  };
 
   useEffect(() => {
     const fetchNomes = async () => {
