@@ -12,6 +12,7 @@ import {
   registrarMensagem,
   telefoneDoLead,
   buscarAdvogadoPorArea,
+  fluxoFromArea,
   Lead,
 } from "../_shared/db.ts";
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
@@ -212,11 +213,12 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
 
   const r = classificacao.data;
 
-  // Atualiza área normalizada e score
+  // Atualiza área normalizada, fluxo e score
   await supabase
     .from("leads_geral")
     .update({
       area_normalizada: r.area,
+      fluxo_sdr: fluxoFromArea(r.area),
       score: r.score,
       motivo_qualificacao: r.motivo,
     })
@@ -239,8 +241,10 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   let mensagemFinal = r.mensagem_para_enviar?.trim() || "";
   let novaEtapa = lead.etapa_qualificacao ?? "M0";
   let novoStatus = lead.status_sdr ?? "em_atendimento_bot";
+  let novoFluxo: string | null = fluxoFromArea(r.area);
   let pausarBot = false;
   let advogadoIdNotificar: string | null = null;
+  let encerramento = false;
 
   switch (r.proxima_acao) {
     case "enviar_M1":
@@ -259,6 +263,7 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       novaEtapa = "finalizado";
       novoStatus = "sql_aguardando_humano";
       pausarBot = true;
+      encerramento = true;
       const advogado = await buscarAdvogadoPorArea(supabase, r.area);
       advogadoIdNotificar = advogado?.id ?? null;
       if (advogado) {
@@ -273,11 +278,15 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
     case "encerrar_mql_frio":
       novaEtapa = "finalizado";
       novoStatus = "mql_frio";
+      novoFluxo = "qualificacao_geral";
+      encerramento = true;
       if (!mensagemFinal) mensagemFinal = mensagemMQLFrio(nomePrimeiro(lead));
       break;
     case "fora_escopo":
       novaEtapa = "finalizado";
       novoStatus = "perdido";
+      novoFluxo = "fora_escopo";
+      encerramento = true;
       if (!mensagemFinal) mensagemFinal = mensagemForaEscopo(nomePrimeiro(lead), r.area);
       break;
     case "aguardar":
@@ -293,17 +302,20 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
     .update({
       etapa_qualificacao: novaEtapa,
       status_sdr: novoStatus,
+      fluxo_sdr: novoFluxo,
       bot_pausado: pausarBot ? true : (lead.bot_pausado ?? false),
     })
     .eq("id", lead.id);
 
-  if (advogadoIdNotificar) {
-    await notificarAdvogado(supabase, lead.id, advogadoIdNotificar);
+  // SEMPRE notifica em encerramento (SQL, MQL frio, fora_escopo) — mesmo sem advogado da área
+  if (encerramento) {
+    await notificarAdvogado(supabase, lead.id, advogadoIdNotificar, r.proxima_acao);
   }
 
   await registrarEvento(supabase, lead.id, "msg_processada", {
     acao: r.proxima_acao,
     area: r.area,
+    fluxo: novoFluxo,
     score: r.score,
   });
 
@@ -313,14 +325,12 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   });
 });
 
-async function notificarAdvogado(supabase: any, leadId: string, advogadoId: string) {
-  const { data: adv } = await supabase
-    .from("advogados_sdr")
-    .select("nome, email, telefone")
-    .eq("id", advogadoId)
-    .maybeSingle();
-  if (!adv) return;
-
+async function notificarAdvogado(
+  supabase: any,
+  leadId: string,
+  advogadoId: string | null,
+  acao: string,
+) {
   const { data: lead } = await supabase
     .from("leads_geral")
     .select("full_name, phone_number, contato_whatsapp, area_normalizada, tipo_servico, score")
@@ -328,24 +338,48 @@ async function notificarAdvogado(supabase: any, leadId: string, advogadoId: stri
     .maybeSingle();
   if (!lead) return;
 
+  // Resolve advogado: específico → fallback "geral" → qualquer ativo
+  let adv: { nome: string; email: string | null; telefone: string | null } | null = null;
+  if (advogadoId) {
+    const { data } = await supabase
+      .from("advogados_sdr")
+      .select("nome, email, telefone")
+      .eq("id", advogadoId)
+      .maybeSingle();
+    adv = (data as any) ?? null;
+  }
+  if (!adv) {
+    const fallback = await buscarAdvogadoPorArea(supabase, lead.area_normalizada ?? "geral");
+    if (fallback) adv = { nome: fallback.nome, email: fallback.email, telefone: fallback.telefone };
+  }
+
   const urlPainel = Deno.env.get("URL_PAINEL") ?? "https://painel.example.com";
   const tel = lead.contato_whatsapp ?? lead.phone_number ?? "";
+  const titulo = acao === "encerrar_sql"
+    ? "Novo SQL na sua fila 🤓"
+    : acao === "encerrar_mql_frio"
+    ? "MQL frio encerrado pelo bot 🤓"
+    : "Lead fora de escopo encerrado 🤓";
+
   const texto =
-`Novo SQL na sua fila 🤓
+`${titulo}
 
 • Nome: ${lead.full_name ?? "(sem nome)"}
 • WhatsApp: ${tel}
 • Área: ${lead.area_normalizada ?? lead.tipo_servico ?? "n/d"}
 • Score: ${lead.score ?? 0}
+• Ação: ${acao}
 
 Abrir conversa: ${urlPainel}/leads/${leadId}`;
 
-  if (adv.telefone) {
+  if (adv?.telefone) {
     await zapiSendText(adv.telefone, texto);
   }
 
   await registrarEvento(supabase, leadId, "advogado_notificado", {
     advogado_id: advogadoId,
-    canal: adv.telefone ? "whatsapp" : "email",
+    advogado_resolvido: adv?.nome ?? null,
+    canal: adv?.telefone ? "whatsapp" : "sem_canal",
+    acao,
   });
 }
