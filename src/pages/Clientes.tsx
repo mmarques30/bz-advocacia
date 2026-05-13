@@ -9,7 +9,9 @@ import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { ImportLeadsDialog } from "@/components/leads/ImportLeadsDialog";
 import { ImportClientesPlanilhaDialog } from "@/components/leads/ImportClientesPlanilhaDialog";
+import { DashboardAniversariantesCard } from "@/components/dashboard/DashboardAniversariantesCard";
 import { useLeads } from "@/hooks/useLeads";
+import { useAniversariantes } from "@/hooks/useAniversariantes";
 import { supabase } from "@/integrations/supabase/client";
 import { LeadsFilters as LeadsFiltersType, Lead } from "@/types/leads";
 
@@ -66,6 +68,7 @@ export default function Clientes() {
   };
 
   const { data: leads, isLoading } = useLeads(leadsFilters);
+  const { data: aniversariantes } = useAniversariantes();
 
   // Fetch lead_ids that have processes (for semProcesso filter)
   const { data: leadIdsComProcesso } = useQuery({
@@ -149,6 +152,12 @@ export default function Clientes() {
           Gerencie seus clientes ativos e acompanhe os processos
         </p>
       </div>
+
+      {aniversariantes && aniversariantes.length > 0 && (
+        <DashboardAniversariantesCard
+          aniversariantes={aniversariantes}
+        />
+      )}
 
       <LeadsHeader
         view={view}
