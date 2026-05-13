@@ -19,6 +19,8 @@ import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { ClienteFinanceiroTab } from "./ClienteFinanceiroTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { ConversaBot } from "./ConversaBot";
+import { Bot } from "lucide-react";
 import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
