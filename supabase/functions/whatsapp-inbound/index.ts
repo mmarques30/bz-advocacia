@@ -188,18 +188,41 @@ Deno.serve(async (req) => {
 
     let leadFromMe = await buscarLeadPorTelefone(supabase, telefone);
     if (!leadFromMe) {
+      // Telefone desconhecido + humano da B&Z escrevendo → vai pro BACKLOG
+      // (aprovação manual no painel antes de virar lead_geral).
       const p = payload as any;
       const senderName: string | undefined = p.chatName ?? p.notifyName ?? p.senderName;
-      leadFromMe = await criarLeadWhatsApp(supabase, {
-        nome: senderName ?? "Lead WhatsApp",
-        telefone,
-        platform: "whatsapp_organico",
-        origem: "humano_iniciou",
-      });
-      if (!leadFromMe) {
-        await registrarEvento(supabase, null, "fromMe_criar_lead_falhou", { telefone });
-        return new Response(JSON.stringify({ erro: "criar_lead_falhou" }), { status: 500 });
+
+      // Evita duplicar entradas pendentes pro mesmo telefone
+      const { data: existente } = await supabase
+        .from("leads_backlog")
+        .select("id")
+        .eq("telefone", telefone)
+        .eq("status", "pendente")
+        .limit(1)
+        .maybeSingle();
+
+      if (!existente) {
+        await supabase.from("leads_backlog").insert({
+          telefone,
+          telefone_raw: (payload as any).phone ?? telefone,
+          nome: senderName ?? null,
+          primeira_mensagem: texto,
+          origem: "humano_iniciou",
+          payload: payload as any,
+          status: "pendente",
+        });
       }
+
+      await registrarEvento(supabase, null, "humano_iniciou_para_telefone_desconhecido_backlog", {
+        telefone,
+        backlog_existente: !!existente,
+      });
+
+      return new Response(
+        JSON.stringify({ ok: true, acao: "enviado_para_backlog" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
     }
 
     await supabase
