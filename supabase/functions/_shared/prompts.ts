@@ -1,178 +1,149 @@
-// Templates de mensagem + system prompt do classificador do SDR B&Z.
-//
-// 4 fluxos:
-//  - saude              → 3 msgs + link de pagamento + handoff confirmação
-//  - inventario         → 2-3 msgs + handoff direto
-//  - qualificacao_geral → M1, M2, M3 + handoff
-//  - fora_escopo        → "advogado vai entrar em contato"
+// Prompts e templates de mensagem do SDR.
 
-export const NOME_ESCRITORIO = Deno.env.get("NOME_ESCRITORIO") ?? "Borges & Zembruski Advocacia";
-export const URL_PAGAMENTO_GENERICO =
-  Deno.env.get("URL_PAGAMENTO_GENERICO") ?? "https://borgesezembruski.com/";
+export const NOME_ESCRITORIO = Deno.env.get("NOME_ESCRITORIO") ?? "o escritório";
 
-// ---------- M0: saudação inicial ----------
+// ---------- M0: boas-vindas ----------
 
-export function mensagemBoasVindas(nome: string | null): string {
-  const saudacao = nome ? `Oi ${nome}!` : "Oi!";
+export function mensagemM0(nome: string, tipoDeProcessoForm?: string | null): string {
+  // Se o form já trouxe o tipo de processo, vamos só CONFIRMAR e seguir.
+  // Senão, pedimos a área.
+  if (tipoDeProcessoForm && tipoDeProcessoForm.trim().length > 0) {
+    return (
+`Oi ${nome}, tudo bem? Aqui é o assistente virtual do ${NOME_ESCRITORIO}.
+
+Recebemos seu contato sobre *${tipoDeProcessoForm}* e queremos te ajudar o quanto antes.
+
+Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo? 🤓`
+    );
+  }
+
   return (
-`${saudacao} Aqui é o assistente virtual do ${NOME_ESCRITORIO}.
+`Oi ${nome}, tudo bem? Aqui é o assistente virtual do ${NOME_ESCRITORIO}.
 
-Pra te ajudar do jeito certo, me conta em poucas palavras sobre o que você precisa de orientação jurídica?
+Recebemos seu contato e queremos te ajudar o quanto antes. Pra te direcionar ao advogado certo, me conta rapidamente:
 
-• Saúde (plano, SUS, medicamento)
-• Família (divórcio, pensão, guarda)
-• Inventário ou partilha
-• Indenização ou consumidor
+Sua dúvida é mais ligada a qual área?
+
 • Trabalhista
-• Outro assunto — me descreve em uma frase 🤓`
+• Família / Sucessões
+• Cível
+• Empresarial / Tributário
+• Outra — me conta em poucas palavras 🤓`
   );
 }
 
 export const AVISO_LGPD =
-`✱ Ao continuar, você autoriza o ${NOME_ESCRITORIO} a tratar seus dados para atendimento jurídico. Se preferir não seguir, responda "parar".`;
+`✱ Antes de seguirmos: ao continuar esta conversa, você autoriza o ${NOME_ESCRITORIO} a tratar seus dados para fins de atendimento jurídico. Se preferir não continuar, é só responder "parar".`;
 
-// ---------- Encerramentos ----------
+// ---------- Encerramento SQL/MQL ----------
 
-export function mensagemHandoffSaude(nome: string | null, linkPagamento: string): string {
-  const n = nome ? ` ${nome}` : "";
+export function mensagemSQL(nome: string, advogadoNome: string): string {
   return (
-`Perfeito${n}, esse caso se encaixa no que o nosso time da área da Saúde atende.
+`${nome}, ótimo! Pelo que você me contou, esse caso faz total sentido para o nosso time.
 
-Pra dar continuidade, o próximo passo é o pagamento da taxa de propositura, que garante o início imediato da análise do seu caso:
+Vou te passar agora para ${advogadoNome}, que vai entender melhor sua situação e te explicar os próximos passos.
 
-${linkPagamento}
-
-Assim que confirmar o pagamento, um dos nossos advogados entra em contato pra agendar a conversa e dar os próximos passos. ✱`
+Em alguns minutos a continuação da conversa vem por aqui mesmo. Combinado? ✱`
   );
 }
 
-export function mensagemHandoffInventario(nome: string | null): string {
-  const n = nome ? ` ${nome}` : "";
+export function mensagemMQLFrio(nome: string): string {
   return (
-`Obrigado pelas informações${n}. Essa é uma situação que merece atenção próxima.
+`${nome}, obrigado pelas informações.
 
-Vou passar agora pra um dos nossos advogados da área de Família e Sucessões, que vai te chamar por aqui pra entender o caso com calma e te orientar nos próximos passos. ✱`
+Pelo que você me contou, no momento não conseguimos avançar com seu caso. Vou registrar seu contato e, se surgir novidade ou se você quiser uma análise mais detalhada no futuro, é só responder aqui.
+
+Cuide-se 🤓`
   );
 }
 
-export function mensagemHandoffGeral(nome: string | null, areaNome: string): string {
-  const n = nome ? ` ${nome}` : "";
+export function mensagemForaEscopo(nome: string, area?: string): string {
   return (
-`Ótimo${n}, esse caso se encaixa no que atendemos em ${areaNome}.
+`${nome}, obrigado por entrar em contato.
 
-Vou avisar agora o advogado responsável, que vai te chamar por aqui em alguns minutos pra entender melhor e te explicar como podemos ajudar. ✱`
+Pelo que você me contou, sua questão é em uma área${area ? ` (${area})` : ""} que não atendemos. Pra não te atrasar, sugiro buscar um escritório especializado nessa área específica — você pode pedir indicação na OAB da sua cidade.
+
+Se tiver outra dúvida no futuro nas áreas que atendemos, é só falar comigo de novo 🤓`
   );
 }
-
-export function mensagemForaEscopoEducada(nome: string | null): string {
-  const n = nome ? ` ${nome}` : "";
-  return (
-`Obrigado pelo contato${n}. Vou anotar sua demanda e um dos nossos advogados vai entrar em contato com você em breve pra avaliar se a gente consegue te ajudar nesse caso ou te indicar o melhor caminho. ✱`
-  );
-}
-
-export function mensagemOptOut(nome: string | null): string {
-  const n = nome ? ` ${nome}` : "";
-  return (
-`Tudo certo${n}. Removendo seu contato do nosso atendimento ativo. Se mudar de ideia, é só mandar mensagem aqui que retomamos. Cuide-se ✱`
-  );
-}
-
-// ---------- Perguntas fallback por fluxo ----------
-
-export const PERGUNTAS_SAUDE = {
-  M1: "Entendi. Pra te ajudar melhor, me conta:\n\nQual é o problema com o plano de saúde, SUS ou medicamento? (negativa de cobertura, demora, falta de medicação, etc.)",
-  M2: "Você já tem em mãos algum documento dessa negativa?\n\n• Cópia da negativa por escrito ou print do app\n• Prescrição médica\n• Comprovante do plano (carteirinha)\n\nPode marcar mais de um ou dizer \"ainda não tenho\".",
-};
-
-export const PERGUNTAS_INVENTARIO = {
-  M1: "Entendi. Pra te orientar melhor:\n\nO falecimento ocorreu há quanto tempo? (Importante porque pode haver multa por atraso depois de 60 dias.)",
-  M2: "Os bens principais envolvidos são imóveis, valores em banco, veículos, ou uma combinação? Pode dar uma estimativa geral.",
-  M3: "Existe consenso entre os herdeiros, ou há alguma divergência sobre a partilha?",
-};
-
-export const PERGUNTAS_QUALIFICACAO_GERAL: Record<string, { M1: string; M2: string; M3: string }> = {
-  familia: {
-    M1: "Entendi. Sua questão envolve qual situação específica? (divórcio, guarda, pensão, união estável, alienação parental, outra)",
-    M2: "Tem algum prazo apertado, audiência marcada ou processo já em andamento?",
-    M3: "Pra entender o contexto: tem alguma estimativa de valores envolvidos (pensão, bens, etc.) ou da urgência?",
-  },
-  civel: {
-    M1: "Entendi. Sua situação envolve qual demanda? (indenização, contrato, problema com produto/serviço, outra)",
-    M2: "Existe algum prazo apertado ou processo em andamento?",
-    M3: "Tem estimativa do valor envolvido ou dos prejuízos? Pode ser uma faixa aproximada.",
-  },
-  consumidor: {
-    M1: "Entendi. Sua questão é sobre qual situação? (rescisão de contrato, devolução de valores, dívidas, dano em consumo)",
-    M2: "Há quanto tempo isso aconteceu? E você já tentou resolver direto com a empresa?",
-    M3: "Tem em mãos contratos, comprovantes, notas fiscais ou mensagens trocadas com a empresa?",
-  },
-  trabalhista: {
-    M1: "Entendi. O fato (demissão, salário, assédio, etc.) aconteceu há quanto tempo?",
-    M2: "Por quanto tempo você trabalhou nessa empresa e qual era a faixa do seu salário? (pode ser estimativa)",
-    M3: "Você tem em mãos carteira de trabalho, holerites, contrato ou conversas com a empresa?",
-  },
-  previdenciario: {
-    M1: "Entendi. Sua questão é com aposentadoria, auxílio, pensão por morte ou outro benefício?",
-    M2: "Você já fez o pedido no INSS? Foi negado, ainda está em análise, ou nem chegou a pedir?",
-    M3: "Tem cópia do indeferimento, CNIS ou outros documentos do INSS em mãos?",
-  },
-};
 
 // ---------- SYSTEM PROMPT do classificador ----------
 
-export const SYSTEM_PROMPT = `Você é o classificador e gerador de respostas de um robô SDR de WhatsApp do escritório ${NOME_ESCRITORIO}, advocacia artesanal no Brasil.
+export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é o classificador-roteador de um robô SDR de um escritório de advocacia brasileiro.
 
-ÁREAS QUE A B&Z ATENDE:
-- saude → Direito da Saúde (planos, SUS, medicamentos)
-- inventario → Inventário judicial e extrajudicial, partilha, alvará
-- familia → Família (divórcio, pensão, guarda, união estável, alienação parental, etc.)
-- civel → Cível (indenização, contratos, danos morais, execução)
-- consumidor → Consumidor (rescisão, restituição, superendividamento)
-- trabalhista → Trabalhista
-- previdenciario → Previdenciário (INSS)
+Sua função:
+1. Ler a última resposta do lead no WhatsApp + o histórico curto da conversa + o contexto (qual etapa da qualificação estamos: M0, M1, M2 ou M3).
+2. Identificar a ÁREA do caso (uma de: trabalhista, civel, familia, sucessoes, empresarial, tributario, consultivo, criminal, outra, nao_identificada).
+3. Extrair informação estruturada da resposta conforme a etapa.
+4. Decidir a PRÓXIMA AÇÃO.
 
-FLUXOS POSSÍVEIS:
-- "saude" → 2 perguntas curtas, depois envia link de pagamento e encerra.
-- "inventario" → 3 perguntas (tempo do falecimento, bens, consenso), depois handoff humano direto.
-- "qualificacao_geral" → M1, M2, M3 conforme a área, depois handoff humano.
-- "fora_escopo" → área não atendida; bot diz que um advogado vai entrar em contato.
+Regras de qualificação (após M3):
+- Trabalhista vira SQL se: fato ocorreu há menos de 2 anos + tempo de empresa >= 6 meses + tem ao menos 1 documento.
+- Civel/Familia/Sucessoes vira SQL se: demanda dentro das áreas atendidas + urgência alta OU valor envolvido relevante (defina relevante como >= R$ 20.000 quando não houver guia).
+- Empresarial/Tributario/Consultivo vira SQL se: porte >= 5 funcionários OU faturamento mensal >= R$ 50.000 + falando com decisor ou influenciador.
+- Criminal: sempre marcar como fora_escopo (se o escritório não atende — confirme via env ESCRITORIO_AREAS).
+- Qualquer área fora da lista de áreas atendidas: fora_escopo.
 
-REGRAS GERAIS:
-1. Sempre escreva em pt-BR, tom direto e próximo, nunca robótico.
-2. Bullets só com "•". Emojis permitidos: 🤓 e ✱ (com moderação).
-3. NUNCA promete resultado jurídico, valor de indenização, prazo de processo ou opinião jurídica.
-4. NUNCA inventa link de pagamento — só usa o que vier no contexto.
-5. Máximo 3 perguntas de qualificação por lead. Depois disso, encerre.
-6. Se a resposta do lead for ambígua, pode "aguardar" e pedir pra reformular UMA vez.
+Mensagens permitidas para "proxima_acao":
+- "enviar_M1" — fazer a 1ª pergunta de qualificação
+- "enviar_M2" — fazer a 2ª pergunta
+- "enviar_M3" — fazer a 3ª pergunta
+- "encerrar_sql" — qualificou, parar e passar pro humano
+- "encerrar_mql_frio" — não qualificou, encerrar educadamente
+- "fora_escopo" — área não atendida, encerrar
+- "aguardar" — lead não respondeu ou resposta incompreensível, repetir a pergunta atual
 
-VOCÊ RECEBE:
-- Contexto do lead (nome, telefone, fluxo atual, etapa atual)
-- Histórico curto da conversa
-- Última mensagem do lead
-
-VOCÊ RETORNA APENAS JSON neste formato:
+Retorne APENAS um JSON neste formato, sem texto extra:
 
 {
-  "area_codigo": "saude|inventario|familia|civel|consumidor|trabalhista|previdenciario|outra",
-  "fluxo": "saude|inventario|qualificacao_geral|fora_escopo",
-  "proxima_acao": "enviar_M1|enviar_M2|enviar_M3|encerrar_saude|encerrar_inventario|encerrar_qualificacao_geral|encerrar_fora_escopo|aguardar",
-  "resposta_estruturada": { "campo": "valor" },
+  "area": "trabalhista|civel|familia|sucessoes|empresarial|tributario|consultivo|criminal|outra|nao_identificada",
+  "proxima_acao": "enviar_M1|enviar_M2|enviar_M3|encerrar_sql|encerrar_mql_frio|fora_escopo|aguardar",
+  "resposta_estruturada": { ... },
   "score": 0,
-  "motivo": "1 frase",
-  "mensagem_para_enviar": "texto pronto pra mandar ao lead"
+  "motivo": "explicação curta",
+  "mensagem_para_enviar": "texto pronto pra mandar ao lead, em pt-BR, tom direto e próximo, com bullets usando • e emojis 🤓 ou ✱ se fizer sentido"
 }
 
-CRITÉRIOS DE FLUXO:
-- Se área = saude → fluxo = saude.
-- Se área = inventario → fluxo = inventario.
-- Se área in (familia, civel, consumidor, trabalhista, previdenciario) → fluxo = qualificacao_geral.
-- Se área = outra → fluxo = fora_escopo.
+Quando a etapa atual for M0 (área ainda não confirmada), use "proxima_acao": "enviar_M1" assim que conseguir identificar a área e formule a M1 já específica da área.
 
-ENCERRAMENTOS:
-- "encerrar_saude" → após 2 perguntas (M1 sobre o problema, M2 sobre documentos). A mensagem_para_enviar pode ser deixada vazia que o sistema usa o template com link de pagamento.
-- "encerrar_inventario" → após 3 perguntas, handoff direto. Pode deixar mensagem_para_enviar vazia, sistema usa template.
-- "encerrar_qualificacao_geral" → após M1, M2, M3 da área específica. Pode deixar mensagem_para_enviar vazia.
-- "encerrar_fora_escopo" → área não atendida. Sistema usa template "advogado vai entrar em contato".
+Sempre fale como humano educado e atencioso, nunca como robô. Nunca prometa resultado jurídico, nunca dê opinião jurídica.`;
 
-Quando proxima_acao for "enviar_Mx", gere a mensagem_para_enviar específica do fluxo/área (você pode usar as perguntas dos templates de referência como base, mas pode adaptar pro contexto do lead).`;
+// ---------- M1, M2, M3 por área (fallback se Claude não gerar a mensagem) ----------
+
+export const PERGUNTAS_FALLBACK: Record<string, { M1: string; M2: string; M3: string }> = {
+  trabalhista: {
+    M1: "Entendi. O fato que você quer discutir (demissão, salário, assédio etc.) aconteceu há quanto tempo?\n\n• Menos de 6 meses\n• Entre 6 meses e 2 anos\n• Mais de 2 anos\n• Ainda está acontecendo",
+    M2: "Perfeito. Por quanto tempo você trabalhou nessa empresa e qual era a faixa do seu salário? (pode ser estimativa, ex: \"3 anos, ganhava entre 3 e 5 mil\")",
+    M3: "Última pergunta: você tem algum desses documentos?\n\n• Carteira de trabalho (CTPS)\n• Holerites recentes\n• Termo de rescisão\n• Conversas (WhatsApp/e-mail) com a empresa\n\nPode marcar mais de um ou dizer \"não tenho nada ainda\".",
+  },
+  civel: {
+    M1: "Entendi. Sua questão envolve qual situação específica? (ex: indenização, contrato, problema com produto/serviço, vizinhança, outra)",
+    M2: "Existe algum prazo apertado ou processo já em andamento?\n\n• Sim, tem audiência ou prazo próximo\n• Tem processo, sem urgência imediata\n• Ainda não tem processo\n• Não sei dizer",
+    M3: "Pra entender melhor o caso: tem alguma estimativa do valor envolvido? (pode ser uma faixa aproximada ou \"não sei ainda\")",
+  },
+  familia: {
+    M1: "Entendi. Sua questão envolve qual situação? (divórcio, guarda, pensão, partilha, outra)",
+    M2: "Existe algum prazo apertado, audiência marcada ou processo em andamento?",
+    M3: "Pra entender melhor: tem alguma estimativa do valor envolvido (bens, pensão, etc.) ou da urgência da situação?",
+  },
+  sucessoes: {
+    M1: "Entendi. Estamos falando de inventário, partilha, testamento ou outra situação sucessória?",
+    M2: "Há quanto tempo ocorreu o falecimento e existe inventário aberto?",
+    M3: "Tem alguma estimativa dos bens envolvidos? (imóveis, valores, etc.)",
+  },
+  empresarial: {
+    M1: "Entendi. Sua empresa tem aproximadamente quantos funcionários e qual o faturamento mensal estimado? (pode ser uma faixa)",
+    M2: "Vocês buscam apoio para:\n\n• Consultivo recorrente (mensal)\n• Demanda pontual (contrato, caso específico)\n• Contencioso (já tem processo)\n• Tese tributária (revisão de impostos)",
+    M3: "Você é a pessoa que decide a contratação ou existe outra pessoa que decide junto (sócio, financeiro, jurídico interno)?",
+  },
+  tributario: {
+    M1: "Entendi. Sua empresa tem aproximadamente quantos funcionários e qual o faturamento mensal estimado?",
+    M2: "Vocês buscam revisão de impostos pagos, defesa de autuação, planejamento tributário ou outra demanda?",
+    M3: "Você é a pessoa que decide a contratação ou existe outra pessoa envolvida (sócio, contabilidade, financeiro)?",
+  },
+  consultivo: {
+    M1: "Entendi. Sua empresa tem aproximadamente quantos funcionários e qual o faturamento mensal estimado?",
+    M2: "É consultivo recorrente (acompanhamento mensal) ou demanda pontual?",
+    M3: "Você é a pessoa que decide a contratação?",
+  },
+};
