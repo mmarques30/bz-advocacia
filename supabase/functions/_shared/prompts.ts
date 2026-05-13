@@ -13,7 +13,7 @@ export function mensagemM0(nome: string, tipoDeProcessoForm?: string | null): st
 
 Recebemos seu contato sobre *${tipoDeProcessoForm}* e queremos te ajudar o quanto antes.
 
-Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo? 🤓`
+Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo? 😊`
     );
   }
 
@@ -28,7 +28,7 @@ Sua dúvida é mais ligada a qual área?
 • Família / Sucessões
 • Cível
 • Empresarial / Tributário
-• Outra — me conta em poucas palavras 🤓`
+• Outra — me conta em poucas palavras 😊`
   );
 }
 
@@ -53,7 +53,7 @@ export function mensagemMQLFrio(nome: string): string {
 
 Pelo que você me contou, no momento não conseguimos avançar com seu caso. Vou registrar seu contato e, se surgir novidade ou se você quiser uma análise mais detalhada no futuro, é só responder aqui.
 
-Cuide-se 🤓`
+Cuide-se 😊`
   );
 }
 
@@ -63,7 +63,7 @@ export function mensagemForaEscopo(nome: string, area?: string): string {
 
 Pelo que você me contou, sua questão é em uma área${area ? ` (${area})` : ""} que não atendemos. Pra não te atrasar, sugiro buscar um escritório especializado nessa área específica — você pode pedir indicação na OAB da sua cidade.
 
-Se tiver outra dúvida no futuro nas áreas que atendemos, é só falar comigo de novo 🤓`
+Se tiver outra dúvida no futuro nas áreas que atendemos, é só falar comigo de novo 😊`
   );
 }
 
@@ -101,8 +101,10 @@ Retorne APENAS um JSON neste formato, sem texto extra:
   "resposta_estruturada": { ... },
   "score": 0,
   "motivo": "explicação curta",
-  "mensagem_para_enviar": "texto pronto pra mandar ao lead, em pt-BR, tom direto e próximo, com bullets usando • e emojis 🤓 ou ✱ se fizer sentido"
+  "mensagem_para_enviar": "texto pronto pra mandar ao lead, em pt-BR, tom direto e próximo, com bullets usando • e emojis 😊 ou ✱ se fizer sentido"
 }
+
+Revise antes de enviar: nunca escreva palavras grudadas. Sempre inclua espaço entre todas as palavras. Frases tipo 'Apenasqueremos' ou 'aindavou' são erros — corrija pra 'Apenas queremos', 'ainda vou'.
 
 Quando a etapa atual for M0 (área ainda não confirmada), use "proxima_acao": "enviar_M1" assim que conseguir identificar a área e formule a M1 já específica da área.
 
