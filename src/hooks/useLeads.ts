@@ -56,17 +56,38 @@ export function useLeads(filters: LeadsFilters) {
 
       if (error) throw error;
 
-      // Calculate dias_parado for each lead
+      // Carrega dados do bot SDR (leads_geral) para os leads que têm vínculo
+      const leadGeralIds = (data || [])
+        .map((l: any) => l.lead_geral_id)
+        .filter((id: string | null) => !!id);
+
+      let botMap: Record<string, any> = {};
+      if (leadGeralIds.length > 0) {
+        const { data: botData } = await supabase
+          .from("leads_geral")
+          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em")
+          .in("id", leadGeralIds);
+        botMap = Object.fromEntries((botData || []).map((b: any) => [b.id, b]));
+      }
+
       const leadsWithDiasParado = (data || []).map((lead) => {
         const dataUltimaAtividade = new Date(lead.data_ultima_atividade);
         const now = new Date();
         const diffTime = Math.abs(now.getTime() - dataUltimaAtividade.getTime());
         const diasParado = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const bot = (lead as any).lead_geral_id ? botMap[(lead as any).lead_geral_id] : null;
 
         return {
           ...lead,
           dias_parado: diasParado,
           origem_descricao: lead.outro_como_conheceu || null,
+          status_sdr: bot?.status_sdr ?? null,
+          fluxo_sdr: bot?.fluxo_sdr ?? null,
+          area_normalizada: bot?.area_normalizada ?? null,
+          score: bot?.score ?? null,
+          etapa_qualificacao: bot?.etapa_qualificacao ?? null,
+          bot_pausado: bot?.bot_pausado ?? null,
+          ultima_mensagem_em: bot?.ultima_mensagem_em ?? null,
         } as Lead;
       });
 
