@@ -88,26 +88,127 @@ Deno.serve(async (req) => {
     raw_keys: Object.keys(payload ?? {}),
   });
 
-  // Filtros básicos
-  if (payload.fromMe || payload.isStatusReply) {
-    return new Response(JSON.stringify({ ignored: "fromMe_or_status" }), { status: 200 });
+  // Status reply / grupo: sempre ignora
+  if (payload.isStatusReply) {
+    return new Response(JSON.stringify({ ignored: "status_reply" }), { status: 200 });
   }
   if (payload.isGroup) {
     return new Response(JSON.stringify({ ignored: "grupo" }), { status: 200 });
   }
 
   const texto = (payload.text?.message ?? payload.message ?? "").toString();
-  if (!texto.trim()) {
-    return new Response(JSON.stringify({ ignored: "sem_texto" }), { status: 200 });
-  }
   if (!payload.phone) {
     return new Response(JSON.stringify({ ignored: "sem_phone" }), { status: 200 });
   }
-
   const telefone = normalizarTelefone(payload.phone);
+
+  // ============================================================
+  // fromMe=true → humano da B&Z respondeu pelo celular.
+  // payload.phone = telefone do LEAD (a outra parte da conversa).
+  // Pausa o bot e marca a conversa como assumida por humano.
+  // ============================================================
+  if (payload.fromMe) {
+    if (!texto.trim()) {
+      return new Response(JSON.stringify({ ignored: "fromMe_sem_texto" }), { status: 200 });
+    }
+
+    // Resolve Time B&Z (advogado humano fallback)
+    let timeBzId: string | null = null;
+    {
+      const { data: tbz } = await supabase
+        .from("advogados_sdr")
+        .select("id")
+        .eq("ativo", true)
+        .ilike("nome", "%Time B&Z%")
+        .limit(1)
+        .maybeSingle();
+      if (tbz) {
+        timeBzId = (tbz as any).id;
+      } else {
+        const { data: any1 } = await supabase
+          .from("advogados_sdr")
+          .select("id")
+          .eq("ativo", true)
+          .limit(1)
+          .maybeSingle();
+        timeBzId = (any1 as any)?.id ?? null;
+      }
+    }
+
+    let leadFromMe = await buscarLeadPorTelefone(supabase, telefone);
+    if (!leadFromMe) {
+      const p = payload as any;
+      const senderName: string | undefined = p.chatName ?? p.notifyName ?? p.senderName;
+      leadFromMe = await criarLeadWhatsApp(supabase, {
+        nome: senderName ?? "Lead WhatsApp",
+        telefone,
+        platform: "whatsapp_organico",
+        origem: "humano_iniciou",
+      });
+      if (!leadFromMe) {
+        await registrarEvento(supabase, null, "fromMe_criar_lead_falhou", { telefone });
+        return new Response(JSON.stringify({ erro: "criar_lead_falhou" }), { status: 500 });
+      }
+    }
+
+    await supabase
+      .from("leads_geral")
+      .update({
+        bot_pausado: true,
+        status_sdr: "assumido_humano",
+        humano_responsavel: timeBzId,
+        assumido_em: new Date().toISOString(),
+      })
+      .eq("id", leadFromMe.id);
+
+    await registrarMensagem(supabase, leadFromMe.id, "humano", texto, {
+      telefone,
+      via: "celular_fromMe",
+    });
+    await registrarEvento(supabase, leadFromMe.id, "humano_assumiu_via_celular", {
+      telefone,
+      time_bz_id: timeBzId,
+    });
+
+    return new Response(
+      JSON.stringify({ ok: true, acao: "humano_assumiu_via_celular", lead_id: leadFromMe.id }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  // fromMe=false a partir daqui
+  if (!texto.trim()) {
+    return new Response(JSON.stringify({ ignored: "sem_texto" }), { status: 200 });
+  }
 
   // Localiza lead — se não existir, cria automaticamente
   let lead = await buscarLeadPorTelefone(supabase, telefone);
+
+  // Proteção: lead já existente sendo atendido no CRM atual → bot fica fora
+  if (lead) {
+    const { data: leadCrm } = await supabase
+      .from("leads_geral")
+      .select("lead_status, updated_at")
+      .eq("id", lead.id)
+      .maybeSingle();
+    const ls = (leadCrm as any)?.lead_status as string | null | undefined;
+    const upd = (leadCrm as any)?.updated_at as string | null | undefined;
+    if (ls && ls !== "Pendente" && upd) {
+      const diasMs = Date.now() - new Date(upd).getTime();
+      if (diasMs <= 7 * 24 * 60 * 60 * 1000) {
+        await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
+        await registrarEvento(supabase, lead.id, "lead_em_atendimento_crm_atual_ignorado", {
+          lead_status: ls,
+          updated_at: upd,
+        });
+        return new Response(
+          JSON.stringify({ ignored: "lead_em_atendimento_crm_atual" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+  }
+
   if (!lead) {
     const p = payload as any;
     const senderName: string | undefined = p.senderName ?? p.chatName ?? p.notifyName;
