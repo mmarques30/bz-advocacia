@@ -14,6 +14,7 @@ import { AtenderAgoraButton } from "./AtenderAgoraButton";
 interface LeadCardProps {
   lead: Lead;
   onClick: () => void;
+  onAssumed?: (lead: Lead) => void;
 }
 
 function calcDiasDesdeContato(createdAt: string): number {
