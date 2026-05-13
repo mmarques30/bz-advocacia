@@ -434,11 +434,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               )}
 
               {lead.lead_geral_id && (
-                <TabsContent value="conversa-bot" className="mt-4">
+                <TabsContent value="conversa-bot" className={cn("mt-4", sideBySide && "lg:hidden")}>
                   <ConversaBot
                     leadGeralId={lead.lead_geral_id}
                     status_sdr={lead.status_sdr}
                     bot_pausado={lead.bot_pausado}
+                    autoFocus={initialTab === "conversa-bot"}
                   />
                 </TabsContent>
               )}
