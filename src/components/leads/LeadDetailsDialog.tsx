@@ -19,6 +19,8 @@ import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { ClienteFinanceiroTab } from "./ClienteFinanceiroTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { ConversaBot } from "./ConversaBot";
+import { Bot } from "lucide-react";
 import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppTemplates } from "@/hooks/useWhatsAppTemplates";
@@ -257,6 +259,12 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                     Financeiro
                   </TabsTrigger>
                 )}
+                {lead.lead_geral_id && (
+                  <TabsTrigger value="conversa-bot" className="flex items-center gap-1">
+                    <Bot className="h-3.5 w-3.5" />
+                    Conversa Bot
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="mensagens" className="flex items-center gap-1">
                   <MessageCircle className="h-3.5 w-3.5" />
                   Mensagens
@@ -404,6 +412,16 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               {isCliente && (
                 <TabsContent value="financeiro" className="mt-4">
                   <ClienteFinanceiroTab leadId={lead.id} />
+                </TabsContent>
+              )}
+
+              {lead.lead_geral_id && (
+                <TabsContent value="conversa-bot" className="mt-4">
+                  <ConversaBot
+                    leadGeralId={lead.lead_geral_id}
+                    status_sdr={lead.status_sdr}
+                    bot_pausado={lead.bot_pausado}
+                  />
                 </TabsContent>
               )}
 
