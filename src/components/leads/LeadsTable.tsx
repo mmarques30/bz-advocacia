@@ -214,7 +214,11 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
             {leads.map((lead) => (
               <TableRow
                 key={lead.id}
-                className={cn("cursor-pointer hover:bg-muted/40", selectedIds.has(lead.id) && "bg-primary/5")}
+                className={cn(
+                  "cursor-pointer hover:bg-muted/40",
+                  selectedIds.has(lead.id) && "bg-primary/5",
+                  lead.status_sdr === "sql_aguardando_humano" && "bg-orange-50 hover:bg-orange-100",
+                )}
                 onClick={() => onViewDetails(lead)}
               >
                 {enableBulkSelect && (
