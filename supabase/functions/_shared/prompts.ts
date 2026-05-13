@@ -9,16 +9,16 @@ export function mensagemM0(nome: string, tipoDeProcessoForm?: string | null): st
   // Senão, pedimos a área.
   if (tipoDeProcessoForm && tipoDeProcessoForm.trim().length > 0) {
     return (
-`Oi ${nome}, tudo bem? Aqui é o assistente virtual do ${NOME_ESCRITORIO}.
+`Oi ${nome}, tudo bem? Aqui é do time da B&Z.
 
 Recebemos seu contato sobre *${tipoDeProcessoForm}* e queremos te ajudar o quanto antes.
 
-Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo? 😊`
+Posso te fazer só 3 perguntinhas rápidas pra direcionar você ao advogado certo?`
     );
   }
 
   return (
-`Oi ${nome}, tudo bem? Aqui é o assistente virtual do ${NOME_ESCRITORIO}.
+`Oi ${nome}, tudo bem? Aqui é do time da B&Z.
 
 Recebemos seu contato e queremos te ajudar o quanto antes. Pra te direcionar ao advogado certo, me conta rapidamente:
 
@@ -28,7 +28,7 @@ Sua dúvida é mais ligada a qual área?
 • Família / Sucessões
 • Cível
 • Empresarial / Tributário
-• Outra — me conta em poucas palavras 😊`
+• Outra — me conta em poucas palavras`
   );
 }
 
