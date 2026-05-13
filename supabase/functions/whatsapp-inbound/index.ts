@@ -416,6 +416,13 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
     })
     .eq("id", lead.id);
 
+  // Espelha o estado atual no kanban (contact_submissions)
+  await espelharContactSubmission(supabase, {
+    ...lead,
+    area_normalizada: r.area,
+    status_sdr: novoStatus,
+  });
+
   // SEMPRE notifica em encerramento (SQL, MQL frio, fora_escopo) — mesmo sem advogado da área
   if (encerramento) {
     await notificarAdvogado(supabase, lead.id, advogadoIdNotificar, r.proxima_acao);
