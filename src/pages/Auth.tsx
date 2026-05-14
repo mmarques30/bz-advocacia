@@ -19,8 +19,7 @@ import * as z from "zod";
 import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import logoBZ from "@/assets/logo-bz-new.png";
 import lawyersImg from "@/assets/lawyers-auth.jpg";
-import { hardReloadApp, resetAuthClientState } from "@/lib/authStorage";
-import { toast } from "@/lib/toast";
+import { nukeAndReload } from "@/lib/authStorage";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").trim(),
@@ -37,20 +36,6 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
-
-  // Auto-limpa locks/tokens travados de sessões antigas ao abrir a tela
-  // de login. Roda só uma vez por carregamento e marca um flag em
-  // sessionStorage pra não entrar em loop com o reload.
-  useEffect(() => {
-    const FLAG = 'bz_auth_autoclean_v1';
-    if (sessionStorage.getItem(FLAG)) return;
-    sessionStorage.setItem(FLAG, '1');
-    (async () => {
-      try {
-        await resetAuthClientState();
-      } catch { /* ignore */ }
-    })();
-  }, []);
 
   const {
     register,
@@ -260,22 +245,14 @@ export default function Auth() {
 
           {/* Footer */}
           <div className="mt-6 text-center space-y-2">
-            <div className="flex items-center justify-center gap-4 flex-wrap">
+            <div className="flex items-center justify-center">
               <button
                 type="button"
-                onClick={handleClearSession}
-                className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline-offset-2 hover:underline transition-colors"
+                onClick={handleNuke}
+                className="inline-flex items-center gap-1.5 text-xs text-white/70 hover:text-white underline-offset-2 hover:underline transition-colors"
               >
                 <RefreshCw className="h-3 w-3" />
-                Limpar sessão
-              </button>
-              <button
-                type="button"
-                onClick={hardReloadApp}
-                className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline-offset-2 hover:underline transition-colors"
-              >
-                <RefreshCw className="h-3 w-3" />
-                Recarregar sistema
+                Problemas para entrar? Limpar cache e recarregar
               </button>
             </div>
             <p className="text-sm text-white/70">
