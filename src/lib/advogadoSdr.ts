@@ -14,13 +14,13 @@ export async function resolverAdvogadoId(): Promise<string | null> {
 
   if (user) {
     // 1) match direto por user_id
-    const { data: porUserId } = await supabase
-      .from("advogados_sdr" as any)
+    const { data: porUserId } = await (supabase as any)
+      .from("advogados_sdr")
       .select("id")
-      .eq("user_id" as any, user.id)
+      .eq("user_id", user.id)
       .eq("ativo", true)
       .maybeSingle();
-    if (porUserId && (porUserId as any).id) return (porUserId as any).id;
+    if (porUserId?.id) return porUserId.id as string;
 
     // 2) match por email (e faz backfill do user_id)
     if (user.email) {
