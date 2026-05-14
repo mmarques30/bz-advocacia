@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/lib/toast";
+import { clearSupabaseAuthStorage } from "@/lib/authStorage";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,10 +33,13 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string, rememberMe: boolean) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 12000)
+      );
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeout,
+      ]);
 
       if (error) throw error;
 
@@ -50,7 +54,13 @@ export function useAuth() {
       navigate('/dashboard');
       return { data, error: null };
     } catch (error: any) {
-      const errorMessage = error.message === 'Invalid login credentials' 
+      if (error?.message === 'TIMEOUT') {
+        clearSupabaseAuthStorage();
+        toast.error('Conexão travou. Recarregando o sistema...');
+        setTimeout(() => window.location.reload(), 1200);
+        return { data: null, error };
+      }
+      const errorMessage = error.message === 'Invalid login credentials'
         ? 'Email ou senha incorretos'
         : 'Erro ao fazer login. Tente novamente.';
       toast.error(errorMessage);
