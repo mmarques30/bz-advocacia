@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
+import Atendimento from "./pages/Atendimento";
 import Clientes from "./pages/Clientes";
 
 import Processos from "./pages/Processos";
@@ -102,6 +103,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             <Leads />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/dashboard/atendimento" 
+        element={
+          <ProtectedRoute>
+            <Atendimento />
           </ProtectedRoute>
         } 
       />

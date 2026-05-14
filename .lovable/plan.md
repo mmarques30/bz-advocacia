@@ -1,55 +1,54 @@
-## Diagnóstico
+## Item 4 — Painel de Atendimento estilo WhatsApp Web
 
-O login funciona em aba anônima e trava em "Entrando..." nas abas normais das usuárias. Isso é o sintoma clássico de **um destes três problemas de cache do navegador**:
+Submenu "Atendimento" abaixo de Leads em Gestão de Vendas, na rota `/dashboard/atendimento`. Toda infra de schema (`humano_responsavel`, `ultima_leitura_humano`) já está pronta.
 
-1. **Token Supabase corrompido/expirado** salvo em `localStorage` (chaves `sb-*-auth-token`). O SDK tenta usar esse token antigo, fica em loop tentando renovar e o `signInWithPassword` nunca resolve a Promise.
-2. **Bundle JS antigo** servido pelo cache HTTP do navegador, apontando para uma versão antiga das Edge Functions / schema (referências a tabelas/colunas que mudaram).
-3. **Sem timeout** no `signIn`: se a chamada travar, o botão fica eterno em "Entrando..." sem mostrar erro, sem permitir nova tentativa.
+## Layout
 
-Não há service worker no projeto, então o problema está em `localStorage` + cache HTTP do `index.html`.
+```text
++------------------------------------------------------+
+| Conversas (320px)        |  Chat ativo               |
+|--------------------------|---------------------------|
+| [busca]                  |  [header: nome + tel]     |
+| Filtro: Todas/Minhas     |---------------------------|
+|--------------------------|                           |
+| ▢ Alceu      ●3   2min   |   (timeline ConversaBot)  |
+| ▢ Maria          15min   |                           |
+| ▢ João       ●1    1h    |                           |
+| ...                      |                           |
+|                          |---------------------------|
+|                          |  [textarea + Enviar]      |
++------------------------------------------------------+
+```
 
-## O que vou fazer
+Estado vazio (nenhuma conversa selecionada): mensagem central "Selecione uma conversa para começar".
 
-### 1. Limpeza automática de token corrompido na tela de Auth (`src/pages/Auth.tsx` + `src/hooks/useAuth.tsx`)
-- Ao montar `/auth`, se `getSession()` retornar `null` mas existirem chaves `sb-*` no `localStorage`, **remover essas chaves** (token podre) antes de qualquer outra coisa.
-- Isso recupera automaticamente quem está com token quebrado, sem precisar saber abrir DevTools.
+## Arquivos a criar
 
-### 2. Timeout + recuperação no `signIn` (`src/hooks/useAuth.tsx`)
-- Envolver `supabase.auth.signInWithPassword` em `Promise.race` com timeout de 12s.
-- Se estourar: limpar chaves `sb-*` do `localStorage`, mostrar toast "Sessão expirou. Recarregando…" e `window.location.reload()`.
-- Garante que o botão nunca trava eternamente.
+- `src/pages/Atendimento.tsx` — página com `grid-cols-[320px_1fr]`, full-height (`h-[calc(100vh-...)]`).
+- `src/components/atendimento/ConversasList.tsx` — lista de leads com `humano_responsavel` definido. Mostra nome, prévia da última mensagem, timestamp relativo, badge de não-lidas (count de `mensagens_sdr` onde `enviada_em > ultima_leitura_humano` AND `origem='lead'`). Busca por nome/telefone. Filtro: "Todas" / "Minhas" (default = Minhas).
+- `src/components/atendimento/ChatPanel.tsx` — wrapper com header (avatar + nome + telefone + botão "Ver detalhes" que abre `LeadDetailsDialog`) + `ConversaBot` reaproveitado com `className="h-full"`.
 
-### 3. Botão visível "Recarregar sistema" no rodapé do card de login (`src/pages/Auth.tsx`)
-- Texto pequeno: "Problemas para entrar? **Recarregar sistema**".
-- Ao clicar: limpa `localStorage`, `sessionStorage`, `caches.delete()` em todos os caches do CacheStorage e força `window.location.reload()`. 
-- Solução à mão para qualquer travamento futuro, sem precisar ensinar Ctrl+Shift+R.
+## Arquivos a alterar
 
-### 4. Cache-busting do `index.html` (`index.html`)
-- Adicionar meta tags:
-  ```
-  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  ```
-- O `index.html` sempre pega versão fresca → os hashes dos chunks JS/CSS sempre apontam para o build atual. Os assets com hash continuam sendo cacheados normalmente (rápido).
+- `src/components/AppSidebar.tsx` — adicionar `{ title: "Atendimento", url: "/dashboard/atendimento" }` no submenu de Gestão de Vendas, logo abaixo de Leads.
+- `src/App.tsx` — registrar `<Route path="/dashboard/atendimento">` dentro do `ProtectedRoute`.
+- `src/components/leads/ConversaBot.tsx` — aceitar prop `fullHeight?: boolean` para usar `h-full` em vez de `h-[500px]` quando dentro do painel.
 
-### 5. Detecção de bundle desatualizado em runtime (`src/lib/versionCheck.ts` novo + `src/App.tsx`)
-- A cada 5 minutos, fazer `fetch('/index.html', {cache:'no-store'})` e comparar o hash do script principal contra o que está rodando.
-- Se mudou: mostrar toast persistente "Nova versão disponível" com botão "Atualizar" → `window.location.reload()`.
-- Resolve o caso de usuária que deixa a aba aberta o dia inteiro depois de um deploy.
+## Lógica de não-lidas
 
-## Smoke tests que vou rodar
+Ao selecionar uma conversa: `update leads_geral set ultima_leitura_humano = now() where id = ?`. Realtime no canal `mensagens_sdr` filtrado por `humano_responsavel = meu_advogado_id` invalida a lista para atualizar badges em tempo real.
 
-- Abrir Auth com `localStorage` populado por token inválido → deve limpar e permitir login normal.
-- Botão "Recarregar sistema" → confirmar que limpa storages e recarrega.
-- Login normal continua funcionando em aba anônima e aba comum.
-- Build sem erros de TS.
+## Coexistência com LeadDetailsDialog
 
-## Arquivos que serão alterados
+O `LeadDetailsDialog` continua intocado e disponível. O painel `/atendimento` usa o `ConversaBot` diretamente (não abre o Dialog para conversar), mas o botão "Ver detalhes" no header do chat abre o mesmo dialog para acessar tabs de tarefas/documentos/processos. Pipeline (Kanban/Tabela) continua usando o Dialog como antes.
 
-- `src/pages/Auth.tsx` — limpeza on-mount + botão "Recarregar sistema"
-- `src/hooks/useAuth.tsx` — timeout no signIn + limpeza de token podre
-- `src/lib/versionCheck.ts` — novo, hook de versão
-- `src/App.tsx` — registrar version check
-- `index.html` — meta tags no-cache
+## Smoke tests
 
-Nenhuma alteração de schema, RLS ou Edge Function. Só frontend.
+1. Entrar em `/dashboard/atendimento` → ver lista de conversas onde `humano_responsavel = meu user`.
+2. Clicar em conversa → chat abre à direita, badge de não-lidas zera.
+3. Enviar mensagem → chega no celular do lead, aparece na lista realtime.
+4. Filtro "Todas" mostra conversas de outros atendentes (read-only se não for minha).
+5. Clicar "Ver detalhes" → abre `LeadDetailsDialog` por cima.
+6. Voltar pra `/dashboard/leads` → Kanban e tabela seguem funcionando, abrir card abre o Dialog normalmente.
+
+Sem mudança de schema, sem mudança em RLS, sem mudança em Edge Function. Só frontend.
