@@ -313,6 +313,7 @@ const App = () => {
     </Routes>
     </BrowserRouter>
   </TooltipProvider>
-);
+  );
+};
 
 export default App;
