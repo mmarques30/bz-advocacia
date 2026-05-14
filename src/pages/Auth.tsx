@@ -58,9 +58,10 @@ export default function Auth() {
     }
   }, [user, loading, navigate]);
 
-  const handleClearSession = async () => {
-    await resetAuthClientState();
-    toast.success('Sessão limpa. Tente entrar novamente.');
+  const handleNuke = () => {
+    if (window.confirm('Isso vai apagar dados locais e recarregar. Continuar?')) {
+      void nukeAndReload();
+    }
   };
 
   const onSubmit = async (data: LoginFormData) => {
