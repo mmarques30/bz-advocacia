@@ -19,8 +19,8 @@ import * as z from "zod";
 import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import logoBZ from "@/assets/logo-bz-new.png";
 import lawyersImg from "@/assets/lawyers-auth.jpg";
-import { clearSupabaseAuthStorage, hardReloadApp } from "@/lib/authStorage";
-import { supabase } from "@/integrations/supabase/client";
+import { hardReloadApp, resetAuthClientState } from "@/lib/authStorage";
+import { toast } from "@/lib/toast";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").trim(),
