@@ -16,9 +16,11 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import logoBZ from "@/assets/logo-bz-new.png";
 import lawyersImg from "@/assets/lawyers-auth.jpg";
+import { clearSupabaseAuthStorage, hardReloadApp } from "@/lib/authStorage";
+import { supabase } from "@/integrations/supabase/client";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").trim(),
@@ -56,6 +58,27 @@ export default function Auth() {
       navigate('/dashboard');
     }
   }, [user, loading, navigate]);
+
+  // Recover from corrupted/stale Supabase tokens that cause login to hang
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (!data.session) {
+          // No valid session but stale tokens may exist → wipe them
+          const hasStale = Object.keys(localStorage).some(
+            (k) => k.startsWith('sb-') || k.includes('supabase.auth')
+          );
+          if (hasStale) clearSupabaseAuthStorage();
+        }
+      } catch {
+        clearSupabaseAuthStorage();
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
