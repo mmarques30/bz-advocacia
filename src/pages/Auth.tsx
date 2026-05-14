@@ -261,7 +261,15 @@ export default function Auth() {
           </div>
 
           {/* Footer */}
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
+            <button
+              type="button"
+              onClick={hardReloadApp}
+              className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline-offset-2 hover:underline transition-colors"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Problemas para entrar? Recarregar sistema
+            </button>
             <p className="text-sm text-white/70">
               © 2025 Borges & Zembruski Advocacia
             </p>
