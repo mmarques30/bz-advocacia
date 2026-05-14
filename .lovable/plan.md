@@ -1,78 +1,55 @@
-Entrega nesta sessão: Itens 1, 2, 3 (críticos) e Item 4 se não arriscar os anteriores. Deploy e smoke test após cada item.
+## Diagnóstico
 
-## Item 1 — Mensagem duplicada no envio
+O login funciona em aba anônima e trava em "Entrando..." nas abas normais das usuárias. Isso é o sintoma clássico de **um destes três problemas de cache do navegador**:
 
-**Frontend (`src/components/leads/ConversaBot.tsx`)**
-- Guarda dura no início de `handleEnviar`: `if (enviando || !mensagem.trim()) return`.
-- `onKey` (Ctrl+Enter): `e.preventDefault()` + `e.stopPropagation()` antes de chamar `handleEnviar`.
-- Remover `queryClient.invalidateQueries(["mensagens-sdr", ...])` do `onSuccess` — deixar só o realtime propagar a inserção real (evita 2 origens de UI).
-- Manter botão `disabled={enviando}` (já existe).
+1. **Token Supabase corrompido/expirado** salvo em `localStorage` (chaves `sb-*-auth-token`). O SDK tenta usar esse token antigo, fica em loop tentando renovar e o `signInWithPassword` nunca resolve a Promise.
+2. **Bundle JS antigo** servido pelo cache HTTP do navegador, apontando para uma versão antiga das Edge Functions / schema (referências a tabelas/colunas que mudaram).
+3. **Sem timeout** no `signIn`: se a chamada travar, o botão fica eterno em "Entrando..." sem mostrar erro, sem permitir nova tentativa.
 
-**Backend (`supabase/functions/enviar-msg-humano/index.ts`)**
-- Idempotência: calcular `dedupeHash = sha256(advogado_id + lead_id + mensagem + floor(Date.now()/2000))`.
-- Antes de enviar Z-API: `select id from mensagens_sdr where lead_id=? and metadata->>dedupe_hash=? and enviada_em > now()-interval '10 seconds'`.
-- Se existe → retornar `{ ok: true, deduped: true }` sem reenviar.
-- Caso contrário, enviar e gravar `metadata.dedupe_hash`.
+Não há service worker no projeto, então o problema está em `localStorage` + cache HTTP do `index.html`.
 
-**Smoke test**: enviar 1 mensagem; confirmar 1 row em `mensagens_sdr` e 1 chegada no celular. Clicar 2x rápido → ainda 1 row.
+## O que vou fazer
 
-## Item 2 — Card do kanban não abre detalhe
+### 1. Limpeza automática de token corrompido na tela de Auth (`src/pages/Auth.tsx` + `src/hooks/useAuth.tsx`)
+- Ao montar `/auth`, se `getSession()` retornar `null` mas existirem chaves `sb-*` no `localStorage`, **remover essas chaves** (token podre) antes de qualquer outra coisa.
+- Isso recupera automaticamente quem está com token quebrado, sem precisar saber abrir DevTools.
 
-**`LeadCard.tsx`** + `LeadsKanban.tsx`:
-- Verificar handler `onClick` do `<Card>` propagando para `setSelectedLeadId`.
-- Garantir `e.stopPropagation()` apenas nos botões internos (Primeiro Contato, AtenderAgora) — o Card mantém click livre.
-- Provável regressão: o `<Button>` ghost sem `stopPropagation` no novo wrapper. Adicionar `e.stopPropagation()` em `handlePrimeiroContato` (já existe) e checar `LeadBotBadge` / `AtenderAgoraButton`.
+### 2. Timeout + recuperação no `signIn` (`src/hooks/useAuth.tsx`)
+- Envolver `supabase.auth.signInWithPassword` em `Promise.race` com timeout de 12s.
+- Se estourar: limpar chaves `sb-*` do `localStorage`, mostrar toast "Sessão expirou. Recarregando…" e `window.location.reload()`.
+- Garante que o botão nunca trava eternamente.
 
-**`LeadsTable.tsx`**: garantir `<TableRow onClick>` abre detalhe; botões/checkboxes com `stopPropagation`.
+### 3. Botão visível "Recarregar sistema" no rodapé do card de login (`src/pages/Auth.tsx`)
+- Texto pequeno: "Problemas para entrar? **Recarregar sistema**".
+- Ao clicar: limpa `localStorage`, `sessionStorage`, `caches.delete()` em todos os caches do CacheStorage e força `window.location.reload()`. 
+- Solução à mão para qualquer travamento futuro, sem precisar ensinar Ctrl+Shift+R.
 
-**Smoke test**: clicar em 3 cards distintos → todos abrem o `LeadDetailsDialog`.
+### 4. Cache-busting do `index.html` (`index.html`)
+- Adicionar meta tags:
+  ```
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  ```
+- O `index.html` sempre pega versão fresca → os hashes dos chunks JS/CSS sempre apontam para o build atual. Os assets com hash continuam sendo cacheados normalmente (rápido).
 
-## Item 3 — Identificar atendente pelo user logado
+### 5. Detecção de bundle desatualizado em runtime (`src/lib/versionCheck.ts` novo + `src/App.tsx`)
+- A cada 5 minutos, fazer `fetch('/index.html', {cache:'no-store'})` e comparar o hash do script principal contra o que está rodando.
+- Se mudou: mostrar toast persistente "Nova versão disponível" com botão "Atualizar" → `window.location.reload()`.
+- Resolve o caso de usuária que deixa a aba aberta o dia inteiro depois de um deploy.
 
-**Migration**
-- `ALTER TABLE advogados_sdr ADD COLUMN user_id uuid UNIQUE REFERENCES auth.users(id);`
-- Backfill: `UPDATE advogados_sdr a SET user_id = u.id FROM auth.users u WHERE a.email = u.email AND a.user_id IS NULL;`
-- Policies INSERT/UPDATE para usuários autenticados se cadastrarem (auto-onboard).
+## Smoke tests que vou rodar
 
-**`src/lib/advogadoSdr.ts`**
-- Prioridade: match por `user_id == auth.uid()` → `email` → fallback `geral` → qualquer ativo.
-- Se nada bate, **auto-criar** registro com `user_id`, `email`, `nome` (do `profiles`), `areas={geral}`, `ativo=true` e retornar o novo id.
+- Abrir Auth com `localStorage` populado por token inválido → deve limpar e permitir login normal.
+- Botão "Recarregar sistema" → confirmar que limpa storages e recarrega.
+- Login normal continua funcionando em aba anônima e aba comum.
+- Build sem erros de TS.
 
-**`LeadDetailsDialog.tsx`**
-- Bloco "Atendido por": avatar (inicial do nome) + nome do `humano_responsavel`, lendo de `advogados_sdr` via join (`user_id` → `profiles.nome_completo` ou `advogados_sdr.nome`).
+## Arquivos que serão alterados
 
-**Smoke test**: assumir um lead novo → `humano_responsavel = auth.uid()` e bloco "Atendido por: <meu nome>" aparece.
+- `src/pages/Auth.tsx` — limpeza on-mount + botão "Recarregar sistema"
+- `src/hooks/useAuth.tsx` — timeout no signIn + limpeza de token podre
+- `src/lib/versionCheck.ts` — novo, hook de versão
+- `src/App.tsx` — registrar version check
+- `index.html` — meta tags no-cache
 
-## Item 4 — Painel /dashboard/atendimento (estilo WhatsApp Web)
-
-Só executo se itens 1+2+3 estiverem estáveis.
-
-**Migration**: `ALTER TABLE leads_geral ADD COLUMN ultima_leitura_humano timestamptz;`
-
-**Rota e menu**
-- `App.tsx`: rota `/dashboard/atendimento` → `pages/Atendimento.tsx`.
-- `AppSidebar.tsx`: novo item "Atendimento" entre Leads e Marketing (ícone `MessagesSquare`).
-
-**`pages/Atendimento.tsx`** — layout `grid-cols-[320px_1fr]`:
-
-**Coluna esquerda — `ConversasList.tsx`**
-- Query `leads_geral` onde `humano_responsavel = advogadoUserId` (admin vê todos), order by `ultima_mensagem_em desc`.
-- Item: avatar (inicial), nome, prévia da última msg (subquery em `mensagens_sdr`), hora relativa, badge de não-lidas.
-- Search por nome + filtros pills: `todos | aguardando minha resposta | meus leads | do bot`.
-- Realtime `mensagens_sdr` invalida a lista.
-
-**Coluna direita — `ChatAtivo.tsx`**
-- Header: nome + badge área + botão "Ver ficha" → abre o `LeadDetailsDialog` existente (preservado, coexistem).
-- Reaproveita `ConversaBot` em modo full-height.
-- Estado vazio quando nenhum lead selecionado.
-
-**Não-lidas (fase 1)**: ao selecionar lead, `update leads_geral set ultima_leitura_humano = now()`. Badge = count de `mensagens_sdr` onde `origem='lead' and enviada_em > ultima_leitura_humano`.
-
-**Templates rápidos**: fase 2 (placeholder).
-
-**Smoke test**: abrir `/dashboard/atendimento` → ver lista → clicar conversa → enviar mensagem → chega no celular. Confirmar `LeadDetailsDialog` ainda funciona no Kanban.
-
-## Deploy
-- Edge function `enviar-msg-humano` redeploy após Item 1.
-- Migrations dos itens 3 e 4 aplicadas via tool de migração.
-- Confirmação de cada item com print/log antes de avançar.
+Nenhuma alteração de schema, RLS ou Edge Function. Só frontend.
