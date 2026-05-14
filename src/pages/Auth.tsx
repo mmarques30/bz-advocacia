@@ -38,6 +38,20 @@ export default function Auth() {
   const [resetEmail, setResetEmail] = useState("");
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
+  // Auto-limpa locks/tokens travados de sessões antigas ao abrir a tela
+  // de login. Roda só uma vez por carregamento e marca um flag em
+  // sessionStorage pra não entrar em loop com o reload.
+  useEffect(() => {
+    const FLAG = 'bz_auth_autoclean_v1';
+    if (sessionStorage.getItem(FLAG)) return;
+    sessionStorage.setItem(FLAG, '1');
+    (async () => {
+      try {
+        await resetAuthClientState();
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
   const {
     register,
     handleSubmit,
