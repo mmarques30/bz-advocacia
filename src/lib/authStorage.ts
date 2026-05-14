@@ -91,6 +91,39 @@ export async function resetAuthClientState(): Promise<void> {
   clearSupabaseAuthStorage();
 }
 
+/**
+ * Nuclear option: signs out, releases locks, wipes all storage,
+ * deletes Cache Storage, unregisters service workers, clears cookies
+ * and reloads bypassing HTTP cache. Use when the user is fully stuck.
+ */
+export async function nukeAndReload(): Promise<void> {
+  try { await supabase.auth.signOut({ scope: "local" }); } catch { /* ignore */ }
+  try { await releaseAuthLocks(); } catch { /* ignore */ }
+  try { localStorage.clear(); } catch { /* ignore */ }
+  try { sessionStorage.clear(); } catch { /* ignore */ }
+  try {
+    if ("caches" in window) {
+      const names = await caches.keys();
+      await Promise.all(names.map((n) => caches.delete(n)));
+    }
+  } catch { /* ignore */ }
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => undefined)));
+    }
+  } catch { /* ignore */ }
+  try {
+    document.cookie.split(";").forEach((c) => {
+      const name = c.split("=")[0]?.trim();
+      if (!name) return;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; domain=${window.location.hostname}`;
+    });
+  } catch { /* ignore */ }
+  window.location.replace(`/auth?_r=${Date.now()}`);
+}
+
 export async function hardReloadApp() {
   try {
     await releaseAuthLocks();
