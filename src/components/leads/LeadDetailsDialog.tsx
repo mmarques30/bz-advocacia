@@ -251,6 +251,23 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               <Button size="sm" onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
             </div>
 
+            {atendente && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase">
+                  {(atendente.nome || atendente.email || "?").charAt(0)}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Atendido por</span>
+                  <span className="text-sm font-medium leading-tight">{atendente.nome || atendente.email}</span>
+                </div>
+                {atendente.assumido_em && (
+                  <span className="ml-auto text-[11px] text-muted-foreground">
+                    desde {format(new Date(atendente.assumido_em), "dd/MM HH:mm")}
+                  </span>
+                )}
+              </div>
+            )}
+
             {!isCliente && diasParado > 7 && (
               <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 flex items-center gap-2 mt-4">
                 <AlertCircle className="h-5 w-5 text-destructive" />
