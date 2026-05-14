@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/lib/toast";
-import { clearSupabaseAuthStorage } from "@/lib/authStorage";
+import { releaseAuthLocks, resetAuthClientState } from "@/lib/authStorage";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
