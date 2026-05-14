@@ -94,6 +94,7 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
   const envioPermitido = podeEnviar(status_sdr, bot_pausado);
 
   const handleEnviar = async () => {
+    if (enviando) return; // guarda dura contra duplo-disparo
     const texto = mensagem.trim();
     if (!texto) return;
     setEnviando(true);
@@ -107,8 +108,7 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
       if (error) throw error;
       if (data && data.ok === false) throw new Error("Z-API retornou erro ao enviar");
       setMensagem("");
-      // Realtime atualiza, mas força refetch como fallback
-      queryClient.invalidateQueries({ queryKey: ["mensagens-sdr", leadGeralId] });
+      // Realtime propaga a mensagem real — não invalidar cache de mensagens-sdr aqui
       queryClient.invalidateQueries({ queryKey: ["leads"] });
     } catch (err: any) {
       toast.error(err?.message || "Erro ao enviar mensagem");
@@ -120,7 +120,8 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
   const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
       e.preventDefault();
-      handleEnviar();
+      e.stopPropagation();
+      if (!enviando) handleEnviar();
     }
   };
 
