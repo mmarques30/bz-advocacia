@@ -88,7 +88,11 @@ const columns: { id: string; titulo: string; color: string }[] = [
 export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: LeadsKanbanProps) {
   const updateStage = useUpdateLeadStage();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor));
+  // activationConstraint.distance: só inicia drag após mover 8px,
+  // permitindo que clicks simples no card propaguem para abrir o detalhe.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   const leadsGrouped = useMemo(() => {
     if (!leads) return {};

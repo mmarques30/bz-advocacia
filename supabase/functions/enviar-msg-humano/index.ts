@@ -1,5 +1,6 @@
 // Edge Function: enviar-msg-humano
 // Painel chama quando o advogado envia mensagem manual.
+// Inclui idempotência (janela de 2s) para evitar duplicatas por double-click.
 
 import {
   getSupabaseAdmin,
@@ -20,6 +21,14 @@ interface EnviarPayload {
   lead_id: string;
   advogado_id: string;
   mensagem: string;
+}
+
+async function sha256(input: string): Promise<string> {
+  const buf = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 Deno.serve(async (req) => {
@@ -43,6 +52,28 @@ Deno.serve(async (req) => {
 
   const supabase = getSupabaseAdmin();
 
+  // Idempotência: hash em janela de 2s
+  const bucket = Math.floor(Date.now() / 2000);
+  const dedupeHash = await sha256(`${advogado_id}|${lead_id}|${mensagem.trim()}|${bucket}`);
+
+  const since = new Date(Date.now() - 10_000).toISOString();
+  const { data: existing } = await supabase
+    .from("mensagens_sdr")
+    .select("id")
+    .eq("lead_id", lead_id)
+    .eq("origem", "humano")
+    .gte("enviada_em", since)
+    .filter("metadata->>dedupe_hash", "eq", dedupeHash)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    return new Response(
+      JSON.stringify({ ok: true, deduped: true, messageId: null }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
   const { data: lead } = await supabase
     .from("leads_geral")
     .select("id, phone_number, contato_whatsapp, humano_responsavel, bot_pausado")
@@ -62,6 +93,7 @@ Deno.serve(async (req) => {
   await registrarMensagem(supabase, lead_id, "humano", mensagem, {
     advogado_id,
     zapi: resultado,
+    dedupe_hash: dedupeHash,
   });
 
   await registrarEvento(supabase, lead_id, "humano_enviou_msg", {

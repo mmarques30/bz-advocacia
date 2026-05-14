@@ -93,6 +93,7 @@ export type Database = {
           id: string
           nome: string
           telefone: string | null
+          user_id: string | null
         }
         Insert: {
           areas?: string[]
@@ -102,6 +103,7 @@ export type Database = {
           id?: string
           nome: string
           telefone?: string | null
+          user_id?: string | null
         }
         Update: {
           areas?: string[]
@@ -111,6 +113,7 @@ export type Database = {
           id?: string
           nome?: string
           telefone?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1506,6 +1509,7 @@ export type Database = {
           status_sdr: string | null
           telefone_digits: string | null
           tipo_servico: string | null
+          ultima_leitura_humano: string | null
           ultima_mensagem_em: string | null
           updated_at: string | null
         }
@@ -1545,6 +1549,7 @@ export type Database = {
           status_sdr?: string | null
           telefone_digits?: string | null
           tipo_servico?: string | null
+          ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
           updated_at?: string | null
         }
@@ -1584,6 +1589,7 @@ export type Database = {
           status_sdr?: string | null
           telefone_digits?: string | null
           tipo_servico?: string | null
+          ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
           updated_at?: string | null
         }

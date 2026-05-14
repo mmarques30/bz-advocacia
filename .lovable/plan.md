@@ -1,111 +1,78 @@
-## Patch whatsapp-inbound: dedup, auto-criação de lead e telefone com/sem 9
+Entrega nesta sessão: Itens 1, 2, 3 (críticos) e Item 4 se não arriscar os anteriores. Deploy e smoke test após cada item.
 
-### Parte 1 — Migration: tabela de lock
+## Item 1 — Mensagem duplicada no envio
 
-Cria `public.mensagens_inbound_lock` para idempotência por `messageId` da Z-API:
+**Frontend (`src/components/leads/ConversaBot.tsx`)**
+- Guarda dura no início de `handleEnviar`: `if (enviando || !mensagem.trim()) return`.
+- `onKey` (Ctrl+Enter): `e.preventDefault()` + `e.stopPropagation()` antes de chamar `handleEnviar`.
+- Remover `queryClient.invalidateQueries(["mensagens-sdr", ...])` do `onSuccess` — deixar só o realtime propagar a inserção real (evita 2 origens de UI).
+- Manter botão `disabled={enviando}` (já existe).
 
-```sql
-create table if not exists public.mensagens_inbound_lock (
-  message_id text primary key,
-  created_at timestamptz not null default now()
-);
-create index if not exists idx_lock_created
-  on public.mensagens_inbound_lock(created_at);
+**Backend (`supabase/functions/enviar-msg-humano/index.ts`)**
+- Idempotência: calcular `dedupeHash = sha256(advogado_id + lead_id + mensagem + floor(Date.now()/2000))`.
+- Antes de enviar Z-API: `select id from mensagens_sdr where lead_id=? and metadata->>dedupe_hash=? and enviada_em > now()-interval '10 seconds'`.
+- Se existe → retornar `{ ok: true, deduped: true }` sem reenviar.
+- Caso contrário, enviar e gravar `metadata.dedupe_hash`.
 
-alter table public.mensagens_inbound_lock enable row level security;
--- sem policies: só service role escreve (Edge Function)
-```
+**Smoke test**: enviar 1 mensagem; confirmar 1 row em `mensagens_sdr` e 1 chegada no celular. Clicar 2x rápido → ainda 1 row.
 
-Observação: a limpeza periódica (delete onde `created_at < now() - interval '24h'`) fica como follow-up (cron). Pra esse patch, basta a tabela existir.
+## Item 2 — Card do kanban não abre detalhe
 
-### Parte 2 — Idempotência no whatsapp-inbound
+**`LeadCard.tsx`** + `LeadsKanban.tsx`:
+- Verificar handler `onClick` do `<Card>` propagando para `setSelectedLeadId`.
+- Garantir `e.stopPropagation()` apenas nos botões internos (Primeiro Contato, AtenderAgora) — o Card mantém click livre.
+- Provável regressão: o `<Button>` ghost sem `stopPropagation` no novo wrapper. Adicionar `e.stopPropagation()` em `handlePrimeiroContato` (já existe) e checar `LeadBotBadge` / `AtenderAgoraButton`.
 
-No `supabase/functions/whatsapp-inbound/index.ts`, logo após o `await req.json()` e o `getSupabaseAdmin()`, antes do `raw_payload_debug`:
+**`LeadsTable.tsx`**: garantir `<TableRow onClick>` abre detalhe; botões/checkboxes com `stopPropagation`.
 
-```ts
-const messageId = (payload as any).messageId as string | undefined;
-if (messageId) {
-  const { error: lockErr } = await supabase
-    .from("mensagens_inbound_lock")
-    .insert({ message_id: messageId });
-  if (lockErr && (lockErr.code === "23505" || lockErr.message?.includes("duplicate"))) {
-    await registrarEvento(supabase, null, "webhook_duplicado_ignorado", { messageId });
-    return new Response(JSON.stringify({ ignored: "duplicate_messageId" }), { status: 200 });
-  }
-}
-```
+**Smoke test**: clicar em 3 cards distintos → todos abrem o `LeadDetailsDialog`.
 
-(Mantém o `raw_payload_debug` e o `webhook_recebido` logo em seguida.)
+## Item 3 — Identificar atendente pelo user logado
 
-Nota: não vamos usar `EdgeRuntime.waitUntil` neste patch — só o lock já elimina o efeito da retry.
+**Migration**
+- `ALTER TABLE advogados_sdr ADD COLUMN user_id uuid UNIQUE REFERENCES auth.users(id);`
+- Backfill: `UPDATE advogados_sdr a SET user_id = u.id FROM auth.users u WHERE a.email = u.email AND a.user_id IS NULL;`
+- Policies INSERT/UPDATE para usuários autenticados se cadastrarem (auto-onboard).
 
-### Parte 3 — Auto-criar lead em telefone desconhecido
+**`src/lib/advogadoSdr.ts`**
+- Prioridade: match por `user_id == auth.uid()` → `email` → fallback `geral` → qualquer ativo.
+- Se nada bate, **auto-criar** registro com `user_id`, `email`, `nome` (do `profiles`), `areas={geral}`, `ativo=true` e retornar o novo id.
 
-Substituir o bloco atual:
+**`LeadDetailsDialog.tsx`**
+- Bloco "Atendido por": avatar (inicial do nome) + nome do `humano_responsavel`, lendo de `advogados_sdr` via join (`user_id` → `profiles.nome_completo` ou `advogados_sdr.nome`).
 
-```ts
-if (!lead) {
-  await registrarEvento(supabase, null, "msg_de_telefone_desconhecido", { telefone, texto });
-  return new Response(JSON.stringify({ ignored: "lead_nao_encontrado" }), { status: 200 });
-}
-```
+**Smoke test**: assumir um lead novo → `humano_responsavel = auth.uid()` e bloco "Atendido por: <meu nome>" aparece.
 
-por uma criação automática em `leads_geral`:
+## Item 4 — Painel /dashboard/atendimento (estilo WhatsApp Web)
 
-- **Nome**: `payload.senderName ?? payload.chatName ?? "Lead WhatsApp"`.
-- **Plataforma/origem**: detectar Meta click-to-WhatsApp pelos campos comuns da Z-API (`payload.referral`, `payload.momentMetadata`, `payload.ctwaContext`, `payload.sourceId`). Como ainda não temos certeza do nome exato do campo no payload da Z-API, a função vai:
-  1. logar `lead_auto_criado_payload_debug` com as chaves do payload pra a Mariana confirmar;
-  2. usar heurística: se houver qualquer campo com `referral`/`ctwa`/`source_id`/`adId`, marcar `platform = 'facebook_ads'` (ou `instagram_ads` se o source contiver "instagram"); caso contrário `whatsapp_organico`.
-- **id do lead**: `sdr_wa_<timestamp>_<últimos 6 do telefone>` (string, igual aos demais `sdr_*`).
-- **Campos preenchidos**: `id`, `full_name`, `phone_number`, `contato_whatsapp` (telefone normalizado), `platform`, `origem_sdr`, `status_sdr = 'novo'`, `etapa_qualificacao = 'M0'`, `created_time = now()`.
-- Após o insert, o trigger `trg_on_new_lead_webhook` chama `on-new-lead`, que envia M0 + LGPD. A função inbound então **registra a mensagem do lead** em `mensagens_sdr` e retorna 200 sem disparar Claude nessa primeira hit (evita corrida com a M0). Em hits subsequentes o fluxo normal segue.
+Só executo se itens 1+2+3 estiverem estáveis.
 
-Helper novo em `_shared/db.ts`:
+**Migration**: `ALTER TABLE leads_geral ADD COLUMN ultima_leitura_humano timestamptz;`
 
-```ts
-export async function criarLeadWhatsApp(
-  supabase, { nome, telefone, platform, origem }
-): Promise<Lead>
-```
+**Rota e menu**
+- `App.tsx`: rota `/dashboard/atendimento` → `pages/Atendimento.tsx`.
+- `AppSidebar.tsx`: novo item "Atendimento" entre Leads e Marketing (ícone `MessagesSquare`).
 
-### Parte 4 — Telefone com/sem 9
+**`pages/Atendimento.tsx`** — layout `grid-cols-[320px_1fr]`:
 
-`_shared/zapi.ts` — nova função utilitária:
+**Coluna esquerda — `ConversasList.tsx`**
+- Query `leads_geral` onde `humano_responsavel = advogadoUserId` (admin vê todos), order by `ultima_mensagem_em desc`.
+- Item: avatar (inicial), nome, prévia da última msg (subquery em `mensagens_sdr`), hora relativa, badge de não-lidas.
+- Search por nome + filtros pills: `todos | aguardando minha resposta | meus leads | do bot`.
+- Realtime `mensagens_sdr` invalida a lista.
 
-```ts
-export function variacoesTelefone(telefone: string): string[] {
-  const base = normalizarTelefone(telefone);  // sempre com 55
-  const out = new Set<string>([base]);
-  // 55 + DDD(2) + 8 dígitos => 12 → injeta 9
-  if (base.length === 12) out.add(base.slice(0, 4) + "9" + base.slice(4));
-  // 55 + DDD(2) + 9 + 8 dígitos => 13 → remove 9
-  if (base.length === 13 && base[4] === "9") out.add(base.slice(0, 4) + base.slice(5));
-  return [...out];
-}
-```
+**Coluna direita — `ChatAtivo.tsx`**
+- Header: nome + badge área + botão "Ver ficha" → abre o `LeadDetailsDialog` existente (preservado, coexistem).
+- Reaproveita `ConversaBot` em modo full-height.
+- Estado vazio quando nenhum lead selecionado.
 
-`_shared/db.ts` — `buscarLeadPorTelefone`:
+**Não-lidas (fase 1)**: ao selecionar lead, `update leads_geral set ultima_leitura_humano = now()`. Badge = count de `mensagens_sdr` onde `origem='lead' and enviada_em > ultima_leitura_humano`.
 
-- Substitui as variações atuais por `variacoesTelefone(telefone)` + as variações sem `55` e com `+`.
-- Mantém o fallback `like` nos últimos 8 dígitos.
+**Templates rápidos**: fase 2 (placeholder).
 
-`normalizarTelefone` em si **não** muda (continua determinístico, exigência da Z-API). A "tolerância" 9/sem-9 é apenas no lookup do lead.
+**Smoke test**: abrir `/dashboard/atendimento` → ver lista → clicar conversa → enviar mensagem → chega no celular. Confirmar `LeadDetailsDialog` ainda funciona no Kanban.
 
-### Parte 5 — Validação após deploy
-
-1. Reaplicar o smoke test de insert (`sdr_test_*`) e conferir em `eventos_sdr` se aparece `webhook_duplicado_ignorado` quando a Z-API faz retry, e que só existe **uma** linha de cada mensagem do bot em `mensagens_sdr`.
-2. Pedir pra Mariana mandar mensagem de um número **fora da base** → conferir:
-   - novo registro em `leads_geral` com `origem_sdr` esperado;
-   - M0 + LGPD entregues via `on-new-lead`;
-   - `eventos_sdr` mostra `lead_auto_criado_payload_debug` com as chaves reais → ajustar a detecção de `platform` se necessário.
-
-### Arquivos tocados
-
-- migration nova (tabela `mensagens_inbound_lock`)
-- `supabase/functions/_shared/zapi.ts` (adiciona `variacoesTelefone`)
-- `supabase/functions/_shared/db.ts` (atualiza `buscarLeadPorTelefone`, adiciona `criarLeadWhatsApp`)
-- `supabase/functions/whatsapp-inbound/index.ts` (lock + auto-criação)
-
-### Pergunta aberta
-
-A heurística de `platform` em Parte 3 é provisória — depois do primeiro lead orgânico real, o `lead_auto_criado_payload_debug` vai mostrar o nome exato do campo da Z-API (provavelmente `referral` ou `ctwaContext`), e a gente fixa a detecção. Posso seguir com a heurística agora?
+## Deploy
+- Edge function `enviar-msg-humano` redeploy após Item 1.
+- Migrations dos itens 3 e 4 aplicadas via tool de migração.
+- Confirmação de cada item com print/log antes de avançar.
