@@ -7,7 +7,7 @@ export default function Atendimento() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-6.5rem)] flex flex-col overflow-hidden">
       <div className="border-b px-4 py-3 shrink-0">
         <h1 className="font-seasons text-2xl text-primary">Atendimento</h1>
         <p className="text-xs text-muted-foreground">
