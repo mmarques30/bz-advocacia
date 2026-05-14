@@ -3,7 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/lib/toast";
-import { clearSupabaseAuthStorage } from "@/lib/authStorage";
+import { releaseAuthLocks, resetAuthClientState } from "@/lib/authStorage";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -33,8 +33,16 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string, rememberMe: boolean) => {
     try {
+      // Destrava qualquer lock pendente do GoTrue (aba antiga que morreu
+      // segurando o lock fazia signInWithPassword travar para sempre) e
+      // limpa estado local antes de tentar logar.
+      try {
+        await releaseAuthLocks();
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch { /* segue o jogo */ }
+
       const timeout = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT')), 12000)
+        setTimeout(() => reject(new Error('TIMEOUT')), 20000)
       );
       const { data, error } = await Promise.race([
         supabase.auth.signInWithPassword({ email, password }),
@@ -55,9 +63,10 @@ export function useAuth() {
       return { data, error: null };
     } catch (error: any) {
       if (error?.message === 'TIMEOUT') {
-        clearSupabaseAuthStorage();
-        toast.error('Conexão travou. Recarregando o sistema...');
-        setTimeout(() => window.location.reload(), 1200);
+        // Não recarregar sozinho — isso causa loop. Limpa estado e
+        // mostra mensagem clara para o usuário tentar de novo.
+        await resetAuthClientState();
+        toast.error('Sem resposta do servidor. Clique em "Limpar sessão" abaixo e tente de novo.');
         return { data: null, error };
       }
       const errorMessage = error.message === 'Invalid login credentials'

@@ -19,8 +19,8 @@ import * as z from "zod";
 import { Eye, EyeOff, Loader2, RefreshCw } from "lucide-react";
 import logoBZ from "@/assets/logo-bz-new.png";
 import lawyersImg from "@/assets/lawyers-auth.jpg";
-import { clearSupabaseAuthStorage, hardReloadApp } from "@/lib/authStorage";
-import { supabase } from "@/integrations/supabase/client";
+import { hardReloadApp, resetAuthClientState } from "@/lib/authStorage";
+import { toast } from "@/lib/toast";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido").trim(),
@@ -59,26 +59,10 @@ export default function Auth() {
     }
   }, [user, loading, navigate]);
 
-  // Recover from corrupted/stale Supabase tokens that cause login to hang
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (cancelled) return;
-        if (!data.session) {
-          // No valid session but stale tokens may exist → wipe them
-          const hasStale = Object.keys(localStorage).some(
-            (k) => k.startsWith('sb-') || k.includes('supabase.auth')
-          );
-          if (hasStale) clearSupabaseAuthStorage();
-        }
-      } catch {
-        clearSupabaseAuthStorage();
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const handleClearSession = async () => {
+    await resetAuthClientState();
+    toast.success('Sessão limpa. Tente entrar novamente.');
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
@@ -262,14 +246,24 @@ export default function Auth() {
 
           {/* Footer */}
           <div className="mt-6 text-center space-y-2">
-            <button
-              type="button"
-              onClick={hardReloadApp}
-              className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline-offset-2 hover:underline transition-colors"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Problemas para entrar? Recarregar sistema
-            </button>
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              <button
+                type="button"
+                onClick={handleClearSession}
+                className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline-offset-2 hover:underline transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Limpar sessão
+              </button>
+              <button
+                type="button"
+                onClick={hardReloadApp}
+                className="inline-flex items-center gap-1.5 text-xs text-white/80 hover:text-white underline-offset-2 hover:underline transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" />
+                Recarregar sistema
+              </button>
+            </div>
             <p className="text-sm text-white/70">
               © 2025 Borges & Zembruski Advocacia
             </p>
