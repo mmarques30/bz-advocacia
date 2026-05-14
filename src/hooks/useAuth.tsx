@@ -54,7 +54,13 @@ export function useAuth() {
       navigate('/dashboard');
       return { data, error: null };
     } catch (error: any) {
-      const errorMessage = error.message === 'Invalid login credentials' 
+      if (error?.message === 'TIMEOUT') {
+        clearSupabaseAuthStorage();
+        toast.error('Conexão travou. Recarregando o sistema...');
+        setTimeout(() => window.location.reload(), 1200);
+        return { data: null, error };
+      }
+      const errorMessage = error.message === 'Invalid login credentials'
         ? 'Email ou senha incorretos'
         : 'Erro ao fazer login. Tente novamente.';
       toast.error(errorMessage);
