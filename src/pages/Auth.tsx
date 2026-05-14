@@ -59,26 +59,10 @@ export default function Auth() {
     }
   }, [user, loading, navigate]);
 
-  // Recover from corrupted/stale Supabase tokens that cause login to hang
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (cancelled) return;
-        if (!data.session) {
-          // No valid session but stale tokens may exist → wipe them
-          const hasStale = Object.keys(localStorage).some(
-            (k) => k.startsWith('sb-') || k.includes('supabase.auth')
-          );
-          if (hasStale) clearSupabaseAuthStorage();
-        }
-      } catch {
-        clearSupabaseAuthStorage();
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const handleClearSession = async () => {
+    await resetAuthClientState();
+    toast.success('Sessão limpa. Tente entrar novamente.');
+  };
 
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
