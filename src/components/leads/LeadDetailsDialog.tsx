@@ -176,8 +176,7 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
     if (city) summaryParts.push(city);
   }
 
-  const hasBot = !!lead?.lead_geral_id;
-  const sideBySide = hasBot;
+  const sideBySide = false;
   const defaultTab = initialTab || "info";
 
   return (
@@ -312,12 +311,6 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   <TabsTrigger value="financeiro" className="flex items-center gap-1">
                     <Wallet className="h-3.5 w-3.5" />
                     Financeiro
-                  </TabsTrigger>
-                )}
-                {lead.lead_geral_id && (
-                  <TabsTrigger value="conversa-bot" className={cn("flex items-center gap-1", sideBySide && "lg:hidden")}>
-                    <Bot className="h-3.5 w-3.5" />
-                    Conversa Bot
                   </TabsTrigger>
                 )}
                 <TabsTrigger value="mensagens" className="flex items-center gap-1">
@@ -470,16 +463,6 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 </TabsContent>
               )}
 
-              {lead.lead_geral_id && (
-                <TabsContent value="conversa-bot" className={cn("mt-4", sideBySide && "lg:hidden")}>
-                  <ConversaBot
-                    leadGeralId={lead.lead_geral_id}
-                    status_sdr={lead.status_sdr}
-                    bot_pausado={lead.bot_pausado}
-                    autoFocus={initialTab === "conversa-bot"}
-                  />
-                </TabsContent>
-              )}
 
               <TabsContent value="mensagens" className="mt-4">
                 <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} dataNascimento={lead.data_nascimento} />
@@ -527,27 +510,6 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsContent>
             </Tabs>
           </div>
-          {sideBySide && lead.lead_geral_id && (
-            <div className="hidden lg:flex flex-1 flex-col bg-muted/10 border-l">
-              <div className="px-4 py-3 border-b bg-background flex items-center gap-2">
-                <Bot className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold truncate">{lead.nome_completo}</span>
-                <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-red-600">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                  ao vivo
-                </span>
-              </div>
-              <div className="flex-1 min-h-0 p-3">
-                <ConversaBot
-                  leadGeralId={lead.lead_geral_id}
-                  status_sdr={lead.status_sdr}
-                  bot_pausado={lead.bot_pausado}
-                  className="!h-full"
-                  autoFocus={initialTab === "conversa-bot"}
-                />
-              </div>
-            </div>
-          )}
           </div>
           )
         ) : (
