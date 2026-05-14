@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "@/lib/toast";
+import { clearSupabaseAuthStorage } from "@/lib/authStorage";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,10 +33,13 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string, rememberMe: boolean) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT')), 12000)
+      );
+      const { data, error } = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        timeout,
+      ]);
 
       if (error) throw error;
 
