@@ -127,8 +127,8 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
   };
 
   return (
-    <div className={cn("flex flex-col border rounded-lg bg-muted/20", fullHeight ? "h-full" : "h-[500px]", className)}>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+    <div className={cn("flex min-h-0 flex-col border rounded-lg bg-muted/20", fullHeight ? "h-full" : "h-[500px]", className)}>
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto p-4 space-y-3">
         {isLoading ? (
           <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando conversa...

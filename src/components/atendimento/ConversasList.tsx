@@ -117,7 +117,7 @@ export function ConversasList({ selectedId, onSelect }: Props) {
   }, [conversas, busca]);
 
   return (
-    <div className="flex flex-col h-full border-r bg-card">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden border-r bg-card">
       <div className="p-3 space-y-2 border-b">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -136,7 +136,7 @@ export function ConversasList({ selectedId, onSelect }: Props) {
         </Tabs>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
             <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Carregando...
