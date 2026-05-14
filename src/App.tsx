@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { startVersionCheck } from "@/lib/versionCheck";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import Index from "./pages/Index";
@@ -78,7 +80,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <DashboardLayout>{children}</DashboardLayout>;
 }
 
-const App = () => (
+const App = () => {
+  useEffect(() => { startVersionCheck(); }, []);
+  return (
   <TooltipProvider>
     <Sonner />
     <BrowserRouter>
