@@ -169,7 +169,7 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="offcanvas">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center gap-3">
           <img src={logoBZ} alt="B&Z Advocacia" className="h-8 w-8 object-contain" />
