@@ -26,6 +26,7 @@ interface Props {
   // Compacto pra usar dentro de aba
   className?: string;
   autoFocus?: boolean;
+  fullHeight?: boolean;
 }
 
 const podeEnviar = (status: string | null | undefined, bot_pausado: boolean | null | undefined) => {
