@@ -63,6 +63,7 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Leads", url: "/dashboard/leads" },
+      { title: "Atendimento", url: "/dashboard/atendimento" },
     ]
   },
   {
