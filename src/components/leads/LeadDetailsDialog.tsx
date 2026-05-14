@@ -61,6 +61,26 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
     enabled: isCliente && !!lead?.id && open,
   });
 
+  // Item 3: quem assumiu o lead (advogado humano responsável)
+  const { data: atendente } = useQuery({
+    queryKey: ["lead-atendente", lead?.lead_geral_id],
+    queryFn: async () => {
+      const { data: lg } = await (supabase as any)
+        .from("leads_geral")
+        .select("humano_responsavel, assumido_em")
+        .eq("id", lead!.lead_geral_id!)
+        .maybeSingle();
+      if (!lg?.humano_responsavel) return null;
+      const { data: adv } = await (supabase as any)
+        .from("advogados_sdr")
+        .select("id, nome, email, user_id")
+        .eq("id", lg.humano_responsavel)
+        .maybeSingle();
+      return adv ? { ...adv, assumido_em: lg.assumido_em } : null;
+    },
+    enabled: !!lead?.lead_geral_id && open,
+  });
+
   const handleMarcarConcluido = async () => {
     if (!lead) return;
     setMarkingConcluido(true);
