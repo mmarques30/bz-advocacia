@@ -1,57 +1,34 @@
-## Diagnóstico
+## Botão "Limpar tudo e recarregar" na tela de login
 
-**O que sabemos:**
-- Backend (Lovable Cloud) saudável.
-- `/auth/v1/token` responde em ~10–140ms quando recebe a chamada.
-- Nas últimas 2 horas só uma tentativa chegou ao servidor (Mariana). Os demais usuários reclamam, mas suas requisições **não chegam ao backend**.
-- O toast "Conexão travou. Recarregando o sistema…" só dispara quando `signInWithPassword` excede 12s no navegador. Combinado com "não chega ao servidor", é deadlock do cliente Supabase JS — tipicamente o lock do GoTrue (`navigator.locks`) travado por aba/sessão antiga, ou tokens corrompidos no `localStorage` que o cliente fica tentando refrescar antes de aceitar um novo login.
-- O `clearSupabaseAuthStorage` atual roda **depois** da inicialização do `supabase` client, então não destrava o lock já adquirido.
+Hoje a tela `/auth` já tem dois links discretos no rodapé: **Limpar sessão** e **Recarregar sistema**. O problema é que eles fazem coisas diferentes e nenhum deles é uma "bomba nuclear" — quando o navegador do usuário está com lock travado + token corrompido + cache do Service Worker velho, nem sempre resolve no primeiro clique.
 
-## Correção (apenas frontend, sem mexer em backend nem UI)
+### O que vou fazer
 
-### 1. `src/integrations/supabase/client.ts` — desativar o lock cross-tab
+1. **Substituir os dois links atuais por um único botão discreto** no rodapé da `src/pages/Auth.tsx`, com texto tipo **"Problemas para entrar? Limpar cache e recarregar"** (ícone `RefreshCw` do Lucide, estilo link branco translúcido, igual aos atuais).
 
-Esse arquivo é auto-gerado, então a mudança vai num wrapper. Criar `src/integrations/supabase/clientOptions.ts` não resolve porque ele é importado direto. A alternativa segura é alterar somente o `useAuth` e a tela de login para garantir destrave (passos 2 e 3). Se o lock continuar sendo o vilão, em segundo momento sobrescrevemos via `lock: async (_n,_a,fn)=>fn()` num arquivo dedicado e reapontamos imports.
+2. **Criar uma função `nukeAndReload()`** em `src/lib/authStorage.ts` que executa **na ordem**:
+   - `supabase.auth.signOut({ scope: 'local' })` — encerra sessão local.
+   - `releaseAuthLocks()` — libera locks travados do GoTrue (causa #1 do "Conexão travou").
+   - `localStorage.clear()` + `sessionStorage.clear()` — apaga tokens e flags.
+   - `caches.delete(...)` em todos os caches do Cache Storage (PWA/SW).
+   - `navigator.serviceWorker.getRegistrations()` → `unregister()` em cada um (se existir SW registrado, ele some).
+   - `cookies` do domínio limpos via `document.cookie` (best-effort, só os não-HttpOnly).
+   - `window.location.replace('/auth?_r=' + Date.now())` — recarrega forçando bypass de cache HTTP.
 
-### 2. `src/lib/authStorage.ts` — reset mais agressivo antes de logar
+3. **Confirmação leve antes de executar**: um `window.confirm("Isso vai apagar dados locais e recarregar. Continuar?")` pra evitar clique acidental que desloga quem está só explorando.
 
-- Antes de qualquer `signInWithPassword`, chamar `supabase.auth.signOut({ scope: 'local' })` para soltar o lock do GoTrue e limpar o estado interno do cliente, **depois** apagar `sb-*`/`supabase.auth.*` do `localStorage` e `sessionStorage`.
-- Adicionar função `releaseAuthLocks()` que tenta `navigator.locks.request('lock:sb-...-auth-token', { steal: true }, async () => {})` para qualquer lock pendente (try/catch silencioso, browsers antigos ignoram).
+4. **Remover o `useEffect` de auto-limpeza** que adicionei na resposta anterior (rodava em todo carregamento da `/auth`). Vira ação manual via botão, mais previsível e sem risco de loop.
 
-### 3. `src/hooks/useAuth.tsx` — fluxo de signIn mais robusto
+### Arquivos alterados
 
-- Antes de chamar `signInWithPassword`: rodar `releaseAuthLocks()` + `signOut({ scope: 'local' })`.
-- Aumentar o timeout de 12s para 20s (rede ruim em escritório) **e separar o tratamento**:
-  - Timeout real → mensagem clara "Sem resposta do servidor. Limpe os dados e tente de novo." com botão que chama `hardReloadApp` (não recarrega sozinho em loop).
-  - Erro de credencial → "Email ou senha incorretos" (igual hoje).
-- Remover o `setTimeout(reload, 1200)` automático do caminho TIMEOUT — recarregar sozinho mascara o problema e gera o loop visto na foto.
+- `src/lib/authStorage.ts` — adicionar `nukeAndReload()`.
+- `src/pages/Auth.tsx` — substituir os 2 links por 1 botão; remover `useEffect` de autoclean; remover imports não usados.
 
-### 4. `src/pages/Auth.tsx` — não limpar storage automaticamente
+### Fora do escopo
 
-- O `useEffect` que apaga tokens "stale" no mount está rodando **enquanto o GoTrue ainda inicializa**, o que pode deixar o cliente num estado inconsistente. Substituir por um botão visível ("Problemas para entrar? Limpar sessão") que chama `clearSupabaseAuthStorage` + `releaseAuthLocks` + reload.
-- Manter o botão "Recarregar sistema" que já existe (`hardReloadApp`).
+- Backend, RLS, edge functions, fluxo de senha — nada disso muda.
+- Não mexo em `src/integrations/supabase/client.ts` (arquivo gerenciado).
 
-### 5. Comunicação imediata aos usuários afetados
+### Como o usuário usa
 
-Enquanto a correção sobe, instruir quem está travado:
-1. Fechar todas as abas do sistema.
-2. Abrir aba anônima (Ctrl+Shift+N) e logar — isso prova se é cache/lock local.
-3. Se voltar a funcionar em anônima, na aba normal: F12 → Application → Storage → Clear site data → recarregar.
-
-## Validação
-
-1. Após deploy, abrir o publicado em aba anônima e logar com uma conta diferente da Mariana → deve entrar.
-2. Em aba normal "infectada", clicar no novo botão "Limpar sessão" → logar novamente → deve entrar sem o toast de timeout.
-3. Conferir nos logs do Supabase que aparece um POST `/token` 200 para essa conta (hoje não aparece nenhum).
-
-## Detalhes técnicos
-
-- **Por que não é problema de RLS/profiles:** o login falha **antes** de qualquer query autenticada. As views protegidas só são chamadas pós-`SIGNED_IN`.
-- **Por que não é instância pequena:** o servidor responde em ms; se fosse compute, veríamos timeouts no servidor, não silêncio total.
-- **Por que mudanças recentes da sidebar/atendimento provavelmente são gatilho indireto:** os reloads forçados (`hardReloadApp`) usados na sessão da Mariana podem ter deixado o GoTrue com lock pendente em outras abas dos usuários, e cada nova tentativa de login bate no lock e estoura os 12s do `Promise.race`.
-
-## Fora do escopo deste plano
-
-- Mexer em UI da tela de atendimento, sidebar ou dashboard.
-- Alterar tabelas, RLS, edge functions, ou config de auth no servidor.
-- Resetar senha de usuários (não é o problema).
+Quando alguém reclamar que não consegue entrar, orientação fica simples: **"abre a tela de login e clica em 'Limpar cache e recarregar' no rodapé"**. Um clique resolve token velho, lock travado e cache de versão antiga do app.
