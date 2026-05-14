@@ -34,7 +34,7 @@ const podeEnviar = (status: string | null | undefined, bot_pausado: boolean | nu
   return ["assumido_humano", "agendado", "cliente"].includes(status || "");
 };
 
-export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, autoFocus = false }: Props) {
+export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, autoFocus = false, fullHeight = false }: Props) {
   const queryClient = useQueryClient();
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
