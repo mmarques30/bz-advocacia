@@ -112,7 +112,7 @@ function LeadsTab({
   excludeOrigins: string[] | null;
   isAdsTab?: boolean;
 }) {
-  const [view, setView] = useState<'table' | 'kanban'>('table');
+  const [view, setView] = useState<'table' | 'kanban'>('kanban');
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<FiltersType>(isAdsTab ? adsDefaultFilters : defaultFilters);
