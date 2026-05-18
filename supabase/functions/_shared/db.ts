@@ -208,8 +208,23 @@ export async function espelharContactSubmission(
   const platform = opts.platform ?? lead.platform ?? "whatsapp_organico";
   const tipo_processo = mapAreaToTipoProcesso(lead.area_normalizada ?? lead.tipo_servico);
   const origem = mapPlatformToOrigem(platform);
-  const { status, estagio } = mapStatusSdrToCrm(lead.status_sdr);
+  let { status, estagio } = mapStatusSdrToCrm(lead.status_sdr);
+
+  // Upgrade: se bot ainda atendendo MAS lead já respondeu 1+ vezes → "Enviado"
+  if (estagio === "novo" && lead.status_sdr === "em_atendimento_bot") {
+    const { count } = await supabase
+      .from("mensagens_sdr")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", lead.id)
+      .eq("origem", "lead");
+    if ((count ?? 0) >= 1) {
+      estagio = "contato_inicial";
+      status = "em_andamento";
+    }
+  }
+
   const agora = new Date().toISOString();
+
 
   // 1) Já vinculado? só atualiza campos relevantes ao kanban.
   const { data: ligado } = await supabase
