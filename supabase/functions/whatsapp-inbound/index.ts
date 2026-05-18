@@ -89,6 +89,48 @@ Deno.serve(async (req) => {
     raw_keys: Object.keys(payload ?? {}),
   });
 
+  // ============================================================
+  // IDs anônimos do WhatsApp (LID / broadcast / newsletter) não são
+  // telefones reais. Sem essa guarda, normalizarTelefone() gera leads
+  // fantasma de 15-17 dígitos (ex.: 128007339511859@lid → 55128007339511859).
+  // ============================================================
+  {
+    const phoneRaw = (payload.phone ?? "").toString();
+    const participantPhone = ((payload as any).participantPhone ?? "").toString();
+    const participantLid = ((payload as any).participantLid ?? "").toString();
+
+    const phoneEhAnonimo =
+      phoneRaw.includes("@lid") ||
+      phoneRaw.includes("@broadcast") ||
+      phoneRaw.includes("@newsletter");
+
+    if (phoneEhAnonimo) {
+      const ppDigits = participantPhone.replace(/\D/g, "");
+      const candidato = /^\d{10,15}$/.test(ppDigits) ? ppDigits : null;
+
+      if (!candidato) {
+        await registrarEvento(supabase, null, "webhook_anonimo_ignorado", {
+          phone: phoneRaw,
+          chatLid: (payload as any).chatLid ?? null,
+          participantLid: participantLid || null,
+          participantPhone: participantPhone || null,
+          senderName: (payload as any).senderName ?? null,
+          fromMe: !!payload.fromMe,
+        });
+        return new Response(
+          JSON.stringify({ ignored: "anonimo_ou_broadcast" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      (payload as any).phone = candidato;
+      await registrarEvento(supabase, null, "webhook_anonimo_recuperado_via_participant", {
+        phone_original: phoneRaw,
+        phone_recuperado: candidato,
+      });
+    }
+  }
+
   // Status reply / grupo: sempre ignora
   if (payload.isStatusReply) {
     return new Response(JSON.stringify({ ignored: "status_reply" }), { status: 200 });
