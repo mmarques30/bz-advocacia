@@ -1,34 +1,93 @@
-## Botão "Limpar tudo e recarregar" na tela de login
+# Patch whatsapp-inbound: rejeitar IDs anônimos do WhatsApp
 
-Hoje a tela `/auth` já tem dois links discretos no rodapé: **Limpar sessão** e **Recarregar sistema**. O problema é que eles fazem coisas diferentes e nenhum deles é uma "bomba nuclear" — quando o navegador do usuário está com lock travado + token corrompido + cache do Service Worker velho, nem sempre resolve no primeiro clique.
+## Contexto
 
-### O que vou fazer
+Os logs `webhook_recebido` e `raw_payload_debug` mostram que a Z-API está mandando muitos eventos com `phone` no formato `<id>@lid` (chats anônimos / LIDs do WhatsApp Web). Hoje a função entra no fluxo, `normalizarTelefone()` apenas tira não-dígitos e prefixa `55`, gerando "telefones" com 15-17 dígitos que viram leads-fantasma.
 
-1. **Substituir os dois links atuais por um único botão discreto** no rodapé da `src/pages/Auth.tsx`, com texto tipo **"Problemas para entrar? Limpar cache e recarregar"** (ícone `RefreshCw` do Lucide, estilo link branco translúcido, igual aos atuais).
+Caso concreto encontrado: lead `sdr_wa_1779112325767_511859` (Fábio Paiva), `phone_number = 55128007339511859` (17 dígitos), `origem_sdr = humano_iniciou`. O sufixo `_511859` no id é exatamente os últimos 6 dígitos do telefone, então foi gerado pelo `criarLeadWhatsApp` a partir de um `phone` tipo `128007339511859@lid` que virou `55128007339511859`.
 
-2. **Criar uma função `nukeAndReload()`** em `src/lib/authStorage.ts` que executa **na ordem**:
-   - `supabase.auth.signOut({ scope: 'local' })` — encerra sessão local.
-   - `releaseAuthLocks()` — libera locks travados do GoTrue (causa #1 do "Conexão travou").
-   - `localStorage.clear()` + `sessionStorage.clear()` — apaga tokens e flags.
-   - `caches.delete(...)` em todos os caches do Cache Storage (PWA/SW).
-   - `navigator.serviceWorker.getRegistrations()` → `unregister()` em cada um (se existir SW registrado, ele some).
-   - `cookies` do domínio limpos via `document.cookie` (best-effort, só os não-HttpOnly).
-   - `window.location.replace('/auth?_r=' + Date.now())` — recarrega forçando bypass de cache HTTP.
+## Alterações
 
-3. **Confirmação leve antes de executar**: um `window.confirm("Isso vai apagar dados locais e recarregar. Continuar?")` pra evitar clique acidental que desloga quem está só explorando.
+### 1. `supabase/functions/whatsapp-inbound/index.ts`
 
-4. **Remover o `useEffect` de auto-limpeza** que adicionei na resposta anterior (rodava em todo carregamento da `/auth`). Vira ação manual via botão, mais previsível e sem risco de loop.
+Adicionar **antes** da checagem de `isStatusReply` / `isGroup` (≈ linha 92), depois do `webhook_recebido` log:
 
-### Arquivos alterados
+```ts
+// IDs anônimos do WhatsApp (LID / broadcast / newsletter) não são
+// telefones reais. Se vier só um @lid sem participantPhone numérico,
+// ignora — senão normalizarTelefone gera leads-fantasma de 15-17 dígitos.
+const phoneRaw = (payload.phone ?? "").toString();
+const participantPhone = ((payload as any).participantPhone ?? "").toString();
+const participantLid = ((payload as any).participantLid ?? "").toString();
 
-- `src/lib/authStorage.ts` — adicionar `nukeAndReload()`.
-- `src/pages/Auth.tsx` — substituir os 2 links por 1 botão; remover `useEffect` de autoclean; remover imports não usados.
+const phoneEhAnonimo =
+  phoneRaw.includes("@lid") ||
+  phoneRaw.includes("@broadcast") ||
+  phoneRaw.includes("@newsletter");
 
-### Fora do escopo
+if (phoneEhAnonimo) {
+  // Tentativa de recuperação: se houver participantPhone real (dígitos,
+  // sem @lid), usa esse como telefone — caso de chat anônimo de número
+  // conhecido. Se não, ignora silenciosamente.
+  const candidato = /^\d{10,15}$/.test(participantPhone.replace(/\D/g, ""))
+    ? participantPhone.replace(/\D/g, "")
+    : null;
 
-- Backend, RLS, edge functions, fluxo de senha — nada disso muda.
-- Não mexo em `src/integrations/supabase/client.ts` (arquivo gerenciado).
+  if (!candidato) {
+    await registrarEvento(supabase, null, "webhook_anonimo_ignorado", {
+      phone: phoneRaw,
+      chatLid: (payload as any).chatLid ?? null,
+      participantLid: participantLid || null,
+      participantPhone: participantPhone || null,
+      senderName: (payload as any).senderName ?? null,
+      fromMe: !!payload.fromMe,
+    });
+    return new Response(
+      JSON.stringify({ ignored: "anonimo_ou_broadcast" }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
-### Como o usuário usa
+  // Reescreve o payload.phone com o participantPhone válido pro restante do fluxo
+  (payload as any).phone = candidato;
+  await registrarEvento(supabase, null, "webhook_anonimo_recuperado_via_participant", {
+    phone_original: phoneRaw,
+    phone_recuperado: candidato,
+  });
+}
+```
 
-Quando alguém reclamar que não consegue entrar, orientação fica simples: **"abre a tela de login e clica em 'Limpar cache e recarregar' no rodapé"**. Um clique resolve token velho, lock travado e cache de versão antiga do app.
+Pontos importantes:
+- Bloqueia **antes** de qualquer `criarLeadWhatsApp` / lookup, então não gera lead-fantasma.
+- Não bloqueia mensagens reais: o caso `phone numérico + participantLid` continua passando direto (pois `phoneRaw` é numérico, `phoneEhAnonimo = false`).
+- Para o caso `phone @lid + participantPhone numérico` (mensagens em chat LID vindas de número conhecido), reescreve `payload.phone` e segue o fluxo normal.
+
+### 2. Limpeza do lead inválido `sdr_wa_1779112325767_511859`
+
+Migration `delete_lead_fantasma_lid`:
+
+```sql
+-- Lead criado por bug pré-patch: phone_number 55128007339511859 (17 dígitos)
+-- veio de payload.phone tipo "128007339511859@lid".
+DELETE FROM public.mensagens_sdr WHERE lead_id = 'sdr_wa_1779112325767_511859';
+DELETE FROM public.eventos_sdr WHERE lead_id = 'sdr_wa_1779112325767_511859';
+DELETE FROM public.contact_submissions WHERE lead_geral_id = 'sdr_wa_1779112325767_511859';
+DELETE FROM public.leads_geral WHERE id = 'sdr_wa_1779112325767_511859';
+```
+
+### 3. Deploy + smoke test
+
+- `supabase--deploy_edge_functions` em `whatsapp-inbound`.
+- Smoke test via `supabase--curl_edge_functions` POST com body:
+  ```json
+  { "phone": "123456789@lid", "fromMe": false, "text": { "message": "oi" }, "messageId": "smoke-lid-1" }
+  ```
+  Esperado: HTTP 200 + `{"ignored":"anonimo_ou_broadcast"}`.
+- Verificar: `SELECT count(*) FROM leads_geral WHERE id LIKE 'sdr_wa_%_456789'` = 0.
+- Verificar: novo evento `webhook_anonimo_ignorado` em `eventos_sdr`.
+
+### Fora de escopo
+
+- Não mexer em `normalizarTelefone()` (afeta outros callers).
+- Não mexer em `criarLeadWhatsApp` nem no fluxo de backlog.
+- Sem mudanças no front-end nem em outras edge functions.
