@@ -1,26 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookOpen, Users, Scale, DollarSign, Search, MessageSquare, Settings, FileText, Lock, Video, ExternalLink } from "lucide-react";
+import { BookOpen, Users, Scale, DollarSign, Search, MessageSquare, Settings, FileText, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import SenhasSistema from "./SenhasSistema";
-
-const MATERIAL_TREINAMENTO = [
-  {
-    id: "documento",
-    icon: FileText,
-    titulo: "Manual de uso (documento)",
-    descricao: "Documento completo com o passo a passo do sistema",
-    url: "https://docs.google.com/document/d/13JSvSCbyNHMWUjAk2mY1xezoAjWgwU6Wn3DWa9q9RDY/edit?usp=sharing",
-  },
-  {
-    id: "video",
-    icon: Video,
-    titulo: "Vídeo de treinamento",
-    descricao: "Treinamento em vídeo gravado pela equipe",
-    url: "https://drive.google.com/file/d/1QsDqNItHMb8WWXvpcTzyzRCBqHYnSD10/view?usp=sharing",
-  },
-];
 
 const guias = [
   {
@@ -135,36 +118,6 @@ export default function GuiaDeUso() {
         </p>
       </div>
       
-      <div className="grid gap-4 sm:grid-cols-2">
-        {MATERIAL_TREINAMENTO.map((material) => {
-          const Icon = material.icon;
-          return (
-            <a
-              key={material.id}
-              href={material.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group"
-            >
-              <Card className="h-full transition-all hover:shadow-md hover:border-primary/50 cursor-pointer">
-                <CardContent className="p-5 flex items-start gap-4">
-                  <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                    <Icon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-foreground">{material.titulo}</span>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{material.descricao}</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </a>
-          );
-        })}
-      </div>
-
       <div className="space-y-4">
         <Accordion type="multiple" className="space-y-4">
           {guias.map((guia) => {
