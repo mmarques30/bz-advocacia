@@ -19,6 +19,9 @@ import {
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
 import { claudeJson } from "../_shared/claude.ts";
 import {
+  AREA_LABEL,
+  AREA_NUM_TO_KEY,
+  extrairNumero,
   mensagemFamilia,
   mensagemHandoff,
   mensagemInventario,
@@ -28,6 +31,9 @@ import {
   mensagemSaudeNivel1,
   mensagemSaudeNivel2Consulta,
   mensagemSaudeNivel2Outros,
+  PERGUNTA_TEXTO_POR_CODIGO,
+  SAUDE_LABEL,
+  SAUDE_NUM_TO_KEY,
   SYSTEM_PROMPT_CLASSIFICADOR,
 } from "../_shared/prompts.ts";
 
@@ -599,6 +605,31 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
 
   const r = classificacao.data;
   const etapaAnterior = lead.etapa_qualificacao ?? "M0";
+
+  // --- Override determinístico por NÚMERO (1-4 / 1-3) ---
+  // Se o lead estava numa etapa de menu numerado e respondeu só um número,
+  // ignora alucinação do classificador e usa o mapa fixo.
+  let numeroLead: number | null = null;
+  if (etapaAnterior === "M0" || etapaAnterior === "aguardando_area") {
+    numeroLead = extrairNumero(texto, 4);
+    if (numeroLead) {
+      const areaFixa = AREA_NUM_TO_KEY[String(numeroLead)];
+      r.area = areaFixa;
+      // Avança a ação conforme a área escolhida
+      if (areaFixa === "saude") r.proxima_acao = "pedir_subtipo_saude";
+      else if (areaFixa === "inventario") r.proxima_acao = "pedir_inventario_info";
+      else r.proxima_acao = "pedir_detalhes";
+    }
+  } else if (etapaAnterior === "aguardando_subtipo_saude") {
+    numeroLead = extrairNumero(texto, 3);
+    if (numeroLead) {
+      const subFixo = SAUDE_NUM_TO_KEY[String(numeroLead)];
+      r.area = "saude";
+      r.saude_subtipo = subFixo;
+      r.proxima_acao = subFixo === "outros" ? "pedir_detalhes" : "propor_consulta_saude";
+    }
+  }
+
   const areaValida = ["familia", "inventario", "saude", "outros"].includes((r.area ?? "").toLowerCase());
   const areaParaPersistir = areaValida ? r.area : (lead.area_normalizada ?? null);
 
@@ -613,18 +644,59 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
     })
     .eq("id", lead.id);
 
-  // Loga a resposta da Claude pra qualificacoes_sdr (rastreio das respostas
-  // do lead em cada etapa do novo fluxo).
+  // ============================================================
+  // Persiste a resposta do lead em qualificacoes_sdr com código
+  // semântico (area / saude_tipo / consulta / detalhe / inventario_info)
+  // e resposta_estruturada com { opcao_numero, key, label } quando aplicável.
+  // ============================================================
   {
+    let perguntaCodigo: string;
+    let estruturada: Record<string, unknown> = { ...(r.resposta_estruturada ?? {}) };
+
+    if (etapaAnterior === "M0" || etapaAnterior === "aguardando_area") {
+      perguntaCodigo = "area";
+      if (numeroLead) {
+        estruturada = {
+          ...estruturada,
+          opcao_numero: numeroLead,
+          area: AREA_NUM_TO_KEY[String(numeroLead)],
+          label: AREA_LABEL[AREA_NUM_TO_KEY[String(numeroLead)]],
+        };
+      } else if (areaValida) {
+        estruturada = { ...estruturada, area: r.area, label: AREA_LABEL[r.area as string] ?? r.area };
+      }
+    } else if (etapaAnterior === "aguardando_subtipo_saude") {
+      perguntaCodigo = "saude_tipo";
+      const sub = r.saude_subtipo ?? null;
+      if (numeroLead) {
+        const key = SAUDE_NUM_TO_KEY[String(numeroLead)];
+        estruturada = {
+          ...estruturada,
+          opcao_numero: numeroLead,
+          saude_subtipo: key,
+          label: SAUDE_LABEL[key],
+        };
+      } else if (sub) {
+        estruturada = { ...estruturada, saude_subtipo: sub, label: SAUDE_LABEL[sub] ?? sub };
+      }
+    } else if (etapaAnterior === "aguardando_confirmacao_consulta") {
+      perguntaCodigo = "consulta";
+      estruturada = { ...estruturada, aceitou: /sim|pode|vamos|ok|claro|bora|quero/i.test(texto) };
+    } else if (etapaAnterior === "aguardando_detalhe") {
+      perguntaCodigo = areaParaPersistir === "inventario" ? "inventario_info" : "detalhe";
+    } else {
+      perguntaCodigo = etapaAnterior;
+    }
+
+    const perguntaTexto = PERGUNTA_TEXTO_POR_CODIGO[perguntaCodigo]
+      ?? `[${etapaAnterior}] ${r.proxima_acao}`;
+
     const { error: qErr } = await supabase.from("qualificacoes_sdr").insert({
       lead_id: lead.id,
-      pergunta_codigo: etapaAnterior,
-      pergunta_texto: `[${r.proxima_acao}] area=${r.area} subtipo=${r.saude_subtipo ?? "null"}`,
+      pergunta_codigo: perguntaCodigo,
+      pergunta_texto: perguntaTexto,
       resposta_texto: texto,
-      resposta_estruturada: {
-        ...r.resposta_estruturada,
-        saude_subtipo: r.saude_subtipo ?? null,
-      },
+      resposta_estruturada: estruturada,
     });
     if (qErr) console.error("[qualificacoes_sdr] erro:", qErr);
   }

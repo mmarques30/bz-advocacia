@@ -255,13 +255,29 @@ export function LeadInfoPanel({ leadId }: Props) {
           <div className="text-[11px] text-muted-foreground italic">Nenhuma resposta registrada</div>
         ) : (
           <div className="space-y-2">
-            {qualif.map((q: any, i: number) => (
-              <div key={i} className="rounded border bg-muted/30 p-2 space-y-1">
-                <div className="text-[10px] font-semibold text-muted-foreground uppercase">{q.pergunta_codigo}</div>
-                <div className="text-[11px] text-muted-foreground">{q.pergunta_texto}</div>
-                <div className="text-xs">{q.resposta_texto}</div>
-              </div>
-            ))}
+            {qualif.map((q: any, i: number) => {
+              const est = q.resposta_estruturada || {};
+              const numero = est.opcao_numero;
+              const label = est.label;
+              return (
+                <div key={i} className="rounded border bg-muted/30 p-2 space-y-1">
+                  <div className="text-[10px] font-semibold text-muted-foreground uppercase">{q.pergunta_codigo}</div>
+                  <div className="text-[11px] text-muted-foreground">{q.pergunta_texto}</div>
+                  {label ? (
+                    <div className="text-xs">
+                      <span className="font-medium">
+                        {numero ? `${numero} - ` : ""}{label}
+                      </span>
+                      {q.resposta_texto && q.resposta_texto.trim() !== String(numero ?? "") && (
+                        <span className="text-muted-foreground"> · "{q.resposta_texto}"</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs">{q.resposta_texto}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
