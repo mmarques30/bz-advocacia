@@ -19,10 +19,14 @@ import {
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
 import { claudeJson } from "../_shared/claude.ts";
 import {
-  mensagemForaEscopo,
-  mensagemMQLFrio,
-  mensagemSQL,
-  PERGUNTAS_FALLBACK,
+  mensagemFamilia,
+  mensagemHandoff,
+  mensagemInventario,
+  mensagemM0,
+  mensagemOutros,
+  mensagemSaudeNivel1,
+  mensagemSaudeNivel2Consulta,
+  mensagemSaudeNivel2Outros,
   SYSTEM_PROMPT_CLASSIFICADOR,
 } from "../_shared/prompts.ts";
 
@@ -37,14 +41,15 @@ interface ZapiInboundPayload {
 }
 
 interface ClaudeResponse {
-  area: string;
+  area: "familia" | "inventario" | "saude" | "outros" | "nao_identificada" | string;
+  saude_subtipo?: "medicamento" | "terapias" | "outros" | null;
   proxima_acao:
-    | "enviar_M1"
-    | "enviar_M2"
-    | "enviar_M3"
+    | "pedir_area"
+    | "pedir_subtipo_saude"
+    | "propor_consulta_saude"
+    | "pedir_detalhes"
+    | "pedir_inventario_info"
     | "encerrar_sql"
-    | "encerrar_mql_frio"
-    | "fora_escopo"
     | "aguardar";
   resposta_estruturada: Record<string, unknown>;
   score: number;
@@ -352,30 +357,9 @@ Deno.serve(async (req) => {
   // Localiza lead — se não existir, cria automaticamente
   let lead = await buscarLeadPorTelefone(supabase, telefone);
 
-  // Proteção: lead já existente sendo atendido no CRM atual → bot fica fora
-  if (lead) {
-    const { data: leadCrm } = await supabase
-      .from("leads_geral")
-      .select("lead_status, updated_at")
-      .eq("id", lead.id)
-      .maybeSingle();
-    const ls = (leadCrm as any)?.lead_status as string | null | undefined;
-    const upd = (leadCrm as any)?.updated_at as string | null | undefined;
-    if (ls && ls !== "Pendente" && upd) {
-      const diasMs = Date.now() - new Date(upd).getTime();
-      if (diasMs <= 7 * 24 * 60 * 60 * 1000) {
-        await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
-        await registrarEvento(supabase, lead.id, "lead_em_atendimento_crm_atual_ignorado", {
-          lead_status: ls,
-          updated_at: upd,
-        });
-        return new Response(
-          JSON.stringify({ ignored: "lead_em_atendimento_crm_atual" }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
-      }
-    }
-  }
+  // Guard antigo `lead_em_atendimento_crm_atual` removido — silenciava o bot
+  // quando o CRM antigo mexia em `lead_status`. Hoje o controle é só:
+  // `bot_pausado` ou `status_sdr` indicar handoff.
 
   if (!lead) {
     const p = payload as any;
@@ -536,59 +520,78 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   }
 
   const r = classificacao.data;
+  const etapaAnterior = lead.etapa_qualificacao ?? "M0";
+  const areaValida = ["familia", "inventario", "saude", "outros"].includes((r.area ?? "").toLowerCase());
+  const areaParaPersistir = areaValida ? r.area : (lead.area_normalizada ?? null);
 
-  // Atualiza área normalizada, fluxo e score
+  // Atualiza área normalizada, fluxo e score (só sobrescreve area se válida)
   await supabase
     .from("leads_geral")
     .update({
-      area_normalizada: r.area,
-      fluxo_sdr: fluxoFromArea(r.area),
+      area_normalizada: areaParaPersistir,
+      fluxo_sdr: fluxoFromArea(areaParaPersistir),
       score: r.score,
       motivo_qualificacao: r.motivo,
     })
     .eq("id", lead.id);
 
-  // Salva qualificação da etapa atual (se for M1/M2/M3)
-  const etapaCodigo = lead.etapa_qualificacao ?? "M0";
-  if (["M1", "M2", "M3"].includes(etapaCodigo)) {
+  // Loga a resposta da Claude pra qualificacoes_sdr (rastreio das respostas
+  // do lead em cada etapa do novo fluxo).
+  {
     const { error: qErr } = await supabase.from("qualificacoes_sdr").insert({
       lead_id: lead.id,
-      pergunta_codigo: etapaCodigo,
-      pergunta_texto: PERGUNTAS_FALLBACK[r.area]?.[etapaCodigo as "M1" | "M2" | "M3"] ?? "(dinâmica)",
+      pergunta_codigo: etapaAnterior,
+      pergunta_texto: `[${r.proxima_acao}] area=${r.area} subtipo=${r.saude_subtipo ?? "null"}`,
       resposta_texto: texto,
-      resposta_estruturada: r.resposta_estruturada,
+      resposta_estruturada: {
+        ...r.resposta_estruturada,
+        saude_subtipo: r.saude_subtipo ?? null,
+      },
     });
     if (qErr) console.error("[qualificacoes_sdr] erro:", qErr);
   }
 
-  // Decide próxima mensagem e estado
+  const nome = nomePrimeiro(lead);
   let mensagemFinal = r.mensagem_para_enviar?.trim() || "";
-  let novaEtapa = lead.etapa_qualificacao ?? "M0";
+  let novaEtapa = etapaAnterior;
   let novoStatus = lead.status_sdr ?? "em_atendimento_bot";
-  let novoFluxo: string | null = fluxoFromArea(r.area);
+  let novoFluxo: string | null = fluxoFromArea(areaParaPersistir);
   let pausarBot = false;
   let advogadoIdNotificar: string | null = null;
   let encerramento = false;
 
   switch (r.proxima_acao) {
-    case "enviar_M1":
-      novaEtapa = "M2";
-      if (!mensagemFinal) mensagemFinal = PERGUNTAS_FALLBACK[r.area]?.M1 ?? "Pode me contar um pouco mais sobre a sua situação?";
+    case "pedir_area":
+      novaEtapa = "aguardando_area";
+      if (!mensagemFinal) mensagemFinal = mensagemM0(nome);
       break;
-    case "enviar_M2":
-      novaEtapa = "M3";
-      if (!mensagemFinal) mensagemFinal = PERGUNTAS_FALLBACK[r.area]?.M2 ?? "Pode me contar um pouco mais?";
+    case "pedir_subtipo_saude":
+      novaEtapa = "aguardando_subtipo_saude";
+      if (!mensagemFinal) mensagemFinal = mensagemSaudeNivel1(nome);
       break;
-    case "enviar_M3":
-      novaEtapa = "finalizado";
-      if (!mensagemFinal) mensagemFinal = PERGUNTAS_FALLBACK[r.area]?.M3 ?? "Última pergunta: tem mais algum detalhe importante?";
+    case "propor_consulta_saude":
+      novaEtapa = "aguardando_confirmacao_consulta";
+      if (!mensagemFinal) mensagemFinal = mensagemSaudeNivel2Consulta(nome);
+      break;
+    case "pedir_inventario_info":
+      novaEtapa = "aguardando_detalhe";
+      if (!mensagemFinal) mensagemFinal = mensagemInventario(nome);
+      break;
+    case "pedir_detalhes":
+      novaEtapa = "aguardando_detalhe";
+      if (!mensagemFinal) {
+        const a = (areaParaPersistir ?? "").toLowerCase();
+        if (a === "familia") mensagemFinal = mensagemFamilia(nome);
+        else if (a === "saude") mensagemFinal = mensagemSaudeNivel2Outros(nome);
+        else mensagemFinal = mensagemOutros(nome);
+      }
       break;
     case "encerrar_sql": {
       novaEtapa = "finalizado";
       novoStatus = "sql_aguardando_humano";
       pausarBot = true;
       encerramento = true;
-      const advogado = await buscarAdvogadoPorArea(supabase, r.area);
+      const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
       advogadoIdNotificar = advogado?.id ?? null;
       if (advogado) {
         await supabase
@@ -596,25 +599,12 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
           .update({ humano_responsavel: advogado.id })
           .eq("id", lead.id);
       }
-      if (!mensagemFinal) mensagemFinal = mensagemSQL(nomePrimeiro(lead), advogado?.nome ?? "um advogado do nosso time");
+      if (!mensagemFinal) mensagemFinal = mensagemHandoff(nome);
       break;
     }
-    case "encerrar_mql_frio":
-      novaEtapa = "finalizado";
-      novoStatus = "mql_frio";
-      novoFluxo = "qualificacao_geral";
-      encerramento = true;
-      if (!mensagemFinal) mensagemFinal = mensagemMQLFrio(nomePrimeiro(lead));
-      break;
-    case "fora_escopo":
-      novaEtapa = "finalizado";
-      novoStatus = "perdido";
-      novoFluxo = "fora_escopo";
-      encerramento = true;
-      if (!mensagemFinal) mensagemFinal = mensagemForaEscopo(nomePrimeiro(lead), r.area);
-      break;
     case "aguardar":
-      if (!mensagemFinal) mensagemFinal = "Desculpa, não consegui te entender direito. Pode reformular em poucas palavras? 🤓";
+    default:
+      if (!mensagemFinal) mensagemFinal = "Desculpa, não consegui te entender direito. Pode reformular em poucas palavras?";
       break;
   }
 
@@ -634,11 +624,10 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   // Espelha o estado atual no kanban (contact_submissions)
   await espelharContactSubmission(supabase, {
     ...lead,
-    area_normalizada: r.area,
+    area_normalizada: areaParaPersistir,
     status_sdr: novoStatus,
   });
 
-  // SEMPRE notifica em encerramento (SQL, MQL frio, fora_escopo) — mesmo sem advogado da área
   if (encerramento) {
     await notificarAdvogado(supabase, lead.id, advogadoIdNotificar, r.proxima_acao);
   }
@@ -646,6 +635,10 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   await registrarEvento(supabase, lead.id, "msg_processada", {
     acao: r.proxima_acao,
     area: r.area,
+    area_persistida: areaParaPersistir,
+    saude_subtipo: r.saude_subtipo ?? null,
+    etapa_anterior: etapaAnterior,
+    etapa_nova: novaEtapa,
     fluxo: novoFluxo,
     score: r.score,
   });
