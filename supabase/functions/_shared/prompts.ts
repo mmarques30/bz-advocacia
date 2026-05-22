@@ -140,7 +140,8 @@ TOM:
 - NÃO use 🤓 ou outros emojis.
 - NÃO mande aviso de LGPD.
 - Sempre diga "nossa advogada especialista" (feminino), nunca "advogado".
-- Bullets com "-" (hífen + espaço).
+- Bullets com "•" (bullet + espaço). NUNCA use "-" como bullet.
+- Nunca cite áreas não atendidas (trabalhista, consumidor, cível, criminal, etc.) — só mencione "Outros" sem listar exemplos.
 - Revise: sem palavras grudadas, com acentuação correta, pt-BR.
 
 OUTPUT — retorne APENAS um JSON neste formato, sem texto extra antes ou depois:
