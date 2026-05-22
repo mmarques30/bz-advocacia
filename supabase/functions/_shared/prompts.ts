@@ -1,8 +1,42 @@
 // Prompts e templates de mensagem do SDR — Claudia (B&Z).
 // 4 áreas: familia | inventario | saude | outros.
 // Sem aviso LGPD. Tom humano, emojis só 😊 com moderação.
+// Menus numerados (1-4) para qualificação rápida.
 
 export const NOME_ESCRITORIO = Deno.env.get("NOME_ESCRITORIO") ?? "B&Z";
+
+// Mapas pra estruturar respostas numéricas em qualificacoes_sdr.
+export const AREA_NUM_TO_KEY: Record<string, "familia" | "inventario" | "saude" | "outros"> = {
+  "1": "familia",
+  "2": "inventario",
+  "3": "saude",
+  "4": "outros",
+};
+export const AREA_LABEL: Record<string, string> = {
+  familia: "Família",
+  inventario: "Inventário, Testamento, Doações ou Holding",
+  saude: "Saúde",
+  outros: "Outros",
+};
+export const SAUDE_NUM_TO_KEY: Record<string, "medicamento" | "terapias" | "outros"> = {
+  "1": "medicamento",
+  "2": "terapias",
+  "3": "outros",
+};
+export const SAUDE_LABEL: Record<string, string> = {
+  medicamento: "Medicamento de alto custo",
+  terapias: "Tratamentos ou terapias multidisciplinares",
+  outros: "Outros (saúde)",
+};
+
+// Extrai número 1-4 do início da mensagem do lead. Ignora se for texto livre.
+export function extrairNumero(texto: string, max: number): number | null {
+  const t = (texto ?? "").trim();
+  const m = t.match(/^([1-9])(?:\b|[.)\-\s])/);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  return n >= 1 && n <= max ? n : null;
+}
 
 // ---------- M0: boas-vindas (Claudia) ----------
 
@@ -13,12 +47,12 @@ export function mensagemM0(nome: string, _tipoServicoForm?: string | null): stri
 
 Recebemos seu contato e queremos te ajudar o quanto antes. Pra te direcionar à advogada especialista, me conta rapidamente:
 
-Você precisa resolver o problema em qual área?
+Em qual área você precisa de ajuda? É só responder com o número:
 
-• Família (Divórcio, União Estável, Pensão, Guarda)
-• Inventário, Testamento, Doações ou Holding
-• Saúde
-• Outros`
+1 - Família (Divórcio, União Estável, Pensão, Guarda)
+2 - Inventário, Testamento, Doações ou Holding
+3 - Saúde
+4 - Outros`
   );
 }
 
@@ -28,12 +62,12 @@ export function mensagemReabertura(nome: string): string {
   return (
 `Oi ${n}, que bom te ver de novo por aqui! 😊 Me conta como posso te ajudar hoje?
 
-Você precisa resolver o problema em qual área?
+Em qual área você precisa de ajuda? É só responder com o número:
 
-• Família (Divórcio, União Estável, Pensão, Guarda)
-• Inventário, Testamento, Doações ou Holding
-• Saúde
-• Outros`
+1 - Família (Divórcio, União Estável, Pensão, Guarda)
+2 - Inventário, Testamento, Doações ou Holding
+3 - Saúde
+4 - Outros`
   );
 }
 
@@ -44,11 +78,11 @@ export const AVISO_LGPD = "";
 
 export function mensagemSaudeNivel1(_nome: string): string {
   return (
-`Entendi! Pra eu te direcionar do jeito certo, sua questão de saúde é sobre:
+`Entendi! Sua questão de saúde é sobre? Responde com o número:
 
-- Problema com medicamento de alto custo
-- Tratamentos ou terapias multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, etc.)
-- Outros (me conta em poucas palavras)`
+1 - Medicamento de alto custo
+2 - Tratamentos ou terapias multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, fisioterapia, terapia ABA para autismo, etc.)
+3 - Outros (me conta em poucas palavras)`
   );
 }
 
@@ -61,15 +95,15 @@ O próximo passo é uma reunião de consulta jurídica de 30 minutos com nossa a
 }
 
 export function mensagemSaudeNivel2Outros(_nome: string): string {
-  return `Entendi. Me conta com suas palavras o que está acontecendo, pra eu te direcionar pra advogada certa?`;
+  return `Entendi. Me conta com suas palavras o que está acontecendo?`;
 }
 
 export function mensagemInventario(_nome: string): string {
   return (
 `Sinto muito pela situação. Pra eu direcionar pra advogada especialista, me conta rapidamente:
 
-- Quantos herdeiros estão envolvidos?
-- Quais são os bens principais? (imóveis, contas, veículos, empresa)`
+• Quantos herdeiros estão envolvidos?
+• Quais são os bens principais? (imóveis, contas, veículos, empresa)`
   );
 }
 
@@ -98,6 +132,15 @@ export function mensagemForaEscopo(nome: string, _area?: string): string {
   return mensagemHandoff(nome);
 }
 
+// Texto fixo da pergunta por código (pra registrar em qualificacoes_sdr).
+export const PERGUNTA_TEXTO_POR_CODIGO: Record<string, string> = {
+  area: "Em qual área você precisa de ajuda? (Família / Inventário / Saúde / Outros)",
+  saude_tipo: "Sua questão de saúde é sobre? (Medicamento / Terapias / Outros)",
+  consulta: "Posso encaminhar pra agendarmos a consulta de 30 min?",
+  detalhe: "Me conta com mais detalhes o que você precisa.",
+  inventario_info: "Quantos herdeiros e quais os bens principais?",
+};
+
 // ---------- SYSTEM PROMPT do classificador (Claudia) ----------
 
 export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é a Claudia, atendente digital do escritório Borges & Zembruski Advocacia (B&Z). Você é a primeira pessoa a falar com leads que chegam pelo WhatsApp e seu papel é entender em qual área o caso se encaixa e passar para a advogada especialista certa.
@@ -105,19 +148,25 @@ export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é a Claudia, atendente digita
 ÁREAS ATENDIDAS (use SEMPRE um destes valores no campo "area"):
 - familia        → divórcio, união estável, pensão, alimentos, guarda, partilha, separação
 - inventario     → inventário, partilha pós-falecimento, testamento, doações, holding, sucessão, herança, espólio
-- saude          → plano de saúde, negativa de cobertura, medicamento de alto custo, tratamentos/terapias multidisciplinares (psicólogo, fonoaudiólogo, TO, ABA), cirurgia negada, SUS, Unimed, Amil, Sulamerica, Hapvida, NotreDame, Bradesco Saúde
+- saude          → plano de saúde, negativa de cobertura, medicamento de alto custo, tratamentos/terapias multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, ABA, fisioterapia), cirurgia negada, SUS, Unimed, Amil, Sulamerica, Hapvida, NotreDame, Bradesco Saúde
 - outros         → qualquer outro tema (cível, trabalhista, consumidor, previdenciário, criminal, empresarial, tributário, etc.). NUNCA recuse automaticamente; humano avalia depois.
 
 REGRA IMPORTANTE: você NÃO recusa nenhum caso. Tudo que não for família/inventário/saúde vira "outros" e vai pra humano avaliar.
 
+MENUS NUMERADOS (o lead pode responder só o número):
+- Menu de áreas: 1=familia, 2=inventario, 3=saude, 4=outros
+- Menu de saúde: 1=medicamento, 2=terapias, 3=outros
+
+Se o lead respondeu APENAS um número (ex: "1", "2.", "3 ", "4)") no contexto de uma pergunta numerada, use o mapeamento acima direto, sem inventar área. Se o lead respondeu texto livre ("é sobre divórcio"), interprete normalmente.
+
 SUB-CLASSIFICAÇÃO DE SAÚDE (campo "saude_subtipo", obrigatório quando area=saude):
 - medicamento    → medicamento de alto custo, remédio negado, off-label
-- terapias       → terapias/tratamentos multidisciplinares (psicólogo, fonoaudiólogo, TO, ABA, fisioterapia)
+- terapias       → terapias/tratamentos multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, ABA, fisioterapia)
 - outros         → qualquer outra questão de saúde
 
 PRÓXIMAS AÇÕES POSSÍVEIS (campo "proxima_acao"):
-- "pedir_area"                → lead ainda não escolheu a área. Mande novamente o menu das 4 áreas.
-- "pedir_subtipo_saude"       → identificou saúde mas ainda não sabe se é medicamento, terapias ou outros. Mande o menu de saúde nível 1.
+- "pedir_area"                → lead ainda não escolheu a área. Mande novamente o menu numerado das 4 áreas.
+- "pedir_subtipo_saude"       → identificou saúde mas ainda não sabe se é medicamento, terapias ou outros. Mande o menu numerado de saúde nível 1.
 - "propor_consulta_saude"     → saúde + subtipo medicamento OU terapias confirmado. Proponha a consulta de 30 min.
 - "pedir_detalhes"            → área = familia / outros / (saude+outros). Peça que o lead descreva o caso em poucas palavras.
 - "pedir_inventario_info"     → área = inventario e ainda falta info de herdeiros/bens. Peça herdeiros + bens principais.
@@ -140,7 +189,7 @@ TOM:
 - NÃO use 🤓 ou outros emojis.
 - NÃO mande aviso de LGPD.
 - Sempre diga "nossa advogada especialista" (feminino), nunca "advogado".
-- Bullets com "•" (bullet + espaço). NUNCA use "-" como bullet.
+- Listas numeradas: use "1 - ", "2 - " etc. NÃO use siglas (escreva "terapia ocupacional" por extenso, não "TO").
 - Nunca cite áreas não atendidas (trabalhista, consumidor, cível, criminal, etc.) — só mencione "Outros" sem listar exemplos.
 - Revise: sem palavras grudadas, com acentuação correta, pt-BR.
 
