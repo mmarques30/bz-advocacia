@@ -1470,7 +1470,22 @@ export type Database = {
           telefone_raw?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "leads_backlog_lead_geral_id_fkey"
+            columns: ["lead_geral_id"]
+            isOneToOne: false
+            referencedRelation: "leads_geral"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_backlog_lead_geral_id_fkey"
+            columns: ["lead_geral_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_ativos"
+            referencedColumns: ["lead_id"]
+          },
+        ]
       }
       leads_geral: {
         Row: {
