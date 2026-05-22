@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { supabase } from "@/integrations/supabase/client";
 import { ConversaBot } from "@/components/leads/ConversaBot";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function ChatPanel({ leadId }: Props) {
+  const qc = useQueryClient();
   const { data: lead } = useQuery({
     queryKey: ["atendimento-lead", leadId],
     queryFn: async () => {
@@ -31,6 +33,21 @@ export function ChatPanel({ leadId }: Props) {
       return data;
     },
   });
+
+  // Realtime: invalida ao mudar status_sdr / bot_pausado
+  useEffect(() => {
+    if (!leadId) return;
+    const ch = supabase
+      .channel(`chatpanel-lead-${leadId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads_geral", filter: `id=eq.${leadId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["atendimento-lead", leadId] });
+        qc.invalidateQueries({ queryKey: ["atendimento-conversas"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [leadId, qc]);
+
+
 
   // Marca como lido ao abrir / quando mudar de lead
   useEffect(() => {
