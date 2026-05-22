@@ -4,7 +4,8 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { zapiSendSequence } from "../_shared/zapi.ts";
-import { AVISO_LGPD, mensagemM0 } from "../_shared/prompts.ts";
+import { mensagemM0 } from "../_shared/prompts.ts";
+
 
 interface LeadGeralRecord {
   id: string;
