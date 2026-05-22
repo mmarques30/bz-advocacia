@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveCategoriaLabel } from "@/lib/categoriaDespesa";
 
-// Fetch all transacoes for a given year (or all if null)
-function useTransacoesPorAno(ano: number | null) {
+// Fetch all transacoes for a given year (or all if null), optionally
+// narrowed by month.
+function useTransacoesPorAno(ano: number | null, mes: number | null = null) {
   return useQuery({
-    queryKey: ["visao-geral-transacoes", ano],
+    queryKey: ["visao-geral-transacoes", ano, mes],
     queryFn: async () => {
       let query = supabase
         .from("transacoes_financeiras")
@@ -14,6 +15,9 @@ function useTransacoesPorAno(ano: number | null) {
 
       if (ano) {
         query = query.eq("ano", ano);
+      }
+      if (mes) {
+        query = query.eq("mes", mes);
       }
 
       const { data, error } = await query.limit(10000);
@@ -31,7 +35,11 @@ function useTransacoesPorAno(ano: number | null) {
  * no fallback client-side via useTransacoesPorAno — que faz a agregacao
  * em JS com `.limit(10000)`.
  */
-export function useVisaoGeralKPIs(ano: number | null) {
+export function useVisaoGeralKPIs(ano: number | null, mes: number | null = null) {
+  // RPC só agrega por ano. Quando ha filtro de mes, pulamos a RPC e
+  // usamos o caminho client-side.
+  const rpcEnabled = mes === null;
+
   const rpcQuery = useQuery({
     queryKey: ["visao-geral-kpis-rpc", ano],
     queryFn: async () => {
@@ -49,15 +57,15 @@ export function useVisaoGeralKPIs(ano: number | null) {
         receitasCount: Number(row.receitas_count) || 0,
       };
     },
+    enabled: rpcEnabled,
     retry: false,
   });
 
-  // Se a RPC respondeu (sucesso ou null), usa ela. Se deu erro, cai
-  // no caminho legado para preservar o dashboard.
-  const usaRpc = !rpcQuery.isError;
+  const usaRpc = rpcEnabled && !rpcQuery.isError;
 
   const { data: transacoes, isLoading: legacyLoading } = useTransacoesPorAno(
     usaRpc ? null : ano,
+    usaRpc ? null : mes,
   );
 
   if (usaRpc) {
@@ -231,8 +239,8 @@ export function extrairCategoriaDaDescricao(descricao: string): string {
  * (numero | null vs. DespesasGlobalFiltersState) e convidavam a um
  * auto-import trocado.
  */
-export function useDespesasPJPorCategoria(ano: number | null) {
-  const { data: transacoes, isLoading } = useTransacoesPorAno(ano);
+export function useDespesasPJPorCategoria(ano: number | null, mes: number | null = null) {
+  const { data: transacoes, isLoading } = useTransacoesPorAno(ano, mes);
 
   const chartData = (() => {
     if (!transacoes) return [];
@@ -367,41 +375,6 @@ export function useResultadoMensal(ano: number | null) {
   return { data: result, isLoading };
 }
 
-export function useParcelasProximas(contaFilter?: string) {
-  return useQuery({
-    queryKey: ["parcelas-proximas", contaFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from("parcelas_financeiras")
-        .select(`
-          id, acordo_id, numero_parcela, valor, data_vencimento, status, data_pagamento,
-          acordos_financeiros!inner(cliente_id, conta, contact_submissions!inner(nome_completo))
-        `)
-        .in("status", ["pendente", "atrasado"])
-        .order("data_vencimento", { ascending: true })
-        .limit(20);
-
-      if (contaFilter && contaFilter !== "todas") {
-        const contaValue = contaFilter === "eliziane" ? "liziane" : contaFilter;
-        query = query.eq("acordos_financeiros.conta", contaValue);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return (data || []).map((p: any) => ({
-        id: p.id,
-        acordo_id: p.acordo_id,
-        numero_parcela: p.numero_parcela,
-        valor: Number(p.valor),
-        data_vencimento: p.data_vencimento,
-        status: p.status,
-        cliente_nome: p.acordos_financeiros?.contact_submissions?.nome_completo || "—",
-        conta: p.acordos_financeiros?.conta || "escritorio",
-      }));
-    },
-  });
-}
-
 export function useInadimplencia() {
   return useQuery({
     queryKey: ["inadimplencia-count"],
@@ -410,6 +383,27 @@ export function useInadimplencia() {
         .from("parcelas_financeiras")
         .select("id, valor")
         .eq("status", "atrasado");
+
+      if (error) throw error;
+      const count = data?.length || 0;
+      const total = (data || []).reduce((s: number, p: any) => s + Number(p.valor), 0);
+      return { count, total };
+    },
+  });
+}
+
+/**
+ * Total agregado de parcelas pendentes + atrasadas. Alimenta o card de
+ * destaque no topo da Visao Geral.
+ */
+export function useTotalParcelasPendentes() {
+  return useQuery({
+    queryKey: ["total-parcelas-pendentes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("parcelas_financeiras")
+        .select("id, valor")
+        .in("status", ["pendente", "atrasado"]);
 
       if (error) throw error;
       const count = data?.length || 0;

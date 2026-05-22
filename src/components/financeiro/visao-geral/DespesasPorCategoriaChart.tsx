@@ -32,10 +32,11 @@ const formatCurrency = (v: number) =>
 
 interface Props {
   ano: number | null;
+  mes?: number | null;
 }
 
-export function DespesasPorCategoriaChart({ ano }: Props) {
-  const { data, isLoading } = useDespesasPJPorCategoria(ano);
+export function DespesasPorCategoriaChart({ ano, mes = null }: Props) {
+  const { data, isLoading } = useDespesasPJPorCategoria(ano, mes);
 
   if (isLoading) return <Skeleton className="h-80" />;
 
