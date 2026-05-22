@@ -4,7 +4,8 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { zapiSendSequence } from "../_shared/zapi.ts";
-import { AVISO_LGPD, mensagemM0 } from "../_shared/prompts.ts";
+import { mensagemM0 } from "../_shared/prompts.ts";
+
 
 interface LeadGeralRecord {
   id: string;
@@ -88,7 +89,7 @@ Deno.serve(async (req) => {
 
   const nome = (lead.full_name ?? "").split(" ")[0] || "tudo bem";
   const texto = mensagemM0(nome, lead.tipo_servico);
-  const mensagens = [texto, AVISO_LGPD];
+  const mensagens = [texto];
 
   const resultados = await zapiSendSequence(telefone, mensagens, 1200);
   const ok = resultados.every((r) => r.ok);

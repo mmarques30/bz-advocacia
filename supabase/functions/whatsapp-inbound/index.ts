@@ -106,7 +106,8 @@ Deno.serve(async (req) => {
 
     if (phoneEhAnonimo) {
       const ppDigits = participantPhone.replace(/\D/g, "");
-      const candidato = /^\d{10,15}$/.test(ppDigits) ? ppDigits : null;
+      // Aperta: só aceita se for telefone BR plausível (DDI 55 + DDD + número).
+      const candidato = /^55\d{10,11}$/.test(ppDigits) ? ppDigits : null;
 
       if (!candidato) {
         await registrarEvento(supabase, null, "webhook_anonimo_ignorado", {
@@ -114,6 +115,7 @@ Deno.serve(async (req) => {
           chatLid: (payload as any).chatLid ?? null,
           participantLid: participantLid || null,
           participantPhone: participantPhone || null,
+          participantPhone_digits: ppDigits || null,
           senderName: (payload as any).senderName ?? null,
           fromMe: !!payload.fromMe,
         });
@@ -130,6 +132,7 @@ Deno.serve(async (req) => {
       });
     }
   }
+
 
   // Status reply / grupo: sempre ignora
   if (payload.isStatusReply) {
@@ -203,6 +206,49 @@ Deno.serve(async (req) => {
     if (!texto.trim()) {
       return new Response(JSON.stringify({ ignored: "fromMe_sem_texto" }), { status: 200 });
     }
+
+    // ============================================================
+    // ECHO GUARD: Z-API ecoa as próprias mensagens enviadas via API
+    // de volta como webhook com fromMe=true (e às vezes fromApi=false).
+    // Sem isso, o bot pausa a si mesmo após cada M0/M1 enviada.
+    // ============================================================
+    {
+      const fromApi = (payload as any).fromApi === true;
+      let isEcho = fromApi;
+
+      if (!isEcho) {
+        // Busca lead por telefone e checa se o texto bate com mensagem
+        // recente (origem bot/humano) registrada nos últimos 90s.
+        const leadEcho = await buscarLeadPorTelefone(supabase, telefone);
+        if (leadEcho) {
+          const desde = new Date(Date.now() - 90_000).toISOString();
+          const { data: matchEcho } = await supabase
+            .from("mensagens_sdr")
+            .select("id, origem, enviada_em")
+            .eq("lead_id", leadEcho.id)
+            .in("origem", ["bot", "humano"])
+            .eq("conteudo", texto)
+            .gte("enviada_em", desde)
+            .limit(1)
+            .maybeSingle();
+          if (matchEcho) isEcho = true;
+        }
+      }
+
+      if (isEcho) {
+        await registrarEvento(supabase, null, "webhook_echo_ignorado", {
+          telefone,
+          fromApi,
+          messageId: (payload as any).messageId ?? null,
+          preview: texto.slice(0, 80),
+        });
+        return new Response(
+          JSON.stringify({ ignored: "echo_proprio_bot" }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+
 
     // Resolve Time B&Z (advogado humano fallback)
     let timeBzId: string | null = null;
