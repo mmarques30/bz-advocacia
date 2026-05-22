@@ -371,10 +371,8 @@ export async function buscarAdvogadoPorArea(
 export function fluxoFromArea(area: string | null | undefined): string {
   const a = (area ?? "").toLowerCase();
   if (a === "saude" || a === "saúde") return "saude";
-  if (a === "inventario" || a === "inventário") return "inventario";
-  if (["familia","família","civel","cível","consumidor","trabalhista","previdenciario","previdenciário"].includes(a)) {
-    return "qualificacao_geral";
-  }
-  if (!a) return "qualificacao_geral";
-  return "fora_escopo";
+  if (a === "inventario" || a === "inventário" || a === "sucessoes" || a === "sucessões") return "inventario";
+  if (a === "familia" || a === "família") return "qualificacao_geral";
+  // outros / nao_identificada / qualquer outra área → humano avalia
+  return "qualificacao_geral";
 }
