@@ -15,10 +15,25 @@ Recebemos seu contato e queremos te ajudar o quanto antes. Pra te direcionar à 
 
 Você precisa resolver o problema em qual área?
 
-- Família (Divórcio, União Estável, Pensão, Guarda)
-- Inventário, Testamento, Doações ou Holding
-- Saúde
-- Outros`
+• Família (Divórcio, União Estável, Pensão, Guarda)
+• Inventário, Testamento, Doações ou Holding
+• Saúde
+• Outros`
+  );
+}
+
+// Reabertura para lead que volta após 7+ dias inativo.
+export function mensagemReabertura(nome: string): string {
+  const n = (nome ?? "").trim() || "tudo bem";
+  return (
+`Oi ${n}, que bom te ver de novo por aqui! 😊 Me conta como posso te ajudar hoje?
+
+Você precisa resolver o problema em qual área?
+
+• Família (Divórcio, União Estável, Pensão, Guarda)
+• Inventário, Testamento, Doações ou Holding
+• Saúde
+• Outros`
   );
 }
 
