@@ -1,80 +1,98 @@
-## Causa raiz da regressão (Prioridade 1)
+# Plano — Bot SDR Claudia
 
-A Z-API faz **eco dos próprios envios do bot** como webhook com `fromMe=true` e `fromApi=false` (confirmado em `eventos_sdr.raw_payload_debug`). Nosso handler `if (payload.fromMe)` em `whatsapp-inbound/index.ts` (linhas 202-299) trata todo `fromMe=true` como "humano da B&Z assumiu via celular" e seta `bot_pausado=true` + `status_sdr=assumido_humano`.
+Duas frentes que se tocam: a) destravar o processamento de mensagens depois da M0; b) trocar templates e classificador pelo novo fluxo "Claudia" com 4 áreas.
 
-Sequência real do que está acontecendo com cada lead novo:
-1. Lead manda "Oi" → cria `leads_geral` + retorna 200 (linha 395).
-2. Trigger dispara `on-new-lead` → envia M0 + LGPD via Z-API.
-3. Z-API faz **echo** das mensagens de M0 e LGPD de volta no webhook com `fromMe=true`.
-4. `whatsapp-inbound` recebe o echo, não distingue do humano, marca `bot_pausado=true` + `assumido_humano`.
-5. Lead responde M1 → cai em `msg_recebida_bot_pausado` (45 ocorrências nas últimas 24h) → bot nunca mais responde.
+## Parte 1 — Correção crítica (M0 trava o lead)
 
-Evidência: 0 eventos `msg_processada` em 24h, 0 `claude_falhou`, 21 `humano_assumiu_via_celular` em telefones que ninguém assumiu de fato, todos leads recentes com `bot_pausado=true` e `etapa_qualificacao=M0`.
+### Diagnóstico
+Hoje, quando o lead orgânico manda a 1ª mensagem em `whatsapp-inbound`:
+1. `criarLeadWhatsApp` insere com `etapa_qualificacao='M0'` e devolve 200 imediatamente (linha 441-444), **sem rodar classificador**, pra não correr com o trigger `on-new-lead`.
+2. O trigger dispara `on-new-lead`, que envia M0 e atualiza `etapa_qualificacao='M0'` (orgânico) ou `'M1'` (form com tipo_servico).
+3. Lead responde. Nova entrada em `whatsapp-inbound` deveria rodar Claude.
 
-**Bug bônus identificado:** lead `sdr_wa_1779459384333_331487` tem `phone_number=55198414671331487` (17 dígitos). O caminho de recuperação `participantPhone` (linhas 108-130) aceita 10-15 dígitos sem validar que seja telefone BR real; em alguns payloads ele captura um ID concatenado.
+Sintomas relatados: zero `msg_processada` em 24h. Causas plausíveis no código atual:
+- Guard `lead_em_atendimento_crm_atual_ignorado` (linhas 356-378) ignora qualquer lead cujo `leads_geral.lead_status` ≠ `'Pendente'` se houve update nos últimos 7 dias — basta um trigger de CRM mexer e o bot fica fora.
+- Sem log explícito quando o classificador é chamado/ignorado, fica invisível.
+- Sem garantia de que a etapa avança de `M0`: depende exclusivamente da resposta do Claude (`enviar_M1`); se Claude devolver `aguardar` ou falhar parsing, o lead fica preso.
 
----
+### Mudanças em `supabase/functions/whatsapp-inbound/index.ts`
+1. **Remover/afrouxar o guard `lead_em_atendimento_crm_atual`**: só pular o bot se `bot_pausado=true` OU `status_sdr` indicar handoff. O `lead_status` do CRM antigo não pode silenciar o bot.
+2. **Forçar passagem pelo classificador** quando `etapa_qualificacao IN ('M0','M1','M2','M3')` e bot não pausado, mesmo que seja a 2ª mensagem em M0.
+3. **Sempre logar `msg_processada`** com `{ acao, area, etapa_anterior, etapa_nova }` — inclusive nos casos `aguardar`, `bot_pausado`, `status_bloqueia`, `lead_no_crm_*` (mudando o tipo do evento pra rastrear sem perder).
+4. **Avanço determinístico de M0**: se Claude conseguir identificar área (`area !== 'nao_identificada'`) e devolver `enviar_M1`, o switch já move pra `M2`; se devolver `aguardar` repetidamente em M0, manter etapa mas registrar `m0_aguardando_area` pra debug.
 
-## Plano de execução
+### Smoke test (manual via Z-API ou curl)
+Após deploy:
+1. Limpar 1 lead de teste; mandar "Oi" de um número novo → verifica M0 chega.
+2. Responder "Saúde" → confere evento `msg_processada` com `area=saude` e nova etapa.
+3. Continuar até handoff. Validar query final:
+   ```sql
+   select id, etapa_qualificacao, area_normalizada, status_sdr, bot_pausado
+   from leads_geral order by created_time desc limit 5;
+   ```
 
-### Prioridade 1 — Ignorar echo do próprio bot (CRÍTICO)
+## Parte 2 — Novo fluxo "Claudia"
 
-Em `whatsapp-inbound/index.ts`, antes do bloco `if (payload.fromMe)`:
+### `supabase/functions/_shared/prompts.ts` — reescrita completa
 
-1. Se `fromApi === true` → ignora (é eco confirmado da API).
-2. Senão, busca em `mensagens_sdr` se existe mensagem com mesmo `conteudo` (origem `bot` ou `humano`) inserida nos últimos 90s para o lead daquele telefone. Se sim → ignora como echo, registra evento `webhook_echo_ignorado`.
-3. Só então segue o fluxo "humano assumiu via celular".
+- `mensagemM0(nome, tipoServicoForm)` → novo texto da Claudia com 4 bullets (Família, Inventário, Saúde, Outros). Remover variação por `tipo_servico_form` (só usar nome).
+- **Remover** `AVISO_LGPD` (ou manter export vazio pra não quebrar imports).
+- Novas funções por fluxo:
+  - `mensagemSaudeNivel1(nome)` — 3 opções (medicamento / terapias / outros)
+  - `mensagemSaudeNivel2Consulta(nome)` — proposta de consulta 30 min
+  - `mensagemSaudeNivel2Outros(nome)` — pede mais detalhes
+  - `mensagemInventario(nome)` — herdeiros + bens principais
+  - `mensagemFamilia(nome)` — pede detalhar área
+  - `mensagemOutros(nome)` — pede detalhar
+  - `mensagemHandoff(nome)` — unificada: "Já estamos analisando seu caso, nossa advogada especialista já vai te chamar..."
+- Reescrever `SYSTEM_PROMPT_CLASSIFICADOR`:
+  - Persona: Claudia, B&Z, feminino ("nossa advogada especialista").
+  - Enum de áreas reduzido a `familia | inventario | saude | outros` (palavras tipo cível/trabalhista/consumidor/previdenciário caem em `outros`, nunca em `fora_escopo` automático).
+  - Sub-classificador de saúde: `saude_subtipo` ∈ `medicamento | terapias | outros`.
+  - Próximas ações ajustadas: `pedir_area`, `pedir_subtipo_saude`, `propor_consulta_saude`, `pedir_detalhes` (família/outros/saúde-outros), `pedir_inventario_info`, `encerrar_sql` (handoff), `aguardar`.
+  - Tom: emojis só `😊` com moderação, sem `🤓`, sem LGPD.
+  - Output JSON com `area`, `saude_subtipo`, `proxima_acao`, `resposta_estruturada`, `score`, `motivo`, `mensagem_para_enviar`.
 
-Cleanup de estado dos leads quebrados (UPDATE SQL):
-- Leads `sdr_wa_*` criados nas últimas 48h com `etapa_qualificacao='M0'` e `status_sdr='assumido_humano'` sem mensagem real de humano em `mensagens_sdr` → resetar para `status_sdr='em_atendimento_bot'`, `bot_pausado=false`, `humano_responsavel=NULL`.
+### `supabase/functions/whatsapp-inbound/index.ts` — switch de ações
 
-Bug do telefone de 17 dígitos: apertar regex de `participantPhone` para `/^55\d{10,11}$/` (DDI Brasil + DDD + número) e ignorar se não bater. Corrigir o lead afetado (deletar em cascata).
+Reescrever o `switch (r.proxima_acao)` (linhas 573-619) pro novo enum, mantendo:
+- Cada ação seta `mensagemFinal`, `novaEtapa` (`aguardando_area`, `aguardando_subtipo_saude`, `aguardando_detalhe`, `finalizado`) e flags.
+- Handoff (`encerrar_sql`) usado por todos os fluxos: `status_sdr='sql_aguardando_humano'`, `bot_pausado=true`, `area_normalizada` preenchida, notificação Time B&Z, mensagem unificada `mensagemHandoff(nome)`.
+- `espelharContactSubmission` recebe `tipo_processo` correto via `mapAreaToTipoProcesso` (já mapeia familia/inventario/saude; adicionar fallback `outros → "Outro"` — já existe).
 
-Smoke test pós-deploy: enviar mensagem real, confirmar que M0 sai, M1 também sai, e `eventos_sdr.msg_processada` aparece.
+### `supabase/functions/on-new-lead/index.ts`
+- Já está sem LGPD (último patch). Confirma `mensagemM0(nome)` chama assinatura nova (ignora `tipo_servico`).
+- Mantém `etapa_qualificacao='M0'` (lead vai responder a área).
 
-### Prioridade 2 — Remover LGPD da M0
+### `supabase/functions/_shared/db.ts`
+- Em `mapAreaToTipoProcesso`: garantir `outros → "Outro"`. Em `fluxoFromArea`: tudo que não é `saude`/`inventario`/`familia` cai em `qualificacao_geral` (não `fora_escopo`).
 
-Em `on-new-lead/index.ts` (linhas ~89-90): trocar `const mensagens = [texto, AVISO_LGPD]` por `const mensagens = [texto]`. Remove o segundo envio + a inserção correspondente em `mensagens_sdr`. Manter `AVISO_LGPD` exportado em `_shared/prompts.ts` (não é usado em outro lugar mas não custa).
+## Deploy
+```
+supabase functions deploy whatsapp-inbound --no-verify-jwt
+supabase functions deploy on-new-lead
+```
 
-### Prioridade 3 — Histórico completo na ConversaBot
+## Validação ponta-a-ponta (depois do deploy)
+1. Novo número manda "Oi" → recebe MSG 1 Claudia (4 áreas, sem LGPD).
+2. Responde "Saúde" → recebe nível 1 (3 opções). Confirma `msg_processada` + `area_normalizada='saude'`.
+3. Responde "medicamento de alto custo" → recebe proposta de consulta 30 min. Confirma `etapa=aguardando_confirmacao_consulta` (ou equivalente).
+4. Responde "pode" → recebe mensagem de handoff. Confirma `status_sdr='sql_aguardando_humano'`, `bot_pausado=true`, `area_normalizada='saude'`, espelho em `contact_submissions` com `tipo_processo='Saúde'` e estágio `em_analise`.
+5. Repetir mini-teste pra Inventário e Família.
 
-Verificado: a query em `src/components/leads/ConversaBot.tsx` (linhas 51-63) **já** carrega tudo sem filtro de origem, ordenado por `enviada_em ASC`, e o realtime (linhas 66-86) escuta INSERT sem filtro de origem. Já está correto — vou só adicionar tratamento de origens desconhecidas (caso `metadata.via='celular_fromMe'`, mostrar como "Você (celular)"), e confirmar visualmente após deploy.
+Query final:
+```sql
+select id, etapa_qualificacao, area_normalizada, status_sdr, bot_pausado
+from leads_geral where created_time > now() - interval '1 hour'
+order by created_time desc;
 
-### Prioridade 4 — Painel lateral de dados do cliente
+select tipo, count(*) from eventos_sdr
+where created_at > now() - interval '1 hour'
+group by tipo order by count desc;
+```
 
-Em `src/pages/Atendimento.tsx`, transformar o grid de `[320px_1fr]` para `[320px_1fr_320px]` adicionando `LeadInfoPanel`. Novo componente `src/components/atendimento/LeadInfoPanel.tsx` que mostra:
-- Header: nome, telefone, área (`tipo_servico` + `area_normalizada`).
-- Bloco "Origem": `origem_sdr`, `platform`, `ad_name` (se houver).
-- Bloco "Qualificação": `score`, `status_sdr`, `etapa_qualificacao`, estágio do CRM (de `contact_submissions.estagio`).
-- Bloco "Respostas M1/M2/M3": query em `qualificacoes_sdr` por `lead_id`.
-- Bloco "Ações": botões "Assumir conversa", "Marcar cliente", "Marcar perdido" (ligar nos hooks já existentes ou criar mutations diretas).
-
-### Prioridade 5 — Classificar manualmente no atendimento
-
-No `LeadInfoPanel`, adicionar:
-- Dropdown área (`area_normalizada`) — opções vindas de `servicos_sdr` ou hardcoded com as áreas conhecidas.
-- Dropdown estágio CRM (novo / contato_inicial / em_analise / proposta_enviada / fechado / perdido).
-- Botões "Marcar cliente" (estágio→`fechado` + status_sdr→`cliente`) e "Marcar perdido" (estágio→`perdido` + status_sdr→`perdido`).
-- Cada mudança escreve em `leads_geral` E `contact_submissions` (encontrar o id via `lead_geral_id`), invalida queries `atendimento-conversas` e `atendimento-lead`.
-
-### Prioridade 6 — Status do atendimento em tempo real
-
-Garantir que a regra de upgrade automático já existente em `_shared/db.ts` `espelharContactSubmission` esteja sendo chamada toda vez que humano responde. Verificar `enviar-msg-humano/index.ts` para confirmar (provavelmente já faz). Adicionar no `ChatPanel` um realtime listener em `leads_geral` para invalidar o cache do lead quando `status_sdr` mudar, garantindo que o badge de status no header e na lista atualize sem refresh.
-
-### Prioridade 7 — Filtros na caixa de atendimento
-
-Em `src/components/atendimento/ConversasList.tsx`:
-- Novo dropdown "Tipo": Todos / Bot (status_sdr ∈ `novo`,`em_atendimento_bot`) / Humano (`assumido_humano`,`sql_aguardando_humano`).
-- Novo dropdown "Status": Todos / Pendente / Qualificado / Em andamento / Fechado.
-- Novo dropdown "Ordenação": Mais recentes (atual) / Prazo (asc por `ultima_mensagem_em`).
-- Aplicar filtros na query e na ordenação client-side conforme o caso.
-
----
-
-## Ordem de deploy
-
-1. Edge functions (`whatsapp-inbound`, `on-new-lead`) → smoke test bot.
-2. Cleanup SQL dos leads travados.
-3. Frontend (Prioridades 3-7) em sequência, cada bloco isolado.
-
-Confirmo cada item com print/log conforme avanço.
+## Detalhes técnicos
+- Não criar migration — só alterar edge functions e prompts.
+- Schema de `eventos_sdr.payload` é jsonb livre, não precisa mudar.
+- `mensagens_inbound_lock` (idempotência por messageId) continua igual.
+- Não tocar em `whatsapp_templates` (intocável por convenção do projeto).
