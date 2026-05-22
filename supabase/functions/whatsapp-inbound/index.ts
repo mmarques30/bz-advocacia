@@ -19,10 +19,14 @@ import {
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
 import { claudeJson } from "../_shared/claude.ts";
 import {
-  mensagemForaEscopo,
-  mensagemMQLFrio,
-  mensagemSQL,
-  PERGUNTAS_FALLBACK,
+  mensagemFamilia,
+  mensagemHandoff,
+  mensagemInventario,
+  mensagemM0,
+  mensagemOutros,
+  mensagemSaudeNivel1,
+  mensagemSaudeNivel2Consulta,
+  mensagemSaudeNivel2Outros,
   SYSTEM_PROMPT_CLASSIFICADOR,
 } from "../_shared/prompts.ts";
 
@@ -37,14 +41,15 @@ interface ZapiInboundPayload {
 }
 
 interface ClaudeResponse {
-  area: string;
+  area: "familia" | "inventario" | "saude" | "outros" | "nao_identificada" | string;
+  saude_subtipo?: "medicamento" | "terapias" | "outros" | null;
   proxima_acao:
-    | "enviar_M1"
-    | "enviar_M2"
-    | "enviar_M3"
+    | "pedir_area"
+    | "pedir_subtipo_saude"
+    | "propor_consulta_saude"
+    | "pedir_detalhes"
+    | "pedir_inventario_info"
     | "encerrar_sql"
-    | "encerrar_mql_frio"
-    | "fora_escopo"
     | "aguardar";
   resposta_estruturada: Record<string, unknown>;
   score: number;
@@ -352,30 +357,9 @@ Deno.serve(async (req) => {
   // Localiza lead — se não existir, cria automaticamente
   let lead = await buscarLeadPorTelefone(supabase, telefone);
 
-  // Proteção: lead já existente sendo atendido no CRM atual → bot fica fora
-  if (lead) {
-    const { data: leadCrm } = await supabase
-      .from("leads_geral")
-      .select("lead_status, updated_at")
-      .eq("id", lead.id)
-      .maybeSingle();
-    const ls = (leadCrm as any)?.lead_status as string | null | undefined;
-    const upd = (leadCrm as any)?.updated_at as string | null | undefined;
-    if (ls && ls !== "Pendente" && upd) {
-      const diasMs = Date.now() - new Date(upd).getTime();
-      if (diasMs <= 7 * 24 * 60 * 60 * 1000) {
-        await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
-        await registrarEvento(supabase, lead.id, "lead_em_atendimento_crm_atual_ignorado", {
-          lead_status: ls,
-          updated_at: upd,
-        });
-        return new Response(
-          JSON.stringify({ ignored: "lead_em_atendimento_crm_atual" }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        );
-      }
-    }
-  }
+  // Guard antigo `lead_em_atendimento_crm_atual` removido — silenciava o bot
+  // quando o CRM antigo mexia em `lead_status`. Hoje o controle é só:
+  // `bot_pausado` ou `status_sdr` indicar handoff.
 
   if (!lead) {
     const p = payload as any;
