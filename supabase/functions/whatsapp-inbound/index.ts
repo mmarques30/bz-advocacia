@@ -19,6 +19,9 @@ import {
 import { normalizarTelefone, zapiSendText } from "../_shared/zapi.ts";
 import { claudeJson } from "../_shared/claude.ts";
 import {
+  AREA_LABEL,
+  AREA_NUM_TO_KEY,
+  extrairNumero,
   mensagemFamilia,
   mensagemHandoff,
   mensagemInventario,
@@ -28,6 +31,9 @@ import {
   mensagemSaudeNivel1,
   mensagemSaudeNivel2Consulta,
   mensagemSaudeNivel2Outros,
+  PERGUNTA_TEXTO_POR_CODIGO,
+  SAUDE_LABEL,
+  SAUDE_NUM_TO_KEY,
   SYSTEM_PROMPT_CLASSIFICADOR,
 } from "../_shared/prompts.ts";
 
