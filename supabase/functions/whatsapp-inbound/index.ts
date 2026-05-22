@@ -24,6 +24,7 @@ import {
   mensagemInventario,
   mensagemM0,
   mensagemOutros,
+  mensagemReabertura,
   mensagemSaudeNivel1,
   mensagemSaudeNivel2Consulta,
   mensagemSaudeNivel2Outros,
@@ -430,6 +431,83 @@ Deno.serve(async (req) => {
 
   // Salva a mensagem recebida
   await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
+
+  // ============================================================
+  // REATIVAÇÃO DE LEAD QUE VOLTA APÓS 7+ DIAS
+  // - 'cliente' nunca reabre pelo bot (notifica time)
+  // - lead com processo ativo nunca reabre pelo bot
+  // - status perdido/mql_frio/assumido_humano/sql_aguardando_humano +
+  //   ultima_mensagem_em >= 7 dias  →  reabre, reseta etapa, envia
+  //   mensagem de reativação
+  // ============================================================
+  {
+    const STATUS_REABRIVEIS = ["perdido", "mql_frio", "assumido_humano", "sql_aguardando_humano"];
+    const status = (lead.status_sdr ?? "").toString();
+
+    // Cliente fechado → nunca reabre pelo bot
+    if (status === "cliente") {
+      await registrarEvento(supabase, lead.id, "cliente_voltou_a_falar", {
+        telefone, nome: nomePrimeiro(lead),
+      });
+      return new Response(JSON.stringify({ acao: "cliente_nao_reabre" }), { status: 200 });
+    }
+
+    // Tem processo ativo? Bot fica fora.
+    const { count: processosAtivos } = await supabase
+      .from("processos")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", lead.id)
+      .neq("status", "concluido");
+    if ((processosAtivos ?? 0) > 0) {
+      await registrarEvento(supabase, lead.id, "cliente_com_processo_voltou_a_falar", {
+        telefone, processos_ativos: processosAtivos,
+      });
+      return new Response(JSON.stringify({ acao: "cliente_processo_ativo" }), { status: 200 });
+    }
+
+    // Reabertura por inatividade >= 7 dias
+    if (STATUS_REABRIVEIS.includes(status)) {
+      const ultimaIso = (lead as any).ultima_mensagem_em as string | null | undefined;
+      // Usa created_at como fallback se nunca houve mensagem registrada
+      const referencia = ultimaIso ? new Date(ultimaIso).getTime() : 0;
+      const diasInativo = referencia ? (Date.now() - referencia) / 86_400_000 : 999;
+
+      if (diasInativo >= 7) {
+        await supabase
+          .from("leads_geral")
+          .update({
+            status_sdr: "em_atendimento_bot",
+            bot_pausado: false,
+            etapa_qualificacao: "M0",
+            area_normalizada: null,
+            fluxo_sdr: null,
+            humano_responsavel: null,
+          })
+          .eq("id", lead.id);
+
+        const nomeReab = nomePrimeiro(lead);
+        const msgReab = mensagemReabertura(nomeReab);
+        const envioReab = await zapiSendText(telefone, msgReab);
+        await registrarMensagem(supabase, lead.id, "bot", msgReab, {
+          zapi: envioReab, acao: "reabertura_7dias",
+        });
+        await registrarEvento(supabase, lead.id, "lead_reaberto_apos_7dias", {
+          status_anterior: status,
+          dias_inativo: Math.round(diasInativo),
+          ultima_mensagem_em: ultimaIso ?? null,
+        });
+
+        // Atualiza estado local pra não cair nos guards abaixo
+        lead = { ...lead, status_sdr: "em_atendimento_bot", bot_pausado: false,
+                 etapa_qualificacao: "M0", area_normalizada: null } as Lead;
+
+        return new Response(
+          JSON.stringify({ ok: true, acao: "lead_reaberto_apos_7dias", lead_id: lead.id }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+  }
 
   // Comando "parar"
   if (/^\s*parar\s*$/i.test(texto)) {
