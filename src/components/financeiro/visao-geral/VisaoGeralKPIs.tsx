@@ -8,10 +8,11 @@ const formatCurrency = (v: number) =>
 
 interface Props {
   ano: number | null;
+  mes?: number | null;
 }
 
-export function VisaoGeralKPIs({ ano }: Props) {
-  const { data: kpis, isLoading } = useVisaoGeralKPIs(ano);
+export function VisaoGeralKPIs({ ano, mes = null }: Props) {
+  const { data: kpis, isLoading } = useVisaoGeralKPIs(ano, mes);
   const { data: inadimplencia, isLoading: loadingInad } = useInadimplencia();
 
   if (isLoading || loadingInad) {
@@ -26,7 +27,7 @@ export function VisaoGeralKPIs({ ano }: Props) {
 
   const items = [
     {
-      label: "Receitas no Ano",
+      label: "Receitas no Período",
       value: formatCurrency(kpis?.receitas || 0),
       sub: `${kpis?.receitasCount || 0} recebimentos`,
       icon: TrendingUp,

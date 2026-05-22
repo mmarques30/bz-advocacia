@@ -67,6 +67,7 @@ const currentYear = new Date().getFullYear();
 
 export default function Financeiro() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(String(currentYear));
+  const [activeTab, setActiveTab] = useState<string>("visao-geral");
 
   // Faturamento state
   const [newEntradaOpen, setNewEntradaOpen] = useState(false);
@@ -110,9 +111,6 @@ export default function Financeiro() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-seasons text-primary">Gestão Financeira</h1>
-          <p className="text-muted-foreground">
-            {anoSelecionado === "todos" ? "Todos os períodos" : `Jan – Dez ${anoSelecionado}`}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
@@ -168,7 +166,7 @@ export default function Financeiro() {
       </AlertDialog>
 
       {/* 6 Abas */}
-      <Tabs defaultValue="visao-geral" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
@@ -180,7 +178,10 @@ export default function Financeiro() {
 
         {/* Aba Visão Geral */}
         <TabsContent value="visao-geral">
-          <VisaoGeralTab ano={anoNumero} />
+          <VisaoGeralTab
+            ano={anoNumero}
+            onNavigateToAcordos={() => setActiveTab("acordos")}
+          />
         </TabsContent>
 
         {/* Aba Faturamento */}
