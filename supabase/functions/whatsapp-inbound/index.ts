@@ -24,6 +24,7 @@ import {
   mensagemInventario,
   mensagemM0,
   mensagemOutros,
+  mensagemReabertura,
   mensagemSaudeNivel1,
   mensagemSaudeNivel2Consulta,
   mensagemSaudeNivel2Outros,
