@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useClearTransacoes } from "@/hooks/useTransacoesFinanceiras";
+import { useAnosDisponiveis, useClearTransacoes } from "@/hooks/useTransacoesFinanceiras";
 import { useCheckIsAdmin } from "@/hooks/useUsuarios";
 
 // Visão Geral
@@ -89,6 +89,13 @@ export default function Financeiro() {
   const [clearDataOpen, setClearDataOpen] = useState(false);
   const clearTransacoes = useClearTransacoes();
   const { data: isAdmin } = useCheckIsAdmin();
+  const { data: anosDisponiveis } = useAnosDisponiveis();
+  const anoCorrente = new Date().getFullYear();
+  const anosParaSelect = (() => {
+    const set = new Set<number>(anosDisponiveis ?? []);
+    set.add(anoCorrente);
+    return Array.from(set).sort((a, b) => b - a);
+  })();
 
   const anoNumero = anoSelecionado === "todos" ? null : Number(anoSelecionado);
 
@@ -113,9 +120,11 @@ export default function Financeiro() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2026">2026</SelectItem>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
+              {anosParaSelect.map((ano) => (
+                <SelectItem key={ano} value={String(ano)}>
+                  {ano}
+                </SelectItem>
+              ))}
               <SelectItem value="todos">Todos</SelectItem>
             </SelectContent>
           </Select>
@@ -127,7 +136,7 @@ export default function Financeiro() {
               onClick={() => setClearDataOpen(true)}
             >
               <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Limpar
+              Limpar transações
             </Button>
           )}
         </div>
@@ -138,10 +147,12 @@ export default function Financeiro() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              Limpar Todos os Dados Financeiros?
+              Limpar tabela de transações?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação irá excluir TODAS as transações financeiras. Não pode ser desfeita.
+              Esta ação apaga todos os registros da tabela <strong>transacoes_financeiras</strong> (todos os anos).
+              Não apaga despesas, acordos, parcelas, créditos condicionais nem metas — essas tabelas têm
+              seus próprios fluxos de exclusão. Não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -150,7 +161,7 @@ export default function Financeiro() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleClearData}
             >
-              Sim, Limpar Tudo
+              Sim, limpar transações
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

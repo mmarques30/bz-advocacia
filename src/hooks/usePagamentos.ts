@@ -65,7 +65,7 @@ export function useDespesasAtrasadas() {
       const { data: transacoesDespesas, error: errTransacoes } = await supabase
         .from("transacoes_financeiras")
         .select("id, descricao, valor, data_transacao, categoria_codigo")
-        .eq("tipo_codigo", "DESP")
+        .eq("tipo_codigo", "despesa")
         .gte("data_transacao", primeiroDiaMes)
         .lte("data_transacao", hojeStr)
         .order("data_transacao", { ascending: true });
@@ -117,10 +117,10 @@ export function useReceitasPendentes() {
         (parcelas as any[]).forEach((p) => {
           resultado.push({
             id: p.id,
-            valor: p.valor,
+            valor: Number(p.valor),
             data_vencimento: p.data_vencimento,
             numero_parcela: p.numero_parcela,
-            cliente_nome: p.acordo?.cliente?.[0]?.nome_completo || undefined,
+            cliente_nome: p.acordo?.cliente?.nome_completo || undefined,
             origem: "parcelas",
           });
         });
@@ -130,7 +130,7 @@ export function useReceitasPendentes() {
       const { data: transacoesReceitas, error: errTransacoes } = await supabase
         .from("transacoes_financeiras")
         .select("id, descricao, valor, data_transacao, subcategoria_codigo")
-        .eq("tipo_codigo", "REC")
+        .eq("tipo_codigo", "receita")
         .gte("data_transacao", primeiroDiaMes)
         .order("data_transacao", { ascending: true });
 
@@ -200,14 +200,14 @@ export function useProximosVencimentos(dias: number = 7) {
         .order("data_vencimento", { ascending: true });
 
       (parcelas as any[] || []).forEach((p) => {
-        const clienteNome = p.acordo?.cliente?.[0]?.nome_completo;
+        const clienteNome = p.acordo?.cliente?.nome_completo;
         itens.push({
           id: p.id,
           tipo: "receita",
-          descricao: clienteNome 
+          descricao: clienteNome
             ? `${clienteNome} - Parcela ${p.numero_parcela}`
             : `Parcela ${p.numero_parcela}`,
-          valor: p.valor,
+          valor: Number(p.valor),
           data_vencimento: p.data_vencimento,
           origem: "parcelas",
         });
@@ -217,7 +217,7 @@ export function useProximosVencimentos(dias: number = 7) {
       const { data: transacoesDespesas } = await supabase
         .from("transacoes_financeiras")
         .select("id, descricao, valor, data_transacao")
-        .eq("tipo_codigo", "DESP")
+        .eq("tipo_codigo", "despesa")
         .gte("data_transacao", hojeStr)
         .lte("data_transacao", limiteStr)
         .order("data_transacao", { ascending: true });
@@ -237,7 +237,7 @@ export function useProximosVencimentos(dias: number = 7) {
       const { data: transacoesReceitas } = await supabase
         .from("transacoes_financeiras")
         .select("id, descricao, valor, data_transacao, subcategoria_codigo")
-        .eq("tipo_codigo", "REC")
+        .eq("tipo_codigo", "receita")
         .gte("data_transacao", hojeStr)
         .lte("data_transacao", limiteStr)
         .order("data_transacao", { ascending: true });

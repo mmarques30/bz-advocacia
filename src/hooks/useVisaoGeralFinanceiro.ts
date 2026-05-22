@@ -324,8 +324,8 @@ export function useDistribuicaoSocia(ano: number | null, conta: string) {
     const totalizadores = !rpcQuery.isError && rpcQuery.data
       ? rpcQuery.data
       : (() => {
-          const receitas = receitasList.reduce((s, r) => s + r.valor, 0);
-          const despesasPF = despesasList.reduce((s, d) => s + d.valor, 0);
+          const receitas = receitasList.reduce((s: number, r: { valor: number }) => s + r.valor, 0);
+          const despesasPF = despesasList.reduce((s: number, d: { valor: number }) => s + d.valor, 0);
           return { receitas, despesasPF, liquido: receitas - despesasPF };
         })();
 
