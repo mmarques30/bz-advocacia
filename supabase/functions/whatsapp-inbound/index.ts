@@ -161,6 +161,31 @@ Deno.serve(async (req) => {
   const telefone = normalizarTelefone(payload.phone);
 
   // ============================================================
+  // GUARD: números bloqueados (advogados, equipe, parceiros).
+  // Bot fica fora — não cria lead, não responde, não classifica.
+  // ============================================================
+  {
+    const { data: bloqueado } = await supabase
+      .from("numeros_bloqueados_bot")
+      .select("telefone, nome, motivo")
+      .eq("telefone", telefone)
+      .maybeSingle();
+    if (bloqueado) {
+      await registrarEvento(supabase, null, "numero_bloqueado_ignorado", {
+        telefone,
+        nome: (bloqueado as any).nome ?? null,
+        motivo: (bloqueado as any).motivo ?? null,
+        fromMe: !!payload.fromMe,
+      });
+      return new Response(
+        JSON.stringify({ ignored: "numero_bloqueado" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+
+  // ============================================================
   // GUARD INTELIGENTE: telefone já no CRM (contact_submissions) sem
   // vínculo com bot (lead_geral_id IS NULL)
   //   - Atendimento manual ATIVO  → bot fica fora
