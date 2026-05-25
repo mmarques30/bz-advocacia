@@ -727,7 +727,11 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   }
 
   const nome = nomePrimeiro(lead);
-  let mensagemFinal = r.mensagem_para_enviar?.trim() || "";
+  // IMPORTANTE: NÃO usar r.mensagem_para_enviar do Claude — ele alucina
+  // texto antigo (ex.: "Tudo bem sim 😊 Sou a Claudia, atendente do
+  // escritório Borges & Zembruski..."). Sempre usar template fixo abaixo.
+  let mensagemFinal = "";
+
   let novaEtapa = etapaAnterior;
   let novoStatus = lead.status_sdr ?? "em_atendimento_bot";
   let novoFluxo: string | null = fluxoFromArea(areaParaPersistir);
