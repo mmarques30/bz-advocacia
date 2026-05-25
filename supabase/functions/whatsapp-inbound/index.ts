@@ -565,6 +565,36 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ acao: "status_bloqueia" }), { status: 200 });
   }
 
+  // Camada 3 — rede de segurança contra fromMe intermitente.
+  // Se QUALQUER humano (painel ou fromMe) interagiu nas últimas 24h,
+  // bot fica fora pra não atropelar o atendimento humano.
+  {
+    const desde = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { count: humanoCount } = await supabase
+      .from("mensagens_sdr")
+      .select("id", { count: "exact", head: true })
+      .eq("lead_id", lead.id)
+      .eq("origem", "humano")
+      .gte("enviada_em", desde);
+    if ((humanoCount ?? 0) > 0) {
+      await registrarEvento(supabase, lead.id, "humano_ativo_bot_silenciado", {
+        humano_msgs_24h: humanoCount,
+        texto,
+      });
+      // Garante bot_pausado=true pra próximos webhooks pularem antes.
+      if (!lead.bot_pausado) {
+        await supabase.from("leads_geral")
+          .update({ bot_pausado: true, status_sdr: "assumido_humano" })
+          .eq("id", lead.id);
+      }
+      return new Response(
+        JSON.stringify({ acao: "humano_ativo_bot_silenciado" }),
+        { status: 200 },
+      );
+    }
+  }
+
+
   // Monta contexto pra Claude
   const historico = await historicoMensagens(supabase, lead.id, 12);
   const contexto = {
