@@ -24,17 +24,24 @@ interface ZapiMsg {
 }
 
 async function buscarHistoricoZapi(phone: string, amount = 30): Promise<ZapiMsg[]> {
-  const url = `${BASE_URL}/chat-messages/${phone}?amount=${amount}`;
-  const resp = await fetch(url, {
-    headers: { "Client-Token": Z_API_CLIENT_TOKEN },
-  });
-  if (!resp.ok) {
-    console.error(`[zapi] ${phone} status ${resp.status}`);
+  // Z-API: GET /chat-messages/{phone}?amount=N
+  // Algumas instâncias exigem o número COM o sufixo de chat. Tentamos variações.
+  const tentativas = [
+    `${BASE_URL}/chat-messages/${phone}?amount=${amount}`,
+    `${BASE_URL}/chat-messages/${phone}@c.us?amount=${amount}`,
+  ];
+  for (const url of tentativas) {
+    const resp = await fetch(url, { headers: { "Client-Token": Z_API_CLIENT_TOKEN } });
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => "");
+      console.error(`[zapi] ${phone} status ${resp.status} body=${body.slice(0, 200)} url=${url}`);
+      continue;
+    }
+    const data = await resp.json().catch(() => null);
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.messages)) return data.messages;
     return [];
   }
-  const data = await resp.json().catch(() => null);
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.messages)) return data.messages;
   return [];
 }
 
