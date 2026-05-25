@@ -2079,6 +2079,30 @@ export type Database = {
         }
         Relationships: []
       }
+      numeros_bloqueados_bot: {
+        Row: {
+          created_at: string
+          id: string
+          motivo: string | null
+          nome: string | null
+          telefone: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          nome?: string | null
+          telefone: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivo?: string | null
+          nome?: string | null
+          telefone?: string
+        }
+        Relationships: []
+      }
       opcoes_sistema: {
         Row: {
           ativo: boolean | null

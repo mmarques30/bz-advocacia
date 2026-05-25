@@ -161,6 +161,31 @@ Deno.serve(async (req) => {
   const telefone = normalizarTelefone(payload.phone);
 
   // ============================================================
+  // GUARD: números bloqueados (advogados, equipe, parceiros).
+  // Bot fica fora — não cria lead, não responde, não classifica.
+  // ============================================================
+  {
+    const { data: bloqueado } = await supabase
+      .from("numeros_bloqueados_bot")
+      .select("telefone, nome, motivo")
+      .eq("telefone", telefone)
+      .maybeSingle();
+    if (bloqueado) {
+      await registrarEvento(supabase, null, "numero_bloqueado_ignorado", {
+        telefone,
+        nome: (bloqueado as any).nome ?? null,
+        motivo: (bloqueado as any).motivo ?? null,
+        fromMe: !!payload.fromMe,
+      });
+      return new Response(
+        JSON.stringify({ ignored: "numero_bloqueado" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+
+  // ============================================================
   // GUARD INTELIGENTE: telefone já no CRM (contact_submissions) sem
   // vínculo com bot (lead_geral_id IS NULL)
   //   - Atendimento manual ATIVO  → bot fica fora
@@ -702,7 +727,11 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   }
 
   const nome = nomePrimeiro(lead);
-  let mensagemFinal = r.mensagem_para_enviar?.trim() || "";
+  // IMPORTANTE: NÃO usar r.mensagem_para_enviar do Claude — ele alucina
+  // texto antigo (ex.: "Tudo bem sim 😊 Sou a Claudia, atendente do
+  // escritório Borges & Zembruski..."). Sempre usar template fixo abaixo.
+  let mensagemFinal = "";
+
   let novaEtapa = etapaAnterior;
   let novoStatus = lead.status_sdr ?? "em_atendimento_bot";
   let novoFluxo: string | null = fluxoFromArea(areaParaPersistir);
