@@ -812,7 +812,7 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       lead_id: lead.id,
       pergunta_codigo: perguntaCodigo,
       pergunta_texto: perguntaTexto,
-      resposta_texto: texto,
+      resposta_texto: textoAgrupado,
       resposta_estruturada: estruturada,
     });
     if (qErr) console.error("[qualificacoes_sdr] erro:", qErr);
