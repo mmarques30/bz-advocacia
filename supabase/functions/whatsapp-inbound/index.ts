@@ -879,6 +879,75 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       break;
   }
 
+  // ============================================================
+  // FIX 3 — LIMITE DE TENTATIVAS POR ETAPA
+  // Se o bot não conseguiu avançar (mesma etapa ou ação "aguardar"),
+  // incrementa o contador. A partir de 2 tentativas falhas → handoff.
+  // ============================================================
+  const avancouEtapa = novaEtapa !== etapaAnterior && r.proxima_acao !== "aguardar";
+  const tentativasAtuais = (lead as any).tentativas_etapa ?? 0;
+  let tentativasNovas = avancouEtapa ? 0 : tentativasAtuais + 1;
+
+  if (!avancouEtapa && tentativasNovas >= 2) {
+    await registrarEvento(supabase, lead.id, "bot_handoff_por_tentativas_excedidas", {
+      etapa: etapaAnterior,
+      tentativas: tentativasNovas,
+      acao_claude: r.proxima_acao,
+    });
+    mensagemFinal = `${nome ? nome + ", " : ""}pra eu te ajudar melhor, vou conectar você com nossa advogada 😊`;
+    novaEtapa = "finalizado";
+    novoStatus = "sql_aguardando_humano";
+    pausarBot = true;
+    encerramento = true;
+    tentativasNovas = 0;
+    const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
+    advogadoIdNotificar = advogado?.id ?? null;
+    if (advogado) {
+      await supabase.from("leads_geral")
+        .update({ humano_responsavel: advogado.id })
+        .eq("id", lead.id);
+    }
+  }
+
+  // ============================================================
+  // FIX 2 — ANTI-REPETIÇÃO
+  // Se a próxima mensagem do bot for >85% similar à última que o bot
+  // enviou pra este lead, NÃO envia: escala pro handoff humano.
+  // ============================================================
+  {
+    const { data: ultimaBotMsg } = await supabase
+      .from("mensagens_sdr")
+      .select("conteudo")
+      .eq("lead_id", lead.id)
+      .eq("origem", "bot")
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const ultimoTxt = ((ultimaBotMsg as any)?.conteudo ?? "").toString();
+    const sim = similaridade(ultimoTxt, mensagemFinal);
+    if (ultimoTxt && sim >= 0.85 && !encerramento) {
+      await registrarEvento(supabase, lead.id, "bot_evitou_repetir_handoff", {
+        similaridade: Number(sim.toFixed(3)),
+        preview_anterior: ultimoTxt.slice(0, 120),
+        preview_nova: mensagemFinal.slice(0, 120),
+        acao_original: r.proxima_acao,
+      });
+      mensagemFinal = `${nome ? nome + ", " : ""}vou passar pra advogada continuar contigo 😊`;
+      novaEtapa = "finalizado";
+      novoStatus = "sql_aguardando_humano";
+      pausarBot = true;
+      encerramento = true;
+      tentativasNovas = 0;
+      const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
+      advogadoIdNotificar = advogado?.id ?? null;
+      if (advogado) {
+        await supabase.from("leads_geral")
+          .update({ humano_responsavel: advogado.id })
+          .eq("id", lead.id);
+      }
+    }
+  }
+
   const envio = await zapiSendText(telefone, mensagemFinal);
   await registrarMensagem(supabase, lead.id, "bot", mensagemFinal, { zapi: envio, acao: r.proxima_acao });
 
@@ -889,6 +958,7 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       status_sdr: novoStatus,
       fluxo_sdr: novoFluxo,
       bot_pausado: pausarBot ? true : (lead.bot_pausado ?? false),
+      tentativas_etapa: tentativasNovas,
     })
     .eq("id", lead.id);
 
