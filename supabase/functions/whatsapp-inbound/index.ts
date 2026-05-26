@@ -701,8 +701,8 @@ ${JSON.stringify(contexto, null, 2)}${adContextoStr}
 Histórico (mais antigo → mais recente):
 ${historico.map((m) => `[${m.origem}] ${m.conteudo}`).join("\n")}
 
-Última mensagem do lead (a que você precisa interpretar):
-"${texto}"
+Última mensagem do lead (a que você precisa interpretar — pode conter várias linhas se o lead mandou mensagens fragmentadas em sequência, trate como um bloco único):
+"${textoAgrupado}"
 
 Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
 
