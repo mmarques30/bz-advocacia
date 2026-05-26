@@ -1048,3 +1048,25 @@ Abrir conversa: ${urlPainel}/leads/${leadId}`;
     acao,
   });
 }
+
+// Similaridade simples baseada em Jaccard de bigramas (caracteres).
+// Retorna 0..1. Boa o suficiente pra pegar "mesma mensagem" mesmo com
+// pequenas variações (nome no início, pontuação diferente).
+function similaridade(a: string, b: string): number {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const A = norm(a);
+  const B = norm(b);
+  if (!A || !B) return 0;
+  if (A === B) return 1;
+  const bigrams = (s: string) => {
+    const out = new Set<string>();
+    for (let i = 0; i < s.length - 1; i++) out.add(s.slice(i, i + 2));
+    return out;
+  };
+  const sa = bigrams(A);
+  const sb = bigrams(B);
+  let inter = 0;
+  for (const g of sa) if (sb.has(g)) inter++;
+  const union = sa.size + sb.size - inter;
+  return union === 0 ? 0 : inter / union;
+}
