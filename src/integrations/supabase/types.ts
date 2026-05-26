@@ -1523,6 +1523,7 @@ export type Database = {
           score: number | null
           status_sdr: string | null
           telefone_digits: string | null
+          tentativas_etapa: number
           tipo_servico: string | null
           ultima_leitura_humano: string | null
           ultima_mensagem_em: string | null
@@ -1563,6 +1564,7 @@ export type Database = {
           score?: number | null
           status_sdr?: string | null
           telefone_digits?: string | null
+          tentativas_etapa?: number
           tipo_servico?: string | null
           ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
@@ -1603,6 +1605,7 @@ export type Database = {
           score?: number | null
           status_sdr?: string | null
           telefone_digits?: string | null
+          tentativas_etapa?: number
           tipo_servico?: string | null
           ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null

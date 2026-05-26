@@ -205,7 +205,14 @@ OUTPUT — retorne APENAS um JSON neste formato, sem texto extra antes ou depois
   "mensagem_para_enviar": "texto pronto pra mandar ao lead em pt-BR"
 }
 
-Você pode deixar "mensagem_para_enviar" vazio — nesse caso o sistema usa o template padrão pra ação escolhida. Se quiser personalizar (usar o nome do lead, referenciar o que ele disse), escreva a mensagem aqui.`;
+Você pode deixar "mensagem_para_enviar" vazio — nesse caso o sistema usa o template padrão pra ação escolhida. Se quiser personalizar (usar o nome do lead, referenciar o que ele disse), escreva a mensagem aqui.
+
+REGRAS CRÍTICAS DE NÃO-REPETIÇÃO E AVANÇO:
+1. NUNCA repita a mesma pergunta. Se você já fez essa pergunta no histórico e o lead deu resposta parcial, curta ou ambígua, AVANCE pra próxima etapa com o que tem OU faça uma pergunta DIFERENTE.
+2. Respostas curtas e fragmentadas como "Casa", "Sim", "Meu primo", "Basicamente", "Eu e meu irmão" SÃO VÁLIDAS — interprete pelo contexto e avance. Não trate como ininteligível.
+3. Se o lead já enviou 3+ respostas e ainda não foi possível classificar com clareza, use proxima_acao="encerrar_sql" (handoff humano) com o contexto que tem. Não insista.
+4. proxima_acao="aguardar" SÓ pode ser usado quando a mensagem é COMPLETAMENTE off-topic (ex.: "qual a previsão do tempo?") ou ininteligível (ex.: "asdfgh"). NUNCA use para resposta curta válida.
+5. Quando receber um bloco com várias linhas (são mensagens fragmentadas que o lead mandou em sequência), trate como UMA mensagem só — interprete o conjunto.`;
 
 // ---------- Fallback (não usado no novo fluxo, mas mantido pra imports antigos) ----------
 

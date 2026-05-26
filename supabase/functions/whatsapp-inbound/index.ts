@@ -461,7 +461,69 @@ Deno.serve(async (req) => {
   }
 
   // Salva a mensagem recebida
-  await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
+  const minhaMsgTs = new Date().toISOString();
+  await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, ts: minhaMsgTs });
+
+  // ============================================================
+  // FIX 1 — DEBOUNCE DE AGRUPAMENTO (8s)
+  // Lead manda mensagens fragmentadas ("Casa", "Meu primo", "Basicamente").
+  // Esperamos 8s; se chegar nova msg do MESMO lead, esta invocação sai
+  // (a invocação mais nova é quem processa). Depois agrupamos todas as
+  // mensagens do lead desde a última msg do bot/humano em um bloco único.
+  // ============================================================
+  await new Promise((res) => setTimeout(res, 8000));
+  {
+    const { data: maisNova } = await supabase
+      .from("mensagens_sdr")
+      .select("id, enviada_em")
+      .eq("lead_id", lead.id)
+      .eq("origem", "lead")
+      .gt("enviada_em", minhaMsgTs)
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (maisNova) {
+      await registrarEvento(supabase, lead.id, "debounce_msg_descartada_invocacao_antiga", {
+        minha_ts: minhaMsgTs,
+        mais_nova_ts: (maisNova as any).enviada_em,
+      });
+      return new Response(
+        JSON.stringify({ ignored: "debounce_invocacao_mais_recente_assume" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+  // Agrupa mensagens do lead desde a última msg de bot/humano (ou 60s atrás)
+  let textoAgrupado = texto;
+  {
+    const { data: ultimaBot } = await supabase
+      .from("mensagens_sdr")
+      .select("enviada_em")
+      .eq("lead_id", lead.id)
+      .in("origem", ["bot", "humano"])
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const desde = (ultimaBot as any)?.enviada_em
+      ?? new Date(Date.now() - 60_000).toISOString();
+    const { data: msgsLead } = await supabase
+      .from("mensagens_sdr")
+      .select("conteudo, enviada_em")
+      .eq("lead_id", lead.id)
+      .eq("origem", "lead")
+      .gt("enviada_em", desde)
+      .order("enviada_em", { ascending: true });
+    const blocos = (msgsLead ?? []).map((m: any) => (m.conteudo ?? "").trim()).filter(Boolean);
+    if (blocos.length > 1) {
+      textoAgrupado = blocos.join("\n");
+      await registrarEvento(supabase, lead.id, "msgs_lead_agrupadas_debounce", {
+        total: blocos.length,
+        agrupado_preview: textoAgrupado.slice(0, 200),
+      });
+    }
+  }
+
 
   // ============================================================
   // REATIVAÇÃO DE LEAD QUE VOLTA APÓS 7+ DIAS
@@ -639,8 +701,8 @@ ${JSON.stringify(contexto, null, 2)}${adContextoStr}
 Histórico (mais antigo → mais recente):
 ${historico.map((m) => `[${m.origem}] ${m.conteudo}`).join("\n")}
 
-Última mensagem do lead (a que você precisa interpretar):
-"${texto}"
+Última mensagem do lead (a que você precisa interpretar — pode conter várias linhas se o lead mandou mensagens fragmentadas em sequência, trate como um bloco único):
+"${textoAgrupado}"
 
 Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
 
@@ -750,7 +812,7 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       lead_id: lead.id,
       pergunta_codigo: perguntaCodigo,
       pergunta_texto: perguntaTexto,
-      resposta_texto: texto,
+      resposta_texto: textoAgrupado,
       resposta_estruturada: estruturada,
     });
     if (qErr) console.error("[qualificacoes_sdr] erro:", qErr);
@@ -817,6 +879,75 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       break;
   }
 
+  // ============================================================
+  // FIX 3 — LIMITE DE TENTATIVAS POR ETAPA
+  // Se o bot não conseguiu avançar (mesma etapa ou ação "aguardar"),
+  // incrementa o contador. A partir de 2 tentativas falhas → handoff.
+  // ============================================================
+  const avancouEtapa = novaEtapa !== etapaAnterior && r.proxima_acao !== "aguardar";
+  const tentativasAtuais = (lead as any).tentativas_etapa ?? 0;
+  let tentativasNovas = avancouEtapa ? 0 : tentativasAtuais + 1;
+
+  if (!avancouEtapa && tentativasNovas >= 2) {
+    await registrarEvento(supabase, lead.id, "bot_handoff_por_tentativas_excedidas", {
+      etapa: etapaAnterior,
+      tentativas: tentativasNovas,
+      acao_claude: r.proxima_acao,
+    });
+    mensagemFinal = `${nome ? nome + ", " : ""}pra eu te ajudar melhor, vou conectar você com nossa advogada 😊`;
+    novaEtapa = "finalizado";
+    novoStatus = "sql_aguardando_humano";
+    pausarBot = true;
+    encerramento = true;
+    tentativasNovas = 0;
+    const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
+    advogadoIdNotificar = advogado?.id ?? null;
+    if (advogado) {
+      await supabase.from("leads_geral")
+        .update({ humano_responsavel: advogado.id })
+        .eq("id", lead.id);
+    }
+  }
+
+  // ============================================================
+  // FIX 2 — ANTI-REPETIÇÃO
+  // Se a próxima mensagem do bot for >85% similar à última que o bot
+  // enviou pra este lead, NÃO envia: escala pro handoff humano.
+  // ============================================================
+  {
+    const { data: ultimaBotMsg } = await supabase
+      .from("mensagens_sdr")
+      .select("conteudo")
+      .eq("lead_id", lead.id)
+      .eq("origem", "bot")
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const ultimoTxt = ((ultimaBotMsg as any)?.conteudo ?? "").toString();
+    const sim = similaridade(ultimoTxt, mensagemFinal);
+    if (ultimoTxt && sim >= 0.85 && !encerramento) {
+      await registrarEvento(supabase, lead.id, "bot_evitou_repetir_handoff", {
+        similaridade: Number(sim.toFixed(3)),
+        preview_anterior: ultimoTxt.slice(0, 120),
+        preview_nova: mensagemFinal.slice(0, 120),
+        acao_original: r.proxima_acao,
+      });
+      mensagemFinal = `${nome ? nome + ", " : ""}vou passar pra advogada continuar contigo 😊`;
+      novaEtapa = "finalizado";
+      novoStatus = "sql_aguardando_humano";
+      pausarBot = true;
+      encerramento = true;
+      tentativasNovas = 0;
+      const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
+      advogadoIdNotificar = advogado?.id ?? null;
+      if (advogado) {
+        await supabase.from("leads_geral")
+          .update({ humano_responsavel: advogado.id })
+          .eq("id", lead.id);
+      }
+    }
+  }
+
   const envio = await zapiSendText(telefone, mensagemFinal);
   await registrarMensagem(supabase, lead.id, "bot", mensagemFinal, { zapi: envio, acao: r.proxima_acao });
 
@@ -827,6 +958,7 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       status_sdr: novoStatus,
       fluxo_sdr: novoFluxo,
       bot_pausado: pausarBot ? true : (lead.bot_pausado ?? false),
+      tentativas_etapa: tentativasNovas,
     })
     .eq("id", lead.id);
 
@@ -915,4 +1047,26 @@ Abrir conversa: ${urlPainel}/leads/${leadId}`;
     canal: adv?.telefone ? "whatsapp" : "sem_canal",
     acao,
   });
+}
+
+// Similaridade simples baseada em Jaccard de bigramas (caracteres).
+// Retorna 0..1. Boa o suficiente pra pegar "mesma mensagem" mesmo com
+// pequenas variações (nome no início, pontuação diferente).
+function similaridade(a: string, b: string): number {
+  const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+  const A = norm(a);
+  const B = norm(b);
+  if (!A || !B) return 0;
+  if (A === B) return 1;
+  const bigrams = (s: string) => {
+    const out = new Set<string>();
+    for (let i = 0; i < s.length - 1; i++) out.add(s.slice(i, i + 2));
+    return out;
+  };
+  const sa = bigrams(A);
+  const sb = bigrams(B);
+  let inter = 0;
+  for (const g of sa) if (sb.has(g)) inter++;
+  const union = sa.size + sb.size - inter;
+  return union === 0 ? 0 : inter / union;
 }
