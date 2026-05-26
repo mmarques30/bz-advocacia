@@ -461,7 +461,69 @@ Deno.serve(async (req) => {
   }
 
   // Salva a mensagem recebida
-  await registrarMensagem(supabase, lead.id, "lead", texto, { telefone });
+  const minhaMsgTs = new Date().toISOString();
+  await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, ts: minhaMsgTs });
+
+  // ============================================================
+  // FIX 1 — DEBOUNCE DE AGRUPAMENTO (8s)
+  // Lead manda mensagens fragmentadas ("Casa", "Meu primo", "Basicamente").
+  // Esperamos 8s; se chegar nova msg do MESMO lead, esta invocação sai
+  // (a invocação mais nova é quem processa). Depois agrupamos todas as
+  // mensagens do lead desde a última msg do bot/humano em um bloco único.
+  // ============================================================
+  await new Promise((res) => setTimeout(res, 8000));
+  {
+    const { data: maisNova } = await supabase
+      .from("mensagens_sdr")
+      .select("id, enviada_em")
+      .eq("lead_id", lead.id)
+      .eq("origem", "lead")
+      .gt("enviada_em", minhaMsgTs)
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (maisNova) {
+      await registrarEvento(supabase, lead.id, "debounce_msg_descartada_invocacao_antiga", {
+        minha_ts: minhaMsgTs,
+        mais_nova_ts: (maisNova as any).enviada_em,
+      });
+      return new Response(
+        JSON.stringify({ ignored: "debounce_invocacao_mais_recente_assume" }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  }
+
+  // Agrupa mensagens do lead desde a última msg de bot/humano (ou 60s atrás)
+  let textoAgrupado = texto;
+  {
+    const { data: ultimaBot } = await supabase
+      .from("mensagens_sdr")
+      .select("enviada_em")
+      .eq("lead_id", lead.id)
+      .in("origem", ["bot", "humano"])
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const desde = (ultimaBot as any)?.enviada_em
+      ?? new Date(Date.now() - 60_000).toISOString();
+    const { data: msgsLead } = await supabase
+      .from("mensagens_sdr")
+      .select("conteudo, enviada_em")
+      .eq("lead_id", lead.id)
+      .eq("origem", "lead")
+      .gt("enviada_em", desde)
+      .order("enviada_em", { ascending: true });
+    const blocos = (msgsLead ?? []).map((m: any) => (m.conteudo ?? "").trim()).filter(Boolean);
+    if (blocos.length > 1) {
+      textoAgrupado = blocos.join("\n");
+      await registrarEvento(supabase, lead.id, "msgs_lead_agrupadas_debounce", {
+        total: blocos.length,
+        agrupado_preview: textoAgrupado.slice(0, 200),
+      });
+    }
+  }
+
 
   // ============================================================
   // REATIVAÇÃO DE LEAD QUE VOLTA APÓS 7+ DIAS
