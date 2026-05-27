@@ -182,7 +182,7 @@ export function AcordosTable({ filters, onSelectAcordo, onRegistrarPagamento }: 
       data={rows}
       columns={columns}
       rowKey={(r) => r.id}
-      searchPlaceholder="Buscar por cliente ou serviço..."
+      searchPlaceholder={null}
       emptyMessage="Nenhum acordo encontrado"
       pageSize={25}
     />
