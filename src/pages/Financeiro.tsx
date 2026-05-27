@@ -38,6 +38,7 @@ import { FaturamentoFilters, getDefaultFaturamentoFilters, type FaturamentoFilte
 import { ImportFaturamentoDialog } from "@/components/financeiro/ImportFaturamentoDialog";
 import { CreditosCondicionaisSection } from "@/components/financeiro/CreditosCondicionaisSection";
 import { FaturamentoProjecaoTab } from "@/components/financeiro/FaturamentoProjecaoTab";
+import { MetaMensalBar } from "@/components/financeiro/MetaMensalBar";
 
 // Despesas
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
@@ -68,6 +69,8 @@ const currentYear = new Date().getFullYear();
 export default function Financeiro() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(String(currentYear));
   const [activeTab, setActiveTab] = useState<string>("visao-geral");
+  // Sub-aba do Faturamento (Acordos foi trazido pra ca como sub-aba).
+  const [faturamentoSubTab, setFaturamentoSubTab] = useState<string>("lancamentos");
 
   // Faturamento state
   const [newEntradaOpen, setNewEntradaOpen] = useState(false);
@@ -165,13 +168,12 @@ export default function Financeiro() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 6 Abas */}
+      {/* 5 Abas (Acordos virou sub-aba do Faturamento) */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex-wrap">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="faturamento">Faturamento</TabsTrigger>
           <TabsTrigger value="despesas">Despesas</TabsTrigger>
-          <TabsTrigger value="acordos">Acordos e Parcelas</TabsTrigger>
           <TabsTrigger value="distribuicao">Distribuição Sócias</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
         </TabsList>
@@ -180,16 +182,20 @@ export default function Financeiro() {
         <TabsContent value="visao-geral">
           <VisaoGeralTab
             ano={anoNumero}
-            onNavigateToAcordos={() => setActiveTab("acordos")}
+            onNavigateToAcordos={() => {
+              setActiveTab("faturamento");
+              setFaturamentoSubTab("acordos");
+            }}
           />
         </TabsContent>
 
-        {/* Aba Faturamento */}
+        {/* Aba Faturamento (Lançamentos+Projeção unificados, Acordos como sub-aba) */}
         <TabsContent value="faturamento" className="space-y-6">
-          <Tabs defaultValue="lancamentos">
+          <MetaMensalBar />
+          <Tabs value={faturamentoSubTab} onValueChange={setFaturamentoSubTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
-              <TabsTrigger value="projecao">Projeção</TabsTrigger>
+              <TabsTrigger value="acordos">Acordos e Parcelas</TabsTrigger>
             </TabsList>
 
             <TabsContent value="lancamentos" className="space-y-6">
@@ -213,83 +219,57 @@ export default function Financeiro() {
               <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
               <CreditosCondicionaisSection />
               <FaturamentoTable filters={faturamentoFilters} />
-            </TabsContent>
-
-            <TabsContent value="projecao" className="space-y-6">
-              <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
+              {/* Projeção unificada na mesma tela */}
               <FaturamentoProjecaoTab filters={faturamentoFilters} />
-              <FaturamentoTable filters={faturamentoFilters} />
+            </TabsContent>
+
+            <TabsContent value="acordos" className="space-y-6">
+              <AcordosParcelasTab />
             </TabsContent>
           </Tabs>
         </TabsContent>
 
-        {/* Aba Despesas */}
+        {/* Aba Despesas (Lançamentos+Projeção unificados numa tela só) */}
         <TabsContent value="despesas" className="space-y-6">
-          <Tabs defaultValue="lancamentos">
-            <TabsList className="mb-4">
-              <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
-              <TabsTrigger value="projecao">Projeção</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="lancamentos" className="space-y-6">
-              <DespesasFixasManager />
-              <DespesasAlerts />
-              <div className="flex items-start gap-4">
-                <div className="flex-1">
-                  <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <Button variant="outline" size="sm" onClick={() => setImportDespesasOpen(true)}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Importar
-                  </Button>
-                  <Button size="sm" onClick={() => setNewDespesaOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Nova Despesa
-                  </Button>
-                </div>
-              </div>
-              <DespesasKPIs filters={despesasGlobalFilters} />
-              <div className="grid gap-6 md:grid-cols-2">
-                <DespesasCharts filters={despesasGlobalFilters} />
-                <DespesasWidgets filters={despesasGlobalFilters} />
-              </div>
-              <DespesasTable
-                filters={{
-                  categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
-                  status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
-                  // Propaga periodo (antes o filtro global "período" so afetava KPIs/charts e a
-                  // tabela ignorava, fazendo parecer que o filtro "nao funcionava").
-                  data_inicio: despesasGlobalFilters.dateRange?.from,
-                  data_fim: despesasGlobalFilters.dateRange?.to,
-                }}
-                onSelectDespesa={setSelectedDespesaId}
-                onDuplicateDespesa={(d) => {
-                  setDespesaParaDuplicar(d);
-                  setNewDespesaOpen(true);
-                }}
-              />
-            </TabsContent>
-
-            <TabsContent value="projecao" className="space-y-6">
+          <DespesasFixasManager />
+          <DespesasAlerts />
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
               <DespesasGlobalFilters filters={despesasGlobalFilters} onChange={setDespesasGlobalFilters} />
-              <DespesasProjecaoTab />
-              <DespesasTable
-                filters={{
-                  categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
-                  status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
-                  data_inicio: despesasGlobalFilters.dateRange?.from,
-                  data_fim: despesasGlobalFilters.dateRange?.to,
-                }}
-                onSelectDespesa={setSelectedDespesaId}
-              />
-            </TabsContent>
-          </Tabs>
-        </TabsContent>
-
-        {/* Aba Acordos e Parcelas */}
-        <TabsContent value="acordos">
-          <AcordosParcelasTab />
+            </div>
+            <div className="flex gap-2 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => setImportDespesasOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Importar
+              </Button>
+              <Button size="sm" onClick={() => setNewDespesaOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Despesa
+              </Button>
+            </div>
+          </div>
+          <DespesasKPIs filters={despesasGlobalFilters} />
+          <div className="grid gap-6 md:grid-cols-2">
+            <DespesasCharts filters={despesasGlobalFilters} />
+            <DespesasWidgets filters={despesasGlobalFilters} />
+          </div>
+          <DespesasTable
+            filters={{
+              categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
+              status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
+              // Propaga periodo (antes o filtro global "período" so afetava KPIs/charts e a
+              // tabela ignorava, fazendo parecer que o filtro "nao funcionava").
+              data_inicio: despesasGlobalFilters.dateRange?.from,
+              data_fim: despesasGlobalFilters.dateRange?.to,
+            }}
+            onSelectDespesa={setSelectedDespesaId}
+            onDuplicateDespesa={(d) => {
+              setDespesaParaDuplicar(d);
+              setNewDespesaOpen(true);
+            }}
+          />
+          {/* Projeção unificada na mesma tela */}
+          <DespesasProjecaoTab />
         </TabsContent>
 
         {/* Aba Distribuição Sócias */}
