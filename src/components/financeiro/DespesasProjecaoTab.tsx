@@ -1,11 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-export function DespesasProjecaoTab() {
+interface DespesasProjecaoTabProps {
+  selectedMes?: string | null;
+  onSelectMonth?: (mes: string) => void;
+}
+
+export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProjecaoTabProps) {
   const { data: evolucaoDespesas } = useQuery({
     queryKey: ["evolucao-despesas-mensal"],
     queryFn: async () => {
@@ -46,6 +51,7 @@ export function DespesasProjecaoTab() {
 
         resultado.push({
           mes: format(data, "MMM/yy", { locale: ptBR }),
+          mesKey: format(data, "yyyy-MM"),
           despesas: despesasMes + transacoesDespMes,
         });
       }
@@ -76,14 +82,21 @@ export function DespesasProjecaoTab() {
           <CardTitle className="flex items-center justify-between">
             <span>Evolução Mensal de Despesas</span>
             <span className="text-xs font-normal text-muted-foreground">
-              Últimos 12 meses • Média: {formatCurrencyFull(media)}
+              {onSelectMonth ? "Clique numa barra para filtrar • " : ""}Últimos 12 meses • Média: {formatCurrencyFull(media)}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {evolucaoDespesas && evolucaoDespesas.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={evolucaoDespesas} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <BarChart
+                data={evolucaoDespesas}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                onClick={(state: any) => {
+                  const mesKey = state?.activePayload?.[0]?.payload?.mesKey;
+                  if (mesKey && onSelectMonth) onSelectMonth(mesKey);
+                }}
+              >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} className="text-muted-foreground" />
@@ -96,7 +109,19 @@ export function DespesasProjecaoTab() {
                   }}
                 />
                 <Legend formatter={() => "Despesas"} />
-                <Bar dataKey="despesas" fill="hsl(var(--chart-5))" radius={[4, 4, 0, 0]} />
+                <Bar
+                  dataKey="despesas"
+                  radius={[4, 4, 0, 0]}
+                  cursor={onSelectMonth ? "pointer" : undefined}
+                >
+                  {evolucaoDespesas.map((entry) => (
+                    <Cell
+                      key={entry.mesKey}
+                      fill={entry.mesKey === selectedMes ? "hsl(var(--primary))" : "hsl(var(--chart-5))"}
+                      opacity={selectedMes && entry.mesKey !== selectedMes ? 0.4 : 1}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
