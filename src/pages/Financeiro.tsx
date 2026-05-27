@@ -33,11 +33,8 @@ import { AcordoDetailsDialog } from "@/components/financeiro/AcordoDetailsDialog
 import { RegistrarPagamentoDialog } from "@/components/financeiro/RegistrarPagamentoDialog";
 import { FaturamentoKPIs } from "@/components/financeiro/FaturamentoKPIs";
 import { FaturamentoCharts } from "@/components/financeiro/FaturamentoCharts";
-import { FaturamentoWidgets } from "@/components/financeiro/FaturamentoWidgets";
 import { FaturamentoFilters, getDefaultFaturamentoFilters, type FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { ImportFaturamentoDialog } from "@/components/financeiro/ImportFaturamentoDialog";
-import { CreditosCondicionaisSection } from "@/components/financeiro/CreditosCondicionaisSection";
-import { FaturamentoProjecaoTab } from "@/components/financeiro/FaturamentoProjecaoTab";
 import { MetaMensalBar } from "@/components/financeiro/MetaMensalBar";
 
 // Despesas
@@ -102,6 +99,31 @@ export default function Financeiro() {
   })();
 
   const anoNumero = anoSelecionado === "todos" ? null : Number(anoSelecionado);
+
+  // Filtro de mes do Faturamento: deriva o mes selecionado quando o periodo
+  // cobre exatamente um mes, e permite clicar numa barra do grafico pra
+  // filtrar (ou clicar de novo no mesmo mes pra limpar). Cards, grafico e
+  // tabela compartilham faturamentoFilters, entao tudo se ajusta junto.
+  const mesKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const faturamentoSelectedMes = (() => {
+    const r = faturamentoFilters.dateRange;
+    if (r?.from && r?.to && mesKey(r.from) === mesKey(r.to)) return mesKey(r.from);
+    return null;
+  })();
+  const handleSelectFaturamentoMes = (mes: string) => {
+    if (faturamentoSelectedMes === mes) {
+      setFaturamentoFilters({ ...faturamentoFilters, dateRange: undefined });
+      return;
+    }
+    const [y, m] = mes.split("-").map(Number);
+    setFaturamentoFilters({
+      ...faturamentoFilters,
+      dateRange: {
+        from: new Date(y, m - 1, 1),
+        to: new Date(y, m, 0, 23, 59, 59, 999),
+      },
+    });
+  };
 
   const handleClearData = () => {
     clearTransacoes.mutate();
@@ -215,12 +237,12 @@ export default function Financeiro() {
                 </div>
               </div>
               <FaturamentoKPIs filters={faturamentoFilters} />
-              <FaturamentoCharts filters={faturamentoFilters} />
-              <FaturamentoWidgets onRegistrarPagamento={setPagamentoParcelaId} filters={faturamentoFilters} />
-              <CreditosCondicionaisSection />
+              <FaturamentoCharts
+                filters={faturamentoFilters}
+                selectedMes={faturamentoSelectedMes}
+                onSelectMonth={handleSelectFaturamentoMes}
+              />
               <FaturamentoTable filters={faturamentoFilters} />
-              {/* Projeção unificada na mesma tela */}
-              <FaturamentoProjecaoTab filters={faturamentoFilters} />
             </TabsContent>
 
             <TabsContent value="acordos" className="space-y-6">
