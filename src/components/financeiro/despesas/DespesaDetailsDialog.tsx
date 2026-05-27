@@ -110,7 +110,7 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Detalhes da Despesa</DialogTitle>
+            <DialogTitle>Editar Despesa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Skeleton className="h-10 w-full" />

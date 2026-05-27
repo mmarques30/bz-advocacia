@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy } from "lucide-react";
+import { Pencil, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
@@ -162,10 +162,10 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                       variant="ghost"
                       size="icon"
                       onClick={() => onSelectDespesa(despesa.id)}
-                      title="Ver detalhes"
-                      aria-label="Ver detalhes da despesa"
+                      title="Editar"
+                      aria-label="Editar despesa"
                     >
-                      <Eye className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     {onDuplicateDespesa && (
                       <Button
