@@ -32,21 +32,29 @@ export function useAcordos(filters?: AcordosFilters) {
         query = query.eq("cliente_id", filters.cliente_id);
       }
 
-      if (filters?.search) {
-        // Busca será feita no cliente depois
-      }
-
       const { data, error } = await query;
       if (error) throw error;
 
       let acordos = data as any[];
 
       if (filters?.possui_atraso) {
-        acordos = acordos.filter(acordo => 
-          acordo.parcelas?.some((p: any) => 
+        acordos = acordos.filter(acordo =>
+          acordo.parcelas?.some((p: any) =>
             p.status !== 'pago' && new Date(p.data_vencimento) < new Date()
           )
         );
+      }
+
+      // Busca textual por nome do cliente ou tipo de serviço. O relacionamento
+      // com cliente vem junto na query, então filtramos em memória.
+      if (filters?.search && filters.search.trim()) {
+        const termo = filters.search.toLowerCase().trim();
+        acordos = acordos.filter(acordo => {
+          const cliente = Array.isArray(acordo.cliente) ? acordo.cliente[0] : acordo.cliente;
+          const nome = (cliente?.nome_completo || "").toLowerCase();
+          const servico = (acordo.tipo_servico || "").toLowerCase();
+          return nome.includes(termo) || servico.includes(termo);
+        });
       }
 
       return acordos.map(acordo => ({
