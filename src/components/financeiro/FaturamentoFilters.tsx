@@ -172,7 +172,7 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
             <Button
               variant="outline"
               className={cn(
-                "h-9 text-xs w-[180px] justify-start text-left font-normal",
+                "h-9 text-xs w-auto min-w-[180px] justify-start text-left font-normal",
                 !filters.dateRange?.from && "text-muted-foreground"
               )}
             >
