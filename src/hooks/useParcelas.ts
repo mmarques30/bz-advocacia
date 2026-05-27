@@ -111,6 +111,93 @@ export function useRegistrarPagamento() {
   });
 }
 
+export function useAddParcela() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({
+      acordoId,
+      valor,
+      dataVencimento,
+      observacoes,
+    }: {
+      acordoId: string;
+      valor: number;
+      dataVencimento: string;
+      observacoes?: string;
+    }) => {
+      // Próximo número de parcela = maior existente + 1.
+      const { data: ultima, error: ultimaError } = await supabase
+        .from("parcelas_financeiras")
+        .select("numero_parcela")
+        .eq("acordo_id", acordoId)
+        .order("numero_parcela", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ultimaError) throw ultimaError;
+
+      const proximoNumero = (ultima?.numero_parcela ?? 0) + 1;
+
+      const { error: parcelaError } = await supabase
+        .from("parcelas_financeiras")
+        .insert({
+          acordo_id: acordoId,
+          numero_parcela: proximoNumero,
+          valor,
+          data_vencimento: dataVencimento,
+          status: "pendente",
+          observacoes: observacoes || null,
+        });
+
+      if (parcelaError) throw parcelaError;
+
+      // Mantém o cabeçalho do contrato consistente: a nova parcela soma ao
+      // valor total e ao número de parcelas do acordo.
+      const { data: acordo, error: acordoFetchError } = await supabase
+        .from("acordos_financeiros")
+        .select("valor_total, numero_parcelas")
+        .eq("id", acordoId)
+        .single();
+
+      if (acordoFetchError) throw acordoFetchError;
+
+      const { error: acordoUpdateError } = await supabase
+        .from("acordos_financeiros")
+        .update({
+          valor_total: Number(acordo?.valor_total ?? 0) + valor,
+          numero_parcelas: Number(acordo?.numero_parcelas ?? 0) + 1,
+        })
+        .eq("id", acordoId);
+
+      if (acordoUpdateError) throw acordoUpdateError;
+
+      return { acordoId, numero_parcela: proximoNumero };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["parcelas"] });
+      queryClient.invalidateQueries({ queryKey: ["acordo-detalhes"] });
+      queryClient.invalidateQueries({ queryKey: ["acordos-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["parcelas-vencendo"] });
+      queryClient.invalidateQueries({ queryKey: ["total-parcelas-pendentes"] });
+      queryClient.invalidateQueries({ queryKey: ["projetado-vs-realizado"] });
+      toast({
+        title: "Parcela adicionada",
+        description: "A nova parcela foi incluída no contrato.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao adicionar parcela",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
+
 export function useUpdateParcela() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

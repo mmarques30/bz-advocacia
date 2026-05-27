@@ -17,10 +17,11 @@ import { useAcordoDetalhes } from "@/hooks/useFinanceiro";
 import { useHistoricoPagamentosAcordo } from "@/hooks/useHistoricoPagamentos";
 import { useDesfazerPagamento } from "@/hooks/useParcelas";
 import { STATUS_ACORDO_LABELS, FORMA_PAGAMENTO_LABELS } from "@/types/financeiro";
-import { DollarSign, MoreHorizontal, Undo2, Pencil } from "lucide-react";
+import { DollarSign, MoreHorizontal, Undo2, Pencil, Plus } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditParcelaValorDialog } from "./EditParcelaValorDialog";
+import { AddParcelaDialog } from "./AddParcelaDialog";
 
 interface AcordoDetailsDialogProps {
   acordoId: string | null;
@@ -39,6 +40,7 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("todas");
   const [editParcela, setEditParcela] = useState<{ id: string; valor: number; numero_parcela: number; data_vencimento?: string; status?: string; data_pagamento?: string | null } | null>(null);
   const [desfazerParcelaId, setDesfazerParcelaId] = useState<string | null>(null);
+  const [addParcelaOpen, setAddParcelaOpen] = useState(false);
 
   if (!acordo) return null;
 
@@ -177,7 +179,13 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
             {/* Filtro + Tabela de Parcelas */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold">Parcelas</h4>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold">Parcelas</h4>
+                  <Button variant="outline" size="sm" className="h-8" onClick={() => setAddParcelaOpen(true)}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    Adicionar parcela
+                  </Button>
+                </div>
                 <ToggleGroup
                   type="single"
                   value={statusFilter}
@@ -290,6 +298,9 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
 
       {/* Edit Value Dialog */}
       <EditParcelaValorDialog parcela={editParcela} open={!!editParcela} onClose={() => setEditParcela(null)} />
+
+      {/* Add Parcela Dialog */}
+      <AddParcelaDialog acordoId={acordoId} open={addParcelaOpen} onClose={() => setAddParcelaOpen(false)} />
 
       {/* Confirm Undo Payment */}
       <AlertDialog open={!!desfazerParcelaId} onOpenChange={() => setDesfazerParcelaId(null)}>
