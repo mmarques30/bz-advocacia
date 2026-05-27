@@ -44,8 +44,6 @@ import { DespesasFixasManager } from "@/components/financeiro/despesas/DespesasF
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
-import { DespesasCharts } from "@/components/financeiro/DespesasCharts";
-import { DespesasWidgets } from "@/components/financeiro/DespesasWidgets";
 import { DespesasGlobalFilters, getDefaultDespesasGlobalFilters, type DespesasGlobalFiltersState } from "@/components/financeiro/DespesasGlobalFilters";
 import type { Despesa } from "@/types/financeiro";
 import { ImportDespesasDialog } from "@/components/financeiro/despesas/ImportDespesasDialog";
@@ -118,6 +116,28 @@ export default function Financeiro() {
     const [y, m] = mes.split("-").map(Number);
     setFaturamentoFilters({
       ...faturamentoFilters,
+      dateRange: {
+        from: new Date(y, m - 1, 1),
+        to: new Date(y, m, 0, 23, 59, 59, 999),
+      },
+    });
+  };
+
+  // Mesmo padrao do Faturamento: o grafico de Projecao (sempre 12 meses)
+  // funciona como navegador — clicar num mes filtra cards e tabela.
+  const despesasSelectedMes = (() => {
+    const r = despesasGlobalFilters.dateRange;
+    if (r?.from && r?.to && mesKey(r.from) === mesKey(r.to)) return mesKey(r.from);
+    return null;
+  })();
+  const handleSelectDespesaMes = (mes: string) => {
+    if (despesasSelectedMes === mes) {
+      setDespesasGlobalFilters({ ...despesasGlobalFilters, dateRange: undefined });
+      return;
+    }
+    const [y, m] = mes.split("-").map(Number);
+    setDespesasGlobalFilters({
+      ...despesasGlobalFilters,
       dateRange: {
         from: new Date(y, m - 1, 1),
         to: new Date(y, m, 0, 23, 59, 59, 999),
@@ -271,10 +291,10 @@ export default function Financeiro() {
             </div>
           </div>
           <DespesasKPIs filters={despesasGlobalFilters} />
-          <div className="grid gap-6 md:grid-cols-2">
-            <DespesasCharts filters={despesasGlobalFilters} />
-            <DespesasWidgets filters={despesasGlobalFilters} />
-          </div>
+          <DespesasProjecaoTab
+            selectedMes={despesasSelectedMes}
+            onSelectMonth={handleSelectDespesaMes}
+          />
           <DespesasTable
             filters={{
               categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
@@ -290,8 +310,6 @@ export default function Financeiro() {
               setNewDespesaOpen(true);
             }}
           />
-          {/* Projeção unificada na mesma tela */}
-          <DespesasProjecaoTab />
         </TabsContent>
 
         {/* Aba Distribuição Sócias */}
