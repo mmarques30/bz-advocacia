@@ -52,7 +52,11 @@ export function RegistrarPagamentoDialog({ parcelaId, open, onClose }: Registrar
 
     if (data) {
       setParcela(data);
-      setValorPago(data.valor.toString());
+      // Pré-preenche com o saldo restante (valor esperado menos o que já
+      // foi recebido), pra que o caso comum — receber o que falta — seja
+      // um clique. Pagamento parcial é só digitar um valor menor.
+      const restante = Number(data.valor ?? 0) - Number(data.valor_pago ?? 0);
+      setValorPago((restante > 0 ? restante : 0).toFixed(2));
     }
   };
 
@@ -95,9 +99,9 @@ export function RegistrarPagamentoDialog({ parcelaId, open, onClose }: Registrar
           <div className="bg-muted/50 p-4 rounded-lg space-y-2">
             <div>
               <p className="text-sm text-muted-foreground">Cliente</p>
-              <p className="font-medium">{parcela.acordo?.cliente?.[0]?.nome_completo}</p>
+              <p className="font-medium">{parcela.acordo?.cliente?.nome_completo}</p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Parcela</p>
                 <p className="font-medium">{parcela.numero_parcela}</p>
@@ -108,7 +112,23 @@ export function RegistrarPagamentoDialog({ parcelaId, open, onClose }: Registrar
                   {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parcela.valor)}
                 </p>
               </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Já recebido</p>
+                <p className="font-medium">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(parcela.valor_pago ?? 0))}
+                </p>
+              </div>
             </div>
+            {Number(parcela.valor_pago ?? 0) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Saldo em aberto:{" "}
+                <span className="font-medium text-foreground">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    Math.max(Number(parcela.valor ?? 0) - Number(parcela.valor_pago ?? 0), 0),
+                  )}
+                </span>
+              </p>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -124,7 +144,7 @@ export function RegistrarPagamentoDialog({ parcelaId, open, onClose }: Registrar
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="valor_pago">Valor Recebido *</Label>
+              <Label htmlFor="valor_pago">Valor recebido agora *</Label>
               <Input
                 id="valor_pago"
                 type="number"
@@ -134,6 +154,9 @@ export function RegistrarPagamentoDialog({ parcelaId, open, onClose }: Registrar
                 onChange={(e) => setValorPago(e.target.value)}
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                Se o cliente pagou menos que o esperado, a parcela continua em aberto com o saldo restante.
+              </p>
             </div>
 
             <div className="space-y-2">

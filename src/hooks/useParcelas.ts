@@ -40,13 +40,30 @@ export function useRegistrarPagamento() {
       formaPagamento: string;
       observacoes?: string;
     }) => {
-      // Atualizar parcela
+      // Lê o estado atual para acumular pagamentos parciais. O valor
+      // informado aqui é o recebido NESTE evento; somamos ao que já foi
+      // pago antes. A parcela só vira "pago" quando o acumulado cobre o
+      // valor esperado — pagamento parcial mantém a parcela pendente com
+      // o saldo restante em aberto.
+      const { data: atual, error: fetchError } = await supabase
+        .from("parcelas_financeiras")
+        .select("valor, valor_pago")
+        .eq("id", parcelaId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const valorEsperado = Number(atual?.valor ?? 0);
+      const jaPago = Number(atual?.valor_pago ?? 0);
+      const acumulado = jaPago + valorPago;
+      const quitado = acumulado >= valorEsperado - 0.005; // tolerância de centavos
+
       const { error: parcelaError } = await supabase
         .from("parcelas_financeiras")
         .update({
-          status: "pago",
-          data_pagamento: dataPagamento,
-          valor_pago: valorPago,
+          status: quitado ? "pago" : "pendente",
+          data_pagamento: quitado ? dataPagamento : null,
+          valor_pago: acumulado,
           forma_pagamento_recebido: formaPagamento,
           observacoes,
         })
@@ -54,7 +71,7 @@ export function useRegistrarPagamento() {
 
       if (parcelaError) throw parcelaError;
 
-      // Registrar no histórico
+      // Registrar no histórico (cada recebimento é uma linha)
       const { error: historicoError } = await supabase
         .from("historico_pagamentos")
         .insert({
@@ -67,18 +84,21 @@ export function useRegistrarPagamento() {
 
       if (historicoError) throw historicoError;
 
-      return { parcelaId };
+      return { parcelaId, quitado };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["parcelas"] });
       queryClient.invalidateQueries({ queryKey: ["acordo-detalhes"] });
       queryClient.invalidateQueries({ queryKey: ["acordos-financeiros"] });
       queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
       queryClient.invalidateQueries({ queryKey: ["parcelas-vencendo"] });
       queryClient.invalidateQueries({ queryKey: ["historico-pagamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["total-parcelas-pendentes"] });
       toast({
-        title: "Pagamento registrado",
-        description: "O pagamento foi registrado com sucesso.",
+        title: result.quitado ? "Pagamento registrado" : "Pagamento parcial registrado",
+        description: result.quitado
+          ? "A parcela foi quitada."
+          : "O valor foi registrado e o saldo restante segue em aberto.",
       });
     },
     onError: (error: any) => {

@@ -59,18 +59,35 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
     return true;
   });
 
-  const totalPago = parcelas.filter(p => p.status === "pago").reduce((sum, p) => sum + (p.valor_pago || 0), 0);
-  const totalPendente = parcelas.filter(p => p.status === "pendente").reduce((sum, p) => sum + p.valor, 0);
-  const totalAtrasado = parcelas.filter(p => p.status !== "pago" && new Date(p.data_vencimento) < now).reduce((sum, p) => sum + p.valor, 0);
+  // Inclui parciais: todo valor_pago conta como recebido, mesmo que a
+  // parcela ainda não esteja quitada. O pendente é o saldo restante.
+  const totalPago = parcelas.reduce((sum, p) => sum + (p.valor_pago || 0), 0);
+  const totalPendente = parcelas
+    .filter(p => p.status !== "pago")
+    .reduce((sum, p) => sum + Math.max(p.valor - (p.valor_pago || 0), 0), 0);
+  const totalAtrasado = parcelas
+    .filter(p => p.status !== "pago" && new Date(p.data_vencimento) < now)
+    .reduce((sum, p) => sum + Math.max(p.valor - (p.valor_pago || 0), 0), 0);
+
+  const isParcial = (parcela: any) =>
+    parcela.status !== "pago" && (parcela.valor_pago || 0) > 0;
 
   const getStatusParcelaVariant = (parcela: any) => {
     if (parcela.status === "pago") return "secondary" as const;
+    if (isParcial(parcela)) return "outline" as const;
     if (new Date(parcela.data_vencimento) < now) return "destructive" as const;
     return "default" as const;
   };
 
+  const fmtBRL = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
   const getStatusParcelaLabel = (parcela: any) => {
     if (parcela.status === "pago") return `Pago em ${format(new Date(parcela.data_pagamento!), "dd/MM/yyyy")}`;
+    if (isParcial(parcela)) {
+      const restante = Math.max(parcela.valor - (parcela.valor_pago || 0), 0);
+      return `Parcial — falta ${fmtBRL(restante)}`;
+    }
     const diasAtraso = differenceInDays(now, new Date(parcela.data_vencimento));
     if (diasAtraso > 0) return `Atrasado há ${diasAtraso} dias`;
     return "Pendente";
@@ -197,7 +214,7 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor)}
                         </TableCell>
                         <TableCell>
-                          {parcela.status === "pago" && parcela.valor_pago != null
+                          {parcela.valor_pago != null && parcela.valor_pago > 0
                             ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcela.valor_pago)
                             : "—"}
                         </TableCell>
@@ -220,20 +237,14 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
                               {parcela.status !== "pago" && (
                                 <DropdownMenuItem onClick={() => onRegistrarPagamento(parcela.id)}>
                                   <DollarSign className="h-4 w-4 mr-2" />
-                                  Registrar Pagamento
+                                  {isParcial(parcela) ? "Registrar mais um pagamento" : "Registrar Pagamento"}
                                 </DropdownMenuItem>
                               )}
-                              {parcela.status === "pago" && (
-                                <>
-                                  <DropdownMenuItem onClick={() => onRegistrarPagamento(parcela.id)}>
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Editar Pagamento
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => setDesfazerParcelaId(parcela.id)}>
-                                    <Undo2 className="h-4 w-4 mr-2" />
-                                    Desfazer Pagamento
-                                  </DropdownMenuItem>
-                                </>
+                              {(parcela.status === "pago" || isParcial(parcela)) && (
+                                <DropdownMenuItem onClick={() => setDesfazerParcelaId(parcela.id)}>
+                                  <Undo2 className="h-4 w-4 mr-2" />
+                                  Desfazer Pagamento
+                                </DropdownMenuItem>
                               )}
                               <DropdownMenuItem onClick={() => setEditParcela({ id: parcela.id, valor: parcela.valor, numero_parcela: parcela.numero_parcela, data_vencimento: parcela.data_vencimento, status: parcela.status, data_pagamento: parcela.data_pagamento })}>
                                 <Pencil className="h-4 w-4 mr-2" />
