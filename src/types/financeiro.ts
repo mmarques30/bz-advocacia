@@ -271,6 +271,11 @@ export interface DespesaPorCategoria {
 }
 
 // Labels para Despesas
+// IMPORTANTE: NAO usar este enum como fonte de selects/filtros — ele esta
+// defasado em relacao a `opcoes_sistema` (grupo `categoria_despesa`) e
+// causa divergencia entre os dialogs (lista diferente em Novo vs Editar).
+// Use sempre `useCategoriasDespesa()` em `@/hooks/useCategoriasDespesa.ts`.
+// Mantido apenas como fallback de exibicao para registros legados.
 export const CATEGORIA_DESPESA_LABELS: Record<CategoriaDespesa, string> = {
   aluguel_condominio: 'Aluguel',
   salarios_encargos: 'Folha de Pagamento',
