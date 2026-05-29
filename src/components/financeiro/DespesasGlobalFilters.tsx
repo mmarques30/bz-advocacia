@@ -58,11 +58,8 @@ const getAnoFromRange = (range: DateRange | undefined): string => {
 };
 
 export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFiltersProps) {
-  const { data: categoriasDespesaDb } = useOpcoesSistema('categoria_despesa', true);
-
-  const categoriasEntries = categoriasDespesaDb && categoriasDespesaDb.length > 0
-    ? categoriasDespesaDb.map(o => [o.valor, o.label] as [string, string])
-    : Object.entries(CATEGORIA_DESPESA_LABELS);
+  const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
+  const categoriasEntries = categoriaOptions.map((o) => [o.value, o.label] as [string, string]);
 
   const handleChange = (key: keyof DespesasGlobalFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
