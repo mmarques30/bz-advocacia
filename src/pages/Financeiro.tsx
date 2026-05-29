@@ -276,13 +276,14 @@ export default function Financeiro() {
                   </Button>
                 </div>
               </div>
-              <FaturamentoKPIs filters={faturamentoFilters} />
+              <FaturamentoKPIs filters={effectiveFaturamentoFilters} />
               <FaturamentoCharts
-                filters={faturamentoFilters}
+                filters={effectiveFaturamentoFilters}
                 selectedMes={faturamentoSelectedMes}
                 onSelectMonth={handleSelectFaturamentoMes}
               />
-              <FaturamentoTable filters={faturamentoFilters} />
+              <FaturamentoTable filters={effectiveFaturamentoFilters} />
+
             </TabsContent>
 
             <TabsContent value="acordos" className="space-y-6">
