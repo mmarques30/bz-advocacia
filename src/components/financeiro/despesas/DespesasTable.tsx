@@ -139,7 +139,7 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                 </TableCell>
                 <TableCell>
                   <span className="text-sm">
-                    {CATEGORIA_DESPESA_LABELS[despesa.categoria]}
+                    {getCategoriaLabel(despesa.categoria)}
                   </span>
                 </TableCell>
                 <TableCell className="text-right font-medium">
