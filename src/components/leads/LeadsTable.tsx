@@ -58,7 +58,10 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const queryClient = useQueryClient();
+
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
