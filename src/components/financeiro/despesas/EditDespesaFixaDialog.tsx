@@ -19,6 +19,7 @@ interface Props {
 
 export function EditDespesaFixaDialog({ despesaFixa, open, onClose }: Props) {
   const updateDespesaFixa = useUpdateDespesaFixa();
+  const { options: categoriaOptions } = useCategoriasDespesa();
   const [form, setForm] = useState({
     descricao: "",
     valor: "",
