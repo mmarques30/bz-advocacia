@@ -2,17 +2,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, addMonths, differenceInCalendarMonths, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import type { DateRange } from "react-day-picker";
 
 interface DespesasProjecaoTabProps {
   selectedMes?: string | null;
   onSelectMonth?: (mes: string) => void;
+  dateRange?: DateRange;
 }
 
-export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProjecaoTabProps) {
+/**
+ * Calcula a janela de meses a exibir no grafico com base no filtro global.
+ * - Ano inteiro (jan->dez): mostra os 12 meses do ano.
+ * - Intervalo custom: mostra mes a mes entre `from` e `to` (max 24).
+ * - Sem filtro: ultimos 12 meses corridos a partir de hoje.
+ */
+function getMonthsWindow(dateRange?: DateRange): { inicio: Date; fim: Date }[] {
+  const meses: { inicio: Date; fim: Date }[] = [];
+
+  if (dateRange?.from && dateRange?.to) {
+    const from = startOfMonth(dateRange.from);
+    const to = endOfMonth(dateRange.to);
+    const total = Math.min(differenceInCalendarMonths(to, from) + 1, 24);
+    for (let i = 0; i < total; i++) {
+      const d = addMonths(from, i);
+      meses.push({ inicio: startOfMonth(d), fim: endOfMonth(d) });
+    }
+    return meses;
+  }
+
+  const hoje = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = subMonths(hoje, i);
+    meses.push({ inicio: startOfMonth(d), fim: endOfMonth(d) });
+  }
+  return meses;
+}
+
+function getPeriodoLabel(dateRange?: DateRange): string {
+  if (!dateRange?.from || !dateRange?.to) return "Últimos 12 meses";
+  const from = dateRange.from;
+  const to = dateRange.to;
+  const sameYear = from.getFullYear() === to.getFullYear();
+  const isFullYear =
+    sameYear &&
+    isSameDay(from, new Date(from.getFullYear(), 0, 1)) &&
+    isSameDay(to, new Date(from.getFullYear(), 11, 31));
+  if (isFullYear) return `Ano de ${from.getFullYear()}`;
+  return `${format(from, "MMM/yy", { locale: ptBR })} – ${format(to, "MMM/yy", { locale: ptBR })}`;
+}
+
+export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: DespesasProjecaoTabProps) {
+  const rangeKey = dateRange?.from && dateRange?.to
+    ? `${dateRange.from.toISOString()}_${dateRange.to.toISOString()}`
+    : "rolling-12";
+
   const { data: evolucaoDespesas } = useQuery({
-    queryKey: ["evolucao-despesas-mensal"],
+    queryKey: ["evolucao-despesas-mensal", rangeKey],
     queryFn: async () => {
       const { data: despesas } = await supabase
         .from("despesas")
@@ -24,14 +71,9 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProj
         .select("valor, data_transacao, tipo_codigo")
         .limit(10000);
 
-      const hoje = new Date();
-      const resultado = [];
+      const janela = getMonthsWindow(dateRange);
 
-      for (let i = 11; i >= 0; i--) {
-        const data = subMonths(hoje, i);
-        const inicio = startOfMonth(data);
-        const fim = endOfMonth(data);
-
+      return janela.map(({ inicio, fim }) => {
         const despesasMes = (despesas || [])
           .filter(d => {
             const dd = new Date(d.data);
@@ -49,14 +91,12 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProj
           })
           .reduce((sum, t) => sum + (t.valor || 0), 0);
 
-        resultado.push({
-          mes: format(data, "MMM/yy", { locale: ptBR }),
-          mesKey: format(data, "yyyy-MM"),
+        return {
+          mes: format(inicio, "MMM/yy", { locale: ptBR }),
+          mesKey: format(inicio, "yyyy-MM"),
           despesas: despesasMes + transacoesDespMes,
-        });
-      }
-
-      return resultado;
+        };
+      });
     },
   });
 
@@ -66,10 +106,12 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProj
   const formatCurrencyFull = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-  // Calcular média
-  const media = evolucaoDespesas && evolucaoDespesas.length > 0
-    ? evolucaoDespesas.reduce((sum, d) => sum + d.despesas, 0) / evolucaoDespesas.filter(d => d.despesas > 0).length || 0
+  const mesesComValor = (evolucaoDespesas || []).filter(d => d.despesas > 0);
+  const media = mesesComValor.length > 0
+    ? mesesComValor.reduce((sum, d) => sum + d.despesas, 0) / mesesComValor.length
     : 0;
+
+  const periodoLabel = getPeriodoLabel(dateRange);
 
   return (
     <div className="space-y-6">
@@ -82,7 +124,7 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProj
           <CardTitle className="flex items-center justify-between">
             <span>Evolução Mensal de Despesas</span>
             <span className="text-xs font-normal text-muted-foreground">
-              {onSelectMonth ? "Clique numa barra para filtrar • " : ""}Últimos 12 meses • Média: {formatCurrencyFull(media)}
+              {onSelectMonth ? "Clique numa barra para filtrar • " : ""}{periodoLabel} • Média: {formatCurrencyFull(media)}
             </span>
           </CardTitle>
         </CardHeader>
@@ -102,6 +144,7 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProj
                 <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} className="text-muted-foreground" />
                 <Tooltip
                   formatter={(value: number) => [formatCurrencyFull(value), "Despesas"]}
+                  cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
                   contentStyle={{
                     backgroundColor: "hsl(var(--background))",
                     border: "1px solid hsl(var(--border))",
@@ -114,13 +157,17 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth }: DespesasProj
                   radius={[4, 4, 0, 0]}
                   cursor={onSelectMonth ? "pointer" : undefined}
                 >
-                  {evolucaoDespesas.map((entry) => (
-                    <Cell
-                      key={entry.mesKey}
-                      fill={entry.mesKey === selectedMes ? "hsl(var(--primary))" : "hsl(var(--chart-5))"}
-                      opacity={selectedMes && entry.mesKey !== selectedMes ? 0.4 : 1}
-                    />
-                  ))}
+                  {evolucaoDespesas.map((entry) => {
+                    const isSelected = entry.mesKey === selectedMes;
+                    const isDimmed = selectedMes && !isSelected;
+                    return (
+                      <Cell
+                        key={entry.mesKey}
+                        fill="hsl(var(--primary))"
+                        opacity={isDimmed ? 0.35 : isSelected ? 1 : 0.85}
+                      />
+                    );
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

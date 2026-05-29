@@ -1,47 +1,33 @@
 ## Problema
 
-As duas telas mostram listas diferentes porque puxam de fontes diferentes:
+No card "Evolução Mensal de Despesas" (`DespesasProjecaoTab.tsx`):
 
-- **Nova Despesa / Nova Despesa Fixa** → lê de `opcoes_sistema` (grupo `categoria_despesa`) no banco — 11 itens em ordem alfabética (Aluguel, Cartão de Crédito, Contabilidade, Custas Processuais, Estacionamento, Folha de Pagamento, Honorários de Terceiros, Impostos, Tecnologia, Viagens e Deslocamentos, Outros).
-- **Editar Despesa Fixa** (screenshot 1) → lê do enum hardcoded `CATEGORIA_DESPESA_LABELS` em `src/types/financeiro.ts` — 10 itens defasados (Marketing, Material de Escritório, Telefonia, Software e Licenças, Energia que não existem mais no banco).
-
-Resultado: ao editar, o usuário vê opções que não existem no cadastro novo, pode salvar valor inválido (não bate com `opcoes_sistema`) e a etiqueta exibida na lista/relatórios pode aparecer como código bruto.
+1. **Filtro de ano ignorado** — o componente sempre monta os "últimos 12 meses corridos" a partir de hoje, sem ler o `dateRange` dos filtros globais. Por isso, mesmo com 2026 selecionado, aparecem jun/25 → mai/26.
+2. **Cor ruim** — usa `hsl(var(--chart-5))` (pêssego claro), fora da identidade bronze.
 
 ## Fix
 
-Tornar o banco a **única fonte de verdade** em todos os pontos que exibem ou selecionam categoria de despesa.
+### 1. Respeitar o filtro de período
 
-### 1. `EditDespesaFixaDialog.tsx`
-Substituir o `<Select>` hardcoded por `SearchableCombobox` alimentado por `useOpcoesSistema("categoria_despesa", true)` — mesmo padrão usado em `NewDespesaFixaDialog`.
+- Passar `despesasGlobalFilters` (ou apenas o `dateRange`) de `Financeiro.tsx` para `DespesasProjecaoTab`.
+- No componente, derivar a janela de 12 meses:
+  - Se `dateRange.from` e `dateRange.to` cobrem um ano inteiro (jan→dez), montar de `jan/<ano>` a `dez/<ano>`.
+  - Se vier um intervalo customizado, montar mês a mês entre `from` e `to` (limitado a 24 meses para não estourar).
+  - Sem filtro: comportamento atual (últimos 12 meses corridos).
+- Incluir `dateRange` no `queryKey` para invalidar o cache quando o filtro muda.
+- Atualizar o subtítulo: "Últimos 12 meses" → "<Período>" dinâmico (ex.: "Ano de 2026", "jan/26 – jun/26").
 
-### 2. `DespesaDetailsDialog.tsx` (edição da despesa avulsa)
-Mesma troca: enum → `SearchableCombobox` com `useOpcoesSistema`.
+### 2. Cor da barra
 
-### 3. Filtros e exibição
-Para garantir que toda lista exibida (tabela, filtros, widgets, relatório do contador) mostre o label correto mesmo quando a categoria não está mais no enum:
-
-- `DespesasFilters.tsx`, `DespesasGlobalFilters.tsx` → trocar `Object.entries(CATEGORIA_DESPESA_LABELS)` por opções vindas de `useOpcoesSistema`.
-- `DespesasTable.tsx`, `DespesasWidgets.tsx`, `DespesasFixasManager.tsx`, `RelatorioContador.tsx` → usar helper que faz lookup em `opcoes_sistema` (com fallback para `CATEGORIA_DESPESA_LABELS` e por último o código bruto).
-
-Criar/ajustar `src/lib/categoriaDespesa.ts` para expor `getCategoriaLabel(valor, opcoes)` consumindo o cache do `useOpcoesSistema`.
-
-### 4. Enum legado
-Manter `CATEGORIA_DESPESA_LABELS` em `types/financeiro.ts` apenas como fallback (para dados antigos cujo código não está mais em `opcoes_sistema`), com comentário explicando que **não deve ser usado como fonte para selects**.
+- Trocar `hsl(var(--chart-5))` por `hsl(var(--primary))` (bronze da marca), com `opacity 0.85` no estado normal e `1` no mês selecionado. Mês não selecionado fica com `opacity 0.35` (mantém o efeito de "dim" do filtro clicável).
+- Atualizar a cor do hover/cursor para combinar.
 
 ## Fora do escopo
 
-- Não vou criar/remover categorias no banco (a lista de 11 já foi consolidada).
-- Não vou mexer em importação de despesas nem cálculo financeiro.
+- Não vou alterar KPIs nem a tabela — eles já respeitam `despesasGlobalFilters`.
+- Não vou mexer em `FaturamentoProjecaoTab` neste passo (mesmo padrão se quiser depois).
 
 ## Arquivos afetados
 
-- `src/components/financeiro/despesas/EditDespesaFixaDialog.tsx`
-- `src/components/financeiro/despesas/DespesaDetailsDialog.tsx`
-- `src/components/financeiro/despesas/DespesasFilters.tsx`
-- `src/components/financeiro/despesas/DespesasTable.tsx`
-- `src/components/financeiro/despesas/DespesasFixasManager.tsx`
-- `src/components/financeiro/DespesasGlobalFilters.tsx`
-- `src/components/financeiro/DespesasWidgets.tsx`
-- `src/components/financeiro/relatorios/RelatorioContador.tsx`
-- `src/lib/categoriaDespesa.ts`
-- `src/types/financeiro.ts` (comentário no enum)
+- `src/components/financeiro/DespesasProjecaoTab.tsx`
+- `src/pages/Financeiro.tsx` (apenas para passar a prop `filters`)

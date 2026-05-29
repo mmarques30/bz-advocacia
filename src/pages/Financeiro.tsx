@@ -315,6 +315,7 @@ export default function Financeiro() {
           <DespesasProjecaoTab
             selectedMes={despesasSelectedMes}
             onSelectMonth={handleSelectDespesaMes}
+            dateRange={despesasGlobalFilters.dateRange}
           />
           <DespesasTable
             filters={{
