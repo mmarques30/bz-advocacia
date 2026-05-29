@@ -111,6 +111,28 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const ids = [...selectedIds];
+      const { error } = await supabase
+        .from('contact_submissions')
+        .delete()
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`${ids.length} lead(s) excluído(s) com sucesso`);
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } catch (err) {
+      toast.error("Erro ao excluir leads em lote");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
       google: "bg-blue-100 text-blue-800 border-blue-200",
