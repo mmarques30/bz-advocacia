@@ -272,15 +272,15 @@ export interface DespesaPorCategoria {
 
 // Labels para Despesas
 export const CATEGORIA_DESPESA_LABELS: Record<CategoriaDespesa, string> = {
-  aluguel_condominio: 'Aluguel e Condomínio',
-  salarios_encargos: 'Salários e Encargos',
+  aluguel_condominio: 'Aluguel',
+  salarios_encargos: 'Folha de Pagamento',
   honorarios_terceiros: 'Honorários de Terceiros',
-  marketing_publicidade: 'Marketing e Publicidade',
-  materiais_expediente: 'Materiais de Expediente',
-  telefonia_internet: 'Telefonia e Internet',
+  marketing_publicidade: 'Marketing',
+  materiais_expediente: 'Material de Escritório',
+  telefonia_internet: 'Telefonia',
   software_licencas: 'Software e Licenças',
-  energia_agua: 'Energia e Água',
-  impostos_taxas: 'Impostos e Taxas',
+  energia_agua: 'Energia',
+  impostos_taxas: 'Impostos',
   outros: 'Outros',
 };
 

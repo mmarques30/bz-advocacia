@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCreateAcordo } from "@/hooks/useFinanceiro";
 import { useLeads } from "@/hooks/useLeads";
 import { useProcessos } from "@/hooks/useProcessos";
@@ -249,28 +250,23 @@ function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {
     <form key={formKey} onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="cliente">Cliente *</Label>
-        <Select
+        <SearchableCombobox
           value={clienteId}
-          onValueChange={(novoCliente) => {
+          onChange={(novoCliente) => {
             setClienteId(novoCliente);
             // Reset processo: o selecionado anteriormente provavelmente
             // pertence a outro cliente. Forca o usuario a reescolher
             // dentro do novo escopo filtrado.
             setProcessoId("");
           }}
-          required
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione o cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {leads?.map((lead) => (
-              <SelectItem key={lead.id} value={lead.id}>
-                {lead.nome_completo}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          options={(leads ?? []).map((lead) => ({
+            value: lead.id,
+            label: lead.nome_completo,
+          }))}
+          placeholder="Selecione o cliente"
+          searchPlaceholder="Digite o nome do cliente..."
+          emptyText="Nenhum cliente encontrado."
+        />
       </div>
 
       <div className="space-y-2">
