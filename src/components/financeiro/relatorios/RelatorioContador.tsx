@@ -49,10 +49,12 @@ export function RelatorioContador({ dataInicio, dataFim, conta }: RelatorioConta
   const [receitas, setReceitas] = useState<ReceitaItem[]>([]);
   const [despesas, setDespesas] = useState<DespesaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
 
   useEffect(() => {
     fetchData();
-  }, [dataInicio, dataFim, conta]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim, conta, getCategoriaLabel]);
 
   async function fetchData() {
     setLoading(true);
