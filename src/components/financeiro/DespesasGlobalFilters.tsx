@@ -17,9 +17,9 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { DateRange } from "react-day-picker";
-import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 export interface DespesasGlobalFiltersState {
   tipoDespesa: string;
