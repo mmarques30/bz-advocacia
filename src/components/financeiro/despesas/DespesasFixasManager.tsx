@@ -23,6 +23,7 @@ import {
 
 export function DespesasFixasManager() {
   const { data: fixas, isLoading } = useDespesasFixas();
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
   const desativar = useDesativarDespesaFixa();
   const gerarMes = useGerarDespesasFixasMes();
 
