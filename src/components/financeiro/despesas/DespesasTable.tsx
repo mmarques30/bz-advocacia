@@ -12,8 +12,9 @@ import { Pencil, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy } from "luc
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { useDespesas, useDeleteDespesa } from "@/hooks/useDespesas";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
