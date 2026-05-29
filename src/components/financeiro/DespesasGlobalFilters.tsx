@@ -17,9 +17,9 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { DateRange } from "react-day-picker";
-import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 export interface DespesasGlobalFiltersState {
   tipoDespesa: string;
@@ -58,11 +58,8 @@ const getAnoFromRange = (range: DateRange | undefined): string => {
 };
 
 export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFiltersProps) {
-  const { data: categoriasDespesaDb } = useOpcoesSistema('categoria_despesa', true);
-
-  const categoriasEntries = categoriasDespesaDb && categoriasDespesaDb.length > 0
-    ? categoriasDespesaDb.map(o => [o.valor, o.label] as [string, string])
-    : Object.entries(CATEGORIA_DESPESA_LABELS);
+  const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
+  const categoriasEntries = categoriaOptions.map((o) => [o.value, o.label] as [string, string]);
 
   const handleChange = (key: keyof DespesasGlobalFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
@@ -113,7 +110,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
       labels.push(`Até ${format(filters.dateRange.to, "dd/MM/yyyy")}`);
     }
     if (filters.categoria !== "todos") {
-      labels.push(CATEGORIA_DESPESA_LABELS[filters.categoria as keyof typeof CATEGORIA_DESPESA_LABELS] || filters.categoria);
+      labels.push(getCategoriaLabel(filters.categoria));
     }
     if (filters.status !== "todos") {
       labels.push(STATUS_DESPESA_LABELS[filters.status as keyof typeof STATUS_DESPESA_LABELS] || filters.status);

@@ -6,7 +6,8 @@ import { useDespesasRecentes } from "@/hooks/useDespesas";
 import { Receipt, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import type { DespesasGlobalFiltersState } from "./DespesasGlobalFilters";
 
 interface DespesasWidgetsProps {
@@ -18,6 +19,8 @@ const INITIAL_ITEMS = 3;
 export function DespesasWidgets({ filters }: DespesasWidgetsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: despesasRecentes } = useDespesasRecentes(filters);
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
+
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -60,7 +63,7 @@ export function DespesasWidgets({ filters }: DespesasWidgetsProps) {
                     <div className="flex-1">
                       <p className="text-sm font-medium">{despesa.descricao}</p>
                       <p className="text-xs text-muted-foreground">
-                        {CATEGORIA_DESPESA_LABELS[despesa.categoria]} • {format(new Date(despesa.data), "dd/MM/yyyy", { locale: ptBR })}
+                        {getCategoriaLabel(despesa.categoria)} • {format(new Date(despesa.data), "dd/MM/yyyy", { locale: ptBR })}
                       </p>
                     </div>
                     <Badge variant={getStatusBadgeVariant(despesa.status)} className="ml-2">

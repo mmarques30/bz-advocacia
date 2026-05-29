@@ -12,8 +12,9 @@ import { Pencil, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy } from "luc
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { useDespesas, useDeleteDespesa } from "@/hooks/useDespesas";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -44,6 +45,7 @@ const INITIAL_ITEMS = 3;
 export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: DespesasTableProps) {
   const { data: despesas, isLoading } = useDespesas(filters);
   const deleteDespesa = useDeleteDespesa();
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -137,7 +139,7 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                 </TableCell>
                 <TableCell>
                   <span className="text-sm">
-                    {CATEGORIA_DESPESA_LABELS[despesa.categoria]}
+                    {getCategoriaLabel(despesa.categoria)}
                   </span>
                 </TableCell>
                 <TableCell className="text-right font-medium">

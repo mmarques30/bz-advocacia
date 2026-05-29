@@ -8,7 +8,8 @@ import { FileSpreadsheet, DollarSign, TrendingDown, TrendingUp, Wallet } from "l
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
-import { CONTA_LABELS, CATEGORIA_DESPESA_LABELS, type CategoriaDespesa } from "@/types/financeiro";
+import { CONTA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import { exportToExcelMultiSheet } from "@/lib/exportUtils";
 
 interface RelatorioContadorProps {
@@ -48,10 +49,12 @@ export function RelatorioContador({ dataInicio, dataFim, conta }: RelatorioConta
   const [receitas, setReceitas] = useState<ReceitaItem[]>([]);
   const [despesas, setDespesas] = useState<DespesaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
 
   useEffect(() => {
     fetchData();
-  }, [dataInicio, dataFim, conta]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataInicio, dataFim, conta, getCategoriaLabel]);
 
   async function fetchData() {
     setLoading(true);
@@ -129,7 +132,7 @@ export function RelatorioContador({ dataInicio, dataFim, conta }: RelatorioConta
     const despesasCadastradas: DespesaItem[] = (despesasData || []).map((d: any) => ({
       data: d.data,
       descricao: d.descricao,
-      categoria: CATEGORIA_DESPESA_LABELS[d.categoria as CategoriaDespesa] || d.categoria,
+      categoria: getCategoriaLabel(d.categoria),
       conta: d.conta || "escritorio",
       valor: Number(d.valor),
     }));

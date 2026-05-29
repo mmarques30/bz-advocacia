@@ -23,7 +23,9 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useDespesa, useUpdateDespesa } from "@/hooks/useDespesas";
 import { useProcessos } from "@/hooks/useProcessos";
-import { CATEGORIA_DESPESA_LABELS, FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
 import type { CategoriaDespesa, StatusDespesa, FormaPagamentoRecebido } from "@/types/financeiro";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -37,6 +39,7 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
   const { data: despesa, isLoading } = useDespesa(despesaId);
   const updateDespesa = useUpdateDespesa();
   const { data: processos } = useProcessos({ status: undefined });
+  const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
 
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
@@ -185,18 +188,14 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
 
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
-              <Select value={categoria} onValueChange={(value) => setCategoria(value as CategoriaDespesa)} required>
-                <SelectTrigger id="categoria">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORIA_DESPESA_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={categoria}
+                onChange={(value) => setCategoria(value as CategoriaDespesa)}
+                options={categoriaOptions}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                emptyText="Nenhuma categoria encontrada."
+              />
             </div>
 
             <div className="space-y-2">
@@ -296,7 +295,7 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
                     </li>
                     <li>
                       <strong>Categoria:</strong>{" "}
-                      {categoria ? CATEGORIA_DESPESA_LABELS[categoria as CategoriaDespesa] : "-"}
+                      {categoria ? getCategoriaLabel(categoria) : "-"}
                     </li>
                   </ul>
                   <p className="pt-2 text-sm text-muted-foreground">

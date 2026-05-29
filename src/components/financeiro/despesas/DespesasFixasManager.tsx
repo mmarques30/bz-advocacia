@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Plus, ChevronDown, Pencil, XCircle, RefreshCw, CalendarClock } from "lucide-react";
 import { useDespesasFixas, useDesativarDespesaFixa, useGerarDespesasFixasMes } from "@/hooks/useDespesasFixas";
-import { CATEGORIA_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { CONTA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import type { DespesaFixa } from "@/types/financeiro";
 import { NewDespesaFixaDialog } from "./NewDespesaFixaDialog";
 import { EditDespesaFixaDialog } from "./EditDespesaFixaDialog";
@@ -22,6 +23,7 @@ import {
 
 export function DespesasFixasManager() {
   const { data: fixas, isLoading } = useDespesasFixas();
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
   const desativar = useDesativarDespesaFixa();
   const gerarMes = useGerarDespesasFixasMes();
 
@@ -79,7 +81,7 @@ export function DespesasFixasManager() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{f.descricao}</p>
                       <p className="text-xs text-muted-foreground">
-                        {CATEGORIA_DESPESA_LABELS[f.categoria as keyof typeof CATEGORIA_DESPESA_LABELS] || f.categoria} · {CONTA_LABELS[f.conta || 'escritorio']} · Dia {f.dia_vencimento}
+                        {getCategoriaLabel(f.categoria)} · {CONTA_LABELS[f.conta || 'escritorio']} · Dia {f.dia_vencimento}
                       </p>
                       <p className="text-sm font-semibold mt-1">{formatCurrency(f.valor)}</p>
                     </div>

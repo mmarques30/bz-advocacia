@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import type { DespesasFilters as DespesasFiltersType, CategoriaDespesa, StatusDespesa } from "@/types/financeiro";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 interface DespesasFiltersProps {
   filters: DespesasFiltersType;
@@ -18,6 +19,8 @@ interface DespesasFiltersProps {
 }
 
 export function DespesasFilters({ filters, onFiltersChange }: DespesasFiltersProps) {
+  const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
+
   const handleClearFilters = () => {
     onFiltersChange({});
   };
@@ -59,9 +62,9 @@ export function DespesasFilters({ filters, onFiltersChange }: DespesasFiltersPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {Object.entries(CATEGORIA_DESPESA_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
+              {categoriaOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -161,7 +164,7 @@ export function DespesasFilters({ filters, onFiltersChange }: DespesasFiltersPro
           )}
           {filters.categoria && filters.categoria.length > 0 && (
             <Badge variant="secondary">
-              {CATEGORIA_DESPESA_LABELS[filters.categoria[0]]}
+              {getCategoriaLabel(filters.categoria[0])}
               <button
                 onClick={() => onFiltersChange({ ...filters, categoria: undefined })}
                 className="ml-1 hover:text-destructive"

@@ -1,52 +1,47 @@
-## Problemas identificados
+## Problema
 
-**1. Categorias de despesa duplicadas** — a tabela `opcoes_sistema` (grupo `categoria_despesa`) tem 19 entradas, com duplicatas conceituais:
+As duas telas mostram listas diferentes porque puxam de fontes diferentes:
 
-| Manter (canônico) | Excluir (duplicata) |
-|---|---|
-| `aluguel_condominio` → label "Aluguel" | `aluguel` |
-| `salarios_encargos` → label "Folha de Pagamento" | `folha_pagamento` |
-| `impostos_taxas` → label "Impostos" | `impostos` |
-| `tecnologia` → label "Tecnologia" | `tecnologia_ia` |
-| `marketing_publicidade` → label "Marketing" | `marketing` |
-| `telefonia_internet` → label "Telefonia" | `telefonia` |
-| `energia_agua` → label "Energia" | `energia` |
-| `materiais_expediente` → label "Material de Escritório" | `material_escritorio` |
+- **Nova Despesa / Nova Despesa Fixa** → lê de `opcoes_sistema` (grupo `categoria_despesa`) no banco — 11 itens em ordem alfabética (Aluguel, Cartão de Crédito, Contabilidade, Custas Processuais, Estacionamento, Folha de Pagamento, Honorários de Terceiros, Impostos, Tecnologia, Viagens e Deslocamentos, Outros).
+- **Editar Despesa Fixa** (screenshot 1) → lê do enum hardcoded `CATEGORIA_DESPESA_LABELS` em `src/types/financeiro.ts` — 10 itens defasados (Marketing, Material de Escritório, Telefonia, Software e Licenças, Energia que não existem mais no banco).
 
-Verifiquei o banco: **nenhuma despesa lançada usa os valores duplicados** (todas as 8 despesas/despesas_fixas existentes já usam os valores canônicos). A remoção é segura, sem perda de dados.
+Resultado: ao editar, o usuário vê opções que não existem no cadastro novo, pode salvar valor inválido (não bate com `opcoes_sistema`) e a etiqueta exibida na lista/relatórios pode aparecer como código bruto.
 
-**2. Listas sem ordem alfabética nem busca** — os dropdowns de cliente (Novo Contrato Financeiro, Nova Entrada de Faturamento, Crédito Condicional) e de categoria de despesa usam `<Select>` simples do Radix, sem campo de busca e sem ordenação. Em listas grandes (centenas de clientes), fica impossível encontrar.
+## Fix
 
-## O que vou fazer
+Tornar o banco a **única fonte de verdade** em todos os pontos que exibem ou selecionam categoria de despesa.
 
-### 1. Migração de banco — limpar e padronizar categorias
-- Excluir as 8 linhas duplicadas de `opcoes_sistema` (grupo `categoria_despesa`).
-- Atualizar `label` das canônicas para a versão curta preferida (Aluguel, Folha de Pagamento, Impostos, Tecnologia, Marketing, Telefonia, Energia).
-- Reatribuir `ordem` para refletir ordem alfabética dos labels finais.
+### 1. `EditDespesaFixaDialog.tsx`
+Substituir o `<Select>` hardcoded por `SearchableCombobox` alimentado por `useOpcoesSistema("categoria_despesa", true)` — mesmo padrão usado em `NewDespesaFixaDialog`.
 
-### 2. Componente Combobox de cliente reutilizável
-Criar `src/components/ui/cliente-combobox.tsx` baseado no `cmdk`/`Popover` (mesmo padrão do shadcn Combobox), com:
-- Busca por nome (case/acento-insensível).
-- Ordenação alfabética automática.
-- Mesmo visual dos `Select` atuais (altura `h-9`, texto `text-xs`, tokens semânticos).
-- Props: `value`, `onChange`, `clientes`, `placeholder`, `disabled`.
+### 2. `DespesaDetailsDialog.tsx` (edição da despesa avulsa)
+Mesma troca: enum → `SearchableCombobox` com `useOpcoesSistema`.
 
-### 3. Aplicar o Combobox onde o usuário reclamou
-- `src/components/financeiro/NewAcordoDialog.tsx` → cliente (queixa principal).
-- `src/components/financeiro/NewEntradaFaturamentoDialog.tsx` → cliente.
-- `src/components/financeiro/NewCreditoCondicionalDialog.tsx` → cliente.
+### 3. Filtros e exibição
+Para garantir que toda lista exibida (tabela, filtros, widgets, relatório do contador) mostre o label correto mesmo quando a categoria não está mais no enum:
 
-### 4. Tornar a lista de categoria de despesa buscável e ordenada
-- `src/components/financeiro/despesas/NewDespesaDialog.tsx`: substituir o `<Select>` de Categoria por um Combobox equivalente, ordenando `categoriasEntries` por label (pt-BR, localeCompare).
-- `src/components/financeiro/despesas/NewDespesaFixaDialog.tsx`: mesmo tratamento (consistência).
+- `DespesasFilters.tsx`, `DespesasGlobalFilters.tsx` → trocar `Object.entries(CATEGORIA_DESPESA_LABELS)` por opções vindas de `useOpcoesSistema`.
+- `DespesasTable.tsx`, `DespesasWidgets.tsx`, `DespesasFixasManager.tsx`, `RelatorioContador.tsx` → usar helper que faz lookup em `opcoes_sistema` (com fallback para `CATEGORIA_DESPESA_LABELS` e por último o código bruto).
 
-### 5. Garantir ordenação alfabética dos clientes na fonte
-No `useLeads` (ou nos consumidores acima), aplicar `.sort((a,b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'))` antes de passar para o Combobox, já que hoje a query ordena por `data_ultima_atividade`.
+Criar/ajustar `src/lib/categoriaDespesa.ts` para expor `getCategoriaLabel(valor, opcoes)` consumindo o cache do `useOpcoesSistema`.
 
-## Fora de escopo
-- Não vou mexer no `GerarContratoForm` / `GerarProcuracaoForm` (não foram citados; têm seus próprios fluxos de cliente que podem incluir mais de uma fonte).
-- Não vou alterar o enum TypeScript `CategoriaDespesa` nem o fallback em `types/financeiro.ts` — o banco vira fonte única de verdade via `useOpcoesSistema`, e o fallback existente permanece como rede de segurança.
+### 4. Enum legado
+Manter `CATEGORIA_DESPESA_LABELS` em `types/financeiro.ts` apenas como fallback (para dados antigos cujo código não está mais em `opcoes_sistema`), com comentário explicando que **não deve ser usado como fonte para selects**.
 
-## Validação
-- Reabrir o modal "Detalhes da Despesa" → a lista de Categoria mostra só uma de cada (Aluguel, Folha de Pagamento, Impostos, Tecnologia) em ordem alfabética, com campo de busca.
-- Abrir "Novo Contrato Financeiro" → digitar parte do nome filtra a lista; nomes vêm ordenados de A a Z.
+## Fora do escopo
+
+- Não vou criar/remover categorias no banco (a lista de 11 já foi consolidada).
+- Não vou mexer em importação de despesas nem cálculo financeiro.
+
+## Arquivos afetados
+
+- `src/components/financeiro/despesas/EditDespesaFixaDialog.tsx`
+- `src/components/financeiro/despesas/DespesaDetailsDialog.tsx`
+- `src/components/financeiro/despesas/DespesasFilters.tsx`
+- `src/components/financeiro/despesas/DespesasTable.tsx`
+- `src/components/financeiro/despesas/DespesasFixasManager.tsx`
+- `src/components/financeiro/DespesasGlobalFilters.tsx`
+- `src/components/financeiro/DespesasWidgets.tsx`
+- `src/components/financeiro/relatorios/RelatorioContador.tsx`
+- `src/lib/categoriaDespesa.ts`
+- `src/types/financeiro.ts` (comentário no enum)
