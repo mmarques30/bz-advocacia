@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useUpdateDespesaFixa } from "@/hooks/useDespesasFixas";
-import { CATEGORIA_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
+import { CONTA_LABELS } from "@/types/financeiro";
 import type { DespesaFixa } from "@/types/financeiro";
 
 interface Props {
