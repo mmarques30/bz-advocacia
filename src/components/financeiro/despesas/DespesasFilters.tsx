@@ -164,7 +164,7 @@ export function DespesasFilters({ filters, onFiltersChange }: DespesasFiltersPro
           )}
           {filters.categoria && filters.categoria.length > 0 && (
             <Badge variant="secondary">
-              {CATEGORIA_DESPESA_LABELS[filters.categoria[0]]}
+              {getCategoriaLabel(filters.categoria[0])}
               <button
                 onClick={() => onFiltersChange({ ...filters, categoria: undefined })}
                 className="ml-1 hover:text-destructive"
