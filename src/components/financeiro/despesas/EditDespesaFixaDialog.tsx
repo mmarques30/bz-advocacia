@@ -83,14 +83,14 @@ export function EditDespesaFixaDialog({ despesaFixa, open, onClose }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Categoria</Label>
-              <Select value={form.categoria} onValueChange={v => setForm(p => ({ ...p, categoria: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORIA_DESPESA_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={form.categoria}
+                onChange={(v) => setForm((p) => ({ ...p, categoria: v }))}
+                options={categoriaOptions}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                emptyText="Nenhuma categoria encontrada."
+              />
             </div>
             <div>
               <Label>Conta</Label>
