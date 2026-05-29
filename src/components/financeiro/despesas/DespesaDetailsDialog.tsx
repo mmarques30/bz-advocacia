@@ -23,7 +23,9 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useDespesa, useUpdateDespesa } from "@/hooks/useDespesas";
 import { useProcessos } from "@/hooks/useProcessos";
-import { CATEGORIA_DESPESA_LABELS, FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { FORMA_PAGAMENTO_RECEBIDO_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
 import type { CategoriaDespesa, StatusDespesa, FormaPagamentoRecebido } from "@/types/financeiro";
 import { Skeleton } from "@/components/ui/skeleton";
 
