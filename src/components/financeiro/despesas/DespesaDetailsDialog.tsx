@@ -39,6 +39,7 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
   const { data: despesa, isLoading } = useDespesa(despesaId);
   const updateDespesa = useUpdateDespesa();
   const { data: processos } = useProcessos({ status: undefined });
+  const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
 
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
