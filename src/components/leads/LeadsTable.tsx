@@ -58,7 +58,10 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const queryClient = useQueryClient();
+
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -107,6 +110,28 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
       setBulkUpdating(false);
     }
   };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleting(true);
+    try {
+      const ids = [...selectedIds];
+      const { error } = await supabase
+        .from('contact_submissions')
+        .delete()
+        .in('id', ids);
+      if (error) throw error;
+      toast.success(`${ids.length} lead(s) excluído(s) com sucesso`);
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } catch (err) {
+      toast.error("Erro ao excluir leads em lote");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
 
   const getOrigemBadgeColor = (origem: string) => {
     const colors: Record<string, string> = {
@@ -182,10 +207,20 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={bulkDeleting}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Excluir selecionados
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
             <X className="h-4 w-4 mr-1" />
             Cancelar seleção
           </Button>
+
         </div>
       )}
 
@@ -368,6 +403,33 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir leads selecionados</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir <strong>{selectedIds.size}</strong> lead(s)?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={bulkDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {bulkDeleting ? "Excluindo..." : `Excluir ${selectedIds.size}`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
+
   );
 }
