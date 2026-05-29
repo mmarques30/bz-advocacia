@@ -61,17 +61,28 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
   const { data: evolucaoDespesas } = useQuery({
     queryKey: ["evolucao-despesas-mensal", rangeKey],
     queryFn: async () => {
+      const janela = getMonthsWindow(dateRange);
+      const janelaInicio = janela[0].inicio;
+      const janelaFim = janela[janela.length - 1].fim;
+
+      // Filtro server-side: garante que SO buscamos linhas dentro do periodo
+      // exibido. Antes baixava 10k linhas e filtrava client-side, o que
+      // permitia que cache stale ou logica de janela errada vazasse meses
+      // de outros anos no grafico.
       const { data: despesas } = await supabase
         .from("despesas")
         .select("valor, data, status")
+        .gte("data", janelaInicio.toISOString().slice(0, 10))
+        .lte("data", janelaFim.toISOString().slice(0, 10))
         .limit(10000);
 
       const { data: transacoes } = await supabase
         .from("transacoes_financeiras")
         .select("valor, data_transacao, tipo_codigo")
+        .in("tipo_codigo", ["despesa", "DESP"])
+        .gte("data_transacao", janelaInicio.toISOString())
+        .lte("data_transacao", janelaFim.toISOString())
         .limit(10000);
-
-      const janela = getMonthsWindow(dateRange);
 
       return janela.map(({ inicio, fim }) => {
         const despesasMes = (despesas || [])
@@ -84,8 +95,6 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
         const transacoesDespMes = (transacoes || [])
           .filter(t => {
             if (!t.data_transacao) return false;
-            const tipoDespesa = t.tipo_codigo === 'despesa' || t.tipo_codigo === 'DESP';
-            if (!tipoDespesa) return false;
             const dt = new Date(t.data_transacao);
             return dt >= inicio && dt <= fim;
           })
@@ -99,6 +108,7 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
       });
     },
   });
+
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", notation: "compact" }).format(value);
