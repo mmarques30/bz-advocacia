@@ -123,6 +123,26 @@ export default function Financeiro() {
     });
   };
 
+  // Quando o usuário não definiu um período manual no filtro do Faturamento,
+  // aplicamos automaticamente o ano selecionado no topo (01/jan a 31/dez).
+  // Isso garante que ao escolher 2026 a aba Faturamento mostre só 2026,
+  // em vez de somar receitas de todos os anos.
+  const effectiveFaturamentoFilters: FaturamentoFiltersState = (() => {
+    if (faturamentoFilters.dateRange?.from || faturamentoFilters.dateRange?.to) {
+      return faturamentoFilters;
+    }
+    if (anoNumero === null) return faturamentoFilters;
+    return {
+      ...faturamentoFilters,
+      dateRange: {
+        from: new Date(anoNumero, 0, 1),
+        to: new Date(anoNumero, 11, 31, 23, 59, 59, 999),
+      },
+    };
+  })();
+
+
+
   // Mesmo padrao do Faturamento: o grafico de Projecao (sempre 12 meses)
   // funciona como navegador — clicar num mes filtra cards e tabela.
   const despesasSelectedMes = (() => {
@@ -256,13 +276,14 @@ export default function Financeiro() {
                   </Button>
                 </div>
               </div>
-              <FaturamentoKPIs filters={faturamentoFilters} />
+              <FaturamentoKPIs filters={effectiveFaturamentoFilters} />
               <FaturamentoCharts
-                filters={faturamentoFilters}
+                filters={effectiveFaturamentoFilters}
                 selectedMes={faturamentoSelectedMes}
                 onSelectMonth={handleSelectFaturamentoMes}
               />
-              <FaturamentoTable filters={faturamentoFilters} />
+              <FaturamentoTable filters={effectiveFaturamentoFilters} />
+
             </TabsContent>
 
             <TabsContent value="acordos" className="space-y-6">
