@@ -132,7 +132,7 @@ export function RelatorioContador({ dataInicio, dataFim, conta }: RelatorioConta
     const despesasCadastradas: DespesaItem[] = (despesasData || []).map((d: any) => ({
       data: d.data,
       descricao: d.descricao,
-      categoria: CATEGORIA_DESPESA_LABELS[d.categoria as CategoriaDespesa] || d.categoria,
+      categoria: getCategoriaLabel(d.categoria),
       conta: d.conta || "escritorio",
       valor: Number(d.valor),
     }));
