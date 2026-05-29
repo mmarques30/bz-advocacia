@@ -29,6 +29,7 @@ import type {
 } from "@/types/financeiro";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
 import { toast } from "@/lib/toast";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 
 interface NewDespesaDialogProps {
   open: boolean;
@@ -381,22 +382,17 @@ export function NewDespesaDialog({ open, onClose, initialData }: NewDespesaDialo
 
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
-              <Select
+              <SearchableCombobox
                 value={categoria}
-                onValueChange={(value) => setCategoria(value as CategoriaDespesa)}
-                required
-              >
-                <SelectTrigger id="categoria">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriasEntries.map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                onChange={(value) => setCategoria(value as CategoriaDespesa)}
+                options={categoriasEntries.map(([key, label]) => ({
+                  value: key,
+                  label,
+                }))}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                emptyText="Nenhuma categoria encontrada."
+              />
             </div>
 
             <div className="space-y-2">

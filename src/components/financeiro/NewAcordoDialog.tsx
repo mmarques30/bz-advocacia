@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCreateAcordo } from "@/hooks/useFinanceiro";
 import { useLeads } from "@/hooks/useLeads";
 import { useClienteContratos } from "@/hooks/useClienteContratos";
@@ -207,18 +208,17 @@ export function NewAcordoDialog({ open, onClose }: NewAcordoDialogProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="cliente">Cliente *</Label>
-            <Select value={clienteId} onValueChange={setClienteId} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {leads?.map((lead) => (
-                  <SelectItem key={lead.id} value={lead.id}>
-                    {lead.nome_completo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              value={clienteId}
+              onChange={setClienteId}
+              options={(leads ?? []).map((lead) => ({
+                value: lead.id,
+                label: lead.nome_completo,
+              }))}
+              placeholder="Selecione o cliente"
+              searchPlaceholder="Digite o nome do cliente..."
+              emptyText="Nenhum cliente encontrado."
+            />
           </div>
 
           {prefilledFromContrato && (

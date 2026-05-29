@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCreateCreditoCondicional } from "@/hooks/useCreditosCondicionais";
 import { supabase } from "@/integrations/supabase/client";
 import { CONTA_LABELS } from "@/types/financeiro";
@@ -78,14 +79,20 @@ export function NewCreditoCondicionalDialog({ open, onClose }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label>Cliente *</Label>
-            <Select value={clienteId} onValueChange={setClienteId}>
-              <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-              <SelectContent>
-                {clientes?.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome_completo}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <SearchableCombobox
+              value={clienteId}
+              onChange={(v) => {
+                setClienteId(v);
+                setProcessoId("");
+              }}
+              options={(clientes ?? []).map((c) => ({
+                value: c.id,
+                label: c.nome_completo,
+              }))}
+              placeholder="Selecione o cliente"
+              searchPlaceholder="Digite o nome do cliente..."
+              emptyText="Nenhum cliente encontrado."
+            />
           </div>
 
           <div className="space-y-2">
