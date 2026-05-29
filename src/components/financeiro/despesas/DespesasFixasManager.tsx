@@ -81,7 +81,7 @@ export function DespesasFixasManager() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-sm truncate">{f.descricao}</p>
                       <p className="text-xs text-muted-foreground">
-                        {CATEGORIA_DESPESA_LABELS[f.categoria as keyof typeof CATEGORIA_DESPESA_LABELS] || f.categoria} · {CONTA_LABELS[f.conta || 'escritorio']} · Dia {f.dia_vencimento}
+                        {getCategoriaLabel(f.categoria)} · {CONTA_LABELS[f.conta || 'escritorio']} · Dia {f.dia_vencimento}
                       </p>
                       <p className="text-sm font-semibold mt-1">{formatCurrency(f.valor)}</p>
                     </div>
