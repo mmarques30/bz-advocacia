@@ -45,6 +45,7 @@ const INITIAL_ITEMS = 3;
 export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: DespesasTableProps) {
   const { data: despesas, isLoading } = useDespesas(filters);
   const deleteDespesa = useDeleteDespesa();
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
