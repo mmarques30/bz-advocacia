@@ -188,18 +188,14 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
 
             <div className="space-y-2">
               <Label htmlFor="categoria">Categoria *</Label>
-              <Select value={categoria} onValueChange={(value) => setCategoria(value as CategoriaDespesa)} required>
-                <SelectTrigger id="categoria">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORIA_DESPESA_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={categoria}
+                onChange={(value) => setCategoria(value as CategoriaDespesa)}
+                options={categoriaOptions}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                emptyText="Nenhuma categoria encontrada."
+              />
             </div>
 
             <div className="space-y-2">
