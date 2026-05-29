@@ -10,7 +10,8 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import type { DespesasFilters as DespesasFiltersType, CategoriaDespesa, StatusDespesa } from "@/types/financeiro";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 interface DespesasFiltersProps {
   filters: DespesasFiltersType;
