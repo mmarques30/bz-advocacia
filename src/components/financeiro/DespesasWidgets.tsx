@@ -6,7 +6,8 @@ import { useDespesasRecentes } from "@/hooks/useDespesas";
 import { Receipt, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CATEGORIA_DESPESA_LABELS, STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { STATUS_DESPESA_LABELS } from "@/types/financeiro";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import type { DespesasGlobalFiltersState } from "./DespesasGlobalFilters";
 
 interface DespesasWidgetsProps {
