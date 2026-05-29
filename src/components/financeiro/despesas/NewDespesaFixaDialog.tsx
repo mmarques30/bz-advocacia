@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateDespesaFixa } from "@/hooks/useDespesasFixas";
 import { CATEGORIA_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
+import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 
 interface Props {
   open: boolean;
@@ -15,6 +17,12 @@ interface Props {
 
 export function NewDespesaFixaDialog({ open, onClose }: Props) {
   const createDespesaFixa = useCreateDespesaFixa();
+  const { data: categoriasDb } = useOpcoesSistema("categoria_despesa", true);
+  const categoriasEntries =
+    categoriasDb && categoriasDb.length > 0
+      ? categoriasDb.map((o) => [o.valor, o.label] as [string, string])
+      : Object.entries(CATEGORIA_DESPESA_LABELS);
+
   const [form, setForm] = useState({
     descricao: "",
     valor: "",
@@ -23,6 +31,7 @@ export function NewDespesaFixaDialog({ open, onClose }: Props) {
     dia_vencimento: "10",
     observacoes: "",
   });
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,14 +77,14 @@ export function NewDespesaFixaDialog({ open, onClose }: Props) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Categoria</Label>
-              <Select value={form.categoria} onValueChange={v => setForm(p => ({ ...p, categoria: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(CATEGORIA_DESPESA_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableCombobox
+                value={form.categoria}
+                onChange={(v) => setForm((p) => ({ ...p, categoria: v }))}
+                options={categoriasEntries.map(([k, v]) => ({ value: k, label: v }))}
+                placeholder="Selecione"
+                searchPlaceholder="Buscar categoria..."
+                emptyText="Nenhuma categoria encontrada."
+              />
             </div>
             <div>
               <Label>Conta</Label>
