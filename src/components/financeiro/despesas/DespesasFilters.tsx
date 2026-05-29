@@ -19,6 +19,8 @@ interface DespesasFiltersProps {
 }
 
 export function DespesasFilters({ filters, onFiltersChange }: DespesasFiltersProps) {
+  const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
+
   const handleClearFilters = () => {
     onFiltersChange({});
   };
