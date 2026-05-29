@@ -19,6 +19,8 @@ const INITIAL_ITEMS = 3;
 export function DespesasWidgets({ filters }: DespesasWidgetsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { data: despesasRecentes } = useDespesasRecentes(filters);
+  const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
+
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
