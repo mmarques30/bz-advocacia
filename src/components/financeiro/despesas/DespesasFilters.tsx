@@ -62,9 +62,9 @@ export function DespesasFilters({ filters, onFiltersChange }: DespesasFiltersPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {Object.entries(CATEGORIA_DESPESA_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
+              {categoriaOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
