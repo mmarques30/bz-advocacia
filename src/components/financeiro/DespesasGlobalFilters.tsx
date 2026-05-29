@@ -110,7 +110,7 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
       labels.push(`Até ${format(filters.dateRange.to, "dd/MM/yyyy")}`);
     }
     if (filters.categoria !== "todos") {
-      labels.push(CATEGORIA_DESPESA_LABELS[filters.categoria as keyof typeof CATEGORIA_DESPESA_LABELS] || filters.categoria);
+      labels.push(getCategoriaLabel(filters.categoria));
     }
     if (filters.status !== "todos") {
       labels.push(STATUS_DESPESA_LABELS[filters.status as keyof typeof STATUS_DESPESA_LABELS] || filters.status);
