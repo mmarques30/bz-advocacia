@@ -207,10 +207,20 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            size="sm"
+            variant="destructive"
+            disabled={bulkDeleting}
+            onClick={() => setBulkDeleteOpen(true)}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Excluir selecionados
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
             <X className="h-4 w-4 mr-1" />
             Cancelar seleção
           </Button>
+
         </div>
       )}
 
