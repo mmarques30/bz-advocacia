@@ -295,7 +295,7 @@ export function DespesaDetailsDialog({ despesaId, open, onClose }: DespesaDetail
                     </li>
                     <li>
                       <strong>Categoria:</strong>{" "}
-                      {categoria ? CATEGORIA_DESPESA_LABELS[categoria as CategoriaDespesa] : "-"}
+                      {categoria ? getCategoriaLabel(categoria) : "-"}
                     </li>
                   </ul>
                   <p className="pt-2 text-sm text-muted-foreground">
