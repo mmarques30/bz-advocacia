@@ -51,6 +51,7 @@ export interface DemandasFilters {
   advogada_responsavel?: string;
   atrasadas?: boolean;
   search?: string;
+  lead_id?: string;
   ordenacao?: 'recente' | 'antigo';
 }
 
