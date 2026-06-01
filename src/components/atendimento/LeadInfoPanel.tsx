@@ -1,12 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Phone, User, Briefcase, Megaphone, Activity, CheckCircle2, XCircle, UserPlus } from "lucide-react";
+import { Loader2, Phone, User, Briefcase, Megaphone, Activity, CheckCircle2, XCircle, UserPlus, RefreshCw } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useAssumirLead } from "@/hooks/useAssumirLead";
+import { ReatribuirLeadDialog } from "@/components/leads/ReatribuirLeadDialog";
+import { useIsAdmin, useMeuAdvogadoId, useAdvogadosSdr } from "@/hooks/useReatribuirLead";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
   leadId: string;
