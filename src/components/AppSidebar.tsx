@@ -139,10 +139,26 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const location = useLocation();
   const isCollapsed = state === "collapsed";
-  
-  const activeGroup = menuItems.find(item =>
+  const { data: backlogCount = 0 } = useBacklogTriagemCount();
+
+  // Injeta badge dinâmico no item Backlog Triagem + grupo pai
+  const dynamicMenu: MenuItem[] = menuItems.map((item) => {
+    if (!item.submenu) return item;
+    const subs = item.submenu.map((s) =>
+      s.url === "/dashboard/backlog-triagem"
+        ? { ...s, badge: backlogCount > 0 ? backlogCount : undefined }
+        : s,
+    );
+    const groupBadge = subs.some((s) => s.url === "/dashboard/backlog-triagem")
+      ? (backlogCount > 0 ? backlogCount : undefined)
+      : item.badge;
+    return { ...item, submenu: subs, badge: groupBadge };
+  });
+
+  const activeGroup = dynamicMenu.find(item =>
     item.submenu?.some(sub => location.pathname.startsWith(sub.url))
   )?.title;
+
 
   const [openMenus, setOpenMenus] = useState<string[]>(
     () => {
