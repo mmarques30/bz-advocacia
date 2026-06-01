@@ -11,6 +11,8 @@ import {
   Search,
   TrendingUp,
   FileBarChart,
+  Inbox,
+
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +37,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
+import { useBacklogTriagemCount } from "@/hooks/useBacklogTriagem";
+
 
 interface MenuItem {
   title: string;
@@ -64,7 +68,9 @@ const menuItems: MenuItem[] = [
       { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Leads", url: "/dashboard/leads" },
       { title: "Atendimento", url: "/dashboard/atendimento" },
+      { title: "Backlog Triagem", url: "/dashboard/backlog-triagem" },
     ]
+
   },
   {
     title: "Clientes",
@@ -133,10 +139,26 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const location = useLocation();
   const isCollapsed = state === "collapsed";
-  
-  const activeGroup = menuItems.find(item =>
+  const { data: backlogCount = 0 } = useBacklogTriagemCount();
+
+  // Injeta badge dinâmico no item Backlog Triagem + grupo pai
+  const dynamicMenu: MenuItem[] = menuItems.map((item) => {
+    if (!item.submenu) return item;
+    const subs = item.submenu.map((s) =>
+      s.url === "/dashboard/backlog-triagem"
+        ? { ...s, badge: backlogCount > 0 ? backlogCount : undefined }
+        : s,
+    );
+    const groupBadge = subs.some((s) => s.url === "/dashboard/backlog-triagem")
+      ? (backlogCount > 0 ? backlogCount : undefined)
+      : item.badge;
+    return { ...item, submenu: subs, badge: groupBadge };
+  });
+
+  const activeGroup = dynamicMenu.find(item =>
     item.submenu?.some(sub => location.pathname.startsWith(sub.url))
   )?.title;
+
 
   const [openMenus, setOpenMenus] = useState<string[]>(
     () => {
@@ -187,7 +209,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
+              {dynamicMenu.map((item) => {
                 const hasSubmenu = item.submenu && item.submenu.length > 0;
                 const isOpen = openMenus.includes(item.title);
                 

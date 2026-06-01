@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
   // ============================================================
   // GUARD INTELIGENTE: telefone já no CRM (contact_submissions) sem
   // vínculo com bot (lead_geral_id IS NULL)
-  //   - Atendimento manual ATIVO  → bot fica fora
+  //   - Atendimento manual ATIVO  → bot fica fora + entra no BACKLOG TRIAGEM
   //   - 'novo' antigo / 'perdido' → bot adota (segue o fluxo;
   //     espelhamento linka o registro existente em vez de duplicar)
   // ============================================================
@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
     const ultimos8 = telefone.slice(-8);
     const { data: csExisting } = await supabase
       .from("contact_submissions")
-      .select("id, estagio, status, responsavel_id, ultimo_contato_em, created_at")
+      .select("id, estagio, status, responsavel_id, ultimo_contato_em, created_at, nome_completo")
       .like("telefone_digits", `%${ultimos8}`)
       .is("lead_geral_id", null)
       .order("created_at", { ascending: false })
@@ -210,7 +210,19 @@ Deno.serve(async (req) => {
       const temResponsavel = !!cs.responsavel_id;
 
       if (estagioAtivo || temResponsavel) {
-        await registrarEvento(supabase, null, "lead_no_crm_existente_ignorado", {
+        // Backlog triagem (motivo=contato_em_andamento)
+        try {
+          await supabase.from("backlog_triagem").insert({
+            motivo: "contato_em_andamento",
+            telefone,
+            telefone_digits: telefone.replace(/\D/g, ""),
+            nome_capturado: cs.nome_completo ?? null,
+            msg_recebida: texto,
+            contact_submission_id: cs.id,
+          });
+        } catch (_e) { /* ignore dup */ }
+
+        await registrarEvento(supabase, null, "bot_silenciado_contato_em_andamento", {
           telefone,
           contact_submission_id: cs.id,
           estagio: cs.estagio,
@@ -218,13 +230,12 @@ Deno.serve(async (req) => {
           fromMe: !!payload.fromMe,
         });
         return new Response(
-          JSON.stringify({ ignored: "lead_no_crm" }),
+          JSON.stringify({ ignored: "lead_no_crm", backlog: "contato_em_andamento" }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
 
       // 'novo' antigo ou 'perdido' → bot adota; segue o fluxo abaixo.
-      // O espelhamento linka o registro existente automaticamente.
       await registrarEvento(supabase, null, "lead_no_crm_adotado_pelo_bot", {
         telefone,
         contact_submission_id: cs.id,
@@ -233,6 +244,7 @@ Deno.serve(async (req) => {
       });
     }
   }
+
 
   // ============================================================
   // fromMe=true → humano da B&Z respondeu pelo celular.
@@ -394,6 +406,93 @@ Deno.serve(async (req) => {
   // `bot_pausado` ou `status_sdr` indicar handoff.
 
   if (!lead) {
+    // ============================================================
+    // CROSS-CHECK ANTES DE CRIAR LEAD NOVO
+    // (b) leads_geral com últimos 8 dígitos + status ativo
+    // (d) processos vinculados a lead_geral com mesmo telefone
+    // → silencia bot, empilha em backlog_triagem
+    // ============================================================
+    {
+      const telefoneDigits = telefone.replace(/\D/g, "");
+      const ultimos8b = telefoneDigits.slice(-8);
+
+      // (b) lead_geral existente com status ativo
+      const { data: leadAtivo } = await supabase
+        .from("leads_geral")
+        .select("id, full_name, phone_number, contato_whatsapp, status_sdr, telefone_digits")
+        .or(`telefone_digits.like.%${ultimos8b},phone_number.like.%${ultimos8b},contato_whatsapp.like.%${ultimos8b}`)
+        .in("status_sdr", ["assumido_humano", "agendado", "cliente", "em_atendimento"])
+        .order("ultima_mensagem_em", { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (leadAtivo) {
+        const la: any = leadAtivo;
+        try {
+          await supabase.from("backlog_triagem").insert({
+            motivo: "cliente_em_atendimento",
+            telefone,
+            telefone_digits: telefoneDigits,
+            nome_capturado: la.full_name ?? null,
+            msg_recebida: texto,
+            lead_existente_id: la.id,
+          });
+        } catch (_e) { /* ignore */ }
+
+        await registrarEvento(supabase, la.id, "bot_silenciado_cliente_existente", {
+          telefone,
+          status_sdr: la.status_sdr,
+          fromMe: !!payload.fromMe,
+        });
+        return new Response(
+          JSON.stringify({ ignored: "cliente_em_atendimento", backlog: true }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      // (d) processos ativos com lead_geral cujo phone bate
+      const { data: procMatch } = await supabase
+        .from("processos")
+        .select("id, lead_id, leads_geral:lead_id(id, full_name, phone_number, contato_whatsapp, telefone_digits)")
+        .neq("status", "concluido")
+        .limit(50);
+
+      const procHit = (procMatch ?? []).find((p: any) => {
+        const lg = p.leads_geral;
+        if (!lg) return false;
+        const digs = [lg.telefone_digits, lg.phone_number, lg.contato_whatsapp]
+          .filter(Boolean)
+          .map((x: string) => x.replace(/\D/g, ""));
+        return digs.some((d: string) => d.endsWith(ultimos8b));
+      });
+
+      if (procHit) {
+        const pl: any = (procHit as any).leads_geral;
+        try {
+          await supabase.from("backlog_triagem").insert({
+            motivo: "processo_ativo",
+            telefone,
+            telefone_digits: telefoneDigits,
+            nome_capturado: pl?.full_name ?? null,
+            msg_recebida: texto,
+            lead_existente_id: pl?.id ?? null,
+            processo_id: (procHit as any).id,
+          });
+        } catch (_e) { /* ignore */ }
+
+        await registrarEvento(supabase, pl?.id ?? null, "bot_silenciado_processo_ativo", {
+          telefone,
+          processo_id: (procHit as any).id,
+          fromMe: !!payload.fromMe,
+        });
+        return new Response(
+          JSON.stringify({ ignored: "processo_ativo", backlog: true }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+
+
     const p = payload as any;
     const senderName: string | undefined = p.senderName ?? p.chatName ?? p.notifyName;
 
@@ -895,7 +994,20 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
         .update({ humano_responsavel: advogado.id })
         .eq("id", lead.id);
     }
+
+    // Empilha no backlog de triagem pra equipe atender manualmente.
+    try {
+      await supabase.from("backlog_triagem").insert({
+        motivo: "duvida_classificacao",
+        telefone,
+        telefone_digits: telefone.replace(/\D/g, ""),
+        nome_capturado: lead.full_name ?? null,
+        msg_recebida: textoAgrupado,
+        lead_existente_id: lead.id,
+      });
+    } catch (_e) { /* ignore */ }
   }
+
 
   // ============================================================
   // FIX 2 — ANTI-REPETIÇÃO

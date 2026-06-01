@@ -11,6 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Atendimento from "./pages/Atendimento";
 import Clientes from "./pages/Clientes";
+import BacklogTriagem from "./pages/BacklogTriagem";
+
 
 import Processos from "./pages/Processos";
 import Financeiro from "./pages/Financeiro";
@@ -114,6 +116,15 @@ const App = () => {
           </ProtectedRoute>
         } 
       />
+      <Route
+        path="/dashboard/backlog-triagem"
+        element={
+          <ProtectedRoute>
+            <BacklogTriagem />
+          </ProtectedRoute>
+        }
+      />
+
       <Route 
         path="/dashboard/clientes" 
         element={
