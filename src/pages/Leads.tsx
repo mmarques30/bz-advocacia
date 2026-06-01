@@ -249,7 +249,40 @@ function LeadsTab({
         </Card>
       )}
 
+      {campanhaAguardandoCount > 0 && (
+        <Card className="p-4 border-purple-300 bg-purple-50 flex items-center gap-3">
+          <Megaphone className="h-6 w-6 text-purple-700 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-purple-900">
+              {campanhaAguardandoCount} {campanhaAguardandoCount === 1 ? "lead" : "leads"} da campanha de recuperação aguardando resposta
+            </p>
+            <p className="text-xs text-purple-800">Mensagem enviada via WhatsApp — assim que responderem viram lead quente</p>
+          </div>
+        </Card>
+      )}
+
       <LeadsOrganicSummary leads={filteredLeads} loading={isLoading} />
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium text-muted-foreground">Origem:</span>
+        {(["todas", "organicos", "ctwa", "campanha"] as const).map((tipo) => {
+          const labels = { todas: "Todas", organicos: "Orgânicos", ctwa: "Anúncios CTWA", campanha: "Campanha Recuperação" };
+          const active = origemTipo === tipo;
+          return (
+            <Button
+              key={tipo}
+              size="sm"
+              variant={active ? "default" : "outline"}
+              onClick={() => setOrigemTipo(tipo)}
+              className="h-8 text-xs rounded-full"
+            >
+              {tipo === "campanha" && <Megaphone className="h-3 w-3 mr-1" />}
+              {labels[tipo]}
+            </Button>
+          );
+        })}
+      </div>
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-1 min-w-[300px]">
