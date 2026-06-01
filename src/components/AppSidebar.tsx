@@ -68,7 +68,9 @@ const menuItems: MenuItem[] = [
       { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Leads", url: "/dashboard/leads" },
       { title: "Atendimento", url: "/dashboard/atendimento" },
+      { title: "Backlog Triagem", url: "/dashboard/backlog-triagem" },
     ]
+
   },
   {
     title: "Clientes",
