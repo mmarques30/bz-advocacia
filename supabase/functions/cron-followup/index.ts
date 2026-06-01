@@ -10,7 +10,14 @@ import {
 } from "../_shared/db.ts";
 import { zapiSendText } from "../_shared/zapi.ts";
 
-Deno.serve(async (_req) => {
+const WEBHOOK_SECRET = Deno.env.get("SDR_WEBHOOK_SECRET") ?? "";
+
+Deno.serve(async (req) => {
+  const sec = req.headers.get("x-webhook-secret") ?? "";
+  if (WEBHOOK_SECRET && sec !== WEBHOOK_SECRET) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+  }
+
   const supabase = getSupabaseAdmin();
 
   const agora = new Date();
