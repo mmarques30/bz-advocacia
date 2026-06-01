@@ -203,10 +203,8 @@ async function crossCheckCampanha(
   tel8: string,
   contactSubmissionId: string,
 ): Promise<{ fonte: "a" | "b" | "c" | "d"; status: "cliente_ja_existente" | "duplicata_em_atendimento" } | null> {
-  // a) numeros_bloqueados_bot
+  // a) numeros_bloqueados_bot (tabela pequena, filtra em JS)
   {
-    const { data } = await sb.rpc("execute_sql" as any, {}).then(() => null).catch(() => null);
-    // fallback puro JS: traz tudo e filtra (numeros_bloqueados_bot é tabela pequena)
     const { data: bloq } = await sb.from("numeros_bloqueados_bot").select("telefone");
     const hit = (bloq ?? []).some((b: any) => (b.telefone ?? "").replace(/\D/g, "").slice(-8) === tel8);
     if (hit) return { fonte: "a", status: "cliente_ja_existente" };
