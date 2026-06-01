@@ -70,13 +70,13 @@ export function useLeads(filters: LeadsFilters) {
           .in("id", leadGeralIds);
         botMap = Object.fromEntries((botData || []).map((b: any) => [b.id, b]));
 
-        const { data: campData } = await supabase
+        const { data: campData } = await (supabase as any)
           .from("campanhas_envio")
           .select("lead_geral_id, enviada_em, respondida_em, variacao_texto, status")
           .in("lead_geral_id", leadGeralIds)
           .order("created_at", { ascending: false });
         // Mantém o registro mais recente por lead_geral_id
-        for (const c of campData || []) {
+        for (const c of (campData || []) as any[]) {
           if (!campanhaMap[c.lead_geral_id]) campanhaMap[c.lead_geral_id] = c;
         }
       }
