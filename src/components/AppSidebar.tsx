@@ -209,7 +209,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
+              {dynamicMenu.map((item) => {
                 const hasSubmenu = item.submenu && item.submenu.length > 0;
                 const isOpen = openMenus.includes(item.title);
                 
