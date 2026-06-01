@@ -767,7 +767,7 @@ Deno.serve(async (req) => {
   }
 
   // Status que não devem disparar bot (cliente, perdido, etc.)
-  const statusOk = ["novo", "em_atendimento_bot", null];
+  const statusOk = ["novo", "em_atendimento_bot", "qualificacao_iniciada", null];
   if (!statusOk.includes(lead.status_sdr)) {
     await registrarEvento(supabase, lead.id, "msg_recebida_status_bloqueia", { status: lead.status_sdr });
     return new Response(JSON.stringify({ acao: "status_bloqueia" }), { status: 200 });
