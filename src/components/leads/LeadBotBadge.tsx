@@ -22,9 +22,10 @@ export function getBotBadgeInfo(lead: Lead): BadgeInfo {
   }
   switch (lead.status_sdr) {
     case "sql_aguardando_humano":
+    case "aguardando_triagem":
       return {
-        label: "Lead quente — Atender!",
-        className: "bg-orange-500 text-white border-orange-600 shadow-md",
+        label: "Aguardando advogada",
+        className: "bg-yellow-100 text-yellow-900 border-yellow-300",
         Icon: Zap,
         animated: true,
       };
@@ -43,7 +44,7 @@ export function getBotBadgeInfo(lead: Lead): BadgeInfo {
       };
     case "assumido_humano":
       return {
-        label: "Atendimento humano",
+        label: "Em atendimento",
         className: "bg-green-100 text-green-800 border-green-200",
         Icon: User,
       };
