@@ -89,7 +89,8 @@ export function LeadCard({ lead, onClick, onAssumed }: LeadCardProps) {
           )}
         </div>
 
-        <div className="flex">
+        <div className="flex flex-wrap gap-1">
+          <LeadCampanhaBadge lead={lead} />
           <LeadBotBadge lead={lead} />
         </div>
         {isHot && (
