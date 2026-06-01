@@ -9,6 +9,7 @@ import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { LeadBotBadge } from "./LeadBotBadge";
+import { LeadCampanhaBadge } from "./LeadCampanhaBadge";
 import { AtenderAgoraButton } from "./AtenderAgoraButton";
 
 interface LeadCardProps {
