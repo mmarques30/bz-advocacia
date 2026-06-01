@@ -1,4 +1,4 @@
-import { Clock, Briefcase, MessageSquare } from "lucide-react";
+import { Clock, Briefcase, MessageSquare, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Lead } from "@/types/leads";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ interface LeadCardProps {
   lead: Lead;
   onClick: () => void;
   onAssumed?: (lead: Lead) => void;
+  onDelete?: (lead: Lead) => void;
 }
 
 function calcDiasDesdeContato(createdAt: string): number {
@@ -22,7 +23,7 @@ function calcDiasDesdeContato(createdAt: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function LeadCard({ lead, onClick, onAssumed }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onAssumed, onDelete }: LeadCardProps) {
   const dias = calcDiasDesdeContato(lead.created_at);
   const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
     ? lead.outro_tipo_processo
@@ -73,20 +74,37 @@ export function LeadCard({ lead, onClick, onAssumed }: LeadCardProps) {
       onClick={onClick}
     >
       <div className="space-y-1.5">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-2">
           <p className="font-medium text-sm line-clamp-1">{lead.nome_completo}</p>
-          {lead.estagio === 'novo' && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0 text-green-600 hover:text-green-700"
-              onClick={handlePrimeiroContato}
-              title="Primeiro Contato via WhatsApp"
-              aria-label={`Primeiro contato via WhatsApp com ${lead.nome_completo}`}
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {lead.estagio === 'novo' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-green-600 hover:text-green-700"
+                onClick={handlePrimeiroContato}
+                title="Primeiro Contato via WhatsApp"
+                aria-label={`Primeiro contato via WhatsApp com ${lead.nome_completo}`}
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(lead);
+                }}
+                title="Excluir lead"
+                aria-label={`Excluir lead ${lead.nome_completo}`}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="flex">
