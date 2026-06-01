@@ -465,34 +465,13 @@ Deno.serve(async (req) => {
   await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, ts: minhaMsgTs });
 
   // ============================================================
-  // FIX 1 — DEBOUNCE DE AGRUPAMENTO (8s)
-  // Lead manda mensagens fragmentadas ("Casa", "Meu primo", "Basicamente").
-  // Esperamos 8s; se chegar nova msg do MESMO lead, esta invocação sai
-  // (a invocação mais nova é quem processa). Depois agrupamos todas as
-  // mensagens do lead desde a última msg do bot/humano em um bloco único.
+  // FIX 1 — DEBOUNCE REMOVIDO
+  // O debounce com sleep estava descartando TODAS as mensagens
+  // (10x descartadas, 0x processadas em 24h). Cada mensagem agora é
+  // processada síncrona. Fragmentos são agrupados via "histórico desde
+  // última msg do bot" no prompt do classificador. Respostas redundantes
+  // são prevenidas pelo Fix 2 (anti-repetição/handoff).
   // ============================================================
-  await new Promise((res) => setTimeout(res, 8000));
-  {
-    const { data: maisNova } = await supabase
-      .from("mensagens_sdr")
-      .select("id, enviada_em")
-      .eq("lead_id", lead.id)
-      .eq("origem", "lead")
-      .gt("enviada_em", minhaMsgTs)
-      .order("enviada_em", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (maisNova) {
-      await registrarEvento(supabase, lead.id, "debounce_msg_descartada_invocacao_antiga", {
-        minha_ts: minhaMsgTs,
-        mais_nova_ts: (maisNova as any).enviada_em,
-      });
-      return new Response(
-        JSON.stringify({ ignored: "debounce_invocacao_mais_recente_assume" }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      );
-    }
-  }
 
   // Agrupa mensagens do lead desde a última msg de bot/humano (ou 60s atrás)
   let textoAgrupado = texto;
