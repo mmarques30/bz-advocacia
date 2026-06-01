@@ -1,12 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Phone, User, Briefcase, Megaphone, Activity, CheckCircle2, XCircle, UserPlus } from "lucide-react";
+import { Loader2, Phone, User, Briefcase, Megaphone, Activity, CheckCircle2, XCircle, UserPlus, RefreshCw } from "lucide-react";
 import { toast } from "@/lib/toast";
 import { useAssumirLead } from "@/hooks/useAssumirLead";
+import { ReatribuirLeadDialog } from "@/components/leads/ReatribuirLeadDialog";
+import { useIsAdmin, useMeuAdvogadoId, useAdvogadosSdr } from "@/hooks/useReatribuirLead";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
   leadId: string;
@@ -40,6 +44,25 @@ const STATUS_LABELS: Record<string, string> = {
 export function LeadInfoPanel({ leadId }: Props) {
   const qc = useQueryClient();
   const assumir = useAssumirLead({ onAssumed: () => qc.invalidateQueries({ queryKey: ["lead-info", leadId] }) });
+  const [reatribuirOpen, setReatribuirOpen] = useState(false);
+  const { data: isAdmin = false } = useIsAdmin();
+  const { data: meuAdvogadoId } = useMeuAdvogadoId();
+  const { data: advogadosList = [] } = useAdvogadosSdr();
+  const advogadoNome = (id: string | null) =>
+    id ? advogadosList.find((a) => a.id === id)?.nome ?? "(desconhecido)" : "pool";
+
+  const { data: reatribuicoes = [] } = useQuery({
+    queryKey: ["lead-reatribuicoes", leadId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("eventos_sdr")
+        .select("id, payload, created_at")
+        .eq("lead_id", leadId)
+        .eq("tipo", "lead_reatribuido")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead-info", leadId],
@@ -241,6 +264,16 @@ export function LeadInfoPanel({ leadId }: Props) {
             <UserPlus className="h-3.5 w-3.5" /> Assumir conversa
           </Button>
         )}
+        {lead.humano_responsavel && (isAdmin || meuAdvogadoId === lead.humano_responsavel) && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full h-9 text-xs gap-1.5"
+            onClick={() => setReatribuirOpen(true)}
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Reatribuir
+          </Button>
+        )}
         <Button size="sm" variant="outline" className="w-full h-9 text-xs gap-1.5" onClick={marcarCliente}>
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Marcar como cliente
         </Button>
@@ -281,6 +314,45 @@ export function LeadInfoPanel({ leadId }: Props) {
           </div>
         )}
       </div>
+
+      {reatribuicoes.length > 0 && (
+        <div className="p-4 space-y-2 border-t">
+          <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold">
+            Histórico de reatribuições
+          </div>
+          <div className="space-y-2">
+            {reatribuicoes.map((ev: any) => {
+              const p = ev.payload || {};
+              const quando = format(new Date(ev.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR });
+              return (
+                <div key={ev.id} className="rounded border bg-muted/30 p-2 text-[11px] space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">{quando}</span>
+                  </div>
+                  <div className="text-xs">
+                    de <span className="font-medium">{advogadoNome(p.de ?? null)}</span>
+                    {" → "}
+                    para <span className="font-medium">{p.para ? advogadoNome(p.para) : "pool"}</span>
+                  </div>
+                  {p.motivo && (
+                    <div className="text-[11px] text-muted-foreground italic">
+                      Motivo: {p.motivo}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <ReatribuirLeadDialog
+        open={reatribuirOpen}
+        onOpenChange={setReatribuirOpen}
+        leadId={leadId}
+        responsavelAtualId={lead.humano_responsavel ?? null}
+      />
     </div>
   );
 }
