@@ -48,13 +48,15 @@ export interface DemandasFilters {
   status?: string;
   prioridade?: string;
   categoria?: string;
-  advogada_responsavel?: string;
+  // Pessoa responsavel/designada pela tarefa, identificada pelo profile UUID.
+  // O matching e amplo: bate em demandas.responsavel_id (UUID direto) e
+  // tambem em demandas.advogada_responsavel (campo texto legado, com
+  // apelido/legacy_key). Veja useDemandas pra detalhes.
+  responsavel?: string;
   atrasadas?: boolean;
   // Busca aberta por cliente / nome mencionado: faz ilike server-side em
   // contact_submissions.nome_completo (achando os lead_ids), processos
   // ligados a esses leads, e tambem em demandas.titulo e demandas.descricao.
-  // Substitui o antigo filtro `lead_id` (restrito a um cliente especifico)
-  // e a busca por titulo do DataTable.
   cliente_search?: string;
   ordenacao?: 'recente' | 'antigo';
 }

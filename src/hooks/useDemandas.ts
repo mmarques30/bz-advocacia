@@ -31,8 +31,33 @@ export const useDemandas = (filters?: DemandasFilters) => {
       if (filters?.categoria) {
         query = query.eq('categoria', filters.categoria);
       }
-      if (filters?.advogada_responsavel) {
-        query = query.eq('advogada_responsavel', filters.advogada_responsavel);
+      if (filters?.responsavel) {
+        // Match amplo na pessoa: bate em responsavel_id (UUID direto) e
+        // tambem em advogada_responsavel (texto legado com apelido), pra
+        // pegar tarefas onde a pessoa esta como "advogada" e/ou como
+        // "designada". Inclui mapeamento pros legacy_keys juliana/liziane.
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('nome_completo')
+          .eq('id', filters.responsavel)
+          .maybeSingle();
+        const nome = prof?.nome_completo ?? '';
+        const apelido = nome
+          .trim()
+          .split(/\s+/)[0]
+          ?.toLowerCase()
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '') ?? '';
+
+        const variantes: string[] = [];
+        if (apelido) variantes.push(apelido);
+        if (apelido.startsWith('juliana')) variantes.push('juliana');
+        else if (apelido.startsWith('eliziane') || apelido.startsWith('liziane')) variantes.push('liziane');
+        const uniqVariantes = Array.from(new Set(variantes));
+
+        const conds: string[] = [`responsavel_id.eq.${filters.responsavel}`];
+        uniqVariantes.forEach(v => conds.push(`advogada_responsavel.eq.${v}`));
+        query = query.or(conds.join(','));
       }
       if (filters?.cliente_search?.trim()) {
         // Busca aberta: encontra leads cujo nome bate (ilike), processos
