@@ -213,6 +213,86 @@ export type Database = {
         }
         Relationships: []
       }
+      campanhas_envio: {
+        Row: {
+          area: string | null
+          campanha: string
+          contact_submission_id: string | null
+          created_at: string | null
+          enviada_em: string | null
+          erro_detalhe: string | null
+          id: string
+          lead_geral_id: string | null
+          mensagem_enviada: string | null
+          respondida_em: string | null
+          status: string
+          telefone: string
+          variacao_texto: number | null
+          zapi_message_id: string | null
+        }
+        Insert: {
+          area?: string | null
+          campanha?: string
+          contact_submission_id?: string | null
+          created_at?: string | null
+          enviada_em?: string | null
+          erro_detalhe?: string | null
+          id?: string
+          lead_geral_id?: string | null
+          mensagem_enviada?: string | null
+          respondida_em?: string | null
+          status?: string
+          telefone: string
+          variacao_texto?: number | null
+          zapi_message_id?: string | null
+        }
+        Update: {
+          area?: string | null
+          campanha?: string
+          contact_submission_id?: string | null
+          created_at?: string | null
+          enviada_em?: string | null
+          erro_detalhe?: string | null
+          id?: string
+          lead_geral_id?: string | null
+          mensagem_enviada?: string | null
+          respondida_em?: string | null
+          status?: string
+          telefone?: string
+          variacao_texto?: number | null
+          zapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanhas_envio_contact_submission_id_fkey"
+            columns: ["contact_submission_id"]
+            isOneToOne: false
+            referencedRelation: "contact_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanhas_envio_contact_submission_id_fkey"
+            columns: ["contact_submission_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pipeline_b_z"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanhas_envio_lead_geral_id_fkey"
+            columns: ["lead_geral_id"]
+            isOneToOne: false
+            referencedRelation: "leads_geral"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campanhas_envio_lead_geral_id_fkey"
+            columns: ["lead_geral_id"]
+            isOneToOne: false
+            referencedRelation: "vw_clientes_ativos"
+            referencedColumns: ["lead_id"]
+          },
+        ]
+      }
       categorias_externas: {
         Row: {
           created_at: string | null
