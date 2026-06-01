@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap, Bell, BellOff, Volume2, VolumeX } from "lucide-react";
+import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap, Bell, BellOff, Volume2, VolumeX, Megaphone } from "lucide-react";
 import { useSdrAlerts } from "@/hooks/useSdrAlerts";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
