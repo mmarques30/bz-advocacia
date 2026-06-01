@@ -35,6 +35,12 @@ export function getBotBadgeInfo(lead: Lead): BadgeInfo {
         className: "bg-blue-100 text-blue-800 border-blue-200",
         Icon: Bot,
       };
+    case "qualificacao_iniciada":
+      return {
+        label: "Qualificação iniciada",
+        className: "bg-indigo-100 text-indigo-800 border-indigo-200",
+        Icon: Bot,
+      };
     case "assumido_humano":
       return {
         label: "Atendimento humano",
@@ -63,6 +69,12 @@ export function getBotBadgeInfo(lead: Lead): BadgeInfo {
       return {
         label: "Perdido",
         className: "bg-gray-200 text-gray-700 border-gray-300",
+        Icon: XCircle,
+      };
+    case "perdido_recuperacao":
+      return {
+        label: "Perdido (sem resposta 3d)",
+        className: "bg-rose-100 text-rose-800 border-rose-200",
         Icon: XCircle,
       };
     default:

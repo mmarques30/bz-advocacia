@@ -83,3 +83,8 @@ verify_jwt = true
 [functions.campanha-recuperacao-form]
 verify_jwt = false
 
+# Cron diário que marca campanhas sem resposta em 3d como perdidas
+[functions.campanha-timeout-3d]
+verify_jwt = false
+
+

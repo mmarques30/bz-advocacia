@@ -71,6 +71,24 @@ Em qual área você precisa de ajuda? É só responder com o número:
   );
 }
 
+// M0 específico para leads que responderam à campanha de recuperação.
+// Tom: "que bom te ver de volta" — diferente do M0 padrão de CTWA.
+export function mensagemM0Recuperacao(nome: string): string {
+  const n = (nome ?? "").trim() || "tudo bem";
+  return (
+`Que bom ter você de volta, ${n}! 😊 Aqui é a Claudia da B&Z.
+
+Pra te direcionar pro melhor especialista, me conta: do que tu precisa hoje?
+
+1 - Família (Divórcio, União Estável, Pensão, Guarda)
+2 - Inventário, Testamento, Doações ou Holding
+3 - Saúde
+4 - Outros`
+  );
+}
+
+
+
 // Mantido como export vazio pra não quebrar quem ainda importa.
 export const AVISO_LGPD = "";
 

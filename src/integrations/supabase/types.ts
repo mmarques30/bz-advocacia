@@ -1645,6 +1645,7 @@ export type Database = {
           campaign_name: string | null
           contato_whatsapp: string | null
           created_time: string | null
+          dias_sem_contato: number
           etapa_qualificacao: string | null
           fluxo_sdr: string | null
           form_id: string | null
@@ -1660,6 +1661,8 @@ export type Database = {
           motivo_qualificacao: string | null
           observacoes: string | null
           origem_sdr: string | null
+          perdido_em: string | null
+          perdido_motivo: string | null
           phone_number: string | null
           platform: string | null
           preferencia_contato: string | null
@@ -1670,6 +1673,7 @@ export type Database = {
           tipo_servico: string | null
           ultima_leitura_humano: string | null
           ultima_mensagem_em: string | null
+          ultima_msg_cliente_em: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1686,6 +1690,7 @@ export type Database = {
           campaign_name?: string | null
           contato_whatsapp?: string | null
           created_time?: string | null
+          dias_sem_contato?: number
           etapa_qualificacao?: string | null
           fluxo_sdr?: string | null
           form_id?: string | null
@@ -1701,6 +1706,8 @@ export type Database = {
           motivo_qualificacao?: string | null
           observacoes?: string | null
           origem_sdr?: string | null
+          perdido_em?: string | null
+          perdido_motivo?: string | null
           phone_number?: string | null
           platform?: string | null
           preferencia_contato?: string | null
@@ -1711,6 +1718,7 @@ export type Database = {
           tipo_servico?: string | null
           ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
+          ultima_msg_cliente_em?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1727,6 +1735,7 @@ export type Database = {
           campaign_name?: string | null
           contato_whatsapp?: string | null
           created_time?: string | null
+          dias_sem_contato?: number
           etapa_qualificacao?: string | null
           fluxo_sdr?: string | null
           form_id?: string | null
@@ -1742,6 +1751,8 @@ export type Database = {
           motivo_qualificacao?: string | null
           observacoes?: string | null
           origem_sdr?: string | null
+          perdido_em?: string | null
+          perdido_motivo?: string | null
           phone_number?: string | null
           platform?: string | null
           preferencia_contato?: string | null
@@ -1752,6 +1763,7 @@ export type Database = {
           tipo_servico?: string | null
           ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
+          ultima_msg_cliente_em?: string | null
           updated_at?: string | null
         }
         Relationships: [
