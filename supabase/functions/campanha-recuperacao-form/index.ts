@@ -442,7 +442,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    const leads = await selecionarLeads(sb, mode === "smoke" ? 5 : maxPerRun);
+    // Em rollout, busca um buffer extra pra absorver skips de cross-check
+    const poolSize = mode === "smoke" ? 5 : (maxPerRun + 20);
+    const leads = await selecionarLeads(sb, poolSize);
     if (leads.length === 0) {
       return new Response(JSON.stringify({ ok: true, processed: 0, message: "nenhum lead pendente" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -451,14 +453,26 @@ Deno.serve(async (req) => {
 
     const resultados: any[] = [];
     let enviadosNoBatch = 0;
+    let skipsConsecutivos = 0;
+    const alvoEnvios = mode === "smoke" ? leads.length : maxPerRun;
 
     for (const cs of leads) {
+      if (enviadosNoBatch >= alvoEnvios) break;
+      if (skipsConsecutivos >= 20) break;
+
       const r = await processarUm(sb, cs, dryRun);
       resultados.push({ id: cs.id, telefone: cs.telefone, ...r });
-      if (r.ok) enviadosNoBatch++;
 
-      // Espaçamento entre envios — só faz sentido em smoke (rollout faz 1 por chamada)
-      if (mode === "smoke" && enviadosNoBatch < leads.length) {
+      if (r.ok) {
+        enviadosNoBatch++;
+        skipsConsecutivos = 0;
+      } else if (r.skipped) {
+        skipsConsecutivos++;
+        continue; // skip não conta no rate / espaçamento
+      }
+
+      // Espaçamento entre envios reais — só faz sentido em smoke (rollout faz N por chamada, geralmente 1)
+      if (mode === "smoke" && enviadosNoBatch < alvoEnvios) {
         const wait = ESPACAMENTO_MIN_S + Math.floor(Math.random() * (ESPACAMENTO_MAX_S - ESPACAMENTO_MIN_S));
         await new Promise((r) => setTimeout(r, wait * 1000));
 
