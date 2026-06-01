@@ -78,3 +78,8 @@ verify_jwt = true
 
 [functions.enviar-msg-humano]
 verify_jwt = true
+
+# Campanha de recuperação de leads do form Meta — chamada manual (admin) e cron interno
+[functions.campanha-recuperacao-form]
+verify_jwt = false
+

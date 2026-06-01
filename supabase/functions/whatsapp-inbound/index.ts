@@ -464,6 +464,15 @@ Deno.serve(async (req) => {
   const minhaMsgTs = new Date().toISOString();
   await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, ts: minhaMsgTs });
 
+  // Campanha de recuperação: marca campanhas_envio como respondida
+  try {
+    await supabase
+      .from("campanhas_envio")
+      .update({ status: "respondida", respondida_em: minhaMsgTs })
+      .eq("lead_geral_id", lead.id)
+      .eq("status", "enviada");
+  } catch (_e) { /* ignore */ }
+
   // ============================================================
   // FIX 1 — DEBOUNCE REMOVIDO
   // O debounce com sleep estava descartando TODAS as mensagens
