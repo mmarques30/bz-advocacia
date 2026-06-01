@@ -77,20 +77,19 @@ Deno.serve(async (req) => {
 
   const supabase = getSupabaseAdmin();
 
-  // Autenticação por header (janela de transição):
-  // - header correto → OK
-  // - sem header → aceita + loga (até Z-API ser reconfigurada)
-  // - header errado → 401
+  // Autenticação via query string ?t=SECRET (Z-API não suporta header custom).
+  // Janela de transição: sem ?t= → aceita+loga; com ?t= errado → 401.
   {
-    const expected = Deno.env.get("SDR_INBOUND_SECRET");
-    const received = req.headers.get("x-webhook-token");
-    if (expected) {
-      if (received && received === expected) {
+    const url = new URL(req.url);
+    const tokenRecebido = url.searchParams.get("t");
+    const tokenEsperado = Deno.env.get("SDR_INBOUND_SECRET");
+    if (tokenEsperado) {
+      if (tokenRecebido && tokenRecebido === tokenEsperado) {
         // autorizado
-      } else if (!received) {
+      } else if (!tokenRecebido) {
         await supabase.from("eventos_sdr").insert({
           tipo: "webhook_sem_secret_aceito",
-          payload: { ua: req.headers.get("user-agent") },
+          payload: { path: url.pathname, ua: req.headers.get("user-agent") },
         });
       } else {
         await supabase.from("eventos_sdr").insert({
@@ -101,6 +100,7 @@ Deno.serve(async (req) => {
       }
     }
   }
+
 
 
   // Idempotência por messageId — evita reprocessar retries da Z-API
