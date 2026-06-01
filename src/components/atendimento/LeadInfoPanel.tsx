@@ -264,6 +264,16 @@ export function LeadInfoPanel({ leadId }: Props) {
             <UserPlus className="h-3.5 w-3.5" /> Assumir conversa
           </Button>
         )}
+        {lead.humano_responsavel && (isAdmin || meuAdvogadoId === lead.humano_responsavel) && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full h-9 text-xs gap-1.5"
+            onClick={() => setReatribuirOpen(true)}
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Reatribuir
+          </Button>
+        )}
         <Button size="sm" variant="outline" className="w-full h-9 text-xs gap-1.5" onClick={marcarCliente}>
           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> Marcar como cliente
         </Button>
