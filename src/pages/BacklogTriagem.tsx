@@ -78,16 +78,13 @@ export default function BacklogTriagem() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center gap-3">
-        <Inbox className="h-6 w-6 text-primary" />
-        <div>
-          <h1 className="text-2xl font-seasons text-primary">Backlog de Triagem</h1>
-          <p className="text-xs text-muted-foreground">
-            Mensagens que o bot identificou como cliente/contato já em atendimento, ou que não conseguiu classificar.
-          </p>
-        </div>
-      </div>
+    <div className="space-y-4">
+      <Card className="p-4 flex items-center gap-3">
+        <Inbox className="h-5 w-5 text-primary shrink-0" />
+        <p className="text-xs text-muted-foreground">
+          Mensagens que o bot identificou como cliente/contato já em atendimento, ou que não conseguiu classificar.
+        </p>
+      </Card>
 
       <div className="flex flex-wrap items-center gap-2">
         {(["pendente", "resolvido"] as const).map((t) => (
