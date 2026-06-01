@@ -994,7 +994,20 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
         .update({ humano_responsavel: advogado.id })
         .eq("id", lead.id);
     }
+
+    // Empilha no backlog de triagem pra equipe atender manualmente.
+    try {
+      await supabase.from("backlog_triagem").insert({
+        motivo: "duvida_classificacao",
+        telefone,
+        telefone_digits: telefone.replace(/\D/g, ""),
+        nome_capturado: lead.full_name ?? null,
+        msg_recebida: textoAgrupado,
+        lead_existente_id: lead.id,
+      });
+    } catch (_e) { /* ignore */ }
   }
+
 
   // ============================================================
   // FIX 2 — ANTI-REPETIÇÃO
