@@ -11,10 +11,20 @@ import {
 } from "@dnd-kit/core";
 import { Lead, LeadStatus } from "@/types/leads";
 import { LeadCard } from "./LeadCard";
-import { useUpdateLeadStage } from "@/hooks/useLeads";
+import { useUpdateLeadStage, useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const VALID_STAGES: string[] = ['novo', 'contato_inicial', 'em_analise', 'proposta_enviada', 'fechado', 'perdido'];
 
@@ -44,7 +54,7 @@ interface LeadsKanbanProps {
   onAssumed?: (lead: Lead) => void;
 }
 
-function SortableLeadCard({ lead, onViewDetails, onAssumed }: { lead: Lead; onViewDetails: (lead: Lead) => void; onAssumed?: (lead: Lead) => void }) {
+function SortableLeadCard({ lead, onViewDetails, onAssumed, onDelete }: { lead: Lead; onViewDetails: (lead: Lead) => void; onAssumed?: (lead: Lead) => void; onDelete?: (lead: Lead) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead.id,
   });
@@ -57,7 +67,7 @@ function SortableLeadCard({ lead, onViewDetails, onAssumed }: { lead: Lead; onVi
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <LeadCard lead={lead} onClick={() => onViewDetails(lead)} onAssumed={onAssumed} />
+      <LeadCard lead={lead} onClick={() => onViewDetails(lead)} onAssumed={onAssumed} onDelete={onDelete} />
     </div>
   );
 }
@@ -87,7 +97,9 @@ const columns: { id: string; titulo: string; color: string }[] = [
 
 export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: LeadsKanbanProps) {
   const updateStage = useUpdateLeadStage();
+  const deleteLead = useDeleteLead();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   // activationConstraint.distance: só inicia drag após mover 8px,
   // permitindo que clicks simples no card propaguem para abrir o detalhe.
   const sensors = useSensors(
@@ -183,6 +195,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
                     lead={lead}
                     onViewDetails={onViewDetails}
                     onAssumed={onAssumed}
+                    onDelete={setLeadToDelete}
                   />
                 ))}
                 {colLeads.length === 0 && (
@@ -197,6 +210,33 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
       <DragOverlay>
         {activeLead ? <LeadCard lead={activeLead} onClick={() => {}} /> : null}
       </DragOverlay>
+
+      <AlertDialog open={!!leadToDelete} onOpenChange={(open) => !open && setLeadToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o lead <strong>{leadToDelete?.nome_completo}</strong>?
+              <br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (leadToDelete) {
+                  deleteLead.mutate(leadToDelete.id);
+                  setLeadToDelete(null);
+                }
+              }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DndContext>
   );
 }
