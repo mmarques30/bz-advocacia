@@ -116,6 +116,15 @@ const App = () => {
           </ProtectedRoute>
         } 
       />
+      <Route
+        path="/dashboard/backlog-triagem"
+        element={
+          <ProtectedRoute>
+            <BacklogTriagem />
+          </ProtectedRoute>
+        }
+      />
+
       <Route 
         path="/dashboard/clientes" 
         element={
