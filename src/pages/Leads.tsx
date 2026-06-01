@@ -122,6 +122,7 @@ function LeadsTab({
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+  const [origemTipo, setOrigemTipo] = useState<"todas" | "organicos" | "ctwa" | "campanha">("todas");
   const [nomes, setNomes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>("mais_recente");
 
