@@ -9,6 +9,7 @@ import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { LeadBotBadge } from "./LeadBotBadge";
+import { LeadCampanhaBadge } from "./LeadCampanhaBadge";
 import { AtenderAgoraButton } from "./AtenderAgoraButton";
 
 interface LeadCardProps {
@@ -89,7 +90,8 @@ export function LeadCard({ lead, onClick, onAssumed }: LeadCardProps) {
           )}
         </div>
 
-        <div className="flex">
+        <div className="flex flex-wrap gap-1">
+          <LeadCampanhaBadge lead={lead} />
           <LeadBotBadge lead={lead} />
         </div>
         {isHot && (

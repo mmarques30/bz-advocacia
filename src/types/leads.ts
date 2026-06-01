@@ -53,6 +53,13 @@ export interface Lead {
   etapa_qualificacao?: string | null;
   bot_pausado?: boolean | null;
   ultima_mensagem_em?: string | null;
+  origem_sdr?: string | null;
+  campanha_envio?: {
+    enviada_em: string | null;
+    respondida_em: string | null;
+    variacao_texto: number | null;
+    status: string;
+  } | null;
 }
 
 export type StatusSdr =

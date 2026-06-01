@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap, Bell, BellOff, Volume2, VolumeX } from "lucide-react";
+import { Plus, Filter, Search, LayoutGrid, List, Table2, ArrowUpDown, Clock, Briefcase, Zap, Bell, BellOff, Volume2, VolumeX, Megaphone } from "lucide-react";
 import { useSdrAlerts } from "@/hooks/useSdrAlerts";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -122,6 +122,7 @@ function LeadsTab({
   const [editLead, setEditLead] = useState<Lead | null>(null);
   const [nomeFilter, setNomeFilter] = useState<string | null>(null);
   const [origemFilter, setOrigemFilter] = useState<string | null>(null);
+  const [origemTipo, setOrigemTipo] = useState<"todas" | "organicos" | "ctwa" | "campanha">("todas");
   const [nomes, setNomes] = useState<string[]>([]);
   const [sortOrder, setSortOrder] = useState<string>("mais_recente");
 
@@ -192,6 +193,16 @@ function LeadsTab({
   const filteredLeads = useMemo(() => {
     if (!originFilteredLeads) return undefined;
     let result = nomeFilter ? originFilteredLeads.filter(l => l.nome_completo === nomeFilter) : [...originFilteredLeads];
+
+    // Filtro Origem (Orgânicos / CTWA / Campanha Recuperação)
+    if (origemTipo === "campanha") {
+      result = result.filter(l => l.origem_sdr === "campanha_recuperacao_form");
+    } else if (origemTipo === "ctwa") {
+      result = result.filter(l => ["facebook", "instagram", "meta"].includes((l.origem || "").toLowerCase()));
+    } else if (origemTipo === "organicos") {
+      result = result.filter(l => !["facebook", "instagram", "meta", "tiktok", "linkedin", "google"].includes((l.origem || "").toLowerCase()) && l.origem_sdr !== "campanha_recuperacao_form");
+    }
+
     result.sort((a, b) => {
       // Sempre prioriza leads quentes do bot
       const aHot = a.status_sdr === "sql_aguardando_humano" ? 1 : 0;
@@ -205,7 +216,16 @@ function LeadsTab({
       }
     });
     return result;
-  }, [originFilteredLeads, nomeFilter, sortOrder]);
+  }, [originFilteredLeads, nomeFilter, sortOrder, origemTipo]);
+
+  const campanhaAguardandoCount = useMemo(
+    () => (filteredLeads || []).filter(l =>
+      l.origem_sdr === "campanha_recuperacao_form" &&
+      l.campanha_envio?.status === "enviada" &&
+      !l.campanha_envio?.respondida_em
+    ).length,
+    [filteredLeads],
+  );
 
   const aguardandoCount = useMemo(
     () => (filteredLeads || []).filter(l => l.status_sdr === "sql_aguardando_humano").length,
@@ -229,7 +249,40 @@ function LeadsTab({
         </Card>
       )}
 
+      {campanhaAguardandoCount > 0 && (
+        <Card className="p-4 border-purple-300 bg-purple-50 flex items-center gap-3">
+          <Megaphone className="h-6 w-6 text-purple-700 shrink-0" />
+          <div>
+            <p className="text-sm font-bold text-purple-900">
+              {campanhaAguardandoCount} {campanhaAguardandoCount === 1 ? "lead" : "leads"} da campanha de recuperação aguardando resposta
+            </p>
+            <p className="text-xs text-purple-800">Mensagem enviada via WhatsApp — assim que responderem viram lead quente</p>
+          </div>
+        </Card>
+      )}
+
       <LeadsOrganicSummary leads={filteredLeads} loading={isLoading} />
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-medium text-muted-foreground">Origem:</span>
+        {(["todas", "organicos", "ctwa", "campanha"] as const).map((tipo) => {
+          const labels = { todas: "Todas", organicos: "Orgânicos", ctwa: "Anúncios CTWA", campanha: "Campanha Recuperação" };
+          const active = origemTipo === tipo;
+          return (
+            <Button
+              key={tipo}
+              size="sm"
+              variant={active ? "default" : "outline"}
+              onClick={() => setOrigemTipo(tipo)}
+              className="h-8 text-xs rounded-full"
+            >
+              {tipo === "campanha" && <Megaphone className="h-3 w-3 mr-1" />}
+              {labels[tipo]}
+            </Button>
+          );
+        })}
+      </div>
+
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-1 min-w-[300px]">
