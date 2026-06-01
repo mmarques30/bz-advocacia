@@ -26,6 +26,7 @@ import {
   mensagemHandoff,
   mensagemInventario,
   mensagemM0,
+  mensagemM0Recuperacao,
   mensagemOutros,
   mensagemReabertura,
   mensagemSaudeNivel1,
