@@ -91,6 +91,21 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost }: Lea
                 <MessageSquare className="h-3.5 w-3.5" />
               </Button>
             )}
+            {onMarkLost && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkLost(lead);
+                }}
+                title="Marcar como perdido"
+                aria-label={`Marcar lead ${lead.nome_completo} como perdido`}
+              >
+                <XCircle className="h-3.5 w-3.5" />
+              </Button>
+            )}
             {onDelete && (
               <Button
                 variant="ghost"
