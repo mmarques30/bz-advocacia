@@ -188,7 +188,7 @@ Deno.serve(async (req) => {
   // ============================================================
   // GUARD INTELIGENTE: telefone já no CRM (contact_submissions) sem
   // vínculo com bot (lead_geral_id IS NULL)
-  //   - Atendimento manual ATIVO  → bot fica fora
+  //   - Atendimento manual ATIVO  → bot fica fora + entra no BACKLOG TRIAGEM
   //   - 'novo' antigo / 'perdido' → bot adota (segue o fluxo;
   //     espelhamento linka o registro existente em vez de duplicar)
   // ============================================================
@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
     const ultimos8 = telefone.slice(-8);
     const { data: csExisting } = await supabase
       .from("contact_submissions")
-      .select("id, estagio, status, responsavel_id, ultimo_contato_em, created_at")
+      .select("id, estagio, status, responsavel_id, ultimo_contato_em, created_at, nome_completo")
       .like("telefone_digits", `%${ultimos8}`)
       .is("lead_geral_id", null)
       .order("created_at", { ascending: false })
@@ -210,7 +210,19 @@ Deno.serve(async (req) => {
       const temResponsavel = !!cs.responsavel_id;
 
       if (estagioAtivo || temResponsavel) {
-        await registrarEvento(supabase, null, "lead_no_crm_existente_ignorado", {
+        // Backlog triagem (motivo=contato_em_andamento)
+        try {
+          await supabase.from("backlog_triagem").insert({
+            motivo: "contato_em_andamento",
+            telefone,
+            telefone_digits: telefone.replace(/\D/g, ""),
+            nome_capturado: cs.nome_completo ?? null,
+            msg_recebida: texto,
+            contact_submission_id: cs.id,
+          });
+        } catch (_e) { /* ignore dup */ }
+
+        await registrarEvento(supabase, null, "bot_silenciado_contato_em_andamento", {
           telefone,
           contact_submission_id: cs.id,
           estagio: cs.estagio,
@@ -218,13 +230,12 @@ Deno.serve(async (req) => {
           fromMe: !!payload.fromMe,
         });
         return new Response(
-          JSON.stringify({ ignored: "lead_no_crm" }),
+          JSON.stringify({ ignored: "lead_no_crm", backlog: "contato_em_andamento" }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
 
       // 'novo' antigo ou 'perdido' → bot adota; segue o fluxo abaixo.
-      // O espelhamento linka o registro existente automaticamente.
       await registrarEvento(supabase, null, "lead_no_crm_adotado_pelo_bot", {
         telefone,
         contact_submission_id: cs.id,
@@ -233,6 +244,7 @@ Deno.serve(async (req) => {
       });
     }
   }
+
 
   // ============================================================
   // fromMe=true → humano da B&Z respondeu pelo celular.
