@@ -1,4 +1,4 @@
-import { Clock, Briefcase, MessageSquare, Trash2 } from "lucide-react";
+import { Clock, Briefcase, MessageSquare, Trash2, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Lead } from "@/types/leads";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ interface LeadCardProps {
   onClick: () => void;
   onAssumed?: (lead: Lead) => void;
   onDelete?: (lead: Lead) => void;
+  onMarkLost?: (lead: Lead) => void;
 }
 
 function calcDiasDesdeContato(createdAt: string): number {
