@@ -243,7 +243,10 @@ export const DemandasTable = ({ demandas, onView, onEdit, onDelete, isAdmin }: D
       data={demandas}
       columns={columns}
       rowKey={(d) => d.id}
-      searchPlaceholder="Buscar por título, categoria ou responsável..."
+      // Busca interna desativada: usamos o input "Buscar cliente / nome
+      // mencionado" no DemandasFilters, que faz ilike server-side em
+      // varios campos (nome do cliente, titulo, descricao, processos).
+      searchPlaceholder={null}
       emptyMessage="Nenhuma demanda encontrada"
       pageSize={25}
       // Realça linhas atrasadas com o mesmo tom da versao anterior.

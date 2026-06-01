@@ -31,24 +31,39 @@ export const useDemandas = (filters?: DemandasFilters) => {
       if (filters?.categoria) {
         query = query.eq('categoria', filters.categoria);
       }
-      if (filters?.search) {
-        query = query.ilike('titulo', `%${filters.search}%`);
-      }
       if (filters?.advogada_responsavel) {
         query = query.eq('advogada_responsavel', filters.advogada_responsavel);
       }
-      if (filters?.lead_id) {
-        // Inclui tarefas com lead_id direto OU anexadas a processos do cliente
-        // (mesmo padrao de useDemandasByLead).
-        const { data: processos } = await supabase
-          .from('processos')
-          .select('id')
-          .eq('lead_id', filters.lead_id);
-        const processoIds = processos?.map(p => p.id) || [];
-        if (processoIds.length > 0) {
-          query = query.or(`lead_id.eq.${filters.lead_id},processo_id.in.(${processoIds.join(',')})`);
-        } else {
-          query = query.eq('lead_id', filters.lead_id);
+      if (filters?.cliente_search?.trim()) {
+        // Busca aberta: encontra leads cujo nome bate (ilike), processos
+        // ligados a esses leads, e tambem tarefas com mencao no titulo ou
+        // descricao. Strip de caracteres especiais pra nao quebrar o .or().
+        const safe = filters.cliente_search
+          .trim()
+          .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+          .trim();
+        if (safe) {
+          const { data: leadsM } = await supabase
+            .from('contact_submissions')
+            .select('id')
+            .ilike('nome_completo', `%${safe}%`);
+          const leadIds = (leadsM ?? []).map(l => l.id);
+
+          let processoIds: string[] = [];
+          if (leadIds.length > 0) {
+            const { data: ps } = await supabase
+              .from('processos')
+              .select('id')
+              .in('lead_id', leadIds);
+            processoIds = (ps ?? []).map(p => p.id);
+          }
+
+          const conds: string[] = [];
+          if (leadIds.length > 0) conds.push(`lead_id.in.(${leadIds.join(',')})`);
+          if (processoIds.length > 0) conds.push(`processo_id.in.(${processoIds.join(',')})`);
+          conds.push(`titulo.ilike.%${safe}%`);
+          conds.push(`descricao.ilike.%${safe}%`);
+          query = query.or(conds.join(','));
         }
       }
 
