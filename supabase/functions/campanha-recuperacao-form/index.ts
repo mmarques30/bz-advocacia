@@ -196,12 +196,106 @@ function platformFromOrigem(origem: string): string {
   return "meta_ads";
 }
 
-async function processarUm(sb: any, cs: any, dryRun: boolean): Promise<{ ok: boolean; status: string; error?: string }> {
+// Cross-check antes de enviar: bloqueia se telefone já está em fontes ativas.
+// Retorna { fonte, status } se bateu, ou null se passou limpo.
+async function crossCheckCampanha(
+  sb: any,
+  tel8: string,
+  contactSubmissionId: string,
+): Promise<{ fonte: "a" | "b" | "c" | "d"; status: "cliente_ja_existente" | "duplicata_em_atendimento" } | null> {
+  // a) numeros_bloqueados_bot
+  {
+    const { data } = await sb.rpc("execute_sql" as any, {}).then(() => null).catch(() => null);
+    // fallback puro JS: traz tudo e filtra (numeros_bloqueados_bot é tabela pequena)
+    const { data: bloq } = await sb.from("numeros_bloqueados_bot").select("telefone");
+    const hit = (bloq ?? []).some((b: any) => (b.telefone ?? "").replace(/\D/g, "").slice(-8) === tel8);
+    if (hit) return { fonte: "a", status: "cliente_ja_existente" };
+  }
+  // b) leads_geral em atendimento
+  {
+    const { data } = await sb
+      .from("leads_geral")
+      .select("id, phone_number, status_sdr")
+      .like("telefone_digits", `%${tel8}`)
+      .in("status_sdr", [
+        "assumido_humano",
+        "agendado",
+        "cliente",
+        "em_atendimento",
+        "em_atendimento_bot",
+        "sql_aguardando_humano",
+      ])
+      .limit(5);
+    const hit = (data ?? []).some(
+      (l: any) => (l.phone_number ?? "").replace(/\D/g, "").slice(-8) === tel8,
+    );
+    if (hit) return { fonte: "b", status: "cliente_ja_existente" };
+  }
+  // c) contact_submissions duplicado (outro registro, com dono ou em estágio ativo)
+  {
+    const { data } = await sb
+      .from("contact_submissions")
+      .select("id, telefone, responsavel_id, estagio")
+      .neq("id", contactSubmissionId)
+      .limit(200);
+    const hit = (data ?? []).some((cs: any) => {
+      const t8 = (cs.telefone ?? "").replace(/\D/g, "").slice(-8);
+      if (t8 !== tel8) return false;
+      if (cs.responsavel_id) return true;
+      return ["contato_inicial", "em_analise", "proposta_enviada", "fechado"].includes(cs.estagio);
+    });
+    if (hit) return { fonte: "c", status: "duplicata_em_atendimento" };
+  }
+  // d) processos vinculados a lead com mesmo telefone
+  {
+    const { data: leadsMesmoTel } = await sb
+      .from("leads_geral")
+      .select("id, phone_number")
+      .like("telefone_digits", `%${tel8}`)
+      .limit(20);
+    const idsExatos = (leadsMesmoTel ?? [])
+      .filter((l: any) => (l.phone_number ?? "").replace(/\D/g, "").slice(-8) === tel8)
+      .map((l: any) => l.id);
+    if (idsExatos.length > 0) {
+      const { data: proc } = await sb
+        .from("processos")
+        .select("id")
+        .in("lead_id", idsExatos)
+        .limit(1);
+      if ((proc ?? []).length > 0) return { fonte: "d", status: "cliente_ja_existente" };
+    }
+  }
+  return null;
+}
+
+async function processarUm(sb: any, cs: any, dryRun: boolean): Promise<{ ok: boolean; status: string; error?: string; skipped?: boolean }> {
   const area: AreaCampanha = classificarAreaCampanha(cs.tipo_processo);
   const { texto, variacao } = escolherTexto(area);
   const telefoneNormalizado = normalizarTelefone(cs.telefone);
+  const tel8 = telefoneNormalizado.slice(-8);
   const nome = primeiroNome(cs.nome_completo);
   const mensagem = texto.replaceAll("{primeiro_nome}", nome);
+
+  // ============= CROSS-CHECK ANTES DE QUALQUER WRITE =============
+  const hit = await crossCheckCampanha(sb, tel8, cs.id);
+  if (hit) {
+    await sb.from("campanhas_envio").insert({
+      campanha: CAMPANHA,
+      contact_submission_id: cs.id,
+      telefone: telefoneNormalizado,
+      area,
+      mensagem_enviada: mensagem,
+      variacao_texto: variacao,
+      status: hit.status,
+      erro_detalhe: `fonte:${hit.fonte}`,
+    });
+    await registrarEvento(sb, "campanha_skip_cross_check", {
+      fonte: hit.fonte,
+      telefone: tel8,
+      contact_submission_id: cs.id,
+    });
+    return { ok: false, status: hit.status, skipped: true };
+  }
 
   // Insere registro pendente
   const { data: registro, error: errIns } = await sb
