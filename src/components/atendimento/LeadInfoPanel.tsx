@@ -314,6 +314,45 @@ export function LeadInfoPanel({ leadId }: Props) {
           </div>
         )}
       </div>
+
+      {reatribuicoes.length > 0 && (
+        <div className="p-4 space-y-2 border-t">
+          <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold">
+            Histórico de reatribuições
+          </div>
+          <div className="space-y-2">
+            {reatribuicoes.map((ev: any) => {
+              const p = ev.payload || {};
+              const quando = format(new Date(ev.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR });
+              return (
+                <div key={ev.id} className="rounded border bg-muted/30 p-2 text-[11px] space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">{quando}</span>
+                  </div>
+                  <div className="text-xs">
+                    de <span className="font-medium">{advogadoNome(p.de ?? null)}</span>
+                    {" → "}
+                    para <span className="font-medium">{p.para ? advogadoNome(p.para) : "pool"}</span>
+                  </div>
+                  {p.motivo && (
+                    <div className="text-[11px] text-muted-foreground italic">
+                      Motivo: {p.motivo}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <ReatribuirLeadDialog
+        open={reatribuirOpen}
+        onOpenChange={setReatribuirOpen}
+        leadId={leadId}
+        responsavelAtualId={lead.humano_responsavel ?? null}
+      />
     </div>
   );
 }
