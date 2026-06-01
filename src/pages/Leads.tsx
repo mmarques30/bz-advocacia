@@ -193,6 +193,16 @@ function LeadsTab({
   const filteredLeads = useMemo(() => {
     if (!originFilteredLeads) return undefined;
     let result = nomeFilter ? originFilteredLeads.filter(l => l.nome_completo === nomeFilter) : [...originFilteredLeads];
+
+    // Filtro Origem (Orgânicos / CTWA / Campanha Recuperação)
+    if (origemTipo === "campanha") {
+      result = result.filter(l => l.origem_sdr === "campanha_recuperacao_form");
+    } else if (origemTipo === "ctwa") {
+      result = result.filter(l => ["facebook", "instagram", "meta"].includes((l.origem || "").toLowerCase()));
+    } else if (origemTipo === "organicos") {
+      result = result.filter(l => !["facebook", "instagram", "meta", "tiktok", "linkedin", "google"].includes((l.origem || "").toLowerCase()) && l.origem_sdr !== "campanha_recuperacao_form");
+    }
+
     result.sort((a, b) => {
       // Sempre prioriza leads quentes do bot
       const aHot = a.status_sdr === "sql_aguardando_humano" ? 1 : 0;
@@ -206,7 +216,16 @@ function LeadsTab({
       }
     });
     return result;
-  }, [originFilteredLeads, nomeFilter, sortOrder]);
+  }, [originFilteredLeads, nomeFilter, sortOrder, origemTipo]);
+
+  const campanhaAguardandoCount = useMemo(
+    () => (filteredLeads || []).filter(l =>
+      l.origem_sdr === "campanha_recuperacao_form" &&
+      l.campanha_envio?.status === "enviada" &&
+      !l.campanha_envio?.respondida_em
+    ).length,
+    [filteredLeads],
+  );
 
   const aguardandoCount = useMemo(
     () => (filteredLeads || []).filter(l => l.status_sdr === "sql_aguardando_humano").length,
