@@ -41,6 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LeadBotBadge } from "./LeadBotBadge";
+import { LeadCampanhaBadge } from "./LeadCampanhaBadge";
 import { AtenderAgoraButton } from "./AtenderAgoraButton";
 
 interface LeadsTableProps {
