@@ -62,12 +62,23 @@ export function useLeads(filters: LeadsFilters) {
         .filter((id: string | null) => !!id);
 
       let botMap: Record<string, any> = {};
+      let campanhaMap: Record<string, any> = {};
       if (leadGeralIds.length > 0) {
         const { data: botData } = await supabase
           .from("leads_geral")
-          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em")
+          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr")
           .in("id", leadGeralIds);
         botMap = Object.fromEntries((botData || []).map((b: any) => [b.id, b]));
+
+        const { data: campData } = await supabase
+          .from("campanhas_envio")
+          .select("lead_geral_id, enviada_em, respondida_em, variacao_texto, status")
+          .in("lead_geral_id", leadGeralIds)
+          .order("created_at", { ascending: false });
+        // Mantém o registro mais recente por lead_geral_id
+        for (const c of campData || []) {
+          if (!campanhaMap[c.lead_geral_id]) campanhaMap[c.lead_geral_id] = c;
+        }
       }
 
       const leadsWithDiasParado = (data || []).map((lead) => {
@@ -76,6 +87,7 @@ export function useLeads(filters: LeadsFilters) {
         const diffTime = Math.abs(now.getTime() - dataUltimaAtividade.getTime());
         const diasParado = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const bot = (lead as any).lead_geral_id ? botMap[(lead as any).lead_geral_id] : null;
+        const camp = (lead as any).lead_geral_id ? campanhaMap[(lead as any).lead_geral_id] : null;
 
         return {
           ...lead,
@@ -88,6 +100,8 @@ export function useLeads(filters: LeadsFilters) {
           etapa_qualificacao: bot?.etapa_qualificacao ?? null,
           bot_pausado: bot?.bot_pausado ?? null,
           ultima_mensagem_em: bot?.ultima_mensagem_em ?? null,
+          origem_sdr: bot?.origem_sdr ?? null,
+          campanha_envio: camp ?? null,
         } as Lead;
       });
 
