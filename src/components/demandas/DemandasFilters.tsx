@@ -7,7 +7,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { DemandasFilters as FiltersType } from "@/types/demandas";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
-import { useAdvogadas } from "@/hooks/useAdvogadas";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_STATUSES = [
@@ -34,7 +35,22 @@ function filtroLenient(value: string, search: string): number {
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
   const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
-  const { data: advogadas } = useAdvogadas();
+
+  // Todos os profiles ativos — inclui advogadas e designados (responsavel_id).
+  // Fonte unica pro combobox de Responsavel.
+  const { data: responsaveis } = useQuery({
+    queryKey: ['profiles-ativos-demandas-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, nome_completo')
+        .eq('ativo', true)
+        .order('nome_completo');
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
 
   const [responsavelPopoverOpen, setResponsavelPopoverOpen] = useState(false);
 
@@ -57,10 +73,9 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
   }, [clienteInput]);
 
   const responsavelSelecionado = useMemo(() => {
-    if (!filters.advogada_responsavel) return null;
-    const a = advogadas?.find(a => (a.legacy_key ?? a.apelido) === filters.advogada_responsavel);
-    return a?.nome_completo ?? filters.advogada_responsavel;
-  }, [filters.advogada_responsavel, advogadas]);
+    if (!filters.responsavel) return null;
+    return responsaveis?.find(r => r.id === filters.responsavel)?.nome_completo ?? null;
+  }, [filters.responsavel, responsaveis]);
 
   const statuses = statusDb && statusDb.length > 0
     ? statusDb.map(o => ({ value: o.valor, label: o.label }))
@@ -154,29 +169,26 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
                   <CommandItem
                     value="todos os responsaveis limpar"
                     onSelect={() => {
-                      onFilterChange('advogada_responsavel', '');
+                      onFilterChange('responsavel', '');
                       setResponsavelPopoverOpen(false);
                     }}
                   >
-                    <Check className={cn("mr-2 h-4 w-4", !filters.advogada_responsavel ? "opacity-100" : "opacity-0")} />
+                    <Check className={cn("mr-2 h-4 w-4", !filters.responsavel ? "opacity-100" : "opacity-0")} />
                     <span className="text-muted-foreground">Todos os responsáveis</span>
                   </CommandItem>
-                  {advogadas?.map((a) => {
-                    const valorSalvo = a.legacy_key ?? a.apelido;
-                    return (
-                      <CommandItem
-                        key={a.id}
-                        value={`${a.nome_completo} ${a.apelido}`}
-                        onSelect={() => {
-                          onFilterChange('advogada_responsavel', valorSalvo);
-                          setResponsavelPopoverOpen(false);
-                        }}
-                      >
-                        <Check className={cn("mr-2 h-4 w-4", filters.advogada_responsavel === valorSalvo ? "opacity-100" : "opacity-0")} />
-                        <span className="truncate">{a.nome_completo}</span>
-                      </CommandItem>
-                    );
-                  })}
+                  {responsaveis?.map((r) => (
+                    <CommandItem
+                      key={r.id}
+                      value={r.nome_completo}
+                      onSelect={() => {
+                        onFilterChange('responsavel', r.id);
+                        setResponsavelPopoverOpen(false);
+                      }}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", filters.responsavel === r.id ? "opacity-100" : "opacity-0")} />
+                      <span className="truncate">{r.nome_completo}</span>
+                    </CommandItem>
+                  ))}
                 </CommandGroup>
               </CommandList>
             </Command>
