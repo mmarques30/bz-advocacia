@@ -28,8 +28,6 @@ import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsOrganicSummary } from "@/components/leads/LeadsOrganicSummary";
 import { BacklogLeads } from "@/components/leads/BacklogLeads";
-import BacklogTriagem from "@/pages/BacklogTriagem";
-import { useBacklogTriagemCount } from "@/hooks/useBacklogTriagem";
 import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
 import { useQuery } from "@tanstack/react-query";
 
@@ -52,7 +50,6 @@ const adsDefaultFilters: FiltersType = {
 
 export default function Leads() {
   const [activeTab, setActiveTab] = useState("leads");
-  const [backlogSubTab, setBacklogSubTab] = useState<"aprovacao" | "triagem">("aprovacao");
 
   const { data: backlogPending } = useQuery({
     queryKey: ["leads_backlog_count", "pendente"],
@@ -65,9 +62,6 @@ export default function Leads() {
     },
     refetchInterval: 30000,
   });
-
-  const { data: triagemPending = 0 } = useBacklogTriagemCount();
-  const backlogTotal = (backlogPending ?? 0) + triagemPending;
 
   return (
     <div className="space-y-6">
@@ -84,9 +78,9 @@ export default function Leads() {
           <TabsTrigger value="anuncios">Leads Anúncios</TabsTrigger>
           <TabsTrigger value="backlog" className="relative">
             Backlog de Leads
-            {backlogTotal ? (
+            {backlogPending ? (
               <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1">
-                {backlogTotal}
+                {backlogPending}
               </Badge>
             ) : null}
           </TabsTrigger>
@@ -100,36 +94,8 @@ export default function Leads() {
           <LeadsTab filterOrigins={['facebook', 'instagram', 'meta', 'tiktok', 'linkedin', 'google']} excludeOrigins={null} isAdsTab />
         </TabsContent>
 
-        <TabsContent value="backlog" className="space-y-4">
-          {/* Tudo de backlog num lugar so: aprovacao de leads (vindo do
-              WhatsApp com numero desconhecido) e triagem do bot SDR
-              (cross-check: cliente em atendimento, processo ativo, etc). */}
-          <Tabs value={backlogSubTab} onValueChange={(v) => setBacklogSubTab(v as "aprovacao" | "triagem")}>
-            <TabsList className="bg-muted/50">
-              <TabsTrigger value="aprovacao" className="relative">
-                Aprovação de Leads
-                {backlogPending ? (
-                  <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1">
-                    {backlogPending}
-                  </Badge>
-                ) : null}
-              </TabsTrigger>
-              <TabsTrigger value="triagem" className="relative">
-                Triagem do Bot
-                {triagemPending ? (
-                  <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1">
-                    {triagemPending}
-                  </Badge>
-                ) : null}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="aprovacao" className="mt-4">
-              <BacklogLeads />
-            </TabsContent>
-            <TabsContent value="triagem" className="mt-4">
-              <BacklogTriagem />
-            </TabsContent>
-          </Tabs>
+        <TabsContent value="backlog">
+          <BacklogLeads />
         </TabsContent>
       </Tabs>
     </div>

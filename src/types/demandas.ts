@@ -50,8 +50,12 @@ export interface DemandasFilters {
   categoria?: string;
   advogada_responsavel?: string;
   atrasadas?: boolean;
-  search?: string;
-  lead_id?: string;
+  // Busca aberta por cliente / nome mencionado: faz ilike server-side em
+  // contact_submissions.nome_completo (achando os lead_ids), processos
+  // ligados a esses leads, e tambem em demandas.titulo e demandas.descricao.
+  // Substitui o antigo filtro `lead_id` (restrito a um cliente especifico)
+  // e a busca por titulo do DataTable.
+  cliente_search?: string;
   ordenacao?: 'recente' | 'antigo';
 }
 
