@@ -37,6 +37,20 @@ export const useDemandas = (filters?: DemandasFilters) => {
       if (filters?.advogada_responsavel) {
         query = query.eq('advogada_responsavel', filters.advogada_responsavel);
       }
+      if (filters?.lead_id) {
+        // Inclui tarefas com lead_id direto OU anexadas a processos do cliente
+        // (mesmo padrao de useDemandasByLead).
+        const { data: processos } = await supabase
+          .from('processos')
+          .select('id')
+          .eq('lead_id', filters.lead_id);
+        const processoIds = processos?.map(p => p.id) || [];
+        if (processoIds.length > 0) {
+          query = query.or(`lead_id.eq.${filters.lead_id},processo_id.in.(${processoIds.join(',')})`);
+        } else {
+          query = query.eq('lead_id', filters.lead_id);
+        }
+      }
 
       // Quando nenhum status é selecionado, excluir concluídas e canceladas por padrão
       if (!filters?.status) {

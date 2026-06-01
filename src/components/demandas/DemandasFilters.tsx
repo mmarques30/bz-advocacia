@@ -1,9 +1,14 @@
-import { Input } from "@/components/ui/input";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { DemandasFilters as FiltersType } from "@/types/demandas";
 import { useOpcoesSistema } from "@/hooks/useOpcoesSistema";
-import { useAdvogadaLabels } from "@/hooks/useAdvogadaLabels";
+import { useAdvogadas } from "@/hooks/useAdvogadas";
+import { useLeads } from "@/hooks/useLeads";
+import { cn } from "@/lib/utils";
 
 const DEFAULT_STATUSES = [
   { value: 'pendente', label: 'Pendente' },
@@ -20,7 +25,25 @@ interface DemandasFiltersProps {
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
   const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
-  const advogadaLabels = useAdvogadaLabels();
+  const { data: advogadas } = useAdvogadas();
+
+  // Lista completa de clientes/leads (combobox abaixo). Empty filters traz tudo.
+  const { data: allLeads = [], isLoading: leadsLoading } = useLeads({
+    search: '',
+    status: [],
+    origem: [],
+    tipoProcesso: [],
+    dateRange: { start: null, end: null },
+    diasParado: { min: 0, max: null },
+    responsavel: null,
+    statusCliente: [],
+  });
+  const leads = useMemo(
+    () => [...allLeads].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR')),
+    [allLeads],
+  );
+  const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
+  const clienteSelecionado = leads.find(l => l.id === filters.lead_id);
 
   const statuses = statusDb && statusDb.length > 0
     ? statusDb.map(o => ({ value: o.valor, label: o.label }))
@@ -88,14 +111,18 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectContent>
       </Select>
 
+      {/* Responsável dinâmico — fonte: useAdvogadas (profiles.is_advogada). */}
       <Select value={filters.advogada_responsavel || 'todos'} onValueChange={(value) => onFilterChange('advogada_responsavel', value === 'todos' ? '' : value)}>
         <SelectTrigger>
-          <SelectValue placeholder="Advogada" />
+          <SelectValue placeholder="Responsável" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="todos">Todas as advogadas</SelectItem>
-          <SelectItem value="juliana">{advogadaLabels.juliana}</SelectItem>
-          <SelectItem value="liziane">{advogadaLabels.liziane}</SelectItem>
+          <SelectItem value="todos">Todos os responsáveis</SelectItem>
+          {advogadas?.map((a) => (
+            <SelectItem key={a.id} value={a.legacy_key ?? a.apelido}>
+              {a.nome_completo}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
@@ -109,15 +136,57 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectContent>
       </Select>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Pesquisar demandas..."
-          value={filters.search || ''}
-          onChange={(e) => onFilterChange('search', e.target.value)}
-          className="pl-10"
-        />
-      </div>
+      {/* Busca por cliente — combobox: clique abre todos, digita para filtrar. */}
+      <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={clientePopoverOpen}
+            className="w-full justify-between font-normal"
+          >
+            <span className="truncate">
+              {clienteSelecionado
+                ? clienteSelecionado.nome_completo
+                : leadsLoading ? "Carregando..." : "Buscar cliente..."}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[280px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Digite o nome do cliente..." />
+            <CommandList>
+              <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value="__todos__"
+                  onSelect={() => {
+                    onFilterChange('lead_id', '');
+                    setClientePopoverOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", !filters.lead_id ? "opacity-100" : "opacity-0")} />
+                  <span className="text-muted-foreground">Todos os clientes</span>
+                </CommandItem>
+                {leads.map((lead) => (
+                  <CommandItem
+                    key={lead.id}
+                    value={lead.nome_completo}
+                    onSelect={() => {
+                      onFilterChange('lead_id', lead.id);
+                      setClientePopoverOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", filters.lead_id === lead.id ? "opacity-100" : "opacity-0")} />
+                    <span className="truncate">{lead.nome_completo}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch, CheckCircle2 } from "lucide-react";
+import { CalendarDays, User, FileText, AlertCircle, Scale, GitBranch, CheckCircle2, Trash2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useSubtarefas } from "@/hooks/useSubtarefas";
 import { format, isPast, parseISO, isValid } from "date-fns";
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 interface DemandaCardProps {
   demanda: Demanda;
   onClick: () => void;
+  onDelete?: (id: string) => void;
 }
 
 const prioridadeVariant: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -45,7 +47,7 @@ const categoriaColors: Record<string, string> = {
   geral: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
 };
 
-export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
+export const DemandaCard = ({ demanda, onClick, onDelete }: DemandaCardProps) => {
   const isAtrasada = safeIsPast(demanda.data_limite) && 
     !['concluido', 'cancelado'].includes(demanda.status);
 
@@ -64,14 +66,29 @@ export const DemandaCard = ({ demanda, onClick }: DemandaCardProps) => {
       onClick={onClick}
     >
       <CardContent className="p-4 space-y-3">
-        {/* Badges */}
-        <div className="flex flex-wrap gap-2">
+        {/* Badges + acao excluir (excluir nao propaga o click pra abrir detalhes) */}
+        <div className="flex flex-wrap items-start gap-2">
           <span className={cn("text-xs px-2 py-1 rounded-full font-medium", categoriaColors[demanda.categoria || 'geral'])}>
             {CATEGORIA_LABELS[demanda.categoria as keyof typeof CATEGORIA_LABELS] || 'Geral'}
           </span>
           <Badge variant={prioridadeVariant[demanda.prioridade]}>
             {PRIORIDADE_LABELS[demanda.prioridade]}
           </Badge>
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="ml-auto h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(demanda.id);
+              }}
+              aria-label="Excluir demanda"
+              title="Excluir"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
 
         {/* Título */}

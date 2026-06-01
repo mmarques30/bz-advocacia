@@ -23,9 +23,10 @@ interface DemandasKanbanProps {
   demandas: Record<string, Demanda[]> | undefined;
   loading: boolean;
   onSelectDemanda: (demanda: Demanda) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const DemandasKanban = ({ demandas, loading, onSelectDemanda }: DemandasKanbanProps) => {
+export const DemandasKanban = ({ demandas, loading, onSelectDemanda, onDelete }: DemandasKanbanProps) => {
   const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
 
   const columns = statusDb && statusDb.length > 0
@@ -83,6 +84,7 @@ export const DemandasKanban = ({ demandas, loading, onSelectDemanda }: DemandasK
                       key={demanda.id}
                       demanda={demanda}
                       onClick={() => onSelectDemanda(demanda)}
+                      onDelete={onDelete}
                     />
                   ))
                 )}

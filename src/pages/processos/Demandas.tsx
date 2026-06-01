@@ -130,6 +130,7 @@ export default function ProcessosDemandas() {
                 demandas={demandasByStatus}
                 loading={kanbanLoading}
                 onSelectDemanda={handleView}
+                onDelete={handleDelete}
               />
             </TabsContent>
           </Tabs>
