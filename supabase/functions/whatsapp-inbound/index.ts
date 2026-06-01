@@ -89,18 +89,19 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Log bruto do payload para debug temporario
-  await registrarEvento(supabase, null, "raw_payload_debug", payload);
-
-  // SEMPRE loga o que chegou no endpoint, antes de qualquer filtro.
-  await registrarEvento(supabase, null, "webhook_recebido", {
-    phone: payload.phone,
-    fromMe: payload.fromMe,
-    isStatusReply: payload.isStatusReply,
-    isGroup: payload.isGroup,
-    has_text: !!(payload.text?.message ?? payload.message),
-    raw_keys: Object.keys(payload ?? {}),
-  });
+  // Debug verboso (raw_payload_debug + webhook_recebido) só com flag explícita.
+  // Default: desligado, pra não inflar eventos_sdr.
+  if (Deno.env.get("DEBUG_RAW_PAYLOAD") === "true") {
+    await registrarEvento(supabase, null, "raw_payload_debug", payload);
+    await registrarEvento(supabase, null, "webhook_recebido", {
+      phone: payload.phone,
+      fromMe: payload.fromMe,
+      isStatusReply: payload.isStatusReply,
+      isGroup: payload.isGroup,
+      has_text: !!(payload.text?.message ?? payload.message),
+      raw_keys: Object.keys(payload ?? {}),
+    });
+  }
 
   // ============================================================
   // IDs anônimos do WhatsApp (LID / broadcast / newsletter) não são
