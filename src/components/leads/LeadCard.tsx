@@ -1,4 +1,4 @@
-import { Clock, Briefcase, MessageSquare, Trash2 } from "lucide-react";
+import { Clock, Briefcase, MessageSquare, Trash2, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Lead } from "@/types/leads";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ interface LeadCardProps {
   onClick: () => void;
   onAssumed?: (lead: Lead) => void;
   onDelete?: (lead: Lead) => void;
+  onMarkLost?: (lead: Lead) => void;
 }
 
 function calcDiasDesdeContato(createdAt: string): number {
@@ -24,7 +25,7 @@ function calcDiasDesdeContato(createdAt: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function LeadCard({ lead, onClick, onAssumed, onDelete }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost }: LeadCardProps) {
   const dias = calcDiasDesdeContato(lead.created_at);
   const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
     ? lead.outro_tipo_processo
@@ -88,6 +89,21 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete }: LeadCardProps) 
                 aria-label={`Primeiro contato via WhatsApp com ${lead.nome_completo}`}
               >
                 <MessageSquare className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {onMarkLost && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkLost(lead);
+                }}
+                title="Marcar como perdido"
+                aria-label={`Marcar lead ${lead.nome_completo} como perdido`}
+              >
+                <XCircle className="h-3.5 w-3.5" />
               </Button>
             )}
             {onDelete && (
