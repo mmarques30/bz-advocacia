@@ -22,6 +22,22 @@ interface DemandasFiltersProps {
   onFilterChange: (key: string, value: string) => void;
 }
 
+// Normaliza texto para busca: minusculas + remove acentos. Assim "joao" acha "João",
+// "andre" acha "André", "maria" acha "MARIA SILVA", etc.
+function normalizar(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+// Filtro lenient para o cmdk: substring case+acento-insensitive em qualquer parte.
+// Funciona para o cliente (varios campos no value) e para o responsavel (nome).
+function filtroLenient(value: string, search: string): number {
+  if (!search) return 1;
+  return normalizar(value).includes(normalizar(search)) ? 1 : 0;
+}
+
 export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProps) => {
   const { data: categoriasDb } = useOpcoesSistema('categoria_tarefa', true);
   const { data: statusDb } = useOpcoesSistema('status_tarefa', true);
@@ -43,7 +59,15 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
     [allLeads],
   );
   const [clientePopoverOpen, setClientePopoverOpen] = useState(false);
+  const [responsavelPopoverOpen, setResponsavelPopoverOpen] = useState(false);
   const clienteSelecionado = leads.find(l => l.id === filters.lead_id);
+
+  // Para o combobox de responsavel: encontra o item atualmente selecionado pelo value salvo.
+  const responsavelSelecionado = useMemo(() => {
+    if (!filters.advogada_responsavel) return null;
+    const a = advogadas?.find(a => (a.legacy_key ?? a.apelido) === filters.advogada_responsavel);
+    return a?.nome_completo ?? filters.advogada_responsavel;
+  }, [filters.advogada_responsavel, advogadas]);
 
   const statuses = statusDb && statusDb.length > 0
     ? statusDb.map(o => ({ value: o.valor, label: o.label }))
@@ -111,20 +135,58 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectContent>
       </Select>
 
-      {/* Responsável dinâmico — fonte: useAdvogadas (profiles.is_advogada). */}
-      <Select value={filters.advogada_responsavel || 'todos'} onValueChange={(value) => onFilterChange('advogada_responsavel', value === 'todos' ? '' : value)}>
-        <SelectTrigger>
-          <SelectValue placeholder="Responsável" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todos">Todos os responsáveis</SelectItem>
-          {advogadas?.map((a) => (
-            <SelectItem key={a.id} value={a.legacy_key ?? a.apelido}>
-              {a.nome_completo}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Responsavel: combobox (mesmo padrao do cliente). Fonte: useAdvogadas. */}
+      <Popover open={responsavelPopoverOpen} onOpenChange={setResponsavelPopoverOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={responsavelPopoverOpen}
+            className="w-full justify-between font-normal"
+          >
+            <span className="truncate">
+              {responsavelSelecionado ?? "Responsável"}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[260px] p-0" align="start">
+          <Command filter={filtroLenient}>
+            <CommandInput placeholder="Buscar responsável..." />
+            <CommandList>
+              <CommandEmpty>Nenhum responsável encontrado.</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value="todos os responsaveis limpar"
+                  onSelect={() => {
+                    onFilterChange('advogada_responsavel', '');
+                    setResponsavelPopoverOpen(false);
+                  }}
+                >
+                  <Check className={cn("mr-2 h-4 w-4", !filters.advogada_responsavel ? "opacity-100" : "opacity-0")} />
+                  <span className="text-muted-foreground">Todos os responsáveis</span>
+                </CommandItem>
+                {advogadas?.map((a) => {
+                  const valorSalvo = a.legacy_key ?? a.apelido;
+                  return (
+                    <CommandItem
+                      key={a.id}
+                      value={`${a.nome_completo} ${a.apelido}`}
+                      onSelect={() => {
+                        onFilterChange('advogada_responsavel', valorSalvo);
+                        setResponsavelPopoverOpen(false);
+                      }}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", filters.advogada_responsavel === valorSalvo ? "opacity-100" : "opacity-0")} />
+                      <span className="truncate">{a.nome_completo}</span>
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
 
       <Select value={filters.ordenacao || 'recente'} onValueChange={(value) => onFilterChange('ordenacao', value)}>
         <SelectTrigger>
@@ -136,7 +198,8 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
         </SelectContent>
       </Select>
 
-      {/* Busca por cliente — combobox: clique abre todos, digita para filtrar. */}
+      {/* Busca por cliente: combobox lenient. Clique abre todos; digitar filtra
+          (case+acento-insensitive) por nome, tipo de processo, email ou telefone. */}
       <Popover open={clientePopoverOpen} onOpenChange={setClientePopoverOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -153,14 +216,14 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[280px] p-0" align="start">
-          <Command>
+        <PopoverContent className="w-[300px] p-0" align="start">
+          <Command filter={filtroLenient}>
             <CommandInput placeholder="Digite o nome do cliente..." />
             <CommandList>
               <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
               <CommandGroup>
                 <CommandItem
-                  value="__todos__"
+                  value="todos os clientes limpar filtro"
                   onSelect={() => {
                     onFilterChange('lead_id', '');
                     setClientePopoverOpen(false);
@@ -172,7 +235,15 @@ export const DemandasFilters = ({ filters, onFilterChange }: DemandasFiltersProp
                 {leads.map((lead) => (
                   <CommandItem
                     key={lead.id}
-                    value={lead.nome_completo}
+                    // Inclui varios campos no value para que a busca pegue qualquer parte:
+                    // nome, tipo de processo, email e telefone.
+                    value={[
+                      lead.nome_completo,
+                      lead.tipo_processo,
+                      lead.outro_tipo_processo,
+                      lead.email,
+                      lead.telefone,
+                    ].filter(Boolean).join(' ')}
                     onSelect={() => {
                       onFilterChange('lead_id', lead.id);
                       setClientePopoverOpen(false);
