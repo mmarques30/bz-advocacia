@@ -453,20 +453,30 @@ Deno.serve(async (req) => {
       }
 
       // (d) processos ativos com lead_geral cujo phone bate
-      const { data: procMatch } = await supabase
-        .from("processos")
-        .select("id, lead_id, leads_geral:lead_id(id, full_name, phone_number, contato_whatsapp, telefone_digits)")
-        .neq("status", "concluido")
-        .limit(50);
+      // Sem teto: filtra leads pelo telefone_digits primeiro (índice), depois cruza com processos ativos.
+      const { data: leadsMesmoTel } = await supabase
+        .from("leads_geral")
+        .select("id, full_name, phone_number, contato_whatsapp, telefone_digits")
+        .like("telefone_digits", `%${ultimos8b}`);
 
-      const procHit = (procMatch ?? []).find((p: any) => {
-        const lg = p.leads_geral;
-        if (!lg) return false;
+      const leadsExatos = (leadsMesmoTel ?? []).filter((lg: any) => {
         const digs = [lg.telefone_digits, lg.phone_number, lg.contato_whatsapp]
           .filter(Boolean)
           .map((x: string) => x.replace(/\D/g, ""));
         return digs.some((d: string) => d.endsWith(ultimos8b));
       });
+
+      let procHit: any = null;
+      if (leadsExatos.length > 0) {
+        const idsExatos = leadsExatos.map((l: any) => l.id);
+        const { data: procMatch } = await supabase
+          .from("processos")
+          .select("id, lead_id, leads_geral:lead_id(id, full_name, phone_number, contato_whatsapp, telefone_digits)")
+          .neq("status", "concluido")
+          .in("lead_id", idsExatos)
+          .limit(1);
+        procHit = (procMatch ?? [])[0] ?? null;
+      }
 
       if (procHit) {
         const pl: any = (procHit as any).leads_geral;
