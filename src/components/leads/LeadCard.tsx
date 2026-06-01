@@ -25,7 +25,7 @@ function calcDiasDesdeContato(createdAt: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function LeadCard({ lead, onClick, onAssumed, onDelete }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost }: LeadCardProps) {
   const dias = calcDiasDesdeContato(lead.created_at);
   const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
     ? lead.outro_tipo_processo
