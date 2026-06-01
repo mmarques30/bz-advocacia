@@ -44,6 +44,25 @@ const STATUS_LABELS: Record<string, string> = {
 export function LeadInfoPanel({ leadId }: Props) {
   const qc = useQueryClient();
   const assumir = useAssumirLead({ onAssumed: () => qc.invalidateQueries({ queryKey: ["lead-info", leadId] }) });
+  const [reatribuirOpen, setReatribuirOpen] = useState(false);
+  const { data: isAdmin = false } = useIsAdmin();
+  const { data: meuAdvogadoId } = useMeuAdvogadoId();
+  const { data: advogadosList = [] } = useAdvogadosSdr();
+  const advogadoNome = (id: string | null) =>
+    id ? advogadosList.find((a) => a.id === id)?.nome ?? "(desconhecido)" : "pool";
+
+  const { data: reatribuicoes = [] } = useQuery({
+    queryKey: ["lead-reatribuicoes", leadId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("eventos_sdr")
+        .select("id, payload, created_at")
+        .eq("lead_id", leadId)
+        .eq("tipo", "lead_reatribuido")
+        .order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
 
   const { data: lead, isLoading } = useQuery({
     queryKey: ["lead-info", leadId],
