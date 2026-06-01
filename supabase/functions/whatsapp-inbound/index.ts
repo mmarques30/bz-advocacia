@@ -564,14 +564,72 @@ Deno.serve(async (req) => {
   const minhaMsgTs = new Date().toISOString();
   await registrarMensagem(supabase, lead.id, "lead", texto, { telefone, ts: minhaMsgTs });
 
-  // Campanha de recuperação: marca campanhas_envio como respondida
+  // ============================================================
+  // CAMPANHA DE RECUPERAÇÃO — detecta resposta e injeta no fluxo M0
+  // Se este telefone tem campanhas_envio.status='enviada' sem resposta,
+  // marca como respondida, reseta etapa pra M0 e dispara MSG_M0_RECUPERACAO.
+  // ============================================================
   try {
-    await supabase
+    const telefoneDigitsResp = telefone.replace(/\D/g, "");
+    const ult8Resp = telefoneDigitsResp.slice(-8);
+
+    const { data: campResp } = await supabase
       .from("campanhas_envio")
-      .update({ status: "respondida", respondida_em: minhaMsgTs })
-      .eq("lead_geral_id", lead.id)
-      .eq("status", "enviada");
-  } catch (_e) { /* ignore */ }
+      .select("id, lead_geral_id, area, enviada_em, variacao_texto, campanha")
+      .eq("status", "enviada")
+      .is("respondida_em", null)
+      .or(`lead_geral_id.eq.${lead.id},telefone.like.%${ult8Resp}`)
+      .order("enviada_em", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (campResp) {
+      const cr: any = campResp;
+      await supabase
+        .from("campanhas_envio")
+        .update({ status: "respondida", respondida_em: minhaMsgTs })
+        .eq("id", cr.id);
+
+      await supabase
+        .from("leads_geral")
+        .update({
+          status_sdr: "qualificacao_iniciada",
+          etapa_qualificacao: "M0",
+          tentativas_etapa: 0,
+          ultima_msg_cliente_em: minhaMsgTs,
+          bot_pausado: false,
+          dias_sem_contato: 0,
+          origem_sdr: (lead as any).origem_sdr ?? "campanha_recuperacao_2026_06",
+        })
+        .eq("id", lead.id);
+
+      await registrarEvento(supabase, lead.id, "resposta_campanha_recuperacao", {
+        campanhas_envio_id: cr.id,
+        area_inicial: cr.area,
+        variacao_texto: cr.variacao_texto,
+        campanha: cr.campanha,
+        msg_cliente: texto,
+      });
+
+      const msgM0 = mensagemM0Recuperacao(nomePrimeiro(lead));
+      const envio = await zapiSendText(telefone, msgM0);
+      await registrarMensagem(supabase, lead.id, "bot", msgM0, {
+        zapi: envio,
+        acao: "m0_recuperacao",
+        campanhas_envio_id: cr.id,
+      });
+
+      return new Response(
+        JSON.stringify({ ok: true, acao: "m0_recuperacao_enviada", lead_id: lead.id }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+  } catch (e) {
+    await registrarEvento(supabase, lead.id, "campanha_resposta_erro", {
+      erro: (e as Error).message,
+    });
+  }
+
 
   // ============================================================
   // FIX 1 — DEBOUNCE REMOVIDO
