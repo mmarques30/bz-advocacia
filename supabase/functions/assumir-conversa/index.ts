@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
   if (payload.enviar_transicao !== false) {
     const tel = telefoneDoLead(lead as any);
     const texto = payload.mensagem_transicao ??
-      `Oi ${nomePrimeiro(lead as any)}, aqui é ${adv.nome}. Acabei de assumir a sua conversa pelo nosso time. Vou olhar seu caso com atenção e já te respondo aqui. ✱`;
+      `Oi ${nomePrimeiro(lead as any)}, sua conversa já foi assumida pelo nosso time. A advogada vai olhar seu caso com atenção e logo te responde por aqui. ✱`;
     const resultado = tel ? await zapiSendText(tel, texto) : { ok: false, status: 0 };
     await registrarMensagem(supabase, lead_id, "humano", texto, {
       advogado_id,
