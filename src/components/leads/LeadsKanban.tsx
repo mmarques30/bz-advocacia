@@ -24,21 +24,32 @@ interface LeadsKanbanProps {
   onAssumed?: (lead: Lead) => void;
 }
 
-type ColunaId = "novo" | "enviado" | "qualificado" | "convertido" | "perdido";
+type ColunaId = "novo" | "enviado" | "qualificado" | "proposta" | "convertido" | "perdido";
 
 const columns: { id: ColunaId; titulo: string; color: string }[] = [
   { id: "novo", titulo: "Novo", color: "border-t-blue-500" },
   { id: "enviado", titulo: "Enviado", color: "border-t-green-500" },
   { id: "qualificado", titulo: "Qualificado", color: "border-t-purple-500" },
+  // Alimentada pelo `leadStatusAutomation` (lib): ao gerar proposta ou
+  // contrato pra um lead em fase anterior, ele entra aqui automaticamente.
+  { id: "proposta", titulo: "Em Proposta", color: "border-t-amber-500" },
   { id: "convertido", titulo: "Convertido", color: "border-t-emerald-500" },
   { id: "perdido", titulo: "Perdido", color: "border-t-red-500" },
 ];
 
-// Deriva coluna do kanban a partir do status_sdr (fonte da verdade do bot).
-// Fallback: lead.estagio (legacy / leads sem passagem pelo bot).
+// Deriva coluna do kanban a partir do estado do lead.
+// Estados pos-bot (proposta_enviada / fechado / perdido) tem prioridade
+// sobre o status_sdr — porque indicam progresso explicitamente registrado
+// (proposta gerada, contrato emitido, perda marcada) e ja sairam do fluxo
+// automatico do bot. Caso contrario, status_sdr e a fonte da verdade.
 function resolveColuna(lead: Lead): ColunaId {
-  const s = lead.status_sdr;
+  // 1) Estados pos-bot tem prioridade
+  if (lead.estagio === "fechado") return "convertido";
+  if (lead.estagio === "proposta_enviada") return "proposta";
+  if (lead.estagio === "perdido") return "perdido";
 
+  // 2) status_sdr (fonte da verdade enquanto o lead esta no fluxo do bot)
+  const s = lead.status_sdr;
   if (s) {
     switch (s) {
       case "novo":
@@ -62,19 +73,14 @@ function resolveColuna(lead: Lead): ColunaId {
     }
   }
 
-  // Fallback p/ leads sem vínculo com bot
+  // 3) Fallback p/ leads sem vinculo com bot e sem estagio pos-bot
   switch (lead.estagio) {
     case "novo":
       return "novo";
     case "contato_inicial":
       return "enviado";
     case "em_analise":
-    case "proposta_enviada":
       return "qualificado";
-    case "fechado":
-      return "convertido";
-    case "perdido":
-      return "perdido";
     default:
       return "novo";
   }
@@ -117,6 +123,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
       novo: [],
       enviado: [],
       qualificado: [],
+      proposta: [],
       convertido: [],
       perdido: [],
     };
@@ -153,7 +160,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-5 gap-4 min-h-[600px]">
+      <div className="grid grid-cols-6 gap-4 min-h-[600px]">
         {columns.map((col) => (
           <div key={col.id}>
             <Skeleton className="h-8 w-full mb-3" />
@@ -170,7 +177,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {columns.map((coluna) => {
           const colLeads = leadsGrouped[coluna.id] || [];
           return (
