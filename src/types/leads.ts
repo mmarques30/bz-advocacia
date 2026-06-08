@@ -124,7 +124,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   novo: 'Novo',
   contato_inicial: 'Enviado',
   em_analise: 'Qualificado',
-  proposta_enviada: 'Qualificado',
+  proposta_enviada: 'Em Proposta',
   fechado: 'Convertido',
   perdido: 'Perdido',
 };
