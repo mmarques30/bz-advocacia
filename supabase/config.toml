@@ -87,6 +87,16 @@ verify_jwt = false
 [functions.campanha-timeout-3d]
 verify_jwt = false
 
+# Meta Ads: cron que puxa estrutura das campanhas (campaigns, ad_sets, ads,
+# creatives, leadgen_forms). Chamada pelo pg_cron com X-Webhook-Secret.
+[functions.meta-sync-structure]
+verify_jwt = false
+
+# Meta Ads: cron que puxa insights diarios (level=ad, last_7d) e faz upsert
+# em meta_insights_daily. Chamada pelo pg_cron com X-Webhook-Secret.
+[functions.meta-sync-insights]
+verify_jwt = false
+
 
 
 
