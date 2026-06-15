@@ -59,6 +59,9 @@ export function ChatPanel({ leadId }: Props) {
       .then(() => {});
   }, [leadId]);
 
+
+
+
   if (!lead) {
     return (
       <div className="flex items-center justify-center h-full text-xs text-muted-foreground">
