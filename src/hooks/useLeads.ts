@@ -66,7 +66,7 @@ export function useLeads(filters: LeadsFilters) {
       if (leadGeralIds.length > 0) {
         const { data: botData } = await supabase
           .from("leads_geral")
-          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr")
+          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr, is_organic")
           .in("id", leadGeralIds);
         botMap = Object.fromEntries((botData || []).map((b: any) => [b.id, b]));
 
@@ -101,6 +101,12 @@ export function useLeads(filters: LeadsFilters) {
           bot_pausado: bot?.bot_pausado ?? null,
           ultima_mensagem_em: bot?.ultima_mensagem_em ?? null,
           origem_sdr: bot?.origem_sdr ?? null,
+          // is_organic vem de leads_geral.is_organic (calculado a partir de
+          // platform.endsWith('_ads')). Mais confiavel que contact_submissions.origem,
+          // que pode estar "whatsapp_organico" mesmo pra leads que vieram de
+          // anuncio (quando o CTWA nao foi detectado no payload do Z-API ou
+          // quando o contact_submissions ja existia antes do bot linkar).
+          is_organic: (bot as any)?.is_organic ?? null,
           campanha_envio: camp ?? null,
         } as Lead;
       });
