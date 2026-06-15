@@ -54,11 +54,15 @@ export default function Leads() {
   const { data: backlogPending } = useQuery({
     queryKey: ["leads_backlog_count", "pendente"],
     queryFn: async () => {
-      const { count } = await supabase
-        .from("leads_backlog")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pendente");
-      return count ?? 0;
+      // Soma das duas fontes mostradas no BacklogLeads: leads_backlog
+      // (humano iniciou) + backlog_triagem (mensagens recebidas detectadas
+      // pelo bot como caso especial: cliente em atendimento, processo
+      // ativo, dúvida de classificacao etc).
+      const [backlogResult, triagemResult] = await Promise.all([
+        supabase.from("leads_backlog").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+        supabase.from("backlog_triagem").select("id", { count: "exact", head: true }).eq("resolvido", false),
+      ]);
+      return (backlogResult.count ?? 0) + (triagemResult.count ?? 0);
     },
     refetchInterval: 30000,
   });

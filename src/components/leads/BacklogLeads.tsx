@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -29,18 +29,59 @@ type BacklogRow = {
   rejeitado_motivo: string | null;
 };
 
+type TriagemRow = {
+  id: string;
+  telefone: string;
+  telefone_digits: string;
+  nome_capturado: string | null;
+  msg_recebida: string;
+  motivo: string;
+  lead_existente_id: string | null;
+  contact_submission_id: string | null;
+  processo_id: string | null;
+  resolvido: boolean;
+  resolvido_em: string | null;
+  created_at: string;
+};
+
+type UnifiedRow =
+  | { kind: "lead_novo"; row: BacklogRow }
+  | { kind: "triagem"; row: TriagemRow };
+
+const MOTIVO_LABEL: Record<string, string> = {
+  // leads_backlog.origem
+  humano_iniciou: "Humano iniciou conversa",
+  // backlog_triagem.motivo (mensagens recebidas que o bot detectou como caso especial)
+  cliente_em_atendimento: "Cliente em atendimento",
+  contato_em_andamento: "Contato em andamento",
+  processo_ativo: "Processo ativo",
+  duvida_classificacao: "Bot não classificou",
+};
+
+const MOTIVO_COLOR: Record<string, string> = {
+  humano_iniciou: "bg-blue-100 text-blue-800 border-blue-200",
+  cliente_em_atendimento: "bg-amber-100 text-amber-800 border-amber-300",
+  contato_em_andamento: "bg-cyan-100 text-cyan-800 border-cyan-300",
+  processo_ativo: "bg-emerald-100 text-emerald-800 border-emerald-300",
+  duvida_classificacao: "bg-purple-100 text-purple-800 border-purple-300",
+};
+
 export function BacklogLeads() {
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "rejeitado">(
+  const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "rejeitado" | "resolvido">(
     "pendente",
   );
   const [rejectTarget, setRejectTarget] = useState<BacklogRow | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [acting, setActing] = useState<string | null>(null);
 
-  const { data: rows, isLoading } = useQuery({
+  // Fonte 1: leads_backlog (humano iniciou conversa com numero desconhecido).
+  const { data: backlogRows, isLoading: loadingBacklog } = useQuery({
     queryKey: ["leads_backlog", statusFilter],
     queryFn: async () => {
+      // backlog antigo nao tem 'resolvido' — quando o filtro for "resolvido",
+      // retorna vazio.
+      if (statusFilter === "resolvido") return [];
       const { data, error } = await supabase
         .from("leads_backlog")
         .select("*")
@@ -48,29 +89,72 @@ export function BacklogLeads() {
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
-      return data as BacklogRow[];
+      return (data ?? []) as BacklogRow[];
     },
   });
 
+  // Fonte 2: backlog_triagem (bot detectou: cliente ja em atendimento,
+  // contato com processo aberto, processo ativo, ou nao conseguiu
+  // classificar). Resolvido=false aparece em "Pendente"; true em "Resolvido".
+  const { data: triagemRows, isLoading: loadingTriagem } = useQuery({
+    queryKey: ["backlog_triagem", statusFilter],
+    queryFn: async () => {
+      // backlog_triagem so tem o conceito de "resolvido": pendentes
+      // = resolvido=false; arquivados = resolvido=true. Os filtros
+      // 'aprovado' / 'rejeitado' (so leads_backlog) nao se aplicam.
+      if (statusFilter === "aprovado" || statusFilter === "rejeitado") return [];
+      const { data, error } = await supabase
+        .from("backlog_triagem")
+        .select("*")
+        .eq("resolvido", statusFilter === "resolvido")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as TriagemRow[];
+    },
+  });
+
+  const isLoading = loadingBacklog || loadingTriagem;
+
+  // Unifica e ordena por created_at desc.
+  const rows: UnifiedRow[] = useMemo(() => {
+    const a: UnifiedRow[] = (backlogRows ?? []).map((row) => ({ kind: "lead_novo", row }));
+    const b: UnifiedRow[] = (triagemRows ?? []).map((row) => ({ kind: "triagem", row }));
+    return [...a, ...b].sort((x, y) => {
+      const dx = new Date(x.row.created_at).getTime();
+      const dy = new Date(y.row.created_at).getTime();
+      return dy - dx;
+    });
+  }, [backlogRows, triagemRows]);
+
+  // Total pendente (soma das duas fontes) — alimenta o badge da aba.
   const { data: pendingCount } = useQuery({
     queryKey: ["leads_backlog_count", "pendente"],
     queryFn: async () => {
-      const { count } = await supabase
-        .from("leads_backlog")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "pendente");
-      return count ?? 0;
+      const [backlogResult, triagemResult] = await Promise.all([
+        supabase.from("leads_backlog").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+        supabase.from("backlog_triagem").select("id", { count: "exact", head: true }).eq("resolvido", false),
+      ]);
+      return (backlogResult.count ?? 0) + (triagemResult.count ?? 0);
     },
   });
 
   useEffect(() => {
     const ch = supabase
-      .channel("leads_backlog_changes")
+      .channel("backlog_leads_changes")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "leads_backlog" },
         () => {
           qc.invalidateQueries({ queryKey: ["leads_backlog"] });
+          qc.invalidateQueries({ queryKey: ["leads_backlog_count"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "backlog_triagem" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["backlog_triagem"] });
           qc.invalidateQueries({ queryKey: ["leads_backlog_count"] });
         },
       )
@@ -169,6 +253,35 @@ export function BacklogLeads() {
     }
   };
 
+  const resolverTriagem = async (row: TriagemRow) => {
+    setActing(row.id);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from("backlog_triagem")
+        .update({
+          resolvido: true,
+          resolvido_em: new Date().toISOString(),
+          resolvido_por: userData.user?.id ?? null,
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success("Marcado como resolvido");
+      qc.invalidateQueries({ queryKey: ["backlog_triagem"] });
+      qc.invalidateQueries({ queryKey: ["leads_backlog_count"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao resolver");
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const renderMotivoBadge = (chave: string) => (
+    <Badge variant="outline" className={`text-[10px] ${MOTIVO_COLOR[chave] ?? ""}`}>
+      {MOTIVO_LABEL[chave] ?? chave}
+    </Badge>
+  );
+
   return (
     <div className="space-y-4 mt-4">
       <Card className="p-4 bg-muted/30">
@@ -177,16 +290,16 @@ export function BacklogLeads() {
           <div className="text-sm">
             <p className="font-medium">Backlog de Leads</p>
             <p className="text-muted-foreground text-xs mt-1">
-              Quando alguém do Time B&Z inicia uma conversa pelo WhatsApp com um número
-              desconhecido, o contato vai pra cá. Aprove para virar lead no sistema, ou
-              rejeite (spam, número errado, conversa pessoal etc).
+              Mensagens que precisam de revisão humana: humano iniciou conversa com número
+              desconhecido, ou o bot detectou cliente já em atendimento, processo ativo, ou
+              mensagem que não aparenta ser lead.
             </p>
           </div>
         </div>
       </Card>
 
-      <div className="flex items-center gap-2">
-        {(["pendente", "aprovado", "rejeitado"] as const).map((s) => (
+      <div className="flex items-center gap-2 flex-wrap">
+        {(["pendente", "aprovado", "rejeitado", "resolvido"] as const).map((s) => (
           <Button
             key={s}
             size="sm"
@@ -206,64 +319,92 @@ export function BacklogLeads() {
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
-      ) : !rows || rows.length === 0 ? (
+      ) : rows.length === 0 ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Nenhum item {statusFilter}.
         </Card>
       ) : (
         <div className="space-y-2">
-          {rows.map((row) => (
-            <Card key={row.id} className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">{row.nome ?? "Sem nome"}</span>
-                    <Badge variant="outline" className="text-xs">
-                      <Phone className="h-3 w-3 mr-1" />
-                      {row.telefone}
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">{row.origem}</Badge>
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {formatDistanceToNow(new Date(row.created_at), {
-                        addSuffix: true,
-                        locale: ptBR,
-                      })}
-                    </span>
+          {rows.map((entry) => {
+            const r = entry.row;
+            const nome = entry.kind === "lead_novo" ? r.nome : (r as TriagemRow).nome_capturado;
+            const msg =
+              entry.kind === "lead_novo"
+                ? (r as BacklogRow).primeira_mensagem
+                : (r as TriagemRow).msg_recebida;
+            const motivoChave =
+              entry.kind === "lead_novo"
+                ? (r as BacklogRow).origem
+                : (r as TriagemRow).motivo;
+
+            return (
+              <Card key={`${entry.kind}-${r.id}`} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium">{nome ?? "Sem nome"}</span>
+                      <Badge variant="outline" className="text-xs">
+                        <Phone className="h-3 w-3 mr-1" />
+                        {r.telefone}
+                      </Badge>
+                      {renderMotivoBadge(motivoChave)}
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDistanceToNow(new Date(r.created_at), {
+                          addSuffix: true,
+                          locale: ptBR,
+                        })}
+                      </span>
+                    </div>
+                    {msg && (
+                      <p className="text-sm mt-2 p-2 bg-muted rounded border-l-2 border-primary/40 whitespace-pre-wrap">
+                        {msg}
+                      </p>
+                    )}
+                    {entry.kind === "lead_novo" && (r as BacklogRow).rejeitado_motivo && (
+                      <p className="text-xs text-destructive mt-2">
+                        Motivo: {(r as BacklogRow).rejeitado_motivo}
+                      </p>
+                    )}
                   </div>
-                  {row.primeira_mensagem && (
-                    <p className="text-sm mt-2 p-2 bg-muted rounded border-l-2 border-primary/40 whitespace-pre-wrap">
-                      {row.primeira_mensagem}
-                    </p>
+
+                  {/* Ações: leads_backlog pendente -> Aprovar/Rejeitar.
+                      backlog_triagem pendente (resolvido=false) -> Marcar resolvido. */}
+                  {statusFilter === "pendente" && entry.kind === "lead_novo" && (
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => aprovar(r as BacklogRow)}
+                        disabled={acting === r.id}
+                      >
+                        <Check className="h-4 w-4 mr-1" /> Aprovar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRejectTarget(r as BacklogRow)}
+                        disabled={acting === r.id}
+                      >
+                        <X className="h-4 w-4 mr-1" /> Rejeitar
+                      </Button>
+                    </div>
                   )}
-                  {row.rejeitado_motivo && (
-                    <p className="text-xs text-destructive mt-2">
-                      Motivo: {row.rejeitado_motivo}
-                    </p>
+                  {statusFilter === "pendente" && entry.kind === "triagem" && (
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => resolverTriagem(r as TriagemRow)}
+                        disabled={acting === r.id}
+                      >
+                        <Check className="h-4 w-4 mr-1" /> Marcar resolvido
+                      </Button>
+                    </div>
                   )}
                 </div>
-                {statusFilter === "pendente" && (
-                  <div className="flex flex-col gap-2 shrink-0">
-                    <Button
-                      size="sm"
-                      onClick={() => aprovar(row)}
-                      disabled={acting === row.id}
-                    >
-                      <Check className="h-4 w-4 mr-1" /> Aprovar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setRejectTarget(row)}
-                      disabled={acting === row.id}
-                    >
-                      <X className="h-4 w-4 mr-1" /> Rejeitar
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
