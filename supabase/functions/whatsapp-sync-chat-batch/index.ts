@@ -1,11 +1,10 @@
 // Edge Function: whatsapp-sync-chat-batch
-// Roda via pg_cron a cada 5 min. Sincroniza histórico Z-API
-// dos leads com atividade recente (rede de segurança caso o webhook
-// fromMe da Z-API caia).
+// Roda via pg_cron a cada 5 min. Rede de segurança caso o webhook
+// fromMe da Z-API caia novamente.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { syncLead } from "../whatsapp-sync-chat/index.ts";
+import { syncLeadZapi } from "../_shared/zapi-sync.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -15,8 +14,7 @@ Deno.serve(async (req) => {
   const expected = Deno.env.get("SDR_INBOUND_SECRET");
   if (!expected || token !== expected) {
     return new Response(JSON.stringify({ error: "forbidden" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -38,8 +36,7 @@ Deno.serve(async (req) => {
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -49,7 +46,7 @@ Deno.serve(async (req) => {
 
   for (const l of (leads ?? []) as any[]) {
     try {
-      const r = await syncLead(sb, l.id, 30);
+      const r = await syncLeadZapi(sb, l.id, 30);
       totalHumano += r.inserted_humano;
       totalLead += r.inserted_lead;
       resultados.push({ lead_id: l.id, ok: true, res: r });
@@ -74,7 +71,6 @@ Deno.serve(async (req) => {
       leads_processados: resultados.length,
       total_humano: totalHumano,
       total_lead: totalLead,
-      resultados,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
