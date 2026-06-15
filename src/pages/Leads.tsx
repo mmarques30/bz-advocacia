@@ -238,11 +238,18 @@ function LeadsTab({
     return result;
   }, [originFilteredLeads, nomeFilter, sortOrder, origemTipo]);
 
+  // Mesmo gate de pos-bot do aguardandoCount: nao conta leads de campanha
+  // que ja viraram fechado / proposta_enviada / perdido (podem ter sido
+  // fechados por outro canal sem responder a campanha; respondida_em fica
+  // null mas o lead nao esta mais "aguardando").
   const campanhaAguardandoCount = useMemo(
     () => (filteredLeads || []).filter(l =>
       l.origem_sdr === "campanha_recuperacao_form" &&
       l.campanha_envio?.status === "enviada" &&
-      !l.campanha_envio?.respondida_em
+      !l.campanha_envio?.respondida_em &&
+      l.estagio !== "fechado" &&
+      l.estagio !== "proposta_enviada" &&
+      l.estagio !== "perdido"
     ).length,
     [filteredLeads],
   );
