@@ -59,26 +59,7 @@ export function ChatPanel({ leadId }: Props) {
       .then(() => {});
   }, [leadId]);
 
-  // Sincroniza histórico Z-API → mensagens_sdr (captura msgs enviadas pelo celular)
-  useEffect(() => {
-    if (!leadId) return;
-    let cancelado = false;
-    const rodar = async () => {
-      try {
-        const { error } = await supabase.functions.invoke("whatsapp-sync-chat", {
-          body: { lead_id: leadId, limit: 40 },
-        });
-        if (!cancelado && !error) {
-          qc.invalidateQueries({ queryKey: ["mensagens-sdr", leadId] });
-        }
-      } catch (e) {
-        console.warn("[ChatPanel] sync z-api falhou:", e);
-      }
-    };
-    rodar();
-    const iv = setInterval(rodar, 30_000);
-    return () => { cancelado = true; clearInterval(iv); };
-  }, [leadId, qc]);
+
 
 
   if (!lead) {

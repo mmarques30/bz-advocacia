@@ -87,13 +87,7 @@ verify_jwt = false
 [functions.campanha-timeout-3d]
 verify_jwt = false
 
-# Sync on-demand do histórico Z-API (chamado pelo painel via JWT)
-[functions.whatsapp-sync-chat]
-verify_jwt = true
 
-# Sync em batch via pg_cron (autenticado por ?t=SDR_INBOUND_SECRET)
-[functions.whatsapp-sync-chat-batch]
-verify_jwt = false
 
 
 
