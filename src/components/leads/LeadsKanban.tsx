@@ -1,4 +1,16 @@
 import { useMemo, useState, useEffect } from "react";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+} from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Lead } from "@/types/leads";
 import { LeadCard } from "./LeadCard";
 import { useDeleteLead, useUpdateLeadStage } from "@/hooks/useLeads";
@@ -36,6 +48,26 @@ const columns: { id: ColunaId; titulo: string; color: string }[] = [
   { id: "convertido", titulo: "Convertido", color: "border-t-emerald-500" },
   { id: "perdido", titulo: "Perdido", color: "border-t-red-500" },
 ];
+
+// Mapeamento drop -> estado salvo no DB.
+// Pra cada coluna alvo, define `estagio` (contact_submissions) e
+// `status_sdr` (leads_geral, se o lead estiver vinculado).
+// O `status_sdr` so e atualizado quando ele eh essencial pra fazer o lead
+// aparecer na coluna alvo (porque resolveColuna prioriza status_sdr quando
+// o estagio nao e pos-bot — fechado/proposta_enviada/perdido).
+const DROP_TARGET: Record<ColunaId, { estagio: string; status_sdr: string | null }> = {
+  novo: { estagio: "novo", status_sdr: "novo" },
+  // enviado: nao da pra forcar via status_sdr sem etapa_qualificacao
+  // (ver resolveColuna). So atualiza estagio; pra leads nao vinculados ao
+  // bot vai cair em "enviado" pelo fallback.
+  enviado: { estagio: "contato_inicial", status_sdr: null },
+  qualificado: { estagio: "em_analise", status_sdr: "qualificacao_iniciada" },
+  // proposta / convertido / perdido: estagio pos-bot vence sozinho.
+  // Atualiza status_sdr pra coerencia onde fizer sentido.
+  proposta: { estagio: "proposta_enviada", status_sdr: null },
+  convertido: { estagio: "fechado", status_sdr: "cliente" },
+  perdido: { estagio: "perdido", status_sdr: "perdido" },
+};
 
 // Deriva coluna do kanban a partir do estado do lead.
 // Estados pos-bot (proposta_enviada / fechado / perdido) tem prioridade
@@ -86,12 +118,68 @@ function resolveColuna(lead: Lead): ColunaId {
   }
 }
 
+function SortableLeadCard({
+  lead,
+  onViewDetails,
+  onAssumed,
+  onDelete,
+  onMarkLost,
+}: {
+  lead: Lead;
+  onViewDetails: (lead: Lead) => void;
+  onAssumed?: (lead: Lead) => void;
+  onDelete?: (lead: Lead) => void;
+  onMarkLost?: (lead: Lead) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: lead.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <LeadCard
+        lead={lead}
+        onClick={() => onViewDetails(lead)}
+        onAssumed={onAssumed}
+        onDelete={onDelete}
+        onMarkLost={onMarkLost}
+      />
+    </div>
+  );
+}
+
+function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`p-2 space-y-2 max-h-[60vh] overflow-y-auto rounded-lg transition-colors ${
+        isOver ? "bg-accent/50 ring-2 ring-primary/30" : ""
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: LeadsKanbanProps) {
   const queryClient = useQueryClient();
   const deleteLead = useDeleteLead();
   const updateStage = useUpdateLeadStage();
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  // activationConstraint.distance: so inicia drag depois de mover 8px,
+  // permitindo que clicks simples no card propaguem pra abrir o detalhe
+  // (e os botoes do card funcionem).
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+  );
 
   // Realtime: assim que o bot mudar status_sdr em leads_geral, refaz a query.
   useEffect(() => {
@@ -132,6 +220,65 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
     });
     return acc;
   }, [leads]);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveId(null);
+    if (!over) return;
+
+    const leadId = active.id as string;
+    const overId = over.id as string;
+
+    // Resolve a coluna alvo: drop direto na coluna ou em outro card.
+    let targetCol: ColunaId | null = null;
+    if (columns.some((c) => c.id === overId)) {
+      targetCol = overId as ColunaId;
+    } else {
+      const alvo = leads?.find((l) => l.id === overId);
+      if (alvo) targetCol = resolveColuna(alvo);
+    }
+    if (!targetCol) return;
+
+    const lead = leads?.find((l) => l.id === leadId);
+    if (!lead) return;
+
+    const currentCol = resolveColuna(lead);
+    if (currentCol === targetCol) return;
+
+    // Drop em "perdido" pede confirmacao (acao destrutiva — encerra o bot).
+    if (targetCol === "perdido") {
+      setLeadToLose(lead);
+      return;
+    }
+
+    const target = DROP_TARGET[targetCol];
+
+    try {
+      // Atualiza estagio no contact_submissions
+      await updateStage.mutateAsync({ id: lead.id, estagio: target.estagio });
+
+      // E status_sdr no leads_geral, quando faz sentido e o lead esta vinculado.
+      // Sem isso, o resolveColuna pode trazer o card de volta pra coluna
+      // antiga (pq status_sdr prioritario sobre estagio em estados pre-bot).
+      if (target.status_sdr && lead.lead_geral_id) {
+        const { error } = await supabase
+          .from("leads_geral")
+          .update({ status_sdr: target.status_sdr })
+          .eq("id", lead.lead_geral_id);
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      toast({
+        title: "Erro ao mover lead",
+        description: err?.message ?? String(err),
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleConfirmLost = async () => {
     if (!leadToLose) return;
@@ -175,8 +322,10 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
     );
   }
 
+  const activeLead = activeId ? leads?.find((l) => l.id === activeId) : null;
+
   return (
-    <>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {columns.map((coluna) => {
           const colLeads = leadsGrouped[coluna.id] || [];
@@ -186,12 +335,12 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
                 <h3 className="font-semibold text-sm">{coluna.titulo}</h3>
                 <span className="text-xs text-muted-foreground">{colLeads.length} leads</span>
               </div>
-              <div className="p-2 space-y-2 max-h-[60vh] overflow-y-auto">
+              <DroppableColumn id={coluna.id}>
                 {colLeads.map((lead) => (
-                  <LeadCard
+                  <SortableLeadCard
                     key={lead.id}
                     lead={lead}
-                    onClick={() => onViewDetails(lead)}
+                    onViewDetails={onViewDetails}
                     onAssumed={onAssumed}
                     onDelete={setLeadToDelete}
                     onMarkLost={
@@ -204,11 +353,15 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
                 {colLeads.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-4">Nenhum lead</p>
                 )}
-              </div>
+              </DroppableColumn>
             </div>
           );
         })}
       </div>
+
+      <DragOverlay>
+        {activeLead ? <LeadCard lead={activeLead} onClick={() => {}} /> : null}
+      </DragOverlay>
 
       <AlertDialog open={!!leadToDelete} onOpenChange={(open) => !open && setLeadToDelete(null)}>
         <AlertDialogContent>
@@ -257,6 +410,6 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </DndContext>
   );
 }
