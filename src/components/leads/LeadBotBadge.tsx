@@ -20,6 +20,36 @@ export function getBotBadgeInfo(lead: Lead): BadgeInfo {
       Icon: ClipboardList,
     };
   }
+
+  // Estados pos-bot vencem o status_sdr antigo. Mesmo padrao do
+  // resolveColuna no LeadsKanban: se o estagio ja indica progresso
+  // explicito (proposta gerada / contrato emitido / perda marcada), o
+  // status_sdr do leads_geral pode ter ficado defasado (o
+  // leadStatusAutomation so atualiza estagio). Sem isso, um lead que
+  // virou perdido / fechado / em proposta continuava com o badge
+  // "Aguardando advogada" ou "Bot conversando".
+  if (lead.estagio === "fechado") {
+    return {
+      label: "Cliente fechado",
+      className: "bg-emerald-200 text-emerald-900 border-emerald-300",
+      Icon: CheckCircle2,
+    };
+  }
+  if (lead.estagio === "proposta_enviada") {
+    return {
+      label: "Em proposta",
+      className: "bg-amber-100 text-amber-900 border-amber-300",
+      Icon: ClipboardList,
+    };
+  }
+  if (lead.estagio === "perdido") {
+    return {
+      label: "Perdido",
+      className: "bg-gray-200 text-gray-700 border-gray-300",
+      Icon: XCircle,
+    };
+  }
+
   switch (lead.status_sdr) {
     case "sql_aguardando_humano":
     case "aguardando_triagem":

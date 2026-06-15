@@ -15,7 +15,17 @@ export function AtenderAgoraButton({ lead, size = "sm", className, onAssumed }: 
   const assumir = useAssumirLead({
     onAssumed: () => onAssumed?.(lead),
   });
+  // So mostra o botao se o lead realmente esta no estado de espera
+  // (status_sdr=sql_aguardando_humano) E ainda nao avançou pra um estagio
+  // pos-bot. Sem isso, leads ja em proposta / fechado / perdido continuavam
+  // exibindo "Atender agora" porque o status_sdr nao e atualizado quando
+  // o estagio muda via leadStatusAutomation.
   if (lead.status_sdr !== "sql_aguardando_humano") return null;
+  if (
+    lead.estagio === "fechado" ||
+    lead.estagio === "proposta_enviada" ||
+    lead.estagio === "perdido"
+  ) return null;
 
   return (
     <Button

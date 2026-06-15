@@ -49,8 +49,17 @@ export function useSdrAlerts(leads: Lead[] | undefined, onOpenLead?: (lead: Lead
 
   useEffect(() => {
     if (!leads) return;
+    // Mesmo criterio do badge/botao/contador: ignora leads que ja avançaram
+    // pra estagio pos-bot mesmo que o status_sdr antigo ainda esteja como
+    // sql_aguardando_humano (descompasso conhecido — leadStatusAutomation
+    // so atualiza estagio).
+    const isHot = (l: Lead) =>
+      l.status_sdr === "sql_aguardando_humano" &&
+      l.estagio !== "fechado" &&
+      l.estagio !== "proposta_enviada" &&
+      l.estagio !== "perdido";
     const hotIds = new Set(
-      leads.filter((l) => l.status_sdr === "sql_aguardando_humano").map((l) => l.id),
+      leads.filter(isHot).map((l) => l.id),
     );
 
     // Mount inicial: apenas armazena, não dispara
@@ -60,9 +69,7 @@ export function useSdrAlerts(leads: Lead[] | undefined, onOpenLead?: (lead: Lead
     }
 
     const novos = leads.filter(
-      (l) =>
-        l.status_sdr === "sql_aguardando_humano" &&
-        !previousIdsRef.current!.has(l.id),
+      (l) => isHot(l) && !previousIdsRef.current!.has(l.id),
     );
     previousIdsRef.current = hotIds;
 
