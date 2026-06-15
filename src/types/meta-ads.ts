@@ -84,6 +84,11 @@ export interface MetaKPIs {
   ctrVariacao: number;
   impressoes: number;
   cpc: number;
+  // Vem de v_meta_lead_funnel (leads reais que entraram pelo bot e
+  // viraram cliente/agendado/assumido/sql). Opcional pra preservar
+  // consumidores legados.
+  taxaConversao?: number;
+  leadsConvertidos?: number;
 }
 
 export interface MetaChartData {
