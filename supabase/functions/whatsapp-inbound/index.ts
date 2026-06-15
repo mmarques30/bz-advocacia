@@ -622,6 +622,45 @@ Deno.serve(async (req) => {
 
     if (campResp) {
       const cr: any = campResp;
+
+      // GUARD ANTI-ATROPELO: se humano já assumiu OU mandou msg humana
+      // nas últimas 24h, marca campanha como respondida MAS NÃO dispara
+      // M0 — bot fica fora pra não atropelar o atendimento humano.
+      const desde24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count: humanoRecenteCount } = await supabase
+        .from("mensagens_sdr")
+        .select("id", { count: "exact", head: true })
+        .eq("lead_id", lead.id)
+        .eq("origem", "humano")
+        .gte("enviada_em", desde24h);
+
+      const humanoAtivo =
+        (humanoRecenteCount ?? 0) > 0 ||
+        !!(lead as any).humano_responsavel ||
+        lead.bot_pausado === true ||
+        ["assumido_humano", "agendado", "cliente"].includes((lead.status_sdr ?? "").toString());
+
+      if (humanoAtivo) {
+        await supabase
+          .from("campanhas_envio")
+          .update({ status: "respondida", respondida_em: minhaMsgTs })
+          .eq("id", cr.id);
+
+        await registrarEvento(supabase, lead.id, "campanha_resposta_humano_ja_ativo", {
+          campanhas_envio_id: cr.id,
+          motivo: "humano_assumiu",
+          humano_msgs_24h: humanoRecenteCount ?? 0,
+          humano_responsavel: (lead as any).humano_responsavel ?? null,
+          bot_pausado: lead.bot_pausado,
+          status_sdr: lead.status_sdr,
+        });
+
+        return new Response(
+          JSON.stringify({ ok: true, acao: "humano_ativo_bot_silenciado_campanha", lead_id: lead.id }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
       await supabase
         .from("campanhas_envio")
         .update({ status: "respondida", respondida_em: minhaMsgTs })
@@ -661,6 +700,7 @@ Deno.serve(async (req) => {
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }
+
   } catch (e) {
     await registrarEvento(supabase, lead.id, "campanha_resposta_erro", {
       erro: (e as Error).message,
