@@ -255,7 +255,13 @@ export function LeadsTable({ leads, isLoading, onViewDetails, onEdit, enableBulk
                 className={cn(
                   "cursor-pointer hover:bg-muted/40",
                   selectedIds.has(lead.id) && "bg-primary/5",
-                  lead.status_sdr === "sql_aguardando_humano" && "bg-orange-50 hover:bg-orange-100",
+                  // Destaque laranja so se o lead realmente esta esperando humano.
+                  // Mesmo gate aplicado em LeadCard.isHot — ignora pos-bot.
+                  lead.status_sdr === "sql_aguardando_humano" &&
+                    lead.estagio !== "fechado" &&
+                    lead.estagio !== "proposta_enviada" &&
+                    lead.estagio !== "perdido" &&
+                    "bg-orange-50 hover:bg-orange-100",
                 )}
                 onClick={() => onViewDetails(lead)}
               >

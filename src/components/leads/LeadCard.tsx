@@ -66,7 +66,16 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost }: Lea
     toast({ title: "Mensagem de primeiro contato enviada" });
   };
 
-  const isHot = lead.status_sdr === "sql_aguardando_humano";
+  // "Quente" só vale enquanto o lead realmente esta esperando atendimento.
+  // Se ja avançou (estagio pos-bot: proposta_enviada / fechado / perdido),
+  // o status_sdr antigo nao deve mais acionar o destaque laranja nem o
+  // botao "Atender agora". O leadStatusAutomation so atualiza estagio,
+  // entao a checagem aqui precisa olhar os dois.
+  const isHot =
+    lead.status_sdr === "sql_aguardando_humano" &&
+    lead.estagio !== "fechado" &&
+    lead.estagio !== "proposta_enviada" &&
+    lead.estagio !== "perdido";
   return (
     <Card
       className={cn(

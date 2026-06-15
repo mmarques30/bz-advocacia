@@ -247,8 +247,20 @@ function LeadsTab({
     [filteredLeads],
   );
 
+  // Conta so leads efetivamente aguardando humano. Ignora os que ja
+  // avançaram pra estagio pos-bot (proposta_enviada / fechado / perdido)
+  // mesmo que o status_sdr antigo do bot continue como
+  // sql_aguardando_humano — esse desalinhamento acontece porque o
+  // leadStatusAutomation so atualiza estagio quando gera proposta/contrato.
   const aguardandoCount = useMemo(
-    () => (filteredLeads || []).filter(l => l.status_sdr === "sql_aguardando_humano").length,
+    () =>
+      (filteredLeads || []).filter(
+        (l) =>
+          l.status_sdr === "sql_aguardando_humano" &&
+          l.estagio !== "fechado" &&
+          l.estagio !== "proposta_enviada" &&
+          l.estagio !== "perdido",
+      ).length,
     [filteredLeads],
   );
 
