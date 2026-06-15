@@ -54,6 +54,11 @@ export interface Lead {
   bot_pausado?: boolean | null;
   ultima_mensagem_em?: string | null;
   origem_sdr?: string | null;
+  // True quando o bot detectou que o lead veio de fora de anuncio
+  // (platform sem sufixo _ads). Fonte: leads_geral.is_organic.
+  // Mais confiavel que `origem` (contact_submissions) pra separar
+  // pipeline Organico vs Anuncios.
+  is_organic?: boolean | null;
   campanha_envio?: {
     enviada_em: string | null;
     respondida_em: string | null;

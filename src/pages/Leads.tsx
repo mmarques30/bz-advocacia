@@ -136,8 +136,9 @@ function LeadsTab({
       let query = supabase
         .from('contact_submissions')
         .select('nome_completo')
+        .neq('como_conheceu', 'importacao') // Clientes importados nao entram no pipeline
         .order('nome_completo');
-      
+
       if (filterOrigins) {
         query = query.in('origem', filterOrigins);
       }
@@ -178,14 +179,33 @@ function LeadsTab({
   const { data: leads, isLoading } = useLeads(queryFilters);
 
   // Filter by origin (ads vs organic) client-side
+  // Fonte preferencial: `lead.is_organic` (vindo de leads_geral.is_organic, derivado de
+  // platform.endsWith('_ads')). Mais confiavel que `lead.origem` (contact_submissions),
+  // que pode ser "whatsapp_organico" mesmo pra leads CTWA quando o anuncio nao foi detectado
+  // no payload Z-API ou quando o contact_submissions ja existia antes do bot linkar.
+  // Fallback no `origem` pra leads sem vinculo com leads_geral (puramente manuais).
+  // Tambem exclui clientes importados (como_conheceu='importacao'): eles entram no banco
+  // como 'fechado' e poluiam Convertido com clientes que nao sao do funil.
   const originFilteredLeads = useMemo(() => {
     if (!leads) return undefined;
-    let result = leads;
+    let result = leads.filter(l => l.como_conheceu !== 'importacao');
     if (filterOrigins) {
-      result = result.filter(l => filterOrigins.includes(l.origem || ''));
+      // Aba "Anuncios": queremos leads que o bot marcou como NAO-organico
+      // (is_organic=false). Fallback: origem em filterOrigins.
+      result = result.filter(l => {
+        if (l.is_organic === false) return true;
+        if (l.is_organic === true) return false;
+        return filterOrigins.includes(l.origem || '');
+      });
     }
     if (excludeOrigins) {
-      result = result.filter(l => !excludeOrigins.includes(l.origem || ''));
+      // Aba "Organicos": queremos leads que o bot marcou como organico
+      // (is_organic=true) ou leads manuais sem vinculo. Fallback: origem fora de excludeOrigins.
+      result = result.filter(l => {
+        if (l.is_organic === true) return true;
+        if (l.is_organic === false) return false;
+        return !excludeOrigins.includes(l.origem || '');
+      });
     }
     return result;
   }, [leads, filterOrigins, excludeOrigins]);
