@@ -238,22 +238,6 @@ function LeadsTab({
     return result;
   }, [originFilteredLeads, nomeFilter, sortOrder, origemTipo]);
 
-  // Mesmo gate de pos-bot do aguardandoCount: nao conta leads de campanha
-  // que ja viraram fechado / proposta_enviada / perdido (podem ter sido
-  // fechados por outro canal sem responder a campanha; respondida_em fica
-  // null mas o lead nao esta mais "aguardando").
-  const campanhaAguardandoCount = useMemo(
-    () => (filteredLeads || []).filter(l =>
-      l.origem_sdr === "campanha_recuperacao_form" &&
-      l.campanha_envio?.status === "enviada" &&
-      !l.campanha_envio?.respondida_em &&
-      l.estagio !== "fechado" &&
-      l.estagio !== "proposta_enviada" &&
-      l.estagio !== "perdido"
-    ).length,
-    [filteredLeads],
-  );
-
   // Conta so leads efetivamente aguardando humano. Ignora os que ja
   // avançaram pra estagio pos-bot (proposta_enviada / fechado / perdido)
   // mesmo que o status_sdr antigo do bot continue como
@@ -284,18 +268,6 @@ function LeadsTab({
               {aguardandoCount} {aguardandoCount === 1 ? "lead aguardando" : "leads aguardando"} você atender agora
             </p>
             <p className="text-xs text-orange-800">Bot já qualificou — só falta resposta humana</p>
-          </div>
-        </Card>
-      )}
-
-      {campanhaAguardandoCount > 0 && (
-        <Card className="p-4 border-purple-300 bg-purple-50 flex items-center gap-3">
-          <Megaphone className="h-6 w-6 text-purple-700 shrink-0" />
-          <div>
-            <p className="text-sm font-bold text-purple-900">
-              {campanhaAguardandoCount} {campanhaAguardandoCount === 1 ? "lead" : "leads"} da campanha de recuperação aguardando resposta
-            </p>
-            <p className="text-xs text-purple-800">Mensagem enviada via WhatsApp — assim que responderem viram lead quente</p>
           </div>
         </Card>
       )}
