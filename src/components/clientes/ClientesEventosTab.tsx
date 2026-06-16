@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAniversariantes } from "@/hooks/useAniversariantes";
-import { openWhatsAppLink } from "@/lib/whatsappUtils";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/lib/toast";
 
 const activityIcons: Record<string, any> = {
   lead_criado: UserPlus,
@@ -64,9 +65,19 @@ export function ClientesEventosTab() {
       : nome.substring(0, 2).toUpperCase();
   }
 
-  function handleEnviarParabens(a: { nome: string; telefone: string }) {
+  const navigate = useNavigate();
+  function handleEnviarParabens(a: { nome: string; telefone: string; lead_geral_id?: string | null }) {
     const msg = `Olá ${a.nome.split(" ")[0]}! Desejamos um feliz aniversário! Que este novo ciclo traga muitas realizações. Abraços da equipe B&Z Advocacia!`;
-    openWhatsAppLink(a.telefone, msg);
+    if (!a.lead_geral_id) {
+      toast({
+        title: "Cliente sem conversa no WhatsApp",
+        description: "Esse cliente ainda nao tem conversa registrada no bot. Inicie pela aba Atendimento com o numero " + a.telefone,
+        variant: "destructive",
+      });
+      return;
+    }
+    // Abre o atendimento ja selecionando o lead e pre-populando a textarea.
+    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(a.lead_geral_id)}&msg=${encodeURIComponent(msg)}`);
   }
 
   return (

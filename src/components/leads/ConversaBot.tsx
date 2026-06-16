@@ -27,6 +27,9 @@ interface Props {
   className?: string;
   autoFocus?: boolean;
   fullHeight?: boolean;
+  // Pre-popula a textarea (usado por deep-link "Enviar parabens",
+  // botao WhatsApp da tabela de clientes etc).
+  mensagemInicial?: string;
 }
 
 // Antes a regra bloqueava envio quando o bot ainda estava ativo, o que
@@ -40,10 +43,23 @@ const botAtivo = (status: string | null | undefined, bot_pausado: boolean | null
   return !["assumido_humano", "agendado", "cliente", "perdido"].includes(status || "");
 };
 
-export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, autoFocus = false, fullHeight = false }: Props) {
+export function ConversaBot({
+  leadGeralId, status_sdr, bot_pausado, className,
+  autoFocus = false, fullHeight = false, mensagemInicial,
+}: Props) {
   const queryClient = useQueryClient();
-  const [mensagem, setMensagem] = useState("");
+  const [mensagem, setMensagem] = useState(mensagemInicial ?? "");
   const [enviando, setEnviando] = useState(false);
+
+  // Aplica mensagemInicial quando o componente remonta com outra (ex:
+  // usuario navega novamente via deep-link). Nao sobrescreve se o
+  // usuario ja digitou (so quando vem mensagemInicial nova).
+  useEffect(() => {
+    if (mensagemInicial && mensagem === "") {
+      setMensagem(mensagemInicial);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mensagemInicial]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

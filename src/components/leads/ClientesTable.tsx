@@ -22,6 +22,8 @@ import { Lead, ORIGEM_LABELS } from "@/types/leads";
 import { format } from "date-fns";
 import { useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/lib/toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -64,20 +66,21 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
     return colors[origem] || colors.outro;
   };
 
-  const formatPhoneForWhatsApp = (phone: string) => {
-    // Remove all non-numeric characters
-    const cleaned = phone.replace(/\D/g, '');
-    // Add Brazil country code if not present
-    if (cleaned.startsWith('55')) {
-      return cleaned;
+  const navigate = useNavigate();
+  const openWhatsApp = (lead: Lead) => {
+    // Abre o atendimento interno — pra manter historico da conversa.
+    // Se o lead nunca passou pelo bot (sem lead_geral_id), aviso porque
+    // nao ha conversa pra continuar; ai cabe abrir manualmente na aba.
+    const msg = `Olá ${lead.nome_completo.split(" ")[0]}, tudo bem?`;
+    if (!lead.lead_geral_id) {
+      toast({
+        title: "Cliente sem conversa no bot",
+        description: "Esse cliente ainda nao tem conversa registrada. Abra na aba Atendimento manualmente.",
+        variant: "destructive",
+      });
+      return;
     }
-    return `55${cleaned}`;
-  };
-
-  const openWhatsApp = (phone: string, name: string) => {
-    const formattedPhone = formatPhoneForWhatsApp(phone);
-    const message = encodeURIComponent(`Olá ${name}, tudo bem?`);
-    window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank');
+    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(lead.lead_geral_id)}&msg=${encodeURIComponent(msg)}`);
   };
 
   const sortedLeads = useMemo(() => {
@@ -185,7 +188,7 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                    onClick={() => openWhatsApp(lead.telefone, lead.nome_completo)}
+                    onClick={() => openWhatsApp(lead)}
                     title={`Enviar WhatsApp para ${lead.telefone}`}
                     aria-label={`Enviar WhatsApp para ${lead.nome_completo}`}
                   >
