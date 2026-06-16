@@ -40,7 +40,6 @@ import FinanceiroPagamentos from "./pages/financeiro/Pagamentos";
 // Pesquisas (apenas Consulta gratuita BrasilAPI + Historico ate contratarmos APIs pagas)
 import PesquisasIndex from "./pages/pesquisas/Index";
 import PesquisasHistorico from "./pages/pesquisas/Historico";
-import PesquisasCNPJ from "./pages/pesquisas/CNPJ";
 
 // Comunicação
 import ComunicacaoTemplates from "./pages/comunicacao/Templates";
@@ -283,14 +282,6 @@ const App = () => {
         } 
       />
       <Route
-        path="/dashboard/pesquisas/cnpj"
-        element={
-          <ProtectedRoute>
-            <PesquisasCNPJ />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/dashboard/pesquisas/historico"
         element={
           <ProtectedRoute>
@@ -298,9 +289,10 @@ const App = () => {
           </ProtectedRoute>
         }
       />
-      {/* CPF (Apify) e Processos (Datajud) sao pagos — redireciono pra Consulta de Empresa enquanto nao contratamos */}
-      <Route path="/dashboard/pesquisas/cpf" element={<Navigate to="/dashboard/pesquisas/cnpj" replace />} />
-      <Route path="/dashboard/pesquisas/processos" element={<Navigate to="/dashboard/pesquisas/cnpj" replace />} />
+      {/* Links antigos (cnpj, cpf via Apify, processos via Datajud) redirecionam pra raiz */}
+      <Route path="/dashboard/pesquisas/cnpj" element={<Navigate to="/dashboard/pesquisas" replace />} />
+      <Route path="/dashboard/pesquisas/cpf" element={<Navigate to="/dashboard/pesquisas" replace />} />
+      <Route path="/dashboard/pesquisas/processos" element={<Navigate to="/dashboard/pesquisas" replace />} />
       
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
