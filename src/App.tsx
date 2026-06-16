@@ -4,7 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { startVersionCheck } from "@/lib/versionCheck";
 import { useAuth } from "@/hooks/useAuth";
+import { useHasPageAccess } from "@/hooks/usePagePermissions";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { AccessDenied } from "@/components/AccessDenied";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -60,7 +62,16 @@ function RootRedirect() {
 }
 
 // Protected Route Component
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+//
+// `permission` opcional: quando passado, exige useHasPageAccess(permission).
+// Admin sempre passa (o hook ja retorna todas as chaves pra admin).
+function ProtectedRoute({
+  children,
+  permission,
+}: {
+  children: React.ReactNode;
+  permission?: string;
+}) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -75,7 +86,26 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/auth" replace />;
   }
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return (
+    <DashboardLayout>
+      {permission ? <PermissionGate permission={permission}>{children}</PermissionGate> : children}
+    </DashboardLayout>
+  );
+}
+
+// Wrapper interno: chama o hook so quando ha permission, evita
+// useQuery rodando em todas as rotas.
+function PermissionGate({ permission, children }: { permission: string; children: React.ReactNode }) {
+  const { hasAccess, isLoading } = useHasPageAccess(permission);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+  if (!hasAccess) return <AccessDenied />;
+  return <>{children}</>;
 }
 
 const App = () => {
@@ -87,119 +117,119 @@ const App = () => {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
       <Route path="/auth" element={<Auth />} />
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="painel">
             <Dashboard />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/leads" 
+      <Route
+        path="/dashboard/leads"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_vendas.leads">
             <Leads />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/atendimento" 
+      <Route
+        path="/dashboard/atendimento"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_vendas.atendimento">
             <Atendimento />
           </ProtectedRoute>
-        } 
+        }
       />
       <Route
         path="/dashboard/clientes"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_clientes.clientes">
             <Clientes />
           </ProtectedRoute>
         }
       />
-      <Route 
+      <Route
         path="/dashboard/vendas/analises"
         element={<Navigate to="/dashboard/vendas/meta-ads" replace />}
       />
-      <Route 
+      <Route
         path="/dashboard/vendas/meta-ads"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_vendas.marketing">
             <MetaAds />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
+      <Route
         path="/dashboard/vendas/meta-ads/callback"
         element={<MetaAdsCallback />}
       />
-      <Route 
+      <Route
         path="/dashboard/vendas/relatorios"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="relatorios.vendas">
             <RelatoriosVendas />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
+      <Route
         path="/dashboard/documentos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_clientes.documentos">
             <Documentos />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
+      <Route
         path="/dashboard/processos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_rotinas.processos">
             <Processos />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/financeiro" 
+      <Route
+        path="/dashboard/financeiro"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="financeiro.analises">
             <Financeiro />
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Configurações */}
-      <Route 
-        path="/dashboard/configuracoes" 
+      <Route
+        path="/dashboard/configuracoes"
         element={
           <ProtectedRoute>
             <Configuracoes />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/configuracoes/cadastros" 
+      <Route
+        path="/dashboard/configuracoes/cadastros"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="administrativo.cadastros">
             <Cadastros />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/configuracoes/modelos" 
+      <Route
+        path="/dashboard/configuracoes/modelos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="administrativo.modelos">
             <Modelos />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/configuracoes/controle" 
+      <Route
+        path="/dashboard/configuracoes/controle"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="administrativo.controle">
             <Controle />
           </ProtectedRoute>
-        } 
+        }
       />
       {/* Redirects for old routes */}
       <Route path="/dashboard/configuracoes/perfil" element={<Navigate to="/dashboard/configuracoes/cadastros" replace />} />
@@ -211,80 +241,80 @@ const App = () => {
       <Route path="/dashboard/configuracoes/automacoes" element={<Navigate to="/dashboard/configuracoes/controle" replace />} />
       
       {/* Processos - Subrotas */}
-      <Route 
-        path="/dashboard/processos/calendario" 
+      <Route
+        path="/dashboard/processos/calendario"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_rotinas.prazos">
             <ProcessosCalendario />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/processos/demandas" 
+      <Route
+        path="/dashboard/processos/demandas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="gestao_rotinas.tarefas">
             <ProcessosDemandas />
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Financeiro - Subrotas */}
-      <Route 
-        path="/dashboard/financeiro/acordos" 
+      <Route
+        path="/dashboard/financeiro/acordos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="financeiro.analises">
             <FinanceiroAcordos />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/financeiro/relatorios" 
+      <Route
+        path="/dashboard/financeiro/relatorios"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="relatorios.financeiro">
             <FinanceiroRelatorios />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/financeiro/historico" 
+      <Route
+        path="/dashboard/financeiro/historico"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="financeiro.historico">
             <FinanceiroHistorico />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/financeiro/pagamentos" 
+      <Route
+        path="/dashboard/financeiro/pagamentos"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="financeiro.pagamentos">
             <FinanceiroPagamentos />
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      {/* Comunicação - Subrotas */}
-      <Route 
-        path="/dashboard/configuracoes/whatsapp-templates" 
+
+      {/* Comunicação - Subrotas (Templates compartilha a mesma chave de Modelos) */}
+      <Route
+        path="/dashboard/configuracoes/whatsapp-templates"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="administrativo.modelos">
             <ComunicacaoTemplates />
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Pesquisas - Subrotas */}
-      <Route 
-        path="/dashboard/pesquisas" 
+      <Route
+        path="/dashboard/pesquisas"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="pesquisas.consulta_empresa">
             <PesquisasIndex />
           </ProtectedRoute>
-        } 
+        }
       />
       <Route
         path="/dashboard/pesquisas/historico"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="pesquisas.historico">
             <PesquisasHistorico />
           </ProtectedRoute>
         }

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyPagePermissions } from "@/hooks/usePagePermissions";
+import { ROUTE_TO_PERMISSION } from "@/lib/pagePermissions";
 import logoBZ from "@/assets/logo-bz-new.png";
 import {
   Sidebar,
@@ -131,7 +133,28 @@ export function AppSidebar() {
   const location = useLocation();
   const isCollapsed = state === "collapsed";
 
-  const activeGroup = menuItems.find(item =>
+  // Filtra itens do menu pelas permissoes do usuario logado.
+  // Admin sempre ve tudo (o hook retorna todas as chaves).
+  const { data: permissoes } = useMyPagePermissions();
+  const podeVerRota = (url: string): boolean => {
+    const chave = ROUTE_TO_PERMISSION[url];
+    if (!chave) return true; // rotas sem mapeamento ficam abertas
+    return (permissoes ?? []).some((p: any) => p.page_key === chave && p.can_access);
+  };
+
+  const visibleMenuItems = menuItems
+    .map((item) => {
+      if (!item.submenu) {
+        if (item.url && !podeVerRota(item.url)) return null;
+        return item;
+      }
+      const subVisivel = item.submenu.filter((sub) => podeVerRota(sub.url));
+      if (subVisivel.length === 0) return null;
+      return { ...item, submenu: subVisivel };
+    })
+    .filter((x): x is MenuItem => x !== null);
+
+  const activeGroup = visibleMenuItems.find(item =>
     item.submenu?.some(sub => location.pathname.startsWith(sub.url))
   )?.title;
 
@@ -185,7 +208,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
+              {visibleMenuItems.map((item) => {
                 const hasSubmenu = item.submenu && item.submenu.length > 0;
                 const isOpen = openMenus.includes(item.title);
                 
