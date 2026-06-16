@@ -10,7 +10,14 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS } from "@/types/leads";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Lead, LEAD_STATUS_LABELS, ORIGEM_LABELS, TIPO_PROCESSO_OPTIONS } from "@/types/leads";
 import { format } from "date-fns";
 import { Mail, Phone, Calendar, FileText, AlertCircle, ClipboardList, MessageCircle, MessageSquare, AlertTriangle, Wallet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -38,12 +45,94 @@ interface LeadDetailsDialogProps {
   initialTab?: string;
 }
 
+const TIPOS_CONTATO_OPTS = [
+  { v: "lead", l: "Lead (entra no funil)" },
+  { v: "fornecedor", l: "Fornecedor" },
+  { v: "parceiro", l: "Parceiro" },
+  { v: "institucional", l: "Institucional / Vara" },
+  { v: "pessoal", l: "Contato pessoal" },
+];
+
+const ESTAGIO_OPTS: { v: Lead["estagio"]; l: string }[] = [
+  { v: "novo", l: "Novo" },
+  { v: "contato_inicial", l: "Enviado" },
+  { v: "em_analise", l: "Qualificado" },
+  { v: "proposta_enviada", l: "Em Proposta" },
+  { v: "fechado", l: "Convertido" },
+  { v: "perdido", l: "Perdido" },
+];
+
 export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = false, initialTab }: LeadDetailsDialogProps) {
   const diasParado = lead?.dias_parado || 0;
   const [sendingPrimeiroContato, setSendingPrimeiroContato] = useState(false);
   const [markingConcluido, setMarkingConcluido] = useState(false);
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
+  const [savingField, setSavingField] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  async function updateContactSubmission(patch: Record<string, unknown>) {
+    if (!lead) return;
+    const { error } = await supabase
+      .from("contact_submissions")
+      .update(patch)
+      .eq("id", lead.id);
+    if (error) {
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+      return false;
+    }
+    return true;
+  }
+
+  async function handleTipoContato(value: string) {
+    if (!lead?.lead_geral_id) {
+      toast({
+        title: "Lead sem vínculo no bot",
+        description: "Este registro ainda não tem entrada em leads_geral. Edite via formulário completo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingField("tipo_contato");
+    const patch: Record<string, unknown> = { tipo_contato: value };
+    if (value !== "lead") patch.bot_pausado = true;
+    const { error } = await (supabase as any)
+      .from("leads_geral")
+      .update(patch)
+      .eq("id", lead.lead_geral_id);
+    setSavingField(null);
+    if (error) {
+      toast({ title: "Erro ao classificar", description: error.message, variant: "destructive" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["leads"] });
+    queryClient.invalidateQueries({ queryKey: ["leads-kanban"] });
+    queryClient.invalidateQueries({ queryKey: ["lead-info", lead.lead_geral_id] });
+    toast({ title: value === "lead" ? "Voltou pro pipeline" : "Reclassificado como nao-lead" });
+  }
+
+  async function handleEstagio(value: string) {
+    if (!lead) return;
+    setSavingField("estagio");
+    const ok = await updateContactSubmission({ estagio: value });
+    setSavingField(null);
+    if (ok) {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kanban"] });
+      toast({ title: "Estágio atualizado" });
+    }
+  }
+
+  async function handleTipoProcesso(value: string) {
+    if (!lead) return;
+    setSavingField("tipo_processo");
+    const ok = await updateContactSubmission({ tipo_processo: value });
+    setSavingField(null);
+    if (ok) {
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kanban"] });
+      toast({ title: "Área atualizada" });
+    }
+  }
 
   const handleDialogClose = () => {
     setSelectedProcessoId(null);
@@ -322,6 +411,68 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
               </TabsList>
 
               <TabsContent value="info" className="space-y-4 mt-4">
+                {/* Classificacao rapida: tipo de contato, area e estagio sem abrir o formulario completo */}
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Classificação rápida
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-muted-foreground">Tipo de contato</label>
+                      <Select
+                        value={lead.tipo_contato || "lead"}
+                        onValueChange={handleTipoContato}
+                        disabled={savingField === "tipo_contato"}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIPOS_CONTATO_OPTS.map((t) => (
+                            <SelectItem key={t.v} value={t.v} className="text-xs">{t.l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-muted-foreground">Área</label>
+                      <Select
+                        value={lead.tipo_processo || undefined}
+                        onValueChange={handleTipoProcesso}
+                        disabled={savingField === "tipo_processo"}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIPO_PROCESSO_OPTIONS.map((t) => (
+                            <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-muted-foreground">Estágio</label>
+                      <Select
+                        value={lead.estagio}
+                        onValueChange={handleEstagio}
+                        disabled={savingField === "estagio"}
+                      >
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ESTAGIO_OPTS.map((e) => (
+                            <SelectItem key={e.v} value={e.v} className="text-xs">{e.l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-muted-foreground">

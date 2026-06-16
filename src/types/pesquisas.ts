@@ -10,7 +10,10 @@ export interface ConsultasConfig {
   updated_at: string;
 }
 
-export type TipoConsulta = 'processo' | 'cpf' | 'cnpj';
+// cep e usado pela edge consultas-brasilapi quando o usuario quer
+// resolver um endereco. processo/cpf permanecem na uniao pra nao quebrar
+// dados antigos no historico, mas o painel so oferece o que tem hoje.
+export type TipoConsulta = 'processo' | 'cpf' | 'cnpj' | 'cep';
 
 // Consulta de Processo Judicial (Datajud CNJ)
 export interface ConsultaProcessoRequest {

@@ -3,34 +3,17 @@ import { Button } from "@/components/ui/button";
 import { History, Scale, Building2, User, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
+// Por enquanto so mantemos a consulta gratuita (BrasilAPI). As demais
+// (Datajud / Apify) dependem de assinaturas pagas — quando contratadas,
+// reabilita as entradas no sidebar (AppSidebar.tsx) e neste array.
 const consultas = [
-  {
-    icon: Scale,
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
-    titulo: "Consultar Processo",
-    descricao: "Dados públicos de processos judiciais de todos os tribunais brasileiros",
-    api: "Datajud (CNJ)",
-    url: "/dashboard/pesquisas/processos",
-    buttonVariant: "default" as const,
-  },
-  {
-    icon: User,
-    iconBg: "bg-green-500/10",
-    iconColor: "text-green-500",
-    titulo: "Consultar Pessoa",
-    descricao: "Situação cadastral de CPF diretamente na Receita Federal",
-    api: "Apify (Receita Federal)",
-    url: "/dashboard/pesquisas/cpf",
-    buttonVariant: "default" as const,
-  },
   {
     icon: Building2,
     iconBg: "bg-primary/10",
     iconColor: "text-primary",
     titulo: "Consultar Empresa",
     descricao: "Situação cadastral, sócios, atividades e endereço de empresas brasileiras",
-    api: "BrasilAPI",
+    api: "BrasilAPI (gratuita)",
     url: "/dashboard/pesquisas/cnpj",
     buttonVariant: "default" as const,
   },

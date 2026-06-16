@@ -30,6 +30,14 @@ const ESTAGIOS = [
   { v: "perdido", l: "Perdido" },
 ];
 
+const TIPOS_CONTATO = [
+  { v: "lead", l: "Lead (entra no funil)" },
+  { v: "fornecedor", l: "Fornecedor" },
+  { v: "parceiro", l: "Parceiro" },
+  { v: "institucional", l: "Institucional / Vara" },
+  { v: "pessoal", l: "Contato pessoal" },
+];
+
 const STATUS_LABELS: Record<string, string> = {
   novo: "Novo",
   em_atendimento_bot: "Bot atendendo",
@@ -69,7 +77,7 @@ export function LeadInfoPanel({ leadId }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("leads_geral")
-        .select("id, full_name, phone_number, contato_whatsapp, tipo_servico, area_normalizada, origem_sdr, platform, ad_name, score, status_sdr, etapa_qualificacao, humano_responsavel, bot_pausado")
+        .select("id, full_name, phone_number, contato_whatsapp, tipo_servico, area_normalizada, origem_sdr, platform, ad_name, score, status_sdr, etapa_qualificacao, humano_responsavel, bot_pausado, tipo_contato")
         .eq("id", leadId)
         .maybeSingle();
       if (error) throw error;
@@ -166,6 +174,19 @@ export function LeadInfoPanel({ leadId }: Props) {
     toast.success("Estágio atualizado");
   }
 
+  async function handleTipoContato(tipo: string) {
+    // Quando reclassifica pra algo diferente de "lead", pausa o bot pra
+    // nao continuar abordando fornecedor/parceiro/vara como se fosse cliente.
+    const patch: Record<string, unknown> = { tipo_contato: tipo };
+    if (tipo !== "lead") patch.bot_pausado = true;
+    const ok = await updateLead(patch);
+    if (ok) {
+      qc.invalidateQueries({ queryKey: ["leads"] });
+      qc.invalidateQueries({ queryKey: ["leads-kanban"] });
+      toast.success(tipo === "lead" ? "Voltou pro pipeline de leads" : "Classificado como nao-lead");
+    }
+  }
+
   async function marcarCliente() {
     await updateLead({ status_sdr: "cliente", bot_pausado: true });
     await updateCs({ estagio: "fechado", status: "convertido", status_cliente: "ativo" });
@@ -231,6 +252,15 @@ export function LeadInfoPanel({ leadId }: Props) {
 
       <div className="p-4 space-y-2 border-b">
         <div className="text-[11px] text-muted-foreground uppercase tracking-wide font-semibold">Classificação manual</div>
+        <div className="space-y-1.5">
+          <label className="text-[11px] text-muted-foreground">Tipo de contato</label>
+          <Select value={(lead as any).tipo_contato || "lead"} onValueChange={handleTipoContato}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {TIPOS_CONTATO.map((t) => <SelectItem key={t.v} value={t.v} className="text-xs">{t.l}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
         <div className="space-y-1.5">
           <label className="text-[11px] text-muted-foreground">Área</label>
           <Select value={lead.area_normalizada || undefined} onValueChange={handleArea}>
