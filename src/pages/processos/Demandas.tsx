@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, LayoutList, Kanban, BarChart3 } from "lucide-react";
+import { Plus, LayoutList, Kanban, BarChart3, CalendarDays } from "lucide-react";
 import { useDemandas, useDemandasStats, useDemandasByStatus, useDeleteDemanda } from "@/hooks/useDemandas";
 import { DemandasFilters } from "@/components/demandas/DemandasFilters";
 import { DemandasTable } from "@/components/demandas/DemandasTable";
@@ -10,6 +11,7 @@ import { DemandasKanban } from "@/components/demandas/DemandasKanban";
 import { NewDemandaDialog } from "@/components/demandas/NewDemandaDialog";
 import { DemandaDetailsDialog } from "@/components/demandas/DemandaDetailsDialog";
 import { ProdutividadeDashboard } from "@/components/demandas/ProdutividadeDashboard";
+import { CalendarioView } from "@/components/processos/CalendarioView";
 import { Demanda, DemandasFilters as FiltersType } from "@/types/demandas";
 import {
   AlertDialog,
@@ -23,9 +25,23 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function ProcessosDemandas() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<FiltersType>({});
   const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
-  const [activeTab, setActiveTab] = useState<'demandas' | 'alertas'>('demandas');
+  // Tabs principais: demandas / calendario / alertas. Aceita ?tab=calendario
+  // via querystring pra suportar o redirect da rota antiga /processos/calendario.
+  const tabInicial = (searchParams.get("tab") as 'demandas' | 'calendario' | 'alertas') || 'demandas';
+  const [activeTab, setActiveTab] = useState<'demandas' | 'calendario' | 'alertas'>(tabInicial);
+
+  useEffect(() => {
+    // Limpa o ?tab= da URL apos aplicar pra nao re-aplicar em refresh.
+    if (searchParams.get("tab")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("tab");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [newDialogOpen, setNewDialogOpen] = useState(false);
   const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
@@ -83,12 +99,16 @@ export default function ProcessosDemandas() {
         </Button>
       </div>
 
-      {/* Tabs principais: Demandas e Alertas */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'demandas' | 'alertas')}>
+      {/* Tabs principais: Demandas / Calendário / Produtividade */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'demandas' | 'calendario' | 'alertas')}>
         <TabsList>
           <TabsTrigger value="demandas" className="flex items-center gap-2">
             <LayoutList className="h-4 w-4" />
             Demandas
+          </TabsTrigger>
+          <TabsTrigger value="calendario" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Calendário
           </TabsTrigger>
           <TabsTrigger value="alertas" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -134,6 +154,11 @@ export default function ProcessosDemandas() {
               />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        {/* Tab: Calendário (absorveu a antiga pagina de Prazos) */}
+        <TabsContent value="calendario" className="mt-6">
+          <CalendarioView />
         </TabsContent>
 
         {/* Tab: Alertas Unificados */}

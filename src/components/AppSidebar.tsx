@@ -84,7 +84,6 @@ const menuItems: MenuItem[] = [
     submenu: [
       { title: "Processos", url: "/dashboard/processos" },
       { title: "Tarefas", url: "/dashboard/processos/demandas" },
-      { title: "Prazos", url: "/dashboard/processos/calendario" },
     ]
   },
   {

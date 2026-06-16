@@ -103,7 +103,9 @@ export const ROUTE_TO_PERMISSION: Record<string, string> = {
   "/dashboard/documentos": "gestao_clientes.documentos",
   "/dashboard/processos": "gestao_rotinas.processos",
   "/dashboard/processos/demandas": "gestao_rotinas.tarefas",
-  "/dashboard/processos/calendario": "gestao_rotinas.prazos",
+  // /processos/calendario foi absorvido pela aba "Calendário" em Tarefas;
+  // a rota redireciona, entao a chave de Prazos cobre o mesmo conteudo
+  // que agora vive dentro de Tarefas.
   "/dashboard/pesquisas": "pesquisas.consulta_empresa",
   "/dashboard/pesquisas/historico": "pesquisas.historico",
   "/dashboard/financeiro": "financeiro.analises",
