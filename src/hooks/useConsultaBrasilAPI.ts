@@ -88,13 +88,16 @@ export function useConsultaCNPJ() {
         body: request,
       });
 
+      // error vem so quando a function retorna status != 2xx. Hoje a function
+      // ja devolve 200 com { status: 'erro' | 'sem_dados' } pra falhas
+      // esperadas, entao 'error' aqui sinaliza falha de infra de verdade.
       if (error) {
         console.error("Erro na consulta CNPJ:", error);
         throw new Error(error.message || "Erro ao realizar consulta");
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
+      if (data?.status === "erro" || data?.error) {
+        throw new Error(data.error || data.mensagem || "Erro ao realizar consulta");
       }
 
       if (data?.status === "sem_dados") {
@@ -123,8 +126,8 @@ export function useConsultaCEP() {
         throw new Error(error.message || "Erro ao realizar consulta");
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
+      if (data?.status === "erro" || data?.error) {
+        throw new Error(data.error || data.mensagem || "Erro ao realizar consulta");
       }
 
       if (data?.status === "sem_dados") {
