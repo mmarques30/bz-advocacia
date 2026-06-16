@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { MetaCampanha, PeriodoFiltro } from "@/types/meta-ads";
 import { subDays, format } from "date-fns";
 import { useMemo } from "react";
-import { MiniCard } from "./MiniCard";
-
 interface Props {
   campanhas: MetaCampanha[];
   periodo: PeriodoFiltro;
@@ -89,14 +87,9 @@ export function MetaAdsFunilTab({ campanhas, periodo }: Props) {
     },
   });
 
-  // Agregados
+  // Agregados (usados internamente nas barras + lista por campanha;
+  // os totais ja aparecem no header da pagina e nao sao repetidos aqui).
   const totalLeads = funnel.length;
-  const totalConv = funnel.filter((f) => f.converted).length;
-  const taxaConv = totalLeads > 0 ? (totalConv / totalLeads) * 100 : 0;
-  const totalGasto = campanhas.reduce((s, c) => s + c.gasto, 0);
-  const cplPipe = totalLeads > 0 ? totalGasto / totalLeads : 0;
-  const totalMetaLeads = Array.from(metaLeadsByCampaign.values()).reduce((s, v) => s + v, 0);
-  const aderencia = totalMetaLeads > 0 ? (totalLeads / totalMetaLeads) * 100 : null;
 
   // Por estágio
   const byStage = useMemo(() => {
@@ -145,34 +138,6 @@ export function MetaAdsFunilTab({ campanhas, periodo }: Props) {
 
   return (
     <div className="space-y-4">
-      {/* KPIs gerais do funil */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <MiniCard
-          label="Leads de anúncio"
-          value={String(totalLeads)}
-          sub="no período"
-        />
-        <MiniCard
-          label="Convertidos"
-          value={String(totalConv)}
-          sub={`${taxaConv.toFixed(1)}% do total`}
-        />
-        <MiniCard
-          label="Investimento"
-          value={totalGasto > 0 ? brl(totalGasto) : "—"}
-        />
-        <MiniCard
-          label="CPL real (pipe)"
-          value={cplPipe > 0 ? brl(cplPipe) : "—"}
-          sub="gasto ÷ leads no bot"
-        />
-        <MiniCard
-          label="Aderência"
-          value={aderencia != null ? `${aderencia.toFixed(0)}%` : "—"}
-          sub="leads pipe ÷ Meta"
-        />
-      </div>
-
       {/* Distribuicao por estagio (barras horizontais) */}
       <div className="rounded-lg border bg-muted/40 p-4">
         <div className="flex items-center justify-between mb-3">
