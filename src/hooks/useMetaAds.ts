@@ -27,7 +27,7 @@ export interface MetaAdRow {
  * Lista anuncios com criativo + agregados de gasto/cliques/leads no
  * periodo. Une meta_ads + meta_creatives + meta_insights_daily.
  */
-export function useMetaAds(periodo: PeriodoFiltro = "90d") {
+export function useMetaAds(periodo: PeriodoFiltro = "90d", statusFilter: string = "todos") {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
   const hoje = new Date();
   const dataInicio = subDays(hoje, dias);
@@ -35,11 +35,15 @@ export function useMetaAds(periodo: PeriodoFiltro = "90d") {
   const dataFimStr = format(hoje, "yyyy-MM-dd");
 
   const query = useQuery({
-    queryKey: ["meta-ads-aggregated", periodo],
+    queryKey: ["meta-ads-aggregated", periodo, statusFilter],
     queryFn: async () => {
-      const { data: ads, error: errA } = await supabase
+      let qA = supabase
         .from("meta_ads")
         .select("id, name, status, campaign_id, ad_set_id, creative_id");
+      if (statusFilter && statusFilter !== "todos") {
+        qA = qA.eq("status", statusFilter);
+      }
+      const { data: ads, error: errA } = await qA;
       if (errA) throw errA;
 
       // Lookup parents

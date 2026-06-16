@@ -12,7 +12,7 @@ import { subDays, format } from "date-fns";
  * cruzamos com meta_ads pra resolver o campaign_id. Agregacao em JS pra
  * evitar criar funcao RPC.
  */
-export function useMetaCampaigns(periodo: PeriodoFiltro = "90d") {
+export function useMetaCampaigns(periodo: PeriodoFiltro = "90d", statusFilter: string = "todos") {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
   const hoje = new Date();
   const dataInicio = subDays(hoje, dias);
@@ -21,13 +21,16 @@ export function useMetaCampaigns(periodo: PeriodoFiltro = "90d") {
   const dataInicioISO = dataInicio.toISOString();
 
   const query = useQuery({
-    queryKey: ["meta-campaigns-aggregated", periodo],
+    queryKey: ["meta-campaigns-aggregated", periodo, statusFilter],
     queryFn: async () => {
-      // (1) Campanhas
-      const { data: campaigns, error: errC } = await supabase
+      // (1) Campanhas — aplica filtro de status quando != "todos"
+      let qC = supabase
         .from("meta_campaigns")
-        .select("id, name, status, objective")
-        .order("name", { ascending: true });
+        .select("id, name, status, objective");
+      if (statusFilter && statusFilter !== "todos") {
+        qC = qC.eq("status", statusFilter);
+      }
+      const { data: campaigns, error: errC } = await qC.order("name", { ascending: true });
       if (errC) throw errC;
 
       // (2) Ads → mapa ad_id → campaign_id
