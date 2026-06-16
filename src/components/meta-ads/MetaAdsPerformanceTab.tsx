@@ -9,7 +9,7 @@ import {
   Legend, ResponsiveContainer,
 } from "recharts";
 import { Eye, MousePointerClick, Users, Repeat, Activity, Target } from "lucide-react";
-import { LucideIcon } from "lucide-react";
+import { MiniCard } from "./MiniCard";
 
 interface Props { periodo: PeriodoFiltro; }
 
@@ -28,19 +28,6 @@ interface InsightRow {
 
 function fmtNum(v: number) { return v.toLocaleString("pt-BR"); }
 function fmtBRL(v: number) { return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
-
-function Kpi({ label, value, sub, Icon }: { label: string; value: string; sub?: string; Icon: LucideIcon }) {
-  return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
-        <div className="rounded-lg bg-muted p-2"><Icon className="h-4 w-4 text-muted-foreground" /></div>
-      </div>
-      <p className="text-2xl font-bold mt-2">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
-    </Card>
-  );
-}
 
 export function MetaAdsPerformanceTab({ periodo }: Props) {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
@@ -125,12 +112,12 @@ export function MetaAdsPerformanceTab({ periodo }: Props) {
     <div className="space-y-6">
       {/* 6 KPIs do periodo */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Kpi label="Alcance" value={fmtNum(agg.reach)} Icon={Users} />
-        <Kpi label="Impressões" value={fmtNum(agg.impressions)} Icon={Eye} />
-        <Kpi label="Cliques" value={fmtNum(agg.clicks)} sub={`${fmtNum(agg.link_clicks)} em link`} Icon={MousePointerClick} />
-        <Kpi label="CTR médio" value={`${agg.ctr.toFixed(2)}%`} Icon={Target} />
-        <Kpi label="CPC médio" value={agg.cpc > 0 ? fmtBRL(agg.cpc) : "-"} Icon={Activity} />
-        <Kpi label="Frequência" value={agg.freqMedia.toFixed(2)} sub="média do período" Icon={Repeat} />
+        <MiniCard label="Alcance" value={fmtNum(agg.reach)} Icon={Users} />
+        <MiniCard label="Impressões" value={fmtNum(agg.impressions)} Icon={Eye} />
+        <MiniCard label="Cliques" value={fmtNum(agg.clicks)} sub={`${fmtNum(agg.link_clicks)} em link`} Icon={MousePointerClick} />
+        <MiniCard label="CTR médio" value={`${agg.ctr.toFixed(2)}%`} Icon={Target} />
+        <MiniCard label="CPC médio" value={agg.cpc > 0 ? fmtBRL(agg.cpc) : "-"} Icon={Activity} />
+        <MiniCard label="Frequência" value={agg.freqMedia.toFixed(2)} sub="média do período" Icon={Repeat} />
       </div>
 
       {/* Impressoes + cliques no tempo */}
