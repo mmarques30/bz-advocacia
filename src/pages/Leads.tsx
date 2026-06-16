@@ -27,9 +27,7 @@ import { NewLeadDialog } from "@/components/leads/NewLeadDialog";
 import { LeadDetailsDialog } from "@/components/leads/LeadDetailsDialog";
 import { LeadsFilters } from "@/components/leads/LeadsFilters";
 import { LeadsOrganicSummary } from "@/components/leads/LeadsOrganicSummary";
-import { BacklogLeads } from "@/components/leads/BacklogLeads";
 import { Lead, LeadsFilters as FiltersType } from "@/types/leads";
-import { useQuery } from "@tanstack/react-query";
 
 const defaultFilters: FiltersType = {
   search: "",
@@ -49,23 +47,9 @@ const adsDefaultFilters: FiltersType = {
 };
 
 export default function Leads() {
+  // Aba "Backlog de Leads" removida (decisao da Mariana: nao vai usar por
+  // ora). A pagina segue mostrando Organicos e Anuncios.
   const [activeTab, setActiveTab] = useState("leads");
-
-  const { data: backlogPending } = useQuery({
-    queryKey: ["leads_backlog_count", "pendente"],
-    queryFn: async () => {
-      // Soma das duas fontes mostradas no BacklogLeads: leads_backlog
-      // (humano iniciou) + backlog_triagem (mensagens recebidas detectadas
-      // pelo bot como caso especial: cliente em atendimento, processo
-      // ativo, dúvida de classificacao etc).
-      const [backlogResult, triagemResult] = await Promise.all([
-        supabase.from("leads_backlog").select("id", { count: "exact", head: true }).eq("status", "pendente"),
-        supabase.from("backlog_triagem").select("id", { count: "exact", head: true }).eq("resolvido", false),
-      ]);
-      return (backlogResult.count ?? 0) + (triagemResult.count ?? 0);
-    },
-    refetchInterval: 30000,
-  });
 
   return (
     <div className="space-y-6">
@@ -80,14 +64,6 @@ export default function Leads() {
         <TabsList>
           <TabsTrigger value="leads">Leads Orgânicos</TabsTrigger>
           <TabsTrigger value="anuncios">Leads Anúncios</TabsTrigger>
-          <TabsTrigger value="backlog" className="relative">
-            Backlog de Leads
-            {backlogPending ? (
-              <Badge variant="destructive" className="ml-2 h-5 min-w-[20px] px-1">
-                {backlogPending}
-              </Badge>
-            ) : null}
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="leads">
@@ -96,10 +72,6 @@ export default function Leads() {
 
         <TabsContent value="anuncios">
           <LeadsTab filterOrigins={['facebook', 'instagram', 'meta', 'tiktok', 'linkedin', 'google']} excludeOrigins={null} isAdsTab />
-        </TabsContent>
-
-        <TabsContent value="backlog">
-          <BacklogLeads />
         </TabsContent>
       </Tabs>
     </div>
