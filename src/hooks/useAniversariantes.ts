@@ -26,9 +26,12 @@ export function useAniversariantes() {
           const [, , d] = c.data_nascimento!.split("-").map(Number);
           const isHoje = d === diaAtual;
           const diasAte = d >= diaAtual ? d - diaAtual : 999;
+          // nome_completo pode vir null em registros antigos. Garante string
+          // pra getIniciais e renders nao quebrarem o layout do avatar.
+          const nome = (c.nome_completo ?? "Sem nome").trim() || "Sem nome";
           return {
             id: c.id,
-            nome: c.nome_completo,
+            nome,
             data_nascimento: c.data_nascimento!,
             dia: d,
             telefone: c.telefone,

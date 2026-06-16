@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAniversariantes } from "@/hooks/useAniversariantes";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
+import { getIniciais } from "@/lib/iniciais";
 
 const activityIcons: Record<string, any> = {
   lead_criado: UserPlus,
@@ -57,13 +58,6 @@ export function ClientesEventosTab() {
   const mesNome = format(hoje, "MMMM", { locale: ptBR });
   const aniversariantesHoje = (aniversariantes || []).filter((a) => a.isHoje);
   const aniversariantesProximos = (aniversariantes || []).filter((a) => !a.isHoje);
-
-  function getIniciais(nome: string) {
-    const parts = nome.split(" ");
-    return parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : nome.substring(0, 2).toUpperCase();
-  }
 
   const navigate = useNavigate();
   async function handleEnviarParabens(a: { id: string; nome: string; telefone: string; lead_geral_id?: string | null }) {
@@ -144,7 +138,7 @@ export function ClientesEventosTab() {
                 {/* Próximos */}
                 {aniversariantesProximos.map((a) => (
                   <div key={a.id} className="flex items-center gap-2 py-1.5">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">
                       {getIniciais(a.nome)}
                     </div>
                     <div className="flex-1 min-w-0">

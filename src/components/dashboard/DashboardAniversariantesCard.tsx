@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Aniversariante } from "@/hooks/useDashboardVisual";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
+import { getIniciais } from "@/lib/iniciais";
 
 interface Props {
   aniversariantes: Aniversariante[];
@@ -17,13 +18,6 @@ export function DashboardAniversariantesCard({ aniversariantes, loading }: Props
   const hoje = new Date();
   const mesNome = format(hoje, "MMMM", { locale: ptBR });
   const aniversariantesHoje = aniversariantes.filter((a) => a.isHoje);
-
-  function getIniciais(nome: string) {
-    const parts = nome.split(" ");
-    return parts.length >= 2
-      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
-      : nome.substring(0, 2).toUpperCase();
-  }
 
   function handleEnviarParabens(a: Aniversariante) {
     const msg = `Olá ${a.nome.split(" ")[0]}! 🎂 Desejamos um feliz aniversário! Que este novo ciclo traga muitas realizações. Abraços da equipe B&Z Advocacia!`;
@@ -79,7 +73,7 @@ export function DashboardAniversariantesCard({ aniversariantes, loading }: Props
           <div className="space-y-2">
             {aniversariantes.filter(a => !a.isHoje).map((a) => (
               <div key={a.id} className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 overflow-hidden">
                   {getIniciais(a.nome)}
                 </div>
                 <div className="flex-1 min-w-0">
