@@ -56,6 +56,11 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
 
   const { data: mensagens = [], isLoading } = useQuery({
     queryKey: ["mensagens-sdr", leadGeralId],
+    // Polling 10s como fallback caso o realtime de mensagens_sdr nao
+    // esteja propagando (publication missing, conexao interrompida etc).
+    // O subscribe abaixo continua sendo o caminho principal.
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mensagens_sdr" as any)

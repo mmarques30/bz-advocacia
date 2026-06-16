@@ -1,13 +1,11 @@
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MetaCampanha, PeriodoFiltro } from "@/types/meta-ads";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subDays, format } from "date-fns";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Award, AlertTriangle, TrendingUp, Zap, Activity, Minus } from "lucide-react";
+import { Award, AlertTriangle, TrendingUp, Zap, Activity, Minus, Lightbulb } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 interface Props {
@@ -39,17 +37,24 @@ const TONE_BADGE: Record<Verdict["tone"], string> = {
   muted: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+const TONE_CARD: Record<Verdict["tone"], string> = {
+  good: "border-l-emerald-400",
+  warn: "border-l-amber-400",
+  info: "border-l-blue-400",
+  muted: "border-l-gray-300",
+};
+
 /**
- * Tabela detalhada de analise por campanha. Une dados Meta + pipe B&Z.
- * Atualiza a cada minuto (refetchInterval) — sincronizada com o cron de
- * insights que roda no minuto 5 de cada hora.
+ * Para cada campanha, exibe analise narrativa + recomendacao baseada em
+ * heuristicas (CPL vs mediano, taxa de conversao, aderencia Meta x Pipe,
+ * CTR). Nao e uma tabela — e uma sequencia de cards explicativos pra
+ * direcionar acoes.
  */
 export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
   const dataInicioISO = subDays(new Date(), dias).toISOString();
   const dataInicioStr = format(subDays(new Date(), dias), "yyyy-MM-dd");
 
-  // Leads do bot por campaign_id + converted
   const funnel = useQuery({
     queryKey: ["meta-insights-tab-funnel", periodo],
     queryFn: async () => {
@@ -63,7 +68,6 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
     refetchInterval: 60_000,
   });
 
-  // Leads atribuidos pelo Meta (sum dos insights.leads por campaign via ads)
   const metaLeads = useQuery({
     queryKey: ["meta-insights-tab-meta-leads", periodo],
     queryFn: async () => {
@@ -88,20 +92,23 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
     refetchInterval: 60_000,
   });
 
-  const linhas = useMemo(() => {
+  const cards = useMemo(() => {
     const pipeBy = new Map<string, { total: number; conv: number }>();
     for (const f of funnel.data ?? []) {
       if (!f.campaign_id) continue;
-      const cur = pipeBy.get(f.campaign_id) ?? { total: 0, conv: 0 };
-      cur.total++;
-      if (f.converted) cur.conv++;
-      pipeBy.set(f.campaign_id, cur);
+      const c = pipeBy.get(f.campaign_id) ?? { total: 0, conv: 0 };
+      c.total++;
+      if (f.converted) c.conv++;
+      pipeBy.set(f.campaign_id, c);
     }
-    const meta = metaLeads.data ?? new Map();
+    const meta = metaLeads.data ?? new Map<string, number>();
 
-    // Calculo dos benchmarks pro veredito automatico
-    const ativas = campanhas.filter((c) => c.gasto > 0 || c.leads > 0);
-    const cplValidos = ativas.filter((c) => c.custo_lead > 0).map((c) => c.custo_lead);
+    const cplValidos = campanhas
+      .map((c) => {
+        const pipe = pipeBy.get(c.id) ?? { total: 0, conv: 0 };
+        return pipe.total > 0 ? c.gasto / pipe.total : 0;
+      })
+      .filter((v) => v > 0);
     const cplMediano = cplValidos.length > 0
       ? [...cplValidos].sort((a, b) => a - b)[Math.floor(cplValidos.length / 2)]
       : 0;
@@ -113,122 +120,121 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
       const aderencia = lMeta > 0 ? (pipe.total / lMeta) * 100 : null;
       const taxaConv = pipe.total > 0 ? (pipe.conv / pipe.total) * 100 : 0;
 
+      // Veredict + recomendacao narrativa
       let v: Verdict;
-      if (c.gasto > 100 && pipe.total === 0 && c.leads === 0) {
+      let recomendacao: string | null = null;
+
+      if (c.gasto > 100 && pipe.total === 0 && lMeta === 0) {
         v = { Icon: AlertTriangle, label: "Sem conversão", tone: "warn" };
-      } else if (cplMediano > 0 && c.custo_lead > 0 && c.custo_lead <= cplMediano * 0.7) {
+        recomendacao = "Gastou sem nenhum lead. Revise o criativo, segmentação ou pause a campanha.";
+      } else if (cplMediano > 0 && cplPipe > 0 && cplPipe <= cplMediano * 0.7) {
         v = { Icon: Award, label: "CPL ótimo", tone: "good" };
-      } else if (cplMediano > 0 && c.custo_lead > cplMediano * 1.5) {
+        recomendacao = `CPL real ${brl(cplPipe)} está bem abaixo da média (${brl(cplMediano)}). Considere ampliar o budget.`;
+      } else if (cplMediano > 0 && cplPipe > cplMediano * 1.5) {
         v = { Icon: AlertTriangle, label: "CPL alto", tone: "warn" };
+        recomendacao = `CPL real ${brl(cplPipe)} está acima da média (${brl(cplMediano)}). Teste novo criativo ou ajuste segmentação.`;
+      } else if (taxaConv >= 50) {
+        v = { Icon: TrendingUp, label: "Conversão forte", tone: "good" };
+        recomendacao = `${pipe.conv} de ${pipe.total} leads convertidos (${taxaConv.toFixed(0)}%). Mantém o ritmo.`;
       } else if (c.ctr > 3) {
         v = { Icon: Zap, label: "Alto engajamento", tone: "info" };
-      } else if (c.gasto === 0 && c.leads === 0) {
+        recomendacao = `CTR ${c.ctr.toFixed(2)}% em ${c.impressoes.toLocaleString("pt-BR")} impressões. Considere replicar o criativo em outras campanhas.`;
+      } else if (aderencia != null && aderencia < 50 && lMeta >= 10) {
+        v = { Icon: AlertTriangle, label: "Aderência baixa", tone: "warn" };
+        recomendacao = `Meta atribuiu ${lMeta} leads mas só ${pipe.total} chegaram ao bot (${aderencia.toFixed(0)}%). Verifique o tracking ou o fluxo de entrada.`;
+      } else if (c.gasto === 0 && lMeta === 0 && pipe.total === 0) {
         v = { Icon: Minus, label: "Sem dados", tone: "muted" };
-      } else if (taxaConv > 50) {
-        v = { Icon: TrendingUp, label: "Conversão forte", tone: "good" };
+        recomendacao = null;
       } else {
         v = { Icon: Activity, label: "Em curso", tone: "info" };
+        recomendacao = null;
       }
+
+      // Analise narrativa (descreve o cenario)
+      const partes: string[] = [];
+      partes.push(`Investiu ${c.gasto > 0 ? brl(c.gasto) : "R$ 0,00"}`);
+      partes.push(`${c.impressoes.toLocaleString("pt-BR")} impressões`);
+      if (c.cliques > 0) partes.push(`${c.cliques.toLocaleString("pt-BR")} cliques (CTR ${c.ctr.toFixed(2)}%)`);
+      if (lMeta > 0) partes.push(`Meta atribuiu ${lMeta} leads`);
+      if (pipe.total > 0) partes.push(`${pipe.total} chegaram ao bot`);
+      if (pipe.conv > 0) partes.push(`${pipe.conv} convertidos`);
+      const analise = partes.join(" • ") + ".";
 
       return {
         id: c.id,
         nome: c.nome,
         status: c.status,
         objetivo: c.objetivo,
+        verdict: v,
+        analise,
+        recomendacao,
         gasto: c.gasto,
-        impressoes: c.impressoes,
-        cliques: c.cliques,
-        ctr: c.ctr,
-        leads_meta: lMeta,
         leads_pipe: pipe.total,
-        cpl_meta: c.custo_lead,
         cpl_pipe: cplPipe,
         aderencia,
-        convertidos: pipe.conv,
-        taxa_conv: taxaConv,
-        verdict: v,
       };
     });
-    rows.sort((a, b) => b.gasto - a.gasto);
+
+    // Prioriza warnings, depois good, depois resto. Tudo ordenado por gasto desc.
+    const prioridade: Record<Verdict["tone"], number> = { warn: 0, good: 1, info: 2, muted: 3 };
+    rows.sort((a, b) => {
+      const pa = prioridade[a.verdict.tone];
+      const pb = prioridade[b.verdict.tone];
+      if (pa !== pb) return pa - pb;
+      return b.gasto - a.gasto;
+    });
     return rows;
   }, [campanhas, funnel.data, metaLeads.data]);
 
+  if (cards.length === 0) {
+    return (
+      <div className="rounded-lg border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
+        Sem campanhas no período.
+      </div>
+    );
+  }
+
   return (
-    <Card>
-      <div className="border-b px-4 py-3 flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-sm">Análise por campanha</h3>
-          <p className="text-xs text-muted-foreground">
-            Cruza Meta (gasto, CPL, CTR) com pipe (leads no bot, convertidos). Atualiza a cada minuto.
-          </p>
-        </div>
-        <Badge variant="outline" className="text-[10px]">{linhas.length} campanhas</Badge>
-      </div>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Campanha</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Análise</TableHead>
-              <TableHead className="text-right">Gasto</TableHead>
-              <TableHead className="text-right">Impr.</TableHead>
-              <TableHead className="text-right">CTR</TableHead>
-              <TableHead className="text-right">Leads Meta</TableHead>
-              <TableHead className="text-right">Leads Pipe</TableHead>
-              <TableHead className="text-right">Aderência</TableHead>
-              <TableHead className="text-right">CPL Meta</TableHead>
-              <TableHead className="text-right">CPL Pipe</TableHead>
-              <TableHead className="text-right">Conv.</TableHead>
-              <TableHead className="text-right">Tx Conv.</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {linhas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={13} className="text-center text-sm text-muted-foreground py-8">
-                  Sem campanhas no período — sincronize ou ajuste o filtro de status.
-                </TableCell>
-              </TableRow>
-            ) : (
-              linhas.map((l) => {
-                const VIcon = l.verdict.Icon;
-                return (
-                  <TableRow key={l.id}>
-                    <TableCell className="max-w-[260px]">
-                      <p className="font-medium truncate text-sm" title={l.nome}>{l.nome}</p>
-                      <p className="text-[10px] text-muted-foreground">{l.objetivo ?? "—"}</p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[l.status ?? ""] ?? "")}>
-                        {l.status ?? "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn("text-[10px] gap-1", TONE_BADGE[l.verdict.tone])}>
-                        <VIcon className="h-3 w-3" />
-                        {l.verdict.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{l.gasto > 0 ? brl(l.gasto) : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.impressoes.toLocaleString("pt-BR")}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.ctr > 0 ? `${l.ctr.toFixed(2)}%` : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.leads_meta}</TableCell>
-                    <TableCell className="text-right tabular-nums font-semibold">{l.leads_pipe}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {l.aderencia != null ? `${l.aderencia.toFixed(0)}%` : "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">{l.cpl_meta > 0 ? brl(l.cpl_meta) : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.cpl_pipe > 0 ? brl(l.cpl_pipe) : "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.convertidos}</TableCell>
-                    <TableCell className="text-right tabular-nums">{l.taxa_conv > 0 ? `${l.taxa_conv.toFixed(1)}%` : "—"}</TableCell>
-                  </TableRow>
-                );
-              })
+    <div className="space-y-2">
+      {cards.map((c) => {
+        const VIcon = c.verdict.Icon;
+        return (
+          <div
+            key={c.id}
+            className={cn(
+              "rounded-lg border-l-4 border border-l-4 bg-muted/40 p-4 space-y-2",
+              TONE_CARD[c.verdict.tone],
             )}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+          >
+            <div className="flex items-start justify-between gap-3 flex-wrap">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-semibold text-sm truncate" title={c.nome}>{c.nome}</h4>
+                  <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[c.status ?? ""] ?? "")}>
+                    {c.status ?? "—"}
+                  </Badge>
+                  {c.objetivo && (
+                    <span className="text-[10px] text-muted-foreground">{c.objetivo}</span>
+                  )}
+                </div>
+              </div>
+              <Badge variant="outline" className={cn("text-[10px] gap-1 shrink-0", TONE_BADGE[c.verdict.tone])}>
+                <VIcon className="h-3 w-3" />
+                {c.verdict.label}
+              </Badge>
+            </div>
+
+            <p className="text-xs text-muted-foreground leading-snug">{c.analise}</p>
+
+            {c.recomendacao && (
+              <div className="flex items-start gap-2 rounded-md bg-background border border-border p-2.5">
+                <Lightbulb className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-xs leading-snug">{c.recomendacao}</p>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
