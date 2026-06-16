@@ -4,7 +4,7 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { zapiSendSequence } from "../_shared/zapi.ts";
-import { mensagemM0 } from "../_shared/prompts.ts";
+import { mensagemM0CTWA, mensagemM0Organico } from "../_shared/prompts.ts";
 
 
 interface LeadGeralRecord {
@@ -88,7 +88,10 @@ Deno.serve(async (req) => {
   }
 
   const nome = (lead.full_name ?? "").split(" ")[0] || "tudo bem";
-  const texto = mensagemM0(nome, lead.tipo_servico);
+  // CTWA: platform termina em _ads → mensagem "vi que voce chegou pelo anuncio".
+  // Senao, M0 organico padrao.
+  const veioDeAnuncio = !!(lead.platform && lead.platform.endsWith("_ads"));
+  const texto = veioDeAnuncio ? mensagemM0CTWA(nome) : mensagemM0Organico(nome);
   const mensagens = [texto];
 
   const resultados = await zapiSendSequence(telefone, mensagens, 1200);
