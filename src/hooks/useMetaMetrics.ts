@@ -1,101 +1,129 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MetaMetrica, MetaKPIs, MetaChartData, PeriodoFiltro } from "@/types/meta-ads";
+import { MetaKPIs, MetaChartData, PeriodoFiltro } from "@/types/meta-ads";
 import { subDays, format } from "date-fns";
 
+/**
+ * Pega KPIs e chart data agregados das tabelas do Meta Ads:
+ * - meta_insights_daily (level=ad) → gasto, impressoes, cliques, ctr, cpc.
+ * - v_meta_lead_funnel → count de leads que entraram pelo bot a partir
+ *   de anuncio (lead.ad_id IS NOT NULL OR lead.campaign_id IS NOT NULL),
+ *   e quantos viraram cliente/agendado/assumido/sql_aguardando.
+ *
+ * Custo por lead usa o `leads` REAL do funil (que entrou pelo bot) — nao
+ * o `actions.lead` do Meta — porque o que importa pra B&Z e o lead que
+ * deu retorno via WhatsApp.
+ */
 export function useMetaMetrics(periodo: PeriodoFiltro = "30d") {
-  const getDates = () => {
-    const hoje = new Date();
-    let dias = 30;
-    
-    if (periodo === "7d") dias = 7;
-    else if (periodo === "90d") dias = 90;
-    
-    return {
-      dataInicio: format(subDays(hoje, dias), "yyyy-MM-dd"),
-      dataFim: format(hoje, "yyyy-MM-dd"),
-      diasAnteriores: dias,
-    };
-  };
+  const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
+  const hoje = new Date();
+  const dataInicio = subDays(hoje, dias);
+  const dataInicioStr = format(dataInicio, "yyyy-MM-dd");
+  const dataFimStr = format(hoje, "yyyy-MM-dd");
+  const dataInicioISO = dataInicio.toISOString();
 
-  const { data: metricas, isLoading } = useQuery({
-    queryKey: ["meta-metrics", periodo],
+  // 1) Insights por dia (level=ad).
+  const insightsQuery = useQuery({
+    queryKey: ["meta-insights-daily", periodo],
     queryFn: async () => {
-      const { dataInicio, dataFim } = getDates();
-      
       const { data, error } = await supabase
-        .from("meta_metricas")
-        .select("*")
-        .gte("data_referencia", dataInicio)
-        .lte("data_referencia", dataFim)
-        .order("data_referencia", { ascending: true });
-
+        .from("meta_insights_daily")
+        .select("date, spend, impressions, clicks, link_clicks, ctr, cpc, leads")
+        .eq("level", "ad")
+        .gte("date", dataInicioStr)
+        .lte("date", dataFimStr)
+        .order("date", { ascending: true });
       if (error) throw error;
-      return data as MetaMetrica[];
+      return (data ?? []) as Array<{
+        date: string;
+        spend: number | null;
+        impressions: number | null;
+        clicks: number | null;
+        link_clicks: number | null;
+        ctr: number | null;
+        cpc: number | null;
+        leads: number | null;
+      }>;
     },
   });
 
-  const calcularKPIs = (): MetaKPIs => {
-    if (!metricas || metricas.length === 0) {
-      // Retornar zeros quando não há dados
-      return {
-        gasto: 0,
-        gastoVariacao: 0,
-        leads: 0,
-        leadsVariacao: 0,
-        custoLead: 0,
-        custoLeadVariacao: 0,
-        cliques: 0,
-        cliquesVariacao: 0,
-        ctr: 0,
-        ctrVariacao: 0,
-        impressoes: 0,
-        cpc: 0,
-      };
-    }
+  // 2) Funil de leads (do bot) — usa a view v_meta_lead_funnel.
+  // Cast pra any porque a view nao esta nos types gerados.
+  const funnelQuery = useQuery({
+    queryKey: ["meta-lead-funnel", periodo],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("v_meta_lead_funnel")
+        .select("lead_id, lead_at, converted")
+        .gte("lead_at", dataInicioISO);
+      if (error) throw error;
+      return (data ?? []) as Array<{ lead_id: string; lead_at: string; converted: boolean }>;
+    },
+  });
 
-    const totalGasto = metricas.reduce((acc, m) => acc + (m.gasto || 0), 0);
-    const totalLeads = metricas.reduce((acc, m) => acc + (m.leads || 0), 0);
-    const totalCliques = metricas.reduce((acc, m) => acc + (m.cliques || 0), 0);
-    const totalImpressoes = metricas.reduce((acc, m) => acc + (m.impressoes || 0), 0);
+  const insights = insightsQuery.data ?? [];
+  const funnel = funnelQuery.data ?? [];
 
-    const custoLead = totalLeads > 0 ? totalGasto / totalLeads : 0;
-    const ctr = totalImpressoes > 0 ? (totalCliques / totalImpressoes) * 100 : 0;
-    const cpc = totalCliques > 0 ? totalGasto / totalCliques : 0;
+  // Agregados ----------------------------------------------------------
+  const totalGasto = insights.reduce((acc, m) => acc + Number(m.spend ?? 0), 0);
+  const totalCliques = insights.reduce((acc, m) => acc + Number(m.clicks ?? 0), 0);
+  const totalImpressoes = insights.reduce((acc, m) => acc + Number(m.impressions ?? 0), 0);
 
-    return {
-      gasto: totalGasto,
-      gastoVariacao: 8,
-      leads: totalLeads,
-      leadsVariacao: 15,
-      custoLead,
-      custoLeadVariacao: -6,
-      cliques: totalCliques,
-      cliquesVariacao: 10,
-      ctr,
-      ctrVariacao: -0.2,
-      impressoes: totalImpressoes,
-      cpc,
-    };
+  const totalLeadsBot = funnel.length;
+  const totalConvertidos = funnel.filter((f) => f.converted).length;
+
+  const custoLead = totalLeadsBot > 0 ? totalGasto / totalLeadsBot : 0;
+  const ctr = totalImpressoes > 0 ? (totalCliques / totalImpressoes) * 100 : 0;
+  const cpc = totalCliques > 0 ? totalGasto / totalCliques : 0;
+  const taxaConversao = totalLeadsBot > 0 ? (totalConvertidos / totalLeadsBot) * 100 : 0;
+
+  const kpis: MetaKPIs = {
+    gasto: totalGasto,
+    gastoVariacao: 0,
+    leads: totalLeadsBot,
+    leadsVariacao: 0,
+    custoLead,
+    custoLeadVariacao: 0,
+    cliques: totalCliques,
+    cliquesVariacao: 0,
+    ctr,
+    ctrVariacao: 0,
+    impressoes: totalImpressoes,
+    cpc,
+    taxaConversao,
+    leadsConvertidos: totalConvertidos,
   };
 
-  const getChartData = (): MetaChartData[] => {
-    if (!metricas || metricas.length === 0) {
-      // Retornar array vazio quando não há dados
-      return [];
-    }
-
-    return metricas.map((m) => ({
-      data: format(new Date(m.data_referencia), "dd/MM"),
-      gasto: m.gasto || 0,
-      leads: m.leads || 0,
-    }));
-  };
+  // Chart por dia ------------------------------------------------------
+  // Junta gasto (do Meta) com leads (do bot via v_meta_lead_funnel) pelo
+  // dia. dia format "dd/MM" pro eixo X do recharts.
+  const chartByDay = new Map<string, { gasto: number; leads: number }>();
+  for (const m of insights) {
+    const dia = format(new Date(m.date), "dd/MM");
+    const cur = chartByDay.get(dia) ?? { gasto: 0, leads: 0 };
+    cur.gasto += Number(m.spend ?? 0);
+    chartByDay.set(dia, cur);
+  }
+  for (const f of funnel) {
+    const dia = format(new Date(f.lead_at), "dd/MM");
+    const cur = chartByDay.get(dia) ?? { gasto: 0, leads: 0 };
+    cur.leads += 1;
+    chartByDay.set(dia, cur);
+  }
+  // Mantem a ordem cronologica usando o primeiro encontro.
+  const chartData: MetaChartData[] = Array.from(chartByDay.entries())
+    .map(([data, vals]) => ({ data, gasto: vals.gasto, leads: vals.leads }))
+    .sort((a, b) => {
+      // "dd/MM" → ordena por mes+dia. Suficiente pra periodos curtos
+      // (≤90 dias dentro do mesmo intervalo do ano).
+      const [dA, mA] = a.data.split("/").map(Number);
+      const [dB, mB] = b.data.split("/").map(Number);
+      return mA !== mB ? mA - mB : dA - dB;
+    });
 
   return {
-    metricas,
-    kpis: calcularKPIs(),
-    chartData: getChartData(),
-    isLoading,
+    kpis,
+    chartData,
+    isLoading: insightsQuery.isLoading || funnelQuery.isLoading,
   };
 }

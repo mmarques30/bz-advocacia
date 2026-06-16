@@ -15,7 +15,7 @@ import { PeriodoFiltro } from "@/types/meta-ads";
 export default function MetaAds() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("90d");
   const { kpis, isLoading: isLoadingMetrics } = useMetaMetrics(periodo);
-  const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns();
+  const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns(periodo);
   const csvAnalytics = useMarketingCsvAnalytics(periodo);
   const mergedServices = useServiceDistribution(csvAnalytics.serviceDistribution);
   const mergedPlatforms = usePlatformDistribution(csvAnalytics.platformKPIs);

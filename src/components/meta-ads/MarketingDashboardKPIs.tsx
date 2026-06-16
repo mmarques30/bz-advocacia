@@ -38,6 +38,14 @@ interface Props {
 export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
   const hasMetaData = metaKpis && (metaKpis.impressoes > 0 || metaKpis.cliques > 0);
 
+  // Quando meta_insights_daily / v_meta_lead_funnel estao populados, os
+  // numeros sao reais. Cai pro CSV (analytics) so quando o Meta ainda
+  // nao trouxe dado.
+  const totalLeads = metaKpis?.leads && metaKpis.leads > 0 ? metaKpis.leads : analytics.totalLeads;
+  const leadsConvertidos = metaKpis?.leadsConvertidos ??
+    Math.round(analytics.taxaConversao * analytics.totalLeads / 100);
+  const taxaConversao = metaKpis?.taxaConversao ?? analytics.taxaConversao;
+
   const custoLead = hasMetaData && metaKpis.custoLead > 0
     ? `R$ ${metaKpis.custoLead.toFixed(2)}`
     : "-";
@@ -50,21 +58,19 @@ export function MarketingDashboardKPIs({ analytics, metaKpis }: Props) {
     ? `R$ ${metaKpis.cpc.toFixed(2)}`
     : "-";
 
-  const roiValue = hasMetaData && metaKpis.gasto > 0
-    ? Math.round(((analytics.taxaConversao * analytics.totalLeads / 100 * 500) - metaKpis.gasto) / metaKpis.gasto * 100)
-    : null;
+  // ROI: spec da Juliana — "deixa '-' por enquanto. Vai depender de campo
+  // de receita por lead que ainda nao temos".
+  const roiDisplay = "-";
 
-  const roiDisplay = roiValue !== null ? `${roiValue > 0 ? "+" : ""}${roiValue}%` : "-";
-
-  const leadsVariation = analytics.leadsSemana > 0 && analytics.totalLeads > 0
-    ? `+${Math.round((analytics.leadsSemana / analytics.totalLeads) * 100)}% na semana`
+  const leadsVariation = analytics.leadsSemana > 0 && totalLeads > 0
+    ? `+${Math.round((analytics.leadsSemana / totalLeads) * 100)}% na semana`
     : `${analytics.leadsSemana} na última semana`;
 
   const kpis = [
-    { title: "Total de Leads", value: String(analytics.totalLeads), subtitle: leadsVariation, icon: Users },
+    { title: "Total de Leads", value: String(totalLeads), subtitle: leadsVariation, icon: Users },
     { title: "Custo por Lead", value: custoLead, subtitle: "Investimento / leads", icon: DollarSign },
-    { title: "Taxa de Conversão", value: `${analytics.taxaConversao}%`, subtitle: `${Math.round(analytics.taxaConversao * analytics.totalLeads / 100)} leads convertidos`, icon: Target },
-    { title: "ROI", value: roiDisplay, subtitle: "Retorno sobre investimento", icon: TrendingUp, valueClassName: roiValue !== null ? (roiValue >= 0 ? "text-green-600" : "text-red-600") : undefined },
+    { title: "Taxa de Conversão", value: `${taxaConversao.toFixed(1)}%`, subtitle: `${leadsConvertidos} leads convertidos`, icon: Target },
+    { title: "ROI", value: roiDisplay, subtitle: "Retorno sobre investimento", icon: TrendingUp },
     { title: "CTR Médio", value: ctr, subtitle: "Taxa de cliques nos anúncios", icon: MousePointerClick },
     { title: "CPC Médio", value: cpc, subtitle: "Custo por clique", icon: BarChart3 },
     { title: "Taxa de Qualificação", value: `${analytics.taxaQualificacao}%`, subtitle: `${Math.round(analytics.taxaQualificacao * analytics.totalLeads / 100)} leads qualificados`, icon: UserCheck },
