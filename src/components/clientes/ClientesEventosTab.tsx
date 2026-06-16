@@ -66,18 +66,27 @@ export function ClientesEventosTab() {
   }
 
   const navigate = useNavigate();
-  function handleEnviarParabens(a: { nome: string; telefone: string; lead_geral_id?: string | null }) {
+  async function handleEnviarParabens(a: { id: string; nome: string; telefone: string; lead_geral_id?: string | null }) {
     const msg = `Olá ${a.nome.split(" ")[0]}! Desejamos um feliz aniversário! Que este novo ciclo traga muitas realizações. Abraços da equipe B&Z Advocacia!`;
-    if (!a.lead_geral_id) {
-      toast({
-        title: "Cliente sem conversa no WhatsApp",
-        description: "Esse cliente ainda nao tem conversa registrada no bot. Inicie pela aba Atendimento com o numero " + a.telefone,
-        variant: "destructive",
+
+    // Garante que existe lead_geral pra o contact_submissions (cria sob
+    // demanda se nao houver). RPC retorna o lead_geral_id final.
+    let leadGeralId = a.lead_geral_id;
+    if (!leadGeralId) {
+      const { data, error } = await supabase.rpc("garantir_lead_geral_para_contact", {
+        p_contact_submission_id: a.id,
       });
-      return;
+      if (error || !data) {
+        toast({
+          title: "Não consegui abrir o atendimento",
+          description: error?.message ?? "Tente abrir manualmente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      leadGeralId = data as string;
     }
-    // Abre o atendimento ja selecionando o lead e pre-populando a textarea.
-    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(a.lead_geral_id)}&msg=${encodeURIComponent(msg)}`);
+    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(leadGeralId)}&msg=${encodeURIComponent(msg)}`);
   }
 
   return (

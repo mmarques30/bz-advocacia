@@ -1,4 +1,4 @@
-import { Clock, Briefcase, MessageSquare, Trash2, XCircle } from "lucide-react";
+import { Clock, Briefcase, MessageSquare, Trash2, XCircle, UserX } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Lead } from "@/types/leads";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,9 @@ interface LeadCardProps {
   onAssumed?: (lead: Lead) => void;
   onDelete?: (lead: Lead) => void;
   onMarkLost?: (lead: Lead) => void;
+  // Marca o lead como nao-lead (fornecedor, vara, contato pessoal etc).
+  // Quando marcado, ele sai do Kanban principal.
+  onMarkNaoLead?: (lead: Lead) => void;
 }
 
 function calcDiasDesdeContato(createdAt: string): number {
@@ -25,7 +28,7 @@ function calcDiasDesdeContato(createdAt: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost }: LeadCardProps) {
+export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost, onMarkNaoLead }: LeadCardProps) {
   const dias = calcDiasDesdeContato(lead.created_at);
   const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
     ? lead.outro_tipo_processo
@@ -98,6 +101,21 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost }: Lea
                 aria-label={`Primeiro contato via WhatsApp com ${lead.nome_completo}`}
               >
                 <MessageSquare className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {onMarkNaoLead && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-amber-700 hover:bg-amber-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMarkNaoLead(lead);
+                }}
+                title="Não é lead (fornecedor, parceiro, vara, contato pessoal)"
+                aria-label={`Marcar ${lead.nome_completo} como nao-lead`}
+              >
+                <UserX className="h-3.5 w-3.5" />
               </Button>
             )}
             {onMarkLost && (

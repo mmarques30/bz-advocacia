@@ -28,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface LeadsKanbanProps {
   leads: Lead[] | undefined;
@@ -124,12 +125,14 @@ function SortableLeadCard({
   onAssumed,
   onDelete,
   onMarkLost,
+  onMarkNaoLead,
 }: {
   lead: Lead;
   onViewDetails: (lead: Lead) => void;
   onAssumed?: (lead: Lead) => void;
   onDelete?: (lead: Lead) => void;
   onMarkLost?: (lead: Lead) => void;
+  onMarkNaoLead?: (lead: Lead) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: lead.id,
@@ -147,6 +150,7 @@ function SortableLeadCard({
         onAssumed={onAssumed}
         onDelete={onDelete}
         onMarkLost={onMarkLost}
+        onMarkNaoLead={onMarkNaoLead}
       />
     </div>
   );
@@ -172,6 +176,8 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
   const updateStage = useUpdateLeadStage();
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [leadToLose, setLeadToLose] = useState<Lead | null>(null);
+  const [leadNaoLead, setLeadNaoLead] = useState<Lead | null>(null);
+  const [tipoNaoLead, setTipoNaoLead] = useState<string>("institucional");
   const [activeId, setActiveId] = useState<string | null>(null);
 
   // activationConstraint.distance: so inicia drag depois de mover 8px,
@@ -343,6 +349,7 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
                     onViewDetails={onViewDetails}
                     onAssumed={onAssumed}
                     onDelete={setLeadToDelete}
+                    onMarkNaoLead={(l) => { setLeadNaoLead(l); setTipoNaoLead("institucional"); }}
                     onMarkLost={
                       coluna.id !== "perdido" && coluna.id !== "convertido"
                         ? setLeadToLose
@@ -406,6 +413,55 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
               onClick={handleConfirmLost}
             >
               Marcar perdido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Marcar como nao-lead (fornecedor/parceiro/institucional/pessoal) */}
+      <AlertDialog open={!!leadNaoLead} onOpenChange={(open) => !open && setLeadNaoLead(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Marcar como não-lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{leadNaoLead?.nome_completo}</strong> sai do funil de leads.
+              Escolha a categoria:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Select value={tipoNaoLead} onValueChange={setTipoNaoLead}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="institucional">Institucional (vara, cartório, repartição)</SelectItem>
+                <SelectItem value="fornecedor">Fornecedor</SelectItem>
+                <SelectItem value="parceiro">Parceiro</SelectItem>
+                <SelectItem value="pessoal">Contato pessoal</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!leadNaoLead?.lead_geral_id) {
+                  setLeadNaoLead(null);
+                  return;
+                }
+                try {
+                  await (supabase as any)
+                    .from("leads_geral")
+                    .update({ tipo_contato: tipoNaoLead, bot_pausado: true })
+                    .eq("id", leadNaoLead.lead_geral_id);
+                  queryClient.invalidateQueries({ queryKey: ["leads"] });
+                  toast({ title: `Marcado como ${tipoNaoLead}` });
+                } catch (err: any) {
+                  toast({ title: "Erro ao marcar", description: err?.message, variant: "destructive" });
+                } finally {
+                  setLeadNaoLead(null);
+                }
+              }}
+            >
+              Marcar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
