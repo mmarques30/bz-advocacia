@@ -12,7 +12,7 @@ export function useAniversariantes() {
 
       const { data } = await supabase
         .from("contact_submissions")
-        .select("id, nome_completo, data_nascimento, telefone")
+        .select("id, nome_completo, data_nascimento, telefone, lead_geral_id")
         .eq("estagio", "fechado")
         .not("data_nascimento", "is", null);
 
@@ -34,6 +34,7 @@ export function useAniversariantes() {
             telefone: c.telefone,
             isHoje,
             diasAte,
+            lead_geral_id: (c as any).lead_geral_id ?? null,
           };
         })
         .sort((a, b) => a.dia - b.dia);

@@ -8,6 +8,7 @@ import { Phone, User } from "lucide-react";
 
 interface Props {
   leadId: string;
+  mensagemInicial?: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -19,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
   perdido: "bg-gray-100 text-gray-700",
 };
 
-export function ChatPanel({ leadId }: Props) {
+export function ChatPanel({ leadId, mensagemInicial }: Props) {
   const qc = useQueryClient();
   const { data: lead } = useQuery({
     queryKey: ["atendimento-lead", leadId],
@@ -120,6 +121,7 @@ export function ChatPanel({ leadId }: Props) {
           leadGeralId={lead.id}
           status_sdr={lead.status_sdr}
           bot_pausado={lead.bot_pausado}
+          mensagemInicial={mensagemInicial}
           fullHeight
           autoFocus
         />

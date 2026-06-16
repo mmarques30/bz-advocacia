@@ -45,6 +45,7 @@ export interface Aniversariante {
   telefone: string;
   isHoje: boolean;
   diasAte: number;
+  lead_geral_id?: string | null;
 }
 
 export interface DashboardVisualData {
