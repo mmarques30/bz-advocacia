@@ -16,6 +16,7 @@ interface LeadGeralRecord {
   platform: string | null;
   origem_sdr: string | null;
   status_sdr?: string | null;
+  bot_pausado?: boolean | null;
 }
 
 interface WebhookPayload {
@@ -72,6 +73,18 @@ Deno.serve(async (req) => {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Guard: lead criado pelo painel humano (RPC garantir_lead_geral_para_contact
+  // ou trg que marca bot_pausado=true / status_sdr=assumido_humano) NAO deve
+  // disparar M0 do bot. Sem essa checagem, abrir atendimento manual de cliente
+  // existente fazia o bot mandar "Oi, em qual area voce precisa de ajuda" pra
+  // cliente que ja conhece o escritorio.
+  if (lead.bot_pausado === true || lead.status_sdr === "assumido_humano" || lead.status_sdr === "cliente") {
+    return new Response(
+      JSON.stringify({ skipped: "humano_iniciou_ou_cliente", status_sdr: lead.status_sdr ?? null }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
   }
 
   // Idempotência: se já tem mensagem do bot pra esse lead, não reenvia.

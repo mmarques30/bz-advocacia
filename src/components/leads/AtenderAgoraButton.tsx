@@ -1,4 +1,5 @@
 import { Check, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Lead } from "@/types/leads";
 import { useAssumirLead } from "@/hooks/useAssumirLead";
@@ -12,8 +13,16 @@ interface Props {
 }
 
 export function AtenderAgoraButton({ lead, size = "sm", className, onAssumed }: Props) {
+  const navigate = useNavigate();
   const assumir = useAssumirLead({
-    onAssumed: () => onAssumed?.(lead),
+    onAssumed: () => {
+      onAssumed?.(lead);
+      // Apos assumir, leva direto pra Atendimento com a conversa selecionada
+      // (antes so disparava toast e o atendente tinha que navegar manualmente).
+      if (lead.lead_geral_id) {
+        navigate(`/dashboard/atendimento?lead=${encodeURIComponent(lead.lead_geral_id)}`);
+      }
+    },
   });
   // So mostra o botao se o lead realmente esta no estado de espera
   // (status_sdr=sql_aguardando_humano) E ainda nao avançou pra um estagio
