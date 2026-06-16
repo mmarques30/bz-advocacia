@@ -5,7 +5,8 @@ import { subDays, format } from "date-fns";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
-  Award, AlertTriangle, TrendingUp, Zap, Target, Compass, GitBranch, Activity, ImageIcon, Lightbulb,
+  Award, AlertTriangle, TrendingUp, Zap, Target, Compass, GitBranch, Activity, ImageIcon,
+  Lightbulb, Eye, MousePointerClick, DollarSign,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -17,11 +18,14 @@ interface Props {
 function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 }
+function num(v: number) {
+  return v.toLocaleString("pt-BR");
+}
 
 interface Insight {
   Icon: LucideIcon;
   tone: "good" | "warn" | "info" | "muted";
-  area: "campanha" | "anuncio" | "pipeline" | "funil";
+  area: "campanha" | "anuncio" | "pipeline" | "funil" | "geral";
   title: string;
   desc: string;
 }
@@ -38,6 +42,7 @@ const AREA_LABEL: Record<Insight["area"], string> = {
   anuncio: "Anúncio",
   pipeline: "Pipeline",
   funil: "Funil",
+  geral: "Geral",
 };
 
 export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
@@ -50,10 +55,15 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("v_meta_lead_funnel")
-        .select("campaign_id, status_sdr, converted")
+        .select("campaign_id, status_sdr, converted, em_pipeline")
         .gte("lead_at", dataInicioISO);
       if (error) throw error;
-      return (data ?? []) as Array<{ campaign_id: string | null; status_sdr: string | null; converted: boolean }>;
+      return (data ?? []) as Array<{
+        campaign_id: string | null;
+        status_sdr: string | null;
+        converted: boolean;
+        em_pipeline: boolean;
+      }>;
     },
     refetchInterval: 60_000,
   });
@@ -82,14 +92,11 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
     refetchInterval: 60_000,
   });
 
-  // Top/bottom ads por gasto/CTR — pega anuncio individual
   const adsAggQuery = useQuery({
     queryKey: ["meta-insights-ads-top", periodo],
     queryFn: async () => {
       const { data: ads } = await supabase.from("meta_ads").select("id, name");
-      const adNames = new Map<string, string>(
-        (ads ?? []).map((a: any) => [a.id, a.name ?? a.id]),
-      );
+      const adNames = new Map<string, string>((ads ?? []).map((a: any) => [a.id, a.name ?? a.id]));
       const { data: ins } = await supabase
         .from("meta_insights_daily")
         .select("object_id, spend, impressions, clicks, leads")
@@ -124,21 +131,21 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
     const fLeads = funnel.data ?? [];
     const mLeads = metaLeads.data ?? new Map<string, number>();
 
-    // ============== CAMPANHA ==============
+    // ============ CAMPANHA ============
     if (ativas.length > 0) {
-      // Top CPL real (pipe)
-      const pipeByCamp = new Map<string, { total: number; conv: number }>();
+      const pipeByCamp = new Map<string, { total: number; conv: number; emPipe: number }>();
       for (const f of fLeads) {
         if (!f.campaign_id) continue;
-        const cur = pipeByCamp.get(f.campaign_id) ?? { total: 0, conv: 0 };
+        const cur = pipeByCamp.get(f.campaign_id) ?? { total: 0, conv: 0, emPipe: 0 };
         cur.total++;
         if (f.converted) cur.conv++;
+        if (f.em_pipeline) cur.emPipe++;
         pipeByCamp.set(f.campaign_id, cur);
       }
       const comCPL = ativas
         .map((c) => {
-          const p = pipeByCamp.get(c.id) ?? { total: 0, conv: 0 };
-          return { c, cplPipe: p.total > 0 ? c.gasto / p.total : 0, leadsPipe: p.total, conv: p.conv };
+          const p = pipeByCamp.get(c.id) ?? { total: 0, conv: 0, emPipe: 0 };
+          return { c, cplPipe: p.total > 0 ? c.gasto / p.total : 0, leadsPipe: p.total, conv: p.conv, emPipe: p.emPipe };
         })
         .filter((x) => x.cplPipe > 0);
       const topCpl = [...comCPL].sort((a, b) => a.cplPipe - b.cplPipe)[0];
@@ -146,10 +153,9 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
         out.push({
           Icon: Award, tone: "good", area: "campanha",
           title: `Melhor CPL real: ${topCpl.c.nome}`,
-          desc: `${brl(topCpl.cplPipe)} por lead no bot (${topCpl.leadsPipe} leads, ${brl(topCpl.c.gasto)} gastos).`,
+          desc: `${brl(topCpl.cplPipe)} por lead no bot — ${topCpl.leadsPipe} leads, ${brl(topCpl.c.gasto)} gastos.`,
         });
       }
-      // Gastando sem converter
       const torrando = ativas.filter((c) => c.gasto > 100 && c.leads === 0)
         .sort((a, b) => b.gasto - a.gasto)[0];
       if (torrando) {
@@ -159,20 +165,31 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
           desc: `${brl(torrando.gasto)} gastos, zero lead. Pausar ou revisar criativo.`,
         });
       }
-      // Top conversao
+      // Top conversao real (=cliente fechado)
       const topConv = [...comCPL].filter((x) => x.leadsPipe >= 3)
         .map((x) => ({ ...x, taxa: (x.conv / x.leadsPipe) * 100 }))
         .sort((a, b) => b.taxa - a.taxa)[0];
-      if (topConv && topConv.taxa > 0) {
+      if (topConv && topConv.conv > 0) {
         out.push({
           Icon: TrendingUp, tone: "good", area: "campanha",
-          title: `Maior conversão: ${topConv.c.nome}`,
-          desc: `${topConv.taxa.toFixed(0)}% dos ${topConv.leadsPipe} leads viraram cliente/agendado/qualificado.`,
+          title: `Maior conversão real: ${topConv.c.nome}`,
+          desc: `${topConv.conv} de ${topConv.leadsPipe} leads viraram cliente (${topConv.taxa.toFixed(0)}%).`,
+        });
+      }
+      // Top "em pipeline" (qualificados, agendados, em atendimento)
+      const topPipe = [...comCPL].filter((x) => x.emPipe >= 3 && x.conv === 0)
+        .sort((a, b) => (b.emPipe / b.leadsPipe) - (a.emPipe / a.leadsPipe))[0];
+      if (topPipe) {
+        const pctPipe = (topPipe.emPipe / topPipe.leadsPipe) * 100;
+        out.push({
+          Icon: Activity, tone: "info", area: "pipeline",
+          title: `Pipeline forte: ${topPipe.c.nome}`,
+          desc: `${topPipe.emPipe} de ${topPipe.leadsPipe} leads avançaram (${pctPipe.toFixed(0)}%) mas ainda não fecharam. Cabe acelerar o atendimento.`,
         });
       }
     }
 
-    // ============== ANUNCIO ==============
+    // ============ ANUNCIO ============
     if (ads.length > 0) {
       const adsComCTR = ads.filter((a) => a.impressoes > 1000);
       const melhorCtr = [...adsComCTR].sort((a, b) => b.ctr - a.ctr)[0];
@@ -180,10 +197,9 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
         out.push({
           Icon: Zap, tone: "info", area: "anuncio",
           title: `Anúncio que mais engaja: ${melhorCtr.nome}`,
-          desc: `CTR ${melhorCtr.ctr.toFixed(2)}% em ${melhorCtr.impressoes.toLocaleString("pt-BR")} impressões. Replicar o estilo nas outras campanhas.`,
+          desc: `CTR ${melhorCtr.ctr.toFixed(2)}% em ${num(melhorCtr.impressoes)} impressões. Replicar o estilo nas outras campanhas.`,
         });
       }
-      // Maior gasto sem lead
       const adRuim = ads.filter((a) => a.gasto > 50 && a.leads === 0)
         .sort((a, b) => b.gasto - a.gasto)[0];
       if (adRuim) {
@@ -193,7 +209,6 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
           desc: `${brl(adRuim.gasto)} gastos sem lead. Verificar segmentação e copy.`,
         });
       }
-      // Top CPL ad
       const adsComLead = ads.filter((a) => a.leads > 0)
         .map((a) => ({ ...a, cpl: a.gasto / a.leads }));
       const topAdCpl = [...adsComLead].sort((a, b) => a.cpl - b.cpl)[0];
@@ -206,7 +221,7 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
       }
     }
 
-    // ============== PIPELINE (Meta x Bot) ==============
+    // ============ PIPELINE (Meta x Bot) ============
     const totalMetaLeads = Array.from(mLeads.values()).reduce((s, v) => s + v, 0);
     const totalPipe = fLeads.length;
     if (totalMetaLeads > 0) {
@@ -215,7 +230,7 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
         out.push({
           Icon: Compass, tone: "warn", area: "pipeline",
           title: `Aderência baixa: ${aderencia.toFixed(0)}%`,
-          desc: `Meta atribuiu ${totalMetaLeads} leads mas só ${totalPipe} chegaram ao bot. Verificar tracking ou fluxo de entrada do WhatsApp.`,
+          desc: `Meta atribuiu ${totalMetaLeads} leads mas só ${totalPipe} chegaram ao bot. Verificar tracking ou fluxo do WhatsApp.`,
         });
       } else if (aderencia >= 90) {
         out.push({
@@ -232,31 +247,27 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
       }
     }
 
-    // ============== FUNIL ==============
+    // ============ FUNIL ============
     if (totalPipe > 0) {
-      const convertidos = fLeads.filter((f) => f.converted).length;
+      const convertidos = fLeads.filter((f) => f.converted).length; // SO clientes
+      const emPipe = fLeads.filter((f) => f.em_pipeline && !f.converted).length;
       const taxaConv = (convertidos / totalPipe) * 100;
-      if (taxaConv >= 30) {
+      const taxaPipe = (emPipe / totalPipe) * 100;
+
+      if (convertidos > 0) {
         out.push({
           Icon: GitBranch, tone: "good", area: "funil",
-          title: `Conversão saudável: ${taxaConv.toFixed(0)}%`,
-          desc: `${convertidos} dos ${totalPipe} leads de anúncio viraram cliente / agendado / em atendimento.`,
+          title: `${convertidos} leads viraram cliente`,
+          desc: `${taxaConv.toFixed(1)}% dos ${totalPipe} leads de anúncio fecharam. ${emPipe} ainda no pipeline (${taxaPipe.toFixed(0)}%).`,
         });
-      } else if (taxaConv < 10) {
-        out.push({
-          Icon: GitBranch, tone: "warn", area: "funil",
-          title: `Conversão baixa: ${taxaConv.toFixed(0)}%`,
-          desc: `Só ${convertidos} dos ${totalPipe} leads avançam no funil. Pode ser problema de qualificação do bot ou tempo de resposta humana.`,
-        });
-      } else {
+      } else if (emPipe > 0) {
         out.push({
           Icon: GitBranch, tone: "info", area: "funil",
-          title: `Taxa de conversão: ${taxaConv.toFixed(1)}%`,
-          desc: `${convertidos} de ${totalPipe} leads avançaram pra cliente/agendado.`,
+          title: `${emPipe} leads no pipeline`,
+          desc: `Ainda nenhum fechou cliente, mas ${emPipe} estão avançando (${taxaPipe.toFixed(0)}%). Acelerar o atendimento pra fechar.`,
         });
       }
 
-      // Onde os leads estao travados
       const byStage = new Map<string, number>();
       for (const f of fLeads) {
         const k = f.status_sdr ?? "sem_status";
@@ -272,50 +283,86 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
       }
     }
 
-    // ============== ROI GERAL ==============
+    // ============ GERAL (preenche pra garantir min 5) ============
     if (campanhas.length > 0 && totalPipe > 0) {
       const totGasto = campanhas.reduce((s, c) => s + c.gasto, 0);
       if (totGasto > 0) {
         const cplReal = totGasto / totalPipe;
         out.push({
-          Icon: Target, tone: "info", area: "pipeline",
+          Icon: Target, tone: "info", area: "geral",
           title: `CPL real geral: ${brl(cplReal)}`,
-          desc: `${brl(totGasto)} dividido por ${totalPipe} leads que chegaram ao bot. Bate com seu Custo/Lead do header.`,
+          desc: `${brl(totGasto)} dividido por ${totalPipe} leads que chegaram ao bot.`,
         });
       }
     }
 
+    // Fillers genericos pra atingir minimo 5 insights, se faltarem.
+    const totalImpressoes = ads.reduce((s, a) => s + a.impressoes, 0);
+    const totalCliques = ads.reduce((s, a) => s + a.cliques, 0);
+    const totalGastoAds = ads.reduce((s, a) => s + a.gasto, 0);
+    const adsAtivos = ads.filter((a) => a.gasto > 0).length;
+    const fillers: Insight[] = [];
+    if (totalImpressoes > 0) {
+      fillers.push({
+        Icon: Eye, tone: "muted", area: "geral",
+        title: `Alcance: ${num(totalImpressoes)} impressões`,
+        desc: `${num(totalCliques)} cliques no período (CTR ${totalImpressoes > 0 ? ((totalCliques / totalImpressoes) * 100).toFixed(2) : "—"}%).`,
+      });
+    }
+    if (totalGastoAds > 0) {
+      fillers.push({
+        Icon: DollarSign, tone: "muted", area: "geral",
+        title: `Investimento total: ${brl(totalGastoAds)}`,
+        desc: `Distribuído entre ${adsAtivos} anúncios com gasto > 0.`,
+      });
+    }
+    if (totalCliques > 0) {
+      fillers.push({
+        Icon: MousePointerClick, tone: "muted", area: "geral",
+        title: `${num(totalCliques)} cliques no período`,
+        desc: `Custo médio por clique: ${totalGastoAds > 0 ? brl(totalGastoAds / totalCliques) : "—"}.`,
+      });
+    }
+    // Adiciona filler so se faltar p/ atingir 5
+    let i = 0;
+    while (out.length < 5 && i < fillers.length) {
+      const f = fillers[i++];
+      if (!out.some((x) => x.title === f.title)) out.push(f);
+    }
     if (out.length === 0) {
       out.push({
-        Icon: Lightbulb, tone: "muted", area: "campanha",
+        Icon: Lightbulb, tone: "muted", area: "geral",
         title: "Sem dados suficientes",
-        desc: "Aguardando sincronização dos primeiros insights do Meta. Tente novamente após o próximo cron (minuto 5 de cada hora).",
+        desc: "Aguardando sincronização dos primeiros insights do Meta. Tente novamente após o próximo cron.",
       });
     }
 
-    // Ordena por prioridade: warn → good → info → muted
+    // Ordena: warn → good → info → muted (acionaveis primeiro)
     const priori: Record<Insight["tone"], number> = { warn: 0, good: 1, info: 2, muted: 3 };
     out.sort((a, b) => priori[a.tone] - priori[b.tone]);
     return out;
   }, [campanhas, funnel.data, metaLeads.data, adsAggQuery.data]);
 
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-2">
       {insights.map((i, idx) => {
         const Icon = i.Icon;
         return (
           <div
             key={idx}
-            className={cn("rounded-lg border p-4 flex flex-col gap-2", TONE_CLS[i.tone])}
+            className={cn(
+              "rounded-lg border px-4 py-3 flex items-center gap-4",
+              TONE_CLS[i.tone],
+            )}
           >
-            <div className="flex items-center justify-between gap-2">
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">
-                {AREA_LABEL[i.area]}
-              </span>
+            <Icon className="h-5 w-5 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-sm leading-tight truncate" title={i.title}>{i.title}</p>
+              <p className="text-xs leading-snug opacity-90 mt-0.5">{i.desc}</p>
             </div>
-            <p className="font-semibold text-sm leading-tight">{i.title}</p>
-            <p className="text-xs leading-snug opacity-90">{i.desc}</p>
+            <span className="text-[10px] font-medium uppercase tracking-wide opacity-70 shrink-0">
+              {AREA_LABEL[i.area]}
+            </span>
           </div>
         );
       })}
