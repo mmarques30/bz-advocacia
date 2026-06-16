@@ -1,4 +1,5 @@
-import { Clock, Briefcase, MessageSquare, Trash2, XCircle, UserX } from "lucide-react";
+import { Clock, Briefcase, MessageSquare, Trash2, XCircle, UserX, MessageCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Lead } from "@/types/leads";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ function calcDiasDesdeContato(createdAt: string): number {
 }
 
 export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost, onMarkNaoLead }: LeadCardProps) {
+  const navigate = useNavigate();
   const dias = calcDiasDesdeContato(lead.created_at);
   const tipoServico = lead.tipo_processo === 'Outro' && lead.outro_tipo_processo
     ? lead.outro_tipo_processo
@@ -38,6 +40,29 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost, onMar
     tipo: 'primeiro_contato',
     ativo: true,
   });
+
+  // Abre direto o Atendimento ja com a conversa selecionada. Se o lead
+  // nao tem vinculo no bot ainda (lead_geral_id null) — caso comum em
+  // leads do form do site — cria via RPC garantir_lead_geral_para_contact.
+  const handleAbrirConversa = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    let leadGeralId = lead.lead_geral_id;
+    if (!leadGeralId) {
+      const { data, error } = await supabase.rpc("garantir_lead_geral_para_contact", {
+        p_contact_submission_id: lead.id,
+      });
+      if (error || !data) {
+        toast({
+          title: "Nao consegui abrir o atendimento",
+          description: error?.message ?? "Tente novamente em alguns segundos.",
+          variant: "destructive",
+        });
+        return;
+      }
+      leadGeralId = data as string;
+    }
+    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(leadGeralId)}`);
+  };
 
   const handlePrimeiroContato = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -89,7 +114,19 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost, onMar
     >
       <div className="space-y-1.5">
         <div className="flex items-start justify-between gap-2">
-          <p className="font-medium text-sm line-clamp-1">{lead.nome_completo}</p>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 shrink-0"
+              onClick={handleAbrirConversa}
+              title="Abrir conversa no Atendimento"
+              aria-label={`Abrir conversa com ${lead.nome_completo}`}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+            </Button>
+            <p className="font-medium text-sm line-clamp-1">{lead.nome_completo}</p>
+          </div>
           <div className="flex items-center gap-1 shrink-0">
             {lead.estagio === 'novo' && (
               <Button
