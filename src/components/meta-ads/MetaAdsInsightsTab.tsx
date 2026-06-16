@@ -1,11 +1,12 @@
-import { Badge } from "@/components/ui/badge";
 import { MetaCampanha, PeriodoFiltro } from "@/types/meta-ads";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subDays, format } from "date-fns";
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Award, AlertTriangle, TrendingUp, Zap, Activity, Minus, Lightbulb } from "lucide-react";
+import {
+  Award, AlertTriangle, TrendingUp, Zap, Target, Compass, GitBranch, Activity, ImageIcon, Lightbulb,
+} from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 interface Props {
@@ -17,59 +18,48 @@ function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  ACTIVE: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  PAUSED: "bg-yellow-100 text-yellow-800 border-yellow-300",
-  DELETED: "bg-gray-100 text-gray-600 border-gray-200",
-  ARCHIVED: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-interface Verdict {
+interface Insight {
   Icon: LucideIcon;
-  label: string;
   tone: "good" | "warn" | "info" | "muted";
+  area: "campanha" | "anuncio" | "pipeline" | "funil";
+  title: string;
+  desc: string;
 }
 
-const TONE_BADGE: Record<Verdict["tone"], string> = {
-  good: "bg-emerald-100 text-emerald-800 border-emerald-300",
-  warn: "bg-amber-100 text-amber-900 border-amber-300",
-  info: "bg-blue-100 text-blue-800 border-blue-300",
-  muted: "bg-gray-100 text-gray-600 border-gray-200",
+const TONE_CLS: Record<Insight["tone"], string> = {
+  good: "bg-emerald-50 border-emerald-200 text-emerald-900",
+  warn: "bg-amber-50 border-amber-200 text-amber-900",
+  info: "bg-blue-50 border-blue-200 text-blue-900",
+  muted: "bg-gray-50 border-gray-200 text-gray-800",
 };
 
-const TONE_CARD: Record<Verdict["tone"], string> = {
-  good: "border-l-emerald-400",
-  warn: "border-l-amber-400",
-  info: "border-l-blue-400",
-  muted: "border-l-gray-300",
+const AREA_LABEL: Record<Insight["area"], string> = {
+  campanha: "Campanha",
+  anuncio: "Anúncio",
+  pipeline: "Pipeline",
+  funil: "Funil",
 };
 
-/**
- * Para cada campanha, exibe analise narrativa + recomendacao baseada em
- * heuristicas (CPL vs mediano, taxa de conversao, aderencia Meta x Pipe,
- * CTR). Nao e uma tabela — e uma sequencia de cards explicativos pra
- * direcionar acoes.
- */
 export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
   const dataInicioISO = subDays(new Date(), dias).toISOString();
   const dataInicioStr = format(subDays(new Date(), dias), "yyyy-MM-dd");
 
   const funnel = useQuery({
-    queryKey: ["meta-insights-tab-funnel", periodo],
+    queryKey: ["meta-insights-funnel", periodo],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("v_meta_lead_funnel")
-        .select("campaign_id, converted")
+        .select("campaign_id, status_sdr, converted")
         .gte("lead_at", dataInicioISO);
       if (error) throw error;
-      return (data ?? []) as Array<{ campaign_id: string | null; converted: boolean }>;
+      return (data ?? []) as Array<{ campaign_id: string | null; status_sdr: string | null; converted: boolean }>;
     },
     refetchInterval: 60_000,
   });
 
   const metaLeads = useQuery({
-    queryKey: ["meta-insights-tab-meta-leads", periodo],
+    queryKey: ["meta-insights-meta-leads", periodo],
     queryFn: async () => {
       const { data: ads } = await supabase.from("meta_ads").select("id, campaign_id");
       const adMap = new Map<string, string>(
@@ -92,146 +82,240 @@ export function MetaAdsInsightsTab({ campanhas, periodo }: Props) {
     refetchInterval: 60_000,
   });
 
-  const cards = useMemo(() => {
-    const pipeBy = new Map<string, { total: number; conv: number }>();
-    for (const f of funnel.data ?? []) {
-      if (!f.campaign_id) continue;
-      const c = pipeBy.get(f.campaign_id) ?? { total: 0, conv: 0 };
-      c.total++;
-      if (f.converted) c.conv++;
-      pipeBy.set(f.campaign_id, c);
+  // Top/bottom ads por gasto/CTR — pega anuncio individual
+  const adsAggQuery = useQuery({
+    queryKey: ["meta-insights-ads-top", periodo],
+    queryFn: async () => {
+      const { data: ads } = await supabase.from("meta_ads").select("id, name");
+      const adNames = new Map<string, string>(
+        (ads ?? []).map((a: any) => [a.id, a.name ?? a.id]),
+      );
+      const { data: ins } = await supabase
+        .from("meta_insights_daily")
+        .select("object_id, spend, impressions, clicks, leads")
+        .eq("level", "ad")
+        .gte("date", dataInicioStr);
+      const agg = new Map<string, { gasto: number; imp: number; clk: number; leads: number }>();
+      for (const r of (ins ?? []) as any[]) {
+        const cur = agg.get(r.object_id) ?? { gasto: 0, imp: 0, clk: 0, leads: 0 };
+        cur.gasto += Number(r.spend ?? 0);
+        cur.imp += Number(r.impressions ?? 0);
+        cur.clk += Number(r.clicks ?? 0);
+        cur.leads += Number(r.leads ?? 0);
+        agg.set(r.object_id, cur);
+      }
+      return Array.from(agg.entries()).map(([id, v]) => ({
+        id,
+        nome: adNames.get(id) ?? id,
+        gasto: v.gasto,
+        impressoes: v.imp,
+        cliques: v.clk,
+        ctr: v.imp > 0 ? (v.clk / v.imp) * 100 : 0,
+        leads: v.leads,
+      }));
+    },
+    refetchInterval: 60_000,
+  });
+
+  const insights = useMemo<Insight[]>(() => {
+    const out: Insight[] = [];
+    const ativas = campanhas.filter((c) => c.gasto > 0 || c.leads > 0);
+    const ads = adsAggQuery.data ?? [];
+    const fLeads = funnel.data ?? [];
+    const mLeads = metaLeads.data ?? new Map<string, number>();
+
+    // ============== CAMPANHA ==============
+    if (ativas.length > 0) {
+      // Top CPL real (pipe)
+      const pipeByCamp = new Map<string, { total: number; conv: number }>();
+      for (const f of fLeads) {
+        if (!f.campaign_id) continue;
+        const cur = pipeByCamp.get(f.campaign_id) ?? { total: 0, conv: 0 };
+        cur.total++;
+        if (f.converted) cur.conv++;
+        pipeByCamp.set(f.campaign_id, cur);
+      }
+      const comCPL = ativas
+        .map((c) => {
+          const p = pipeByCamp.get(c.id) ?? { total: 0, conv: 0 };
+          return { c, cplPipe: p.total > 0 ? c.gasto / p.total : 0, leadsPipe: p.total, conv: p.conv };
+        })
+        .filter((x) => x.cplPipe > 0);
+      const topCpl = [...comCPL].sort((a, b) => a.cplPipe - b.cplPipe)[0];
+      if (topCpl) {
+        out.push({
+          Icon: Award, tone: "good", area: "campanha",
+          title: `Melhor CPL real: ${topCpl.c.nome}`,
+          desc: `${brl(topCpl.cplPipe)} por lead no bot (${topCpl.leadsPipe} leads, ${brl(topCpl.c.gasto)} gastos).`,
+        });
+      }
+      // Gastando sem converter
+      const torrando = ativas.filter((c) => c.gasto > 100 && c.leads === 0)
+        .sort((a, b) => b.gasto - a.gasto)[0];
+      if (torrando) {
+        out.push({
+          Icon: AlertTriangle, tone: "warn", area: "campanha",
+          title: `Sem retorno: ${torrando.nome}`,
+          desc: `${brl(torrando.gasto)} gastos, zero lead. Pausar ou revisar criativo.`,
+        });
+      }
+      // Top conversao
+      const topConv = [...comCPL].filter((x) => x.leadsPipe >= 3)
+        .map((x) => ({ ...x, taxa: (x.conv / x.leadsPipe) * 100 }))
+        .sort((a, b) => b.taxa - a.taxa)[0];
+      if (topConv && topConv.taxa > 0) {
+        out.push({
+          Icon: TrendingUp, tone: "good", area: "campanha",
+          title: `Maior conversão: ${topConv.c.nome}`,
+          desc: `${topConv.taxa.toFixed(0)}% dos ${topConv.leadsPipe} leads viraram cliente/agendado/qualificado.`,
+        });
+      }
     }
-    const meta = metaLeads.data ?? new Map<string, number>();
 
-    const cplValidos = campanhas
-      .map((c) => {
-        const pipe = pipeBy.get(c.id) ?? { total: 0, conv: 0 };
-        return pipe.total > 0 ? c.gasto / pipe.total : 0;
-      })
-      .filter((v) => v > 0);
-    const cplMediano = cplValidos.length > 0
-      ? [...cplValidos].sort((a, b) => a - b)[Math.floor(cplValidos.length / 2)]
-      : 0;
+    // ============== ANUNCIO ==============
+    if (ads.length > 0) {
+      const adsComCTR = ads.filter((a) => a.impressoes > 1000);
+      const melhorCtr = [...adsComCTR].sort((a, b) => b.ctr - a.ctr)[0];
+      if (melhorCtr && melhorCtr.ctr > 0) {
+        out.push({
+          Icon: Zap, tone: "info", area: "anuncio",
+          title: `Anúncio que mais engaja: ${melhorCtr.nome}`,
+          desc: `CTR ${melhorCtr.ctr.toFixed(2)}% em ${melhorCtr.impressoes.toLocaleString("pt-BR")} impressões. Replicar o estilo nas outras campanhas.`,
+        });
+      }
+      // Maior gasto sem lead
+      const adRuim = ads.filter((a) => a.gasto > 50 && a.leads === 0)
+        .sort((a, b) => b.gasto - a.gasto)[0];
+      if (adRuim) {
+        out.push({
+          Icon: AlertTriangle, tone: "warn", area: "anuncio",
+          title: `Anúncio sem leads: ${adRuim.nome}`,
+          desc: `${brl(adRuim.gasto)} gastos sem lead. Verificar segmentação e copy.`,
+        });
+      }
+      // Top CPL ad
+      const adsComLead = ads.filter((a) => a.leads > 0)
+        .map((a) => ({ ...a, cpl: a.gasto / a.leads }));
+      const topAdCpl = [...adsComLead].sort((a, b) => a.cpl - b.cpl)[0];
+      if (topAdCpl) {
+        out.push({
+          Icon: ImageIcon, tone: "good", area: "anuncio",
+          title: `Anúncio mais eficiente: ${topAdCpl.nome}`,
+          desc: `${brl(topAdCpl.cpl)} por lead em ${topAdCpl.leads} leads gerados.`,
+        });
+      }
+    }
 
-    const rows = campanhas.map((c) => {
-      const pipe = pipeBy.get(c.id) ?? { total: 0, conv: 0 };
-      const lMeta = meta.get(c.id) ?? 0;
-      const cplPipe = pipe.total > 0 ? c.gasto / pipe.total : 0;
-      const aderencia = lMeta > 0 ? (pipe.total / lMeta) * 100 : null;
-      const taxaConv = pipe.total > 0 ? (pipe.conv / pipe.total) * 100 : 0;
-
-      // Veredict + recomendacao narrativa
-      let v: Verdict;
-      let recomendacao: string | null = null;
-
-      if (c.gasto > 100 && pipe.total === 0 && lMeta === 0) {
-        v = { Icon: AlertTriangle, label: "Sem conversão", tone: "warn" };
-        recomendacao = "Gastou sem nenhum lead. Revise o criativo, segmentação ou pause a campanha.";
-      } else if (cplMediano > 0 && cplPipe > 0 && cplPipe <= cplMediano * 0.7) {
-        v = { Icon: Award, label: "CPL ótimo", tone: "good" };
-        recomendacao = `CPL real ${brl(cplPipe)} está bem abaixo da média (${brl(cplMediano)}). Considere ampliar o budget.`;
-      } else if (cplMediano > 0 && cplPipe > cplMediano * 1.5) {
-        v = { Icon: AlertTriangle, label: "CPL alto", tone: "warn" };
-        recomendacao = `CPL real ${brl(cplPipe)} está acima da média (${brl(cplMediano)}). Teste novo criativo ou ajuste segmentação.`;
-      } else if (taxaConv >= 50) {
-        v = { Icon: TrendingUp, label: "Conversão forte", tone: "good" };
-        recomendacao = `${pipe.conv} de ${pipe.total} leads convertidos (${taxaConv.toFixed(0)}%). Mantém o ritmo.`;
-      } else if (c.ctr > 3) {
-        v = { Icon: Zap, label: "Alto engajamento", tone: "info" };
-        recomendacao = `CTR ${c.ctr.toFixed(2)}% em ${c.impressoes.toLocaleString("pt-BR")} impressões. Considere replicar o criativo em outras campanhas.`;
-      } else if (aderencia != null && aderencia < 50 && lMeta >= 10) {
-        v = { Icon: AlertTriangle, label: "Aderência baixa", tone: "warn" };
-        recomendacao = `Meta atribuiu ${lMeta} leads mas só ${pipe.total} chegaram ao bot (${aderencia.toFixed(0)}%). Verifique o tracking ou o fluxo de entrada.`;
-      } else if (c.gasto === 0 && lMeta === 0 && pipe.total === 0) {
-        v = { Icon: Minus, label: "Sem dados", tone: "muted" };
-        recomendacao = null;
+    // ============== PIPELINE (Meta x Bot) ==============
+    const totalMetaLeads = Array.from(mLeads.values()).reduce((s, v) => s + v, 0);
+    const totalPipe = fLeads.length;
+    if (totalMetaLeads > 0) {
+      const aderencia = (totalPipe / totalMetaLeads) * 100;
+      if (aderencia < 60) {
+        out.push({
+          Icon: Compass, tone: "warn", area: "pipeline",
+          title: `Aderência baixa: ${aderencia.toFixed(0)}%`,
+          desc: `Meta atribuiu ${totalMetaLeads} leads mas só ${totalPipe} chegaram ao bot. Verificar tracking ou fluxo de entrada do WhatsApp.`,
+        });
+      } else if (aderencia >= 90) {
+        out.push({
+          Icon: Compass, tone: "good", area: "pipeline",
+          title: `Aderência excelente: ${aderencia.toFixed(0)}%`,
+          desc: `Quase todos os leads que o Meta atribui chegam ao bot (${totalPipe}/${totalMetaLeads}). Tracking confiável.`,
+        });
       } else {
-        v = { Icon: Activity, label: "Em curso", tone: "info" };
-        recomendacao = null;
+        out.push({
+          Icon: Compass, tone: "info", area: "pipeline",
+          title: `Aderência média: ${aderencia.toFixed(0)}%`,
+          desc: `${totalPipe} dos ${totalMetaLeads} leads atribuídos pelo Meta chegaram ao bot.`,
+        });
+      }
+    }
+
+    // ============== FUNIL ==============
+    if (totalPipe > 0) {
+      const convertidos = fLeads.filter((f) => f.converted).length;
+      const taxaConv = (convertidos / totalPipe) * 100;
+      if (taxaConv >= 30) {
+        out.push({
+          Icon: GitBranch, tone: "good", area: "funil",
+          title: `Conversão saudável: ${taxaConv.toFixed(0)}%`,
+          desc: `${convertidos} dos ${totalPipe} leads de anúncio viraram cliente / agendado / em atendimento.`,
+        });
+      } else if (taxaConv < 10) {
+        out.push({
+          Icon: GitBranch, tone: "warn", area: "funil",
+          title: `Conversão baixa: ${taxaConv.toFixed(0)}%`,
+          desc: `Só ${convertidos} dos ${totalPipe} leads avançam no funil. Pode ser problema de qualificação do bot ou tempo de resposta humana.`,
+        });
+      } else {
+        out.push({
+          Icon: GitBranch, tone: "info", area: "funil",
+          title: `Taxa de conversão: ${taxaConv.toFixed(1)}%`,
+          desc: `${convertidos} de ${totalPipe} leads avançaram pra cliente/agendado.`,
+        });
       }
 
-      // Analise narrativa (descreve o cenario)
-      const partes: string[] = [];
-      partes.push(`Investiu ${c.gasto > 0 ? brl(c.gasto) : "R$ 0,00"}`);
-      partes.push(`${c.impressoes.toLocaleString("pt-BR")} impressões`);
-      if (c.cliques > 0) partes.push(`${c.cliques.toLocaleString("pt-BR")} cliques (CTR ${c.ctr.toFixed(2)}%)`);
-      if (lMeta > 0) partes.push(`Meta atribuiu ${lMeta} leads`);
-      if (pipe.total > 0) partes.push(`${pipe.total} chegaram ao bot`);
-      if (pipe.conv > 0) partes.push(`${pipe.conv} convertidos`);
-      const analise = partes.join(" • ") + ".";
+      // Onde os leads estao travados
+      const byStage = new Map<string, number>();
+      for (const f of fLeads) {
+        const k = f.status_sdr ?? "sem_status";
+        byStage.set(k, (byStage.get(k) ?? 0) + 1);
+      }
+      const aguardando = byStage.get("sql_aguardando_humano") ?? 0;
+      if (aguardando >= 5) {
+        out.push({
+          Icon: AlertTriangle, tone: "warn", area: "funil",
+          title: `${aguardando} leads aguardando atendimento`,
+          desc: `Bot já qualificou e está esperando humano. Cada dia parado aqui é lead esfriando.`,
+        });
+      }
+    }
 
-      return {
-        id: c.id,
-        nome: c.nome,
-        status: c.status,
-        objetivo: c.objetivo,
-        verdict: v,
-        analise,
-        recomendacao,
-        gasto: c.gasto,
-        leads_pipe: pipe.total,
-        cpl_pipe: cplPipe,
-        aderencia,
-      };
-    });
+    // ============== ROI GERAL ==============
+    if (campanhas.length > 0 && totalPipe > 0) {
+      const totGasto = campanhas.reduce((s, c) => s + c.gasto, 0);
+      if (totGasto > 0) {
+        const cplReal = totGasto / totalPipe;
+        out.push({
+          Icon: Target, tone: "info", area: "pipeline",
+          title: `CPL real geral: ${brl(cplReal)}`,
+          desc: `${brl(totGasto)} dividido por ${totalPipe} leads que chegaram ao bot. Bate com seu Custo/Lead do header.`,
+        });
+      }
+    }
 
-    // Prioriza warnings, depois good, depois resto. Tudo ordenado por gasto desc.
-    const prioridade: Record<Verdict["tone"], number> = { warn: 0, good: 1, info: 2, muted: 3 };
-    rows.sort((a, b) => {
-      const pa = prioridade[a.verdict.tone];
-      const pb = prioridade[b.verdict.tone];
-      if (pa !== pb) return pa - pb;
-      return b.gasto - a.gasto;
-    });
-    return rows;
-  }, [campanhas, funnel.data, metaLeads.data]);
+    if (out.length === 0) {
+      out.push({
+        Icon: Lightbulb, tone: "muted", area: "campanha",
+        title: "Sem dados suficientes",
+        desc: "Aguardando sincronização dos primeiros insights do Meta. Tente novamente após o próximo cron (minuto 5 de cada hora).",
+      });
+    }
 
-  if (cards.length === 0) {
-    return (
-      <div className="rounded-lg border bg-muted/40 p-8 text-center text-sm text-muted-foreground">
-        Sem campanhas no período.
-      </div>
-    );
-  }
+    // Ordena por prioridade: warn → good → info → muted
+    const priori: Record<Insight["tone"], number> = { warn: 0, good: 1, info: 2, muted: 3 };
+    out.sort((a, b) => priori[a.tone] - priori[b.tone]);
+    return out;
+  }, [campanhas, funnel.data, metaLeads.data, adsAggQuery.data]);
 
   return (
-    <div className="space-y-2">
-      {cards.map((c) => {
-        const VIcon = c.verdict.Icon;
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {insights.map((i, idx) => {
+        const Icon = i.Icon;
         return (
           <div
-            key={c.id}
-            className={cn(
-              "rounded-lg border-l-4 border border-l-4 bg-muted/40 p-4 space-y-2",
-              TONE_CARD[c.verdict.tone],
-            )}
+            key={idx}
+            className={cn("rounded-lg border p-4 flex flex-col gap-2", TONE_CLS[i.tone])}
           >
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="font-semibold text-sm truncate" title={c.nome}>{c.nome}</h4>
-                  <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[c.status ?? ""] ?? "")}>
-                    {c.status ?? "—"}
-                  </Badge>
-                  {c.objetivo && (
-                    <span className="text-[10px] text-muted-foreground">{c.objetivo}</span>
-                  )}
-                </div>
-              </div>
-              <Badge variant="outline" className={cn("text-[10px] gap-1 shrink-0", TONE_BADGE[c.verdict.tone])}>
-                <VIcon className="h-3 w-3" />
-                {c.verdict.label}
-              </Badge>
+            <div className="flex items-center justify-between gap-2">
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="text-[10px] font-medium uppercase tracking-wide opacity-70">
+                {AREA_LABEL[i.area]}
+              </span>
             </div>
-
-            <p className="text-xs text-muted-foreground leading-snug">{c.analise}</p>
-
-            {c.recomendacao && (
-              <div className="flex items-start gap-2 rounded-md bg-background border border-border p-2.5">
-                <Lightbulb className="h-3.5 w-3.5 text-amber-600 mt-0.5 shrink-0" />
-                <p className="text-xs leading-snug">{c.recomendacao}</p>
-              </div>
-            )}
+            <p className="font-semibold text-sm leading-tight">{i.title}</p>
+            <p className="text-xs leading-snug opacity-90">{i.desc}</p>
           </div>
         );
       })}
