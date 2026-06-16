@@ -61,8 +61,8 @@ const menuItems: MenuItem[] = [
     label: "Gestão de Vendas",
     icon: TrendingUp,
     submenu: [
-      { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Leads", url: "/dashboard/leads" },
+      { title: "Marketing", url: "/dashboard/vendas/meta-ads" },
       { title: "Atendimento", url: "/dashboard/atendimento" },
     ]
   },
