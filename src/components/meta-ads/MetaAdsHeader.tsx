@@ -1,14 +1,21 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetaKPIs, PeriodoFiltro } from "@/types/meta-ads";
-import { DollarSign, Users, Target, TrendingUp, RefreshCw } from "lucide-react";
+import { DollarSign, Users, Target, TrendingUp, RefreshCw, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/lib/toast";
 
 interface Props {
   kpis: MetaKPIs;
   periodo: PeriodoFiltro;
   onPeriodoChange: (p: PeriodoFiltro) => void;
+  statusFilter: string;
+  onStatusChange: (s: string) => void;
   ultimaStructure: string | null;
   ultimaInsights: string | null;
 }
@@ -17,81 +24,131 @@ function brl(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function MetaAdsHeader({ kpis, periodo, onPeriodoChange, ultimaStructure, ultimaInsights }: Props) {
+export function MetaAdsHeader({
+  kpis, periodo, onPeriodoChange, statusFilter, onStatusChange,
+  ultimaStructure, ultimaInsights,
+}: Props) {
+  const qc = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+
+  // 4 KPIs compactos
   const cards = [
+    { label: "Investimento", value: kpis.gasto > 0 ? brl(kpis.gasto) : "—", Icon: DollarSign },
+    { label: "Leads (bot)", value: String(kpis.leads ?? 0), Icon: Users },
+    { label: "Custo / Lead", value: kpis.custoLead > 0 ? brl(kpis.custoLead) : "—", Icon: Target },
     {
-      label: "Investimento",
-      value: kpis.gasto > 0 ? brl(kpis.gasto) : "-",
-      icon: DollarSign,
-    },
-    {
-      label: "Leads (bot)",
-      value: String(kpis.leads ?? 0),
-      icon: Users,
-    },
-    {
-      label: "Custo / Lead",
-      value: kpis.custoLead > 0 ? brl(kpis.custoLead) : "-",
-      icon: Target,
-    },
-    {
-      label: "Taxa de Conversão",
-      value: kpis.taxaConversao != null ? `${kpis.taxaConversao.toFixed(1)}%` : "-",
-      subtitle: kpis.leadsConvertidos != null ? `${kpis.leadsConvertidos} convertidos` : undefined,
-      icon: TrendingUp,
+      label: "Conversão",
+      value: kpis.taxaConversao != null ? `${kpis.taxaConversao.toFixed(1)}%` : "—",
+      sub: kpis.leadsConvertidos != null ? `${kpis.leadsConvertidos} convertidos` : undefined,
+      Icon: TrendingUp,
     },
   ];
 
   const ago = (iso: string | null) =>
     iso ? formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR }) : "nunca";
 
+  async function sincronizar() {
+    setSyncing(true);
+    try {
+      const [r1, r2] = await Promise.all([
+        supabase.rpc("trigger_meta_sync", { target: "structure" }),
+        supabase.rpc("trigger_meta_sync", { target: "insights" }),
+      ]);
+      if (r1.error) throw new Error(r1.error.message);
+      if (r2.error) throw new Error(r2.error.message);
+      toast({ title: "Sincronização disparada", description: "Os dados devem atualizar em alguns segundos." });
+      // Aguarda o sync rodar e invalida queries
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: ["meta-insights-daily"] });
+        qc.invalidateQueries({ queryKey: ["meta-lead-funnel"] });
+        qc.invalidateQueries({ queryKey: ["meta-campaigns-aggregated"] });
+        qc.invalidateQueries({ queryKey: ["meta-adsets-aggregated"] });
+        qc.invalidateQueries({ queryKey: ["meta-ads-aggregated"] });
+        qc.invalidateQueries({ queryKey: ["meta-sync-status"] });
+        qc.invalidateQueries({ queryKey: ["meta-performance-tab"] });
+        qc.invalidateQueries({ queryKey: ["meta-pipeline-by-campaign"] });
+        qc.invalidateQueries({ queryKey: ["meta-leads-by-campaign"] });
+        qc.invalidateQueries({ queryKey: ["meta-funil-detalhe"] });
+      }, 6000);
+    } catch (e: any) {
+      toast({
+        title: "Erro ao sincronizar",
+        description: e?.message ?? "Verifica o vault sdr_webhook_secret e as edge functions.",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Linha 1: titulo + filtro */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+    <div className="space-y-3">
+      {/* Linha 1: titulo + acoes */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-3xl font-seasons text-primary">Dashboard de Marketing</h1>
-          <p className="text-muted-foreground text-sm">
+          <h1 className="text-2xl font-seasons text-primary">Dashboard de Marketing</h1>
+          <p className="text-muted-foreground text-xs">
             Conectado ao Meta Ads (Business Manager B&Z)
           </p>
         </div>
-        <Select value={periodo} onValueChange={(v) => onPeriodoChange(v as PeriodoFiltro)}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7d">Últimos 7 dias</SelectItem>
-            <SelectItem value="30d">Últimos 30 dias</SelectItem>
-            <SelectItem value="90d">Últimos 90 dias</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={statusFilter} onValueChange={onStatusChange}>
+            <SelectTrigger className="h-9 w-[140px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              <SelectItem value="ACTIVE">Ativas</SelectItem>
+              <SelectItem value="PAUSED">Pausadas</SelectItem>
+              <SelectItem value="ARCHIVED">Arquivadas</SelectItem>
+              <SelectItem value="DELETED">Excluídas</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={periodo} onValueChange={(v) => onPeriodoChange(v as PeriodoFiltro)}>
+            <SelectTrigger className="h-9 w-[140px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">Últimos 7 dias</SelectItem>
+              <SelectItem value="30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="90d">Últimos 90 dias</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={sincronizar}
+            disabled={syncing}
+            className="h-9 text-xs"
+          >
+            {syncing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
+            Sincronizar
+          </Button>
+        </div>
       </div>
 
-      {/* Linha 2: 4 KPIs grandes */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Linha 2: 4 KPIs compactos */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {cards.map((c) => {
-          const Icon = c.icon;
+          const Icon = c.Icon;
           return (
-            <Card key={c.label} className="p-5">
-              <div className="flex items-start justify-between">
-                <p className="text-sm font-medium text-muted-foreground">{c.label}</p>
-                <div className="rounded-lg bg-muted p-2">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                </div>
+            <Card key={c.label} className="p-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground truncate">{c.label}</p>
+                <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               </div>
-              <p className="text-2xl font-bold mt-2">{c.value}</p>
-              {c.subtitle && <p className="text-xs text-muted-foreground mt-1">{c.subtitle}</p>}
+              <p className="text-lg font-bold mt-1 leading-none">{c.value}</p>
+              {c.sub && <p className="text-[10px] text-muted-foreground mt-1">{c.sub}</p>}
             </Card>
           );
         })}
       </div>
 
-      {/* Linha 3: status de sincronizacao */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <RefreshCw className="h-3 w-3" />
-        <span>Estrutura sincronizada {ago(ultimaStructure)}</span>
+      {/* Linha 3: status sincronizacao */}
+      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+        <span>Estrutura: {ago(ultimaStructure)}</span>
         <span>•</span>
-        <span>Insights sincronizados {ago(ultimaInsights)}</span>
+        <span>Insights: {ago(ultimaInsights)}</span>
       </div>
     </div>
   );

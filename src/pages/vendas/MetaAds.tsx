@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutDashboard, Target, Layers, ImageIcon, GitBranch, Activity, Compass } from "lucide-react";
+import {
+  LayoutDashboard, Sparkles, Activity, Compass, Target, Layers, ImageIcon, GitBranch,
+} from "lucide-react";
 
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
@@ -11,6 +13,7 @@ import { PeriodoFiltro } from "@/types/meta-ads";
 
 import { MetaAdsHeader } from "@/components/meta-ads/MetaAdsHeader";
 import { MetaAdsVisaoGeralTab } from "@/components/meta-ads/MetaAdsVisaoGeralTab";
+import { MetaAdsInsightsTab } from "@/components/meta-ads/MetaAdsInsightsTab";
 import { MetaAdsPerformanceTab } from "@/components/meta-ads/MetaAdsPerformanceTab";
 import { MetaAdsPipelineTab } from "@/components/meta-ads/MetaAdsPipelineTab";
 import { MetaAdsCampanhasTab } from "@/components/meta-ads/MetaAdsCampanhasTab";
@@ -20,19 +23,22 @@ import { MetaAdsFunilTab } from "@/components/meta-ads/MetaAdsFunilTab";
 
 export default function MetaAds() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("90d");
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
 
   const { kpis, chartData } = useMetaMetrics(periodo);
-  const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns(periodo);
-  const { adSets, isLoading: isLoadingAdSets } = useMetaAdSets(periodo);
-  const { ads, isLoading: isLoadingAds } = useMetaAds(periodo);
+  const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns(periodo, statusFilter);
+  const { adSets, isLoading: isLoadingAdSets } = useMetaAdSets(periodo, statusFilter);
+  const { ads, isLoading: isLoadingAds } = useMetaAds(periodo, statusFilter);
   const { data: syncStatus } = useMetaSyncStatus();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <MetaAdsHeader
         kpis={kpis}
         periodo={periodo}
         onPeriodoChange={setPeriodo}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
         ultimaStructure={syncStatus?.ultima_structure ?? null}
         ultimaInsights={syncStatus?.ultima_insights ?? null}
       />
@@ -41,6 +47,9 @@ export default function MetaAds() {
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="visao-geral" className="flex items-center gap-2">
             <LayoutDashboard className="h-4 w-4" /> Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="insights" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" /> Insights
           </TabsTrigger>
           <TabsTrigger value="performance" className="flex items-center gap-2">
             <Activity className="h-4 w-4" /> Performance
@@ -63,7 +72,11 @@ export default function MetaAds() {
         </TabsList>
 
         <TabsContent value="visao-geral" className="mt-4">
-          <MetaAdsVisaoGeralTab chartData={chartData} campanhas={campanhas} />
+          <MetaAdsVisaoGeralTab chartData={chartData} />
+        </TabsContent>
+
+        <TabsContent value="insights" className="mt-4">
+          <MetaAdsInsightsTab campanhas={campanhas} />
         </TabsContent>
 
         <TabsContent value="performance" className="mt-4">

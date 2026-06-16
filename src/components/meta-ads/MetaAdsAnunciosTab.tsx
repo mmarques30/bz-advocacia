@@ -1,8 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MetaAdRow } from "@/hooks/useMetaAds";
 import { cn } from "@/lib/utils";
-import { Image as ImageIcon } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 interface Props {
   ads: MetaAdRow[];
@@ -20,6 +22,12 @@ const STATUS_COLORS: Record<string, string> = {
   ARCHIVED: "bg-gray-100 text-gray-600 border-gray-200",
 };
 
+// Link publico pro Ad Library do Meta — funciona pra qualquer ad
+// independente de status, sem precisar de auth.
+function adLibraryUrl(adId: string): string {
+  return `https://www.facebook.com/ads/library/?id=${adId}`;
+}
+
 export function MetaAdsAnunciosTab({ ads, isLoading }: Props) {
   if (isLoading) {
     return <Card className="p-8 text-center text-sm text-muted-foreground">Carregando anúncios…</Card>;
@@ -33,93 +41,64 @@ export function MetaAdsAnunciosTab({ ads, isLoading }: Props) {
   }
 
   return (
-    // Grid mais denso: 2 cols mobile / 3 sm / 4 lg / 5 xl. Cards compactos,
-    // thumb com aspect-square (vertical/quadrado funciona melhor pro Meta,
-    // que tem reels/stories), info abaixo em fonte menor.
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-      {ads.map((a) => {
-        const thumb = a.thumbnail_url || a.image_url;
-        return (
-          <Card key={a.id} className="overflow-hidden flex flex-col text-xs">
-            <div className="aspect-square bg-muted flex items-center justify-center relative">
-              {thumb ? (
-                <img
-                  src={thumb}
-                  alt={a.criativo_titulo ?? a.nome}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              ) : (
-                <ImageIcon className="h-8 w-8 text-muted-foreground/40" />
-              )}
-              {a.status && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "absolute top-1.5 right-1.5 text-[9px] px-1.5 py-0 h-4",
-                    STATUS_COLORS[a.status] ?? "",
-                  )}
-                >
-                  {a.status}
+    <Card>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Anúncio</TableHead>
+            <TableHead>Campanha</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Gasto</TableHead>
+            <TableHead className="text-right">Impr.</TableHead>
+            <TableHead className="text-right">Cliques</TableHead>
+            <TableHead className="text-right">CTR</TableHead>
+            <TableHead className="text-right">Leads</TableHead>
+            <TableHead className="text-right">CPL</TableHead>
+            <TableHead className="w-8"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {ads.map((a) => (
+            <TableRow key={a.id}>
+              <TableCell className="max-w-[280px]">
+                <p className="font-medium truncate" title={a.nome}>{a.nome}</p>
+                {a.criativo_titulo && (
+                  <p className="text-xs text-muted-foreground truncate" title={a.criativo_titulo}>
+                    {a.criativo_titulo}
+                  </p>
+                )}
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={a.campanha_nome ?? ""}>
+                {a.campanha_nome ?? "—"}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" className={cn("text-[10px]", STATUS_COLORS[a.status ?? ""] ?? "")}>
+                  {a.status ?? "—"}
                 </Badge>
-              )}
-            </div>
-
-            <div className="p-2.5 flex flex-col gap-1.5 flex-1">
-              <p className="font-medium leading-tight line-clamp-2" title={a.nome}>
-                {a.nome}
-              </p>
-
-              {(a.criativo_titulo || a.criativo_body) && (
-                <div className="text-muted-foreground leading-tight">
-                  {a.criativo_titulo && (
-                    <p className="line-clamp-1 font-medium" title={a.criativo_titulo}>
-                      {a.criativo_titulo}
-                    </p>
-                  )}
-                  {a.criativo_body && (
-                    <p className="line-clamp-2 mt-0.5" title={a.criativo_body}>
-                      {a.criativo_body}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {(a.campanha_nome || a.ad_set_nome) && (
-                <p className="text-[10px] text-muted-foreground truncate" title={a.campanha_nome ?? ""}>
-                  📁 {a.campanha_nome ?? "—"}
-                </p>
-              )}
-
-              {/* Métricas — 2 colunas compactas */}
-              <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1.5 mt-auto border-t border-border text-[10px]">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Gasto</span>
-                  <span className="font-semibold tabular-nums">
-                    {a.gasto > 0 ? brl(a.gasto) : "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Leads</span>
-                  <span className="font-semibold tabular-nums">{a.leads}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">CTR</span>
-                  <span className="font-semibold tabular-nums">
-                    {a.ctr > 0 ? `${a.ctr.toFixed(1)}%` : "-"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">CPL</span>
-                  <span className="font-semibold tabular-nums">
-                    {a.custo_lead > 0 ? brl(a.custo_lead) : "-"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
+              </TableCell>
+              <TableCell className="text-right tabular-nums">{a.gasto > 0 ? brl(a.gasto) : "—"}</TableCell>
+              <TableCell className="text-right tabular-nums">{a.impressoes.toLocaleString("pt-BR")}</TableCell>
+              <TableCell className="text-right tabular-nums">{a.cliques.toLocaleString("pt-BR")}</TableCell>
+              <TableCell className="text-right tabular-nums">{a.ctr > 0 ? `${a.ctr.toFixed(2)}%` : "—"}</TableCell>
+              <TableCell className="text-right tabular-nums">{a.leads}</TableCell>
+              <TableCell className="text-right tabular-nums">{a.custo_lead > 0 ? brl(a.custo_lead) : "—"}</TableCell>
+              <TableCell>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  asChild
+                  title="Abrir no Ad Library"
+                >
+                  <a href={adLibraryUrl(a.id)} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </Card>
   );
 }

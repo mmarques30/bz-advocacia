@@ -23,7 +23,7 @@ export interface MetaAdSetRow {
  * Para leads reais (do bot) por ad_set, seria preciso adicionar adset_id
  * na view v_meta_lead_funnel — fica pra futuro se precisar.
  */
-export function useMetaAdSets(periodo: PeriodoFiltro = "90d") {
+export function useMetaAdSets(periodo: PeriodoFiltro = "90d", statusFilter: string = "todos") {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
   const hoje = new Date();
   const dataInicio = subDays(hoje, dias);
@@ -31,11 +31,15 @@ export function useMetaAdSets(periodo: PeriodoFiltro = "90d") {
   const dataFimStr = format(hoje, "yyyy-MM-dd");
 
   const query = useQuery({
-    queryKey: ["meta-adsets-aggregated", periodo],
+    queryKey: ["meta-adsets-aggregated", periodo, statusFilter],
     queryFn: async () => {
-      const { data: adSets, error: errS } = await supabase
+      let qS = supabase
         .from("meta_ad_sets")
         .select("id, name, status, campaign_id");
+      if (statusFilter && statusFilter !== "todos") {
+        qS = qS.eq("status", statusFilter);
+      }
+      const { data: adSets, error: errS } = await qS;
       if (errS) throw errS;
 
       const { data: campaigns, error: errC } = await supabase
