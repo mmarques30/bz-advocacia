@@ -327,7 +327,7 @@ export function BacklogLeads() {
         <div className="space-y-2">
           {rows.map((entry) => {
             const r = entry.row;
-            const nome = entry.kind === "lead_novo" ? r.nome : (r as TriagemRow).nome_capturado;
+            const nome = entry.kind === "lead_novo" ? (r as BacklogRow).nome : (r as TriagemRow).nome_capturado;
             const msg =
               entry.kind === "lead_novo"
                 ? (r as BacklogRow).primeira_mensagem
