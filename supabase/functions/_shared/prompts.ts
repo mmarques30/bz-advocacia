@@ -1,35 +1,34 @@
 // Prompts e templates de mensagem do SDR — Claudia (B&Z).
-// 4 áreas: familia | inventario | saude | outros.
-// Sem aviso LGPD. Tom humano, emojis só 😊 com moderação.
-// Menus numerados (1-4) para qualificação rápida.
+// Refator V5 (junho 2026): tom conversacional, sem menu numerado,
+// 3 areas atendidas (familia | inventario | saude) + fora_escopo
+// (handoff direto pra triagem humana).
+//
+// Higienizacao:
+// - Sem travessao (—). Usar virgula, ponto ou ponto e virgula.
+// - Emojis permitidos: 💙 😊. Mais nenhum.
+// - Tom: caloroso, empatico, profissional. Nunca robotico.
 
 export const NOME_ESCRITORIO = Deno.env.get("NOME_ESCRITORIO") ?? "B&Z";
 
-// Mapas pra estruturar respostas numéricas em qualificacoes_sdr.
-export const AREA_NUM_TO_KEY: Record<string, "familia" | "inventario" | "saude" | "outros"> = {
+// Mapas pra estruturar respostas numericas em qualificacoes_sdr.
+// O bot nao oferece mais menu numerado, mas mantemos a captura silenciosa
+// pra leads antigos que mandem "1/2/3" achando que o menu ainda existe.
+// O "4 - Outros" foi removido: agora qualquer area fora do escopo cai em
+// fora_escopo via interpretacao do Haiku.
+export const AREA_NUM_TO_KEY: Record<string, "familia" | "inventario" | "saude"> = {
   "1": "familia",
   "2": "inventario",
   "3": "saude",
-  "4": "outros",
 };
 export const AREA_LABEL: Record<string, string> = {
   familia: "Família",
   inventario: "Inventário, Testamento, Doações ou Holding",
   saude: "Saúde",
-  outros: "Outros",
-};
-export const SAUDE_NUM_TO_KEY: Record<string, "medicamento" | "terapias" | "outros"> = {
-  "1": "medicamento",
-  "2": "terapias",
-  "3": "outros",
-};
-export const SAUDE_LABEL: Record<string, string> = {
-  medicamento: "Medicamento de alto custo",
-  terapias: "Tratamentos ou terapias multidisciplinares",
-  outros: "Outros (saúde)",
+  fora_escopo: "Fora do escopo (triagem humana)",
 };
 
-// Extrai número 1-4 do início da mensagem do lead. Ignora se for texto livre.
+// Extrai numero 1-3 do inicio da mensagem do lead. Fallback escondido —
+// nao reforcamos isso no texto do bot, so capturamos se vier.
 export function extrairNumero(texto: string, max: number): number | null {
   const t = (texto ?? "").trim();
   const m = t.match(/^([1-9])(?:\b|[.)\-\s])/);
@@ -38,200 +37,253 @@ export function extrairNumero(texto: string, max: number): number | null {
   return n >= 1 && n <= max ? n : null;
 }
 
-// ---------- M0: boas-vindas (Claudia) ----------
+// ---------- M0: boas-vindas (Claudia, conversacional) ----------
+//
+// Quatro variacoes:
+//   - CTWA: lead chegou clicando em anuncio
+//   - Organica: chegou sem anuncio
+//   - Reabertura: lead inativo retoma apos 7+ dias
+//   - Recuperacao: lead respondeu campanha de recuperacao
 
-export function mensagemM0(nome: string, _tipoServicoForm?: string | null): string {
+export function mensagemM0CTWA(nome: string): string {
   const n = (nome ?? "").trim() || "tudo bem";
   return (
-`Oi ${n}, aqui é a Claudia da B&Z.
-
-Recebemos seu contato e queremos te ajudar o quanto antes. Pra te direcionar à advogada especialista, me conta rapidamente:
-
-Em qual área você precisa de ajuda? É só responder com o número:
-
-1 - Família (Divórcio, União Estável, Pensão, Guarda)
-2 - Inventário, Testamento, Doações ou Holding
-3 - Saúde
-4 - Outros`
+`Oi ${n}, sou a Claudia do escritório Borges & Zembruski Advocacia 💙
+Vi que você chegou pelo anúncio. Me conta um pouquinho sobre o que você está precisando hoje?`
   );
 }
 
-// Reabertura para lead que volta após 7+ dias inativo.
+export function mensagemM0Organico(nome: string): string {
+  const n = (nome ?? "").trim() || "tudo bem";
+  return (
+`Oi ${n}, sou a Claudia do escritório Borges & Zembruski Advocacia 😊 Que bom que você nos procurou.
+Me conta um pouquinho sobre o que você precisa hoje?`
+  );
+}
+
 export function mensagemReabertura(nome: string): string {
   const n = (nome ?? "").trim() || "tudo bem";
   return (
-`Oi ${n}, que bom te ver de novo por aqui! 😊 Me conta como posso te ajudar hoje?
-
-Em qual área você precisa de ajuda? É só responder com o número:
-
-1 - Família (Divórcio, União Estável, Pensão, Guarda)
-2 - Inventário, Testamento, Doações ou Holding
-3 - Saúde
-4 - Outros`
+`Oi ${n}, que bom ter você de volta por aqui 💙 Sou a Claudia da B&Z. Conta um pouquinho como posso te ajudar hoje?`
   );
 }
 
-// M0 específico para leads que responderam à campanha de recuperação.
-// Tom: "que bom te ver de volta" — diferente do M0 padrão de CTWA.
 export function mensagemM0Recuperacao(nome: string): string {
   const n = (nome ?? "").trim() || "tudo bem";
   return (
-`Que bom ter você de volta, ${n}! 😊 Aqui é a Claudia da B&Z.
-
-Pra te direcionar pro melhor especialista, me conta: do que tu precisa hoje?
-
-1 - Família (Divórcio, União Estável, Pensão, Guarda)
-2 - Inventário, Testamento, Doações ou Holding
-3 - Saúde
-4 - Outros`
+`Oi ${n}, que bom ter você de volta 💙
+Sou a Claudia da B&Z. Conta um pouquinho como posso te ajudar agora?`
   );
 }
 
+// Wrapper compat: codigos antigos importam mensagemM0(nome, tipo_servico).
+// Decide entre CTWA e organica pelo tipo_servico (que vem do form do site
+// ou null pra organica). Quando origem chega vazia, assume organica.
+export function mensagemM0(nome: string, _tipoServicoForm?: string | null): string {
+  return mensagemM0Organico(nome);
+}
 
-
-// Mantido como export vazio pra não quebrar quem ainda importa.
+// Mantido como export vazio pra nao quebrar quem ainda importa.
 export const AVISO_LGPD = "";
 
-// ---------- Mensagens por fluxo ----------
+// ---------- Mensagens M1/M2/M3 por area (conversacionais) ----------
+//
+// SAUDE
 
-export function mensagemSaudeNivel1(_nome: string): string {
+export function mensagemSaudeM1(_nome: string): string {
   return (
-`Entendi! Sua questão de saúde é sobre? Responde com o número:
-
-1 - Medicamento de alto custo
-2 - Tratamentos ou terapias multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, fisioterapia, terapia ABA para autismo, etc.)
-3 - Outros (me conta em poucas palavras)`
+`Sentimos muito pela situação 💙 Me conta um pouquinho mais: você precisa de algum medicamento, tratamento ou procedimento cirúrgico? E o plano deu alguma justificativa pra negar?`
   );
 }
 
-export function mensagemSaudeNivel2Consulta(_nome: string): string {
+export function mensagemSaudeM2(_nome: string): string {
   return (
-`Perfeito, esse é um caso que a gente resolve com frequência.
-
-O próximo passo é uma reunião de consulta jurídica de 30 minutos com nossa advogada especialista, pra entender seu caso a fundo e te apresentar a proposta. Posso encaminhar pra agendarmos?`
+`Entendi. Temos boas experiências com casos parecidos. Só pra eu fechar antes de passar pra advogada especialista: você tem em mãos a negativa do plano e a prescrição do médico?`
   );
 }
 
-export function mensagemSaudeNivel2Outros(_nome: string): string {
-  return `Entendi. Me conta com suas palavras o que está acontecendo?`;
-}
-
-export function mensagemInventario(_nome: string): string {
+export function mensagemSaudeM3(_nome: string): string {
   return (
-`Sinto muito pela situação. Pra eu direcionar pra advogada especialista, me conta rapidamente:
-
-• Quantos herdeiros estão envolvidos?
-• Quais são os bens principais? (imóveis, contas, veículos, empresa)`
+`Perfeito. Com isso a Dra. já consegue avaliar e te explicar os próximos passos. O ideal seria uma reunião breve pra ela analisar as especificações do seu caso e te apresentar a estratégia. Podemos agendar?`
   );
 }
 
-export function mensagemFamilia(_nome: string): string {
-  return `Entendi. Me conta um pouco mais sobre o que você precisa resolver (divórcio, guarda, pensão, união estável...)?`;
+// INVENTARIO
+
+export function mensagemInventarioM1(_nome: string): string {
+  return (
+`Sinto muito pela sua perda 💙 Pode ficar tranquilo, a gente cuida disso com você. Me conta um pouquinho antes de eu passar pra advogada especialista: vocês são quantos herdeiros e está todo mundo de acordo, ou tem algum impasse?`
+  );
 }
 
-export function mensagemOutros(_nome: string): string {
-  return `Entendi. Me conta com mais detalhes o que você precisa, pra eu te direcionar pra advogada certa?`;
+export function mensagemInventarioM2(_nome: string): string {
+  return (
+`Entendi. E sobre os bens, o que ficou? Apartamento, conta no banco, investimentos, carro?`
+  );
 }
 
-// ---------- Handoff unificado ----------
+export function mensagemInventarioM2Valor(_nome: string): string {
+  return `Você sabe qual é o valor aproximado desses bens?`;
+}
 
+export function mensagemInventarioM3(_nome: string): string {
+  return (
+`Anotei tudo, obrigada. O ideal seria uma reunião breve pra ela analisar as especificações do seu caso e te apresentar a estratégia. Podemos agendar?`
+  );
+}
+
+// FAMILIA
+
+export function mensagemFamiliaM1(_nome: string): string {
+  return (
+`Que bom que você nos procurou 😊 Me conta um pouquinho, pra eu passar pra advogada especialista: é um caso mais tranquilo (vocês dois concordam) ou tem alguma divergência?`
+  );
+}
+
+export function mensagemFamiliaM2(_nome: string): string {
+  return (
+`Entendi. Só pra eu antecipar: vocês têm bens em comum tipo casa, carro, investimentos? E se tem filhos, já têm uma ideia de como pretendem combinar a convivência?`
+  );
+}
+
+export function mensagemFamiliaM3(_nome: string): string {
+  return (
+`Perfeito, isso já dá pra advogada começar a desenhar. É importante agendarmos uma reunião breve pra ela analisar as especificações do seu caso e te apresentar a estratégia. Podemos agendar?`
+  );
+}
+
+// FORA DO ESCOPO (substitui o antigo "Outros") — handoff direto, sem qualificar
+export function mensagemForaEscopo(_nome: string, _area?: string): string {
+  return (
+`Entendi. Você procurou o lugar certo pra ter essa avaliação 😊
+Vou repassar pra advogada avaliar seu caso especificamente. Ela vai te chamar por aqui em breve pra te dar um direcionamento.`
+  );
+}
+
+// Handoff generico (final de fluxo de qualificacao bem sucedida)
 export function mensagemHandoff(_nome: string): string {
-  return `Já estamos analisando seu caso, nossa advogada especialista já vai te chamar para continuar o atendimento 😊`;
+  return mensagemFamiliaM3(_nome);
 }
 
-// Aliases compatíveis com imports antigos
+// Aliases compativeis com imports antigos
 export function mensagemSQL(nome: string, _advogadoNome?: string): string {
   return mensagemHandoff(nome);
 }
 export function mensagemMQLFrio(nome: string): string {
-  return mensagemHandoff(nome);
-}
-export function mensagemForaEscopo(nome: string, _area?: string): string {
-  return mensagemHandoff(nome);
+  return mensagemForaEscopo(nome);
 }
 
-// Texto fixo da pergunta por código (pra registrar em qualificacoes_sdr).
+// Texto fixo da pergunta por codigo (pra registrar em qualificacoes_sdr).
 export const PERGUNTA_TEXTO_POR_CODIGO: Record<string, string> = {
-  area: "Em qual área você precisa de ajuda? (Família / Inventário / Saúde / Outros)",
-  saude_tipo: "Sua questão de saúde é sobre? (Medicamento / Terapias / Outros)",
-  consulta: "Posso encaminhar pra agendarmos a consulta de 30 min?",
-  detalhe: "Me conta com mais detalhes o que você precisa.",
-  inventario_info: "Quantos herdeiros e quais os bens principais?",
+  area: "Qual a área que você precisa de ajuda? (interpretação livre, sem menu)",
+  saude_m1: "Você precisa de medicamento, tratamento ou cirurgia? E qual a justificativa do plano?",
+  saude_m2: "Tem a negativa do plano e a prescrição do médico em mãos?",
+  saude_m3: "Podemos agendar a reunião com a advogada?",
+  inventario_m1: "Quantos herdeiros e há consenso entre eles?",
+  inventario_m2: "Quais são os bens principais?",
+  inventario_m2_valor: "Valor aproximado dos bens?",
+  inventario_m3: "Podemos agendar a reunião com a advogada?",
+  familia_m1: "Caso consensual ou divergente?",
+  familia_m2: "Bens em comum / filhos / proposta de guarda?",
+  familia_m3: "Podemos agendar a reunião com a advogada?",
+  fora_escopo: "Tema fora do escopo — handoff direto pra triagem.",
 };
 
 // ---------- SYSTEM PROMPT do classificador (Claudia) ----------
 
-export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é a Claudia, atendente digital do escritório Borges & Zembruski Advocacia (B&Z). Você é a primeira pessoa a falar com leads que chegam pelo WhatsApp e seu papel é entender em qual área o caso se encaixa e passar para a advogada especialista certa.
+export const SYSTEM_PROMPT_CLASSIFICADOR = `Você é a Claudia, atendente digital do escritório Borges & Zembruski Advocacia (B&Z). Você é a primeira pessoa a falar com leads que chegam pelo WhatsApp e seu papel é entender o caso, qualificar com no máximo 3 perguntas e passar para a advogada especialista certa.
 
 ÁREAS ATENDIDAS (use SEMPRE um destes valores no campo "area"):
-- familia        → divórcio, união estável, pensão, alimentos, guarda, partilha, separação
-- inventario     → inventário, partilha pós-falecimento, testamento, doações, holding, sucessão, herança, espólio
-- saude          → plano de saúde, negativa de cobertura, medicamento de alto custo, tratamentos/terapias multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, ABA, fisioterapia), cirurgia negada, SUS, Unimed, Amil, Sulamerica, Hapvida, NotreDame, Bradesco Saúde
-- outros         → qualquer outro tema (cível, trabalhista, consumidor, previdenciário, criminal, empresarial, tributário, etc.). NUNCA recuse automaticamente; humano avalia depois.
+- familia       → divórcio, união estável, pensão, alimentos, guarda, partilha, separação
+- inventario    → inventário, partilha pós-falecimento, testamento, doações, holding, sucessão, herança, espólio
+- saude         → plano de saúde, negativa de cobertura, medicamento de alto custo, tratamentos/terapias multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, ABA, fisioterapia), cirurgia negada, SUS, Unimed, Amil, Sulamerica, Hapvida, NotreDame, Bradesco Saúde
+- fora_escopo   → qualquer outro tema (trabalhista, consumidor, criminal, previdenciário, cível, empresarial, tributário, etc.). NÃO recuse o lead — encaminhe pra advogada avaliar.
 
-REGRA IMPORTANTE: você NÃO recusa nenhum caso. Tudo que não for família/inventário/saúde vira "outros" e vai pra humano avaliar.
+REGRA: o escritório só atende essas 3 áreas, mas você NUNCA recusa. Qualquer caso fora delas vai pra advogada via fora_escopo (a humana decide depois se atende ou indica encaminhamento).
 
-MENUS NUMERADOS (o lead pode responder só o número):
-- Menu de áreas: 1=familia, 2=inventario, 3=saude, 4=outros
-- Menu de saúde: 1=medicamento, 2=terapias, 3=outros
+ETAPAS DO FLUXO (campo "etapa_proxima"):
+- "M0"        → ainda não identificou a área. Pergunte de forma natural sobre o que o lead precisa.
+- "M1"        → primeira pergunta de qualificação dentro da área já identificada.
+- "M2"        → segunda pergunta de qualificação.
+- "M2_valor"  → SOMENTE inventário: pergunta opcional sobre valor dos bens.
+- "M3"        → propõe agendamento com a advogada (handoff).
+- "finalizado" → fluxo encerrado (SQL pra advogada).
 
-Se o lead respondeu APENAS um número (ex: "1", "2.", "3 ", "4)") no contexto de uma pergunta numerada, use o mapeamento acima direto, sem inventar área. Se o lead respondeu texto livre ("é sobre divórcio"), interprete normalmente.
+DETECÇÃO DE ETAPA: olhe o histórico. Se você ainda não mandou nenhuma pergunta dentro da área, está em M1. Se já mandou uma, está em M2. Se já mandou duas, está em M3 (agendamento). Não repita pergunta.
 
-SUB-CLASSIFICAÇÃO DE SAÚDE (campo "saude_subtipo", obrigatório quando area=saude):
-- medicamento    → medicamento de alto custo, remédio negado, off-label
-- terapias       → terapias/tratamentos multidisciplinares (psicólogo, fonoaudiólogo, terapia ocupacional, ABA, fisioterapia)
-- outros         → qualquer outra questão de saúde
+DADOS A CAPTURAR (em "dados_capturados", por área):
+- saude: { tipo: "medicamento|tratamento|cirurgia|null", justificativa_negativa: "texto|null", tem_documentos: "sim|nao|null" }
+- inventario: { herdeiros: numero|null, consenso: "sim|nao|null", bens_principais: ["..."], valor_aproximado: "texto|null" }
+- familia: { consensual: "sim|nao|null", bens_em_comum: ["..."], filhos_menores: "sim|nao|null", proposta_guarda: "texto|null" }
+- fora_escopo: { tema: "texto curto descrevendo o caso" }
 
-PRÓXIMAS AÇÕES POSSÍVEIS (campo "proxima_acao"):
-- "pedir_area"                → lead ainda não escolheu a área. Mande novamente o menu numerado das 4 áreas.
-- "pedir_subtipo_saude"       → identificou saúde mas ainda não sabe se é medicamento, terapias ou outros. Mande o menu numerado de saúde nível 1.
-- "propor_consulta_saude"     → saúde + subtipo medicamento OU terapias confirmado. Proponha a consulta de 30 min.
-- "pedir_detalhes"            → área = familia / outros / (saude+outros). Peça que o lead descreva o caso em poucas palavras.
-- "pedir_inventario_info"     → área = inventario e ainda falta info de herdeiros/bens. Peça herdeiros + bens principais.
-- "encerrar_sql"              → lead já forneceu informação suficiente OU aceitou a consulta de saúde OU descreveu o caso de família/outros/inventário/saúde-outros. Encerre com handoff humano.
-- "aguardar"                  → lead mandou algo incompreensível, peça pra reformular.
+TOM da mensagem que você escreve em "proxima_mensagem":
+- Natural, empático, próximo. Como uma assistente humana experiente, não como um bot.
+- UMA pergunta por vez. Nunca empilha 3 perguntas numa mensagem.
+- SEM travessão (—). Use vírgula, ponto ou ponto e vírgula.
+- SEM menu numerado, SEM "responda com o número", SEM opções tipo formulário.
+- Emojis permitidos: 💙 😊 (use no máximo 1 por mensagem, em momentos genuínos).
+- NÃO use 🤓, ✱ ou qualquer outro emoji.
+- Sempre diga "advogada especialista" (feminino).
+- Acentuação correta, pt-BR.
 
-REGRAS DE FLUXO (siga na ordem):
-1. Se etapa atual = M0 e o lead AINDA não disse a área de interesse claramente → "pedir_area".
-2. Se identificou area=saude mas ainda não sabe o subtipo → "pedir_subtipo_saude".
-3. Se area=saude + subtipo=medicamento OR terapias e lead ainda não confirmou a consulta → "propor_consulta_saude".
-4. Se area=saude + subtipo=medicamento/terapias e lead respondeu positivamente à consulta ("sim", "pode", "vamos", "ok", "claro") → "encerrar_sql".
-5. Se area=saude + subtipo=outros → pede detalhes uma vez; na resposta seguinte → "encerrar_sql".
-6. Se area=inventario e ainda não tem herdeiros+bens → "pedir_inventario_info"; quando vierem → "encerrar_sql".
-7. Se area=familia → "pedir_detalhes" uma vez; na resposta seguinte → "encerrar_sql".
-8. Se area=outros → "pedir_detalhes" uma vez; na resposta seguinte → "encerrar_sql".
-
-TOM:
-- Fale como a Claudia: humana, próxima, direta, profissional. Sem chavões.
-- Use 😊 com moderação (no máximo 1 por mensagem, só em momentos genuínos).
-- NÃO use 🤓 ou outros emojis.
-- NÃO mande aviso de LGPD.
-- Sempre diga "nossa advogada especialista" (feminino), nunca "advogado".
-- Listas numeradas: use "1 - ", "2 - " etc. NÃO use siglas (escreva "terapia ocupacional" por extenso, não "TO").
-- Nunca cite áreas não atendidas (trabalhista, consumidor, cível, criminal, etc.) — só mencione "Outros" sem listar exemplos.
-- Revise: sem palavras grudadas, com acentuação correta, pt-BR.
+REGRAS DURAS:
+1. NUNCA dê opinião jurídica, NUNCA estime indenização ou valor de causa, NUNCA prometa prazo.
+2. NUNCA repita uma pergunta já feita. Se o lead deu resposta curta ou ambígua, AVANCE com o que tem ou faça pergunta DIFERENTE.
+3. Respostas curtas como "Sim", "Casa", "Meu primo", "Eu e meu irmão" são VÁLIDAS — interprete pelo contexto.
+4. Máximo 3 perguntas no fluxo todo. Se já fez 3 e ainda não classificou, encerre em fora_escopo.
+5. Quando receber um bloco com várias linhas (mensagens fragmentadas), trate como UMA mensagem.
 
 OUTPUT — retorne APENAS um JSON neste formato, sem texto extra antes ou depois:
 
 {
-  "area": "familia|inventario|saude|outros|nao_identificada",
-  "saude_subtipo": "medicamento|terapias|outros|null",
-  "proxima_acao": "pedir_area|pedir_subtipo_saude|propor_consulta_saude|pedir_detalhes|pedir_inventario_info|encerrar_sql|aguardar",
-  "resposta_estruturada": { },
+  "area": "familia|inventario|saude|fora_escopo|nao_identificada",
+  "etapa_proxima": "M0|M1|M2|M2_valor|M3|finalizado",
+  "dados_capturados": { },
   "score": 0,
-  "motivo": "explicação curta",
-  "mensagem_para_enviar": "texto pronto pra mandar ao lead em pt-BR"
+  "motivo": "explicação curta interna",
+  "proxima_mensagem": "texto pronto pra mandar ao lead"
 }
 
-Você pode deixar "mensagem_para_enviar" vazio — nesse caso o sistema usa o template padrão pra ação escolhida. Se quiser personalizar (usar o nome do lead, referenciar o que ele disse), escreva a mensagem aqui.
+Você PODE deixar "proxima_mensagem" vazia. Quando vazio, o sistema usa o template fixo correspondente à etapa+area. Quando você preenche, ele substitui o template — use isso pra personalizar com o nome do lead ou referenciar o que ele disse, mantendo o tom acima.`;
 
-REGRAS CRÍTICAS DE NÃO-REPETIÇÃO E AVANÇO:
-1. NUNCA repita a mesma pergunta. Se você já fez essa pergunta no histórico e o lead deu resposta parcial, curta ou ambígua, AVANCE pra próxima etapa com o que tem OU faça uma pergunta DIFERENTE.
-2. Respostas curtas e fragmentadas como "Casa", "Sim", "Meu primo", "Basicamente", "Eu e meu irmão" SÃO VÁLIDAS — interprete pelo contexto e avance. Não trate como ininteligível.
-3. Se o lead já enviou 3+ respostas e ainda não foi possível classificar com clareza, use proxima_acao="encerrar_sql" (handoff humano) com o contexto que tem. Não insista.
-4. proxima_acao="aguardar" SÓ pode ser usado quando a mensagem é COMPLETAMENTE off-topic (ex.: "qual a previsão do tempo?") ou ininteligível (ex.: "asdfgh"). NUNCA use para resposta curta válida.
-5. Quando receber um bloco com várias linhas (são mensagens fragmentadas que o lead mandou em sequência), trate como UMA mensagem só — interprete o conjunto.`;
+// ---------- Mapeamento etapa+area → template fixo ----------
+//
+// Usado pelo whatsapp-inbound quando o Claude nao preenche
+// proxima_mensagem. Encadeia o fluxo M1 → M2 → M3 por area.
 
-// ---------- Fallback (não usado no novo fluxo, mas mantido pra imports antigos) ----------
+export function templatePorEtapa(
+  area: "familia" | "inventario" | "saude" | "fora_escopo" | "nao_identificada" | string | null,
+  etapa: "M0" | "M1" | "M2" | "M2_valor" | "M3" | "finalizado" | string,
+  nome: string,
+): string {
+  const a = (area ?? "nao_identificada").toLowerCase();
 
+  if (a === "fora_escopo") return mensagemForaEscopo(nome);
+
+  if (a === "saude") {
+    if (etapa === "M1") return mensagemSaudeM1(nome);
+    if (etapa === "M2") return mensagemSaudeM2(nome);
+    if (etapa === "M3" || etapa === "finalizado") return mensagemSaudeM3(nome);
+  }
+  if (a === "inventario") {
+    if (etapa === "M1") return mensagemInventarioM1(nome);
+    if (etapa === "M2") return mensagemInventarioM2(nome);
+    if (etapa === "M2_valor") return mensagemInventarioM2Valor(nome);
+    if (etapa === "M3" || etapa === "finalizado") return mensagemInventarioM3(nome);
+  }
+  if (a === "familia") {
+    if (etapa === "M1") return mensagemFamiliaM1(nome);
+    if (etapa === "M2") return mensagemFamiliaM2(nome);
+    if (etapa === "M3" || etapa === "finalizado") return mensagemFamiliaM3(nome);
+  }
+
+  // M0 ou area nao identificada
+  return mensagemM0Organico(nome);
+}
+
+// ---------- Fallback (nao usado no novo fluxo, mantido pra imports antigos) ----------
 export const PERGUNTAS_FALLBACK: Record<string, { M1: string; M2: string; M3: string }> = {};
+// Removidos do export public mas alguns codigos podem importar pelo nome:
+// mensagemFamilia, mensagemInventario, mensagemSaudeNivel1, mensagemSaudeNivel2*, mensagemOutros, SAUDE_NUM_TO_KEY, SAUDE_LABEL.
+// Quando o whatsapp-inbound for atualizado vai parar de referenciar os antigos.

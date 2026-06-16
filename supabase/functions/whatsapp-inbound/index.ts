@@ -22,20 +22,13 @@ import {
   AREA_LABEL,
   AREA_NUM_TO_KEY,
   extrairNumero,
-  mensagemFamilia,
-  mensagemHandoff,
-  mensagemInventario,
-  mensagemM0,
+  mensagemForaEscopo,
+  mensagemM0Organico,
   mensagemM0Recuperacao,
-  mensagemOutros,
   mensagemReabertura,
-  mensagemSaudeNivel1,
-  mensagemSaudeNivel2Consulta,
-  mensagemSaudeNivel2Outros,
   PERGUNTA_TEXTO_POR_CODIGO,
-  SAUDE_LABEL,
-  SAUDE_NUM_TO_KEY,
   SYSTEM_PROMPT_CLASSIFICADOR,
+  templatePorEtapa,
 } from "../_shared/prompts.ts";
 
 interface ZapiInboundPayload {
@@ -49,20 +42,19 @@ interface ZapiInboundPayload {
 }
 
 interface ClaudeResponse {
-  area: "familia" | "inventario" | "saude" | "outros" | "nao_identificada" | string;
-  saude_subtipo?: "medicamento" | "terapias" | "outros" | null;
-  proxima_acao:
-    | "pedir_area"
-    | "pedir_subtipo_saude"
-    | "propor_consulta_saude"
-    | "pedir_detalhes"
-    | "pedir_inventario_info"
-    | "encerrar_sql"
-    | "aguardar";
-  resposta_estruturada: Record<string, unknown>;
+  area: "familia" | "inventario" | "saude" | "fora_escopo" | "nao_identificada" | string;
+  etapa_proxima:
+    | "M0"
+    | "M1"
+    | "M2"
+    | "M2_valor"
+    | "M3"
+    | "finalizado"
+    | string;
+  dados_capturados: Record<string, unknown>;
   score: number;
   motivo: string;
-  mensagem_para_enviar: string;
+  proxima_mensagem: string;
 }
 
 Deno.serve(async (req) => {
@@ -831,7 +823,7 @@ Deno.serve(async (req) => {
       .from("leads_geral")
       .update({ status_sdr: "perdido", bot_pausado: true })
       .eq("id", lead.id);
-    const msg = `Tudo certo, ${nomePrimeiro(lead)}. Removendo seu contato do nosso atendimento ativo. Se mudar de ideia, é só mandar mensagem aqui. ✱`;
+    const msg = `Tudo certo, ${nomePrimeiro(lead)}. Removendo seu contato do nosso atendimento ativo. Se mudar de ideia, é só mandar mensagem aqui 💙`;
     await zapiSendText(telefone, msg);
     await registrarMensagem(supabase, lead.id, "bot", msg);
     return new Response(JSON.stringify({ acao: "opt_out" }), { status: 200 });
@@ -913,7 +905,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
       const ad = (ev as any)?.payload ?? null;
       if (ad) {
-        adContextoStr = `\n\nIMPORTANTE — Este lead chegou clicando em um anúncio (${plat}). Use o conteúdo do anúncio abaixo pra inferir a área mesmo que a primeira mensagem seja genérica:\n• Título do anúncio: ${ad.ad_name ?? "(sem título)"}\n• Texto do anúncio: ${ad.ad_body ?? "(sem texto)"}\n• Mensagem inicial automática que o lead viu: ${ad.greeting ?? "(nenhuma)"}\n`;
+        adContextoStr = `\n\nIMPORTANTE: este lead chegou clicando em um anúncio (${plat}). Use o conteúdo do anúncio abaixo pra inferir a área mesmo que a primeira mensagem seja genérica:\n• Título do anúncio: ${ad.ad_name ?? "(sem título)"}\n• Texto do anúncio: ${ad.ad_body ?? "(sem texto)"}\n• Mensagem inicial automática que o lead viu: ${ad.greeting ?? "(nenhuma)"}\n`;
       }
     }
   }
@@ -921,13 +913,13 @@ Deno.serve(async (req) => {
   const userPrompt = `Contexto do lead:
 ${JSON.stringify(contexto, null, 2)}${adContextoStr}
 
-Histórico (mais antigo → mais recente):
+Histórico (mais antigo para mais recente):
 ${historico.map((m) => `[${m.origem}] ${m.conteudo}`).join("\n")}
 
-Última mensagem do lead (a que você precisa interpretar — pode conter várias linhas se o lead mandou mensagens fragmentadas em sequência, trate como um bloco único):
+Última mensagem do lead (a que você precisa interpretar; pode conter várias linhas se o lead mandou mensagens fragmentadas em sequência, trate como um bloco único):
 "${textoAgrupado}"
 
-Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
+Decida a próxima etapa seguindo as regras do system prompt e retorne o JSON.`;
 
   const classificacao = await claudeJson<ClaudeResponse>(
     SYSTEM_PROMPT_CLASSIFICADOR,
@@ -946,34 +938,28 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   const r = classificacao.data;
   const etapaAnterior = lead.etapa_qualificacao ?? "M0";
 
-  // --- Override determinístico por NÚMERO (1-4 / 1-3) ---
-  // Se o lead estava numa etapa de menu numerado e respondeu só um número,
-  // ignora alucinação do classificador e usa o mapa fixo.
+  // --- Override deterministico por NUMERO (1, 2 ou 3) ---
+  // Mantido como fallback escondido. O bot nao oferece menu numerado, mas
+  // alguns leads antigos ainda podem mandar "1", "2", "3" achando que
+  // existe menu. Captura silenciosa, sem reforcar nem corrigir.
+  // O "4" foi removido junto com a area "Outros" — agora qualquer area
+  // fora do escopo cai em fora_escopo via interpretacao do Haiku.
   let numeroLead: number | null = null;
-  if (etapaAnterior === "M0" || etapaAnterior === "aguardando_area") {
-    numeroLead = extrairNumero(texto, 4);
-    if (numeroLead) {
-      const areaFixa = AREA_NUM_TO_KEY[String(numeroLead)];
-      r.area = areaFixa;
-      // Avança a ação conforme a área escolhida
-      if (areaFixa === "saude") r.proxima_acao = "pedir_subtipo_saude";
-      else if (areaFixa === "inventario") r.proxima_acao = "pedir_inventario_info";
-      else r.proxima_acao = "pedir_detalhes";
-    }
-  } else if (etapaAnterior === "aguardando_subtipo_saude") {
+  if (etapaAnterior === "M0") {
     numeroLead = extrairNumero(texto, 3);
     if (numeroLead) {
-      const subFixo = SAUDE_NUM_TO_KEY[String(numeroLead)];
-      r.area = "saude";
-      r.saude_subtipo = subFixo;
-      r.proxima_acao = subFixo === "outros" ? "pedir_detalhes" : "propor_consulta_saude";
+      const areaFixa = AREA_NUM_TO_KEY[String(numeroLead)];
+      if (areaFixa) {
+        r.area = areaFixa;
+        if (!r.etapa_proxima || r.etapa_proxima === "M0") r.etapa_proxima = "M1";
+      }
     }
   }
 
-  const areaValida = ["familia", "inventario", "saude", "outros"].includes((r.area ?? "").toLowerCase());
+  const areaValida = ["familia", "inventario", "saude", "fora_escopo"].includes((r.area ?? "").toLowerCase());
   const areaParaPersistir = areaValida ? r.area : (lead.area_normalizada ?? null);
 
-  // Atualiza área normalizada, fluxo e score (só sobrescreve area se válida)
+  // Atualiza area normalizada, fluxo e score (so sobrescreve area se valida)
   await supabase
     .from("leads_geral")
     .update({
@@ -985,15 +971,14 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
     .eq("id", lead.id);
 
   // ============================================================
-  // Persiste a resposta do lead em qualificacoes_sdr com código
-  // semântico (area / saude_tipo / consulta / detalhe / inventario_info)
-  // e resposta_estruturada com { opcao_numero, key, label } quando aplicável.
+  // Persiste a resposta do lead em qualificacoes_sdr.
+  // Codigo semantico = etapa anterior + area (saude_m1, familia_m2, etc).
   // ============================================================
   {
     let perguntaCodigo: string;
-    let estruturada: Record<string, unknown> = { ...(r.resposta_estruturada ?? {}) };
+    let estruturada: Record<string, unknown> = { ...(r.dados_capturados ?? {}) };
 
-    if (etapaAnterior === "M0" || etapaAnterior === "aguardando_area") {
+    if (etapaAnterior === "M0") {
       perguntaCodigo = "area";
       if (numeroLead) {
         estruturada = {
@@ -1005,31 +990,14 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
       } else if (areaValida) {
         estruturada = { ...estruturada, area: r.area, label: AREA_LABEL[r.area as string] ?? r.area };
       }
-    } else if (etapaAnterior === "aguardando_subtipo_saude") {
-      perguntaCodigo = "saude_tipo";
-      const sub = r.saude_subtipo ?? null;
-      if (numeroLead) {
-        const key = SAUDE_NUM_TO_KEY[String(numeroLead)];
-        estruturada = {
-          ...estruturada,
-          opcao_numero: numeroLead,
-          saude_subtipo: key,
-          label: SAUDE_LABEL[key],
-        };
-      } else if (sub) {
-        estruturada = { ...estruturada, saude_subtipo: sub, label: SAUDE_LABEL[sub] ?? sub };
-      }
-    } else if (etapaAnterior === "aguardando_confirmacao_consulta") {
-      perguntaCodigo = "consulta";
-      estruturada = { ...estruturada, aceitou: /sim|pode|vamos|ok|claro|bora|quero/i.test(texto) };
-    } else if (etapaAnterior === "aguardando_detalhe") {
-      perguntaCodigo = areaParaPersistir === "inventario" ? "inventario_info" : "detalhe";
     } else {
-      perguntaCodigo = etapaAnterior;
+      const a = (areaParaPersistir ?? "fora_escopo").toLowerCase();
+      const etapaSlug = etapaAnterior.replace("M2_valor", "m2_valor").replace(/^M/i, "m").toLowerCase();
+      perguntaCodigo = a === "fora_escopo" ? "fora_escopo" : `${a}_${etapaSlug}`;
     }
 
     const perguntaTexto = PERGUNTA_TEXTO_POR_CODIGO[perguntaCodigo]
-      ?? `[${etapaAnterior}] ${r.proxima_acao}`;
+      ?? `[${etapaAnterior}] ${r.etapa_proxima}`;
 
     const { error: qErr } = await supabase.from("qualificacoes_sdr").insert({
       lead_id: lead.id,
@@ -1042,10 +1010,14 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   }
 
   const nome = nomePrimeiro(lead);
-  // IMPORTANTE: NÃO usar r.mensagem_para_enviar do Claude — ele alucina
-  // texto antigo (ex.: "Tudo bem sim 😊 Sou a Claudia, atendente do
-  // escritório Borges & Zembruski..."). Sempre usar template fixo abaixo.
-  let mensagemFinal = "";
+  // Permite o Claude personalizar a mensagem desde que ele a tenha gerado
+  // dentro do tom novo (sem travessao, sem menu). Caso contrario, usa o
+  // template fixo da combinacao area+etapa.
+  let mensagemFinal = (r.proxima_mensagem ?? "").trim();
+
+  // Higienizacao defensiva: troca qualquer travessao por virgula+espaco
+  // mesmo se o Claude esquecer da regra, e filtra emojis nao-permitidos.
+  if (mensagemFinal) mensagemFinal = higienizarTomClaudia(mensagemFinal);
 
   let novaEtapa = etapaAnterior;
   let novoStatus = lead.status_sdr ?? "em_atendimento_bot";
@@ -1054,52 +1026,51 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   let advogadoIdNotificar: string | null = null;
   let encerramento = false;
 
-  switch (r.proxima_acao) {
-    case "pedir_area":
-      novaEtapa = "aguardando_area";
-      if (!mensagemFinal) mensagemFinal = mensagemM0(nome);
-      break;
-    case "pedir_subtipo_saude":
-      novaEtapa = "aguardando_subtipo_saude";
-      if (!mensagemFinal) mensagemFinal = mensagemSaudeNivel1(nome);
-      break;
-    case "propor_consulta_saude":
-      novaEtapa = "aguardando_confirmacao_consulta";
-      if (!mensagemFinal) mensagemFinal = mensagemSaudeNivel2Consulta(nome);
-      break;
-    case "pedir_inventario_info":
-      novaEtapa = "aguardando_detalhe";
-      if (!mensagemFinal) mensagemFinal = mensagemInventario(nome);
-      break;
-    case "pedir_detalhes":
-      novaEtapa = "aguardando_detalhe";
-      if (!mensagemFinal) {
-        const a = (areaParaPersistir ?? "").toLowerCase();
-        if (a === "familia") mensagemFinal = mensagemFamilia(nome);
-        else if (a === "saude") mensagemFinal = mensagemSaudeNivel2Outros(nome);
-        else mensagemFinal = mensagemOutros(nome);
-      }
-      break;
-    case "encerrar_sql": {
-      novaEtapa = "finalizado";
-      novoStatus = "sql_aguardando_humano";
-      pausarBot = true;
-      encerramento = true;
-      const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
-      advogadoIdNotificar = advogado?.id ?? null;
-      if (advogado) {
-        await supabase
-          .from("leads_geral")
-          .update({ humano_responsavel: advogado.id })
-          .eq("id", lead.id);
-      }
-      if (!mensagemFinal) mensagemFinal = mensagemHandoff(nome);
-      break;
+  const etapaProx = (r.etapa_proxima ?? "M0").toString();
+  const areaLower = (areaParaPersistir ?? "").toLowerCase();
+
+  if (areaLower === "fora_escopo") {
+    // Handoff direto pra triagem humana, sem qualificar.
+    novaEtapa = "finalizado";
+    novoStatus = "aguardando_triagem";
+    pausarBot = true;
+    encerramento = true;
+    if (!mensagemFinal) mensagemFinal = mensagemForaEscopo(nome);
+
+    // Empilha no backlog pra advogada decidir se atende ou indica encaminhamento.
+    try {
+      await supabase.from("backlog_triagem").insert({
+        motivo: "fora_escopo",
+        telefone,
+        telefone_digits: telefone.replace(/\D/g, ""),
+        nome_capturado: lead.full_name ?? null,
+        msg_recebida: textoAgrupado,
+        lead_existente_id: lead.id,
+      });
+    } catch (_e) { /* ignore */ }
+  } else if (etapaProx === "finalizado" || etapaProx === "M3") {
+    // M3 = handoff (proposta de agendamento) — encerra como SQL.
+    novaEtapa = "finalizado";
+    novoStatus = "sql_aguardando_humano";
+    pausarBot = true;
+    encerramento = true;
+    const advogado = await buscarAdvogadoPorArea(supabase, areaParaPersistir ?? "geral");
+    advogadoIdNotificar = advogado?.id ?? null;
+    if (advogado) {
+      await supabase
+        .from("leads_geral")
+        .update({ humano_responsavel: advogado.id })
+        .eq("id", lead.id);
     }
-    case "aguardar":
-    default:
-      if (!mensagemFinal) mensagemFinal = "Desculpa, não consegui te entender direito. Pode reformular em poucas palavras?";
-      break;
+    if (!mensagemFinal) mensagemFinal = templatePorEtapa(areaParaPersistir, "M3", nome);
+  } else if (etapaProx === "M0") {
+    // Ainda nao identificou a area, segue conversando.
+    novaEtapa = "M0";
+    if (!mensagemFinal) mensagemFinal = mensagemM0Organico(nome);
+  } else {
+    // M1, M2 ou M2_valor — segue qualificando na area atual.
+    novaEtapa = etapaProx;
+    if (!mensagemFinal) mensagemFinal = templatePorEtapa(areaParaPersistir, etapaProx, nome);
   }
 
   // ============================================================
@@ -1107,17 +1078,17 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   // Se o bot não conseguiu avançar (mesma etapa ou ação "aguardar"),
   // incrementa o contador. A partir de 2 tentativas falhas → handoff.
   // ============================================================
-  const avancouEtapa = novaEtapa !== etapaAnterior && r.proxima_acao !== "aguardar";
+  const avancouEtapa = novaEtapa !== etapaAnterior;
   const tentativasAtuais = (lead as any).tentativas_etapa ?? 0;
   let tentativasNovas = avancouEtapa ? 0 : tentativasAtuais + 1;
 
-  if (!avancouEtapa && tentativasNovas >= 2) {
+  if (!avancouEtapa && tentativasNovas >= 2 && !encerramento) {
     await registrarEvento(supabase, lead.id, "bot_handoff_por_tentativas_excedidas", {
       etapa: etapaAnterior,
       tentativas: tentativasNovas,
-      acao_claude: r.proxima_acao,
+      etapa_claude: r.etapa_proxima,
     });
-    mensagemFinal = `${nome ? nome + ", " : ""}pra eu te ajudar melhor, vou conectar você com nossa advogada 😊`;
+    mensagemFinal = `${nome ? nome + ", " : ""}vou passar pra advogada continuar com você por aqui 💙`;
     novaEtapa = "finalizado";
     novoStatus = "sql_aguardando_humano";
     pausarBot = true;
@@ -1166,9 +1137,9 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
         similaridade: Number(sim.toFixed(3)),
         preview_anterior: ultimoTxt.slice(0, 120),
         preview_nova: mensagemFinal.slice(0, 120),
-        acao_original: r.proxima_acao,
+        etapa_original: r.etapa_proxima,
       });
-      mensagemFinal = `${nome ? nome + ", " : ""}vou passar pra advogada continuar contigo 😊`;
+      mensagemFinal = `${nome ? nome + ", " : ""}vou passar pra advogada continuar com você por aqui 💙`;
       novaEtapa = "finalizado";
       novoStatus = "sql_aguardando_humano";
       pausarBot = true;
@@ -1185,7 +1156,7 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   }
 
   const envio = await zapiSendText(telefone, mensagemFinal);
-  await registrarMensagem(supabase, lead.id, "bot", mensagemFinal, { zapi: envio, acao: r.proxima_acao });
+  await registrarMensagem(supabase, lead.id, "bot", mensagemFinal, { zapi: envio, etapa: r.etapa_proxima });
 
   await supabase
     .from("leads_geral")
@@ -1206,21 +1177,21 @@ Decida a próxima ação seguindo as regras do system prompt e retorne o JSON.`;
   });
 
   if (encerramento) {
-    await notificarAdvogado(supabase, lead.id, advogadoIdNotificar, r.proxima_acao);
+    await notificarAdvogado(supabase, lead.id, advogadoIdNotificar, r.etapa_proxima ?? novaEtapa);
   }
 
   await registrarEvento(supabase, lead.id, "msg_processada", {
-    acao: r.proxima_acao,
     area: r.area,
     area_persistida: areaParaPersistir,
-    saude_subtipo: r.saude_subtipo ?? null,
     etapa_anterior: etapaAnterior,
+    etapa_proxima: r.etapa_proxima,
     etapa_nova: novaEtapa,
     fluxo: novoFluxo,
     score: r.score,
+    dados_capturados: r.dados_capturados,
   });
 
-  return new Response(JSON.stringify({ ok: true, acao: r.proxima_acao }), {
+  return new Response(JSON.stringify({ ok: true, etapa_proxima: r.etapa_proxima }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
@@ -1230,7 +1201,7 @@ async function notificarAdvogado(
   supabase: any,
   leadId: string,
   advogadoId: string | null,
-  acao: string,
+  etapa: string,
 ) {
   const { data: lead } = await supabase
     .from("leads_geral")
@@ -1239,7 +1210,7 @@ async function notificarAdvogado(
     .maybeSingle();
   if (!lead) return;
 
-  // Resolve advogado: específico → fallback "geral" → qualquer ativo
+  // Resolve advogado: especifico → fallback "geral" → qualquer ativo
   let adv: { nome: string; email: string | null; telefone: string | null } | null = null;
   if (advogadoId) {
     const { data } = await supabase
@@ -1256,11 +1227,9 @@ async function notificarAdvogado(
 
   const urlPainel = Deno.env.get("URL_PAINEL") ?? "https://painel.example.com";
   const tel = lead.contato_whatsapp ?? lead.phone_number ?? "";
-  const titulo = acao === "encerrar_sql"
-    ? "Novo SQL na sua fila 🤓"
-    : acao === "encerrar_mql_frio"
-    ? "MQL frio encerrado pelo bot 🤓"
-    : "Lead fora de escopo encerrado 🤓";
+  const titulo = lead.area_normalizada === "fora_escopo"
+    ? "Lead fora de escopo, triagem manual 💙"
+    : "Novo SQL na sua fila 💙";
 
   const texto =
 `${titulo}
@@ -1269,7 +1238,7 @@ async function notificarAdvogado(
 • WhatsApp: ${tel}
 • Área: ${lead.area_normalizada ?? lead.tipo_servico ?? "n/d"}
 • Score: ${lead.score ?? 0}
-• Ação: ${acao}
+• Etapa: ${etapa}
 
 Abrir conversa: ${urlPainel}/leads/${leadId}`;
 
@@ -1281,8 +1250,19 @@ Abrir conversa: ${urlPainel}/leads/${leadId}`;
     advogado_id: advogadoId,
     advogado_resolvido: adv?.nome ?? null,
     canal: adv?.telefone ? "whatsapp" : "sem_canal",
-    acao,
+    etapa,
   });
+}
+
+// Higienizacao do tom Claudia: troca travessao por virgula+espaco e
+// remove emojis fora da lista permitida (💙 😊). O Haiku pode escorregar
+// no system prompt; isso protege a saida final.
+function higienizarTomClaudia(s: string): string {
+  if (!s) return s;
+  let out = s.replace(/\s*[—–]\s*/g, ", ");
+  // Mantem somente 💙 e 😊. Remove os outros emojis comuns.
+  out = out.replace(/[🤓✱✨🙏👋🎉💪🔥]/g, "");
+  return out.replace(/\s{2,}/g, " ").trim();
 }
 
 // Similaridade simples baseada em Jaccard de bigramas (caracteres).
