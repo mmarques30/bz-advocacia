@@ -1,58 +1,131 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetaChartData, MetaCampanha } from "@/types/meta-ads";
 import {
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, PieChart, Pie, Cell,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { useMemo } from "react";
+import { TrendingUp, AlertTriangle, Award, Zap, Target } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Props {
   chartData: MetaChartData[];
   campanhas: MetaCampanha[];
 }
 
-const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4", "#84cc16"];
-
 function fmtBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function MetaAdsVisaoGeralTab({ chartData, campanhas }: Props) {
-  // Distribuicao por objective das campanhas (gasto soma).
-  const objectiveData = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const c of campanhas) {
-      const key = c.objetivo ?? "OUTROS";
-      map.set(key, (map.get(key) ?? 0) + c.gasto);
-    }
-    return Array.from(map.entries())
-      .filter(([, v]) => v > 0)
-      .map(([name, value]) => ({ name, value }));
-  }, [campanhas]);
+interface Insight {
+  Icon: typeof TrendingUp;
+  tone: "good" | "warn" | "info";
+  title: string;
+  desc: string;
+}
 
-  const hasInsights = chartData.length > 0;
-  const hasObjective = objectiveData.length > 0;
+function buildInsights(campanhas: MetaCampanha[]): Insight[] {
+  const out: Insight[] = [];
+  const ativas = campanhas.filter((c) => c.gasto > 0 || c.leads > 0);
+  if (ativas.length === 0) return out;
+
+  const top = [...ativas].filter((c) => c.leads > 0).sort((a, b) => a.custo_lead - b.custo_lead)[0];
+  if (top) {
+    out.push({
+      Icon: Award, tone: "good",
+      title: `Melhor CPL: ${top.nome}`,
+      desc: `${fmtBRL(top.custo_lead)} por lead (${top.leads} leads, ${fmtBRL(top.gasto)} gastos).`,
+    });
+  }
+
+  const torrando = [...ativas].filter((c) => c.gasto > 100 && c.leads === 0)
+    .sort((a, b) => b.gasto - a.gasto)[0];
+  if (torrando) {
+    out.push({
+      Icon: AlertTriangle, tone: "warn",
+      title: `Gastando sem converter: ${torrando.nome}`,
+      desc: `${fmtBRL(torrando.gasto)} sem nenhum lead. Vale revisar criativo ou pausar.`,
+    });
+  }
+
+  const maisGasto = [...ativas].sort((a, b) => b.gasto - a.gasto)[0];
+  if (maisGasto && maisGasto !== top) {
+    out.push({
+      Icon: TrendingUp, tone: "info",
+      title: `Maior investimento: ${maisGasto.nome}`,
+      desc: `${fmtBRL(maisGasto.gasto)} • ${maisGasto.leads} leads • CPL ${maisGasto.custo_lead > 0 ? fmtBRL(maisGasto.custo_lead) : "—"}`,
+    });
+  }
+
+  const melhorCtr = [...ativas].filter((c) => c.impressoes > 1000).sort((a, b) => b.ctr - a.ctr)[0];
+  if (melhorCtr && melhorCtr.ctr > 0) {
+    out.push({
+      Icon: Zap, tone: "info",
+      title: `Maior engajamento: ${melhorCtr.nome}`,
+      desc: `CTR ${melhorCtr.ctr.toFixed(2)}% em ${melhorCtr.impressoes.toLocaleString("pt-BR")} impressões.`,
+    });
+  }
+
+  const totLeads = ativas.reduce((s, c) => s + c.leads, 0);
+  const totGasto = ativas.reduce((s, c) => s + c.gasto, 0);
+  if (totLeads > 0 && totGasto > 0) {
+    out.push({
+      Icon: Target, tone: "info",
+      title: `Média geral`,
+      desc: `${totLeads} leads, ${fmtBRL(totGasto / totLeads)} por lead em ${ativas.length} campanhas ativas.`,
+    });
+  }
+
+  return out;
+}
+
+const TONE_CLS: Record<Insight["tone"], string> = {
+  good: "bg-emerald-50 border-emerald-200 text-emerald-900",
+  warn: "bg-amber-50 border-amber-200 text-amber-900",
+  info: "bg-blue-50 border-blue-200 text-blue-900",
+};
+
+export function MetaAdsVisaoGeralTab({ chartData, campanhas }: Props) {
+  const insights = useMemo(() => buildInsights(campanhas), [campanhas]);
+  const hasData = chartData.length > 0;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
-      {/* Gasto + Leads ao longo do tempo (col span 2) */}
-      <Card className="lg:col-span-2">
+    <div className="space-y-6">
+      {/* Insights — primeira coisa que aparece */}
+      {insights.length > 0 ? (
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {insights.map((i, idx) => {
+            const Icon = i.Icon;
+            return (
+              <div key={idx} className={cn("border rounded-lg p-3 flex gap-3", TONE_CLS[i.tone])}>
+                <Icon className="h-5 w-5 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm leading-tight">{i.title}</p>
+                  <p className="text-xs leading-snug mt-1 opacity-90">{i.desc}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <Card className="p-5 text-sm text-muted-foreground">
+          Sem campanhas com dados suficientes pra gerar insights ainda — aguardando o 1º sync.
+        </Card>
+      )}
+
+      {/* Grafico unico: leads + gasto sobrepostos no tempo */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Performance ao longo do tempo</CardTitle>
+          <CardTitle className="text-base">Performance no período</CardTitle>
         </CardHeader>
         <CardContent>
-          {hasInsights ? (
+          {hasData ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis dataKey="data" tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="left" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
-                <Tooltip
-                  formatter={(value: number, name) =>
-                    name === "Gasto" ? [fmtBRL(value), name] : [value, name]
-                  }
-                />
+                <Tooltip formatter={(v: number, n) => (n === "Gasto" ? [fmtBRL(v), n] : [v, n])} />
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="gasto" name="Gasto" stroke="#3b82f6" strokeWidth={2} dot={false} />
                 <Line yAxisId="right" type="monotone" dataKey="leads" name="Leads" stroke="#10b981" strokeWidth={2} dot={false} />
@@ -61,62 +134,6 @@ export function MetaAdsVisaoGeralTab({ chartData, campanhas }: Props) {
           ) : (
             <p className="text-sm text-muted-foreground text-center py-12">
               Sem dados de performance ainda — aguardando o primeiro sync de insights.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Distribuicao por objetivo (donut) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Investimento por objetivo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {hasObjective ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={objectiveData}
-                  innerRadius={60}
-                  outerRadius={90}
-                  dataKey="value"
-                  nameKey="name"
-                  label={(entry) => entry.name}
-                >
-                  {objectiveData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v: number) => fmtBRL(v)} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-12">
-              Sem campanhas com gasto no período.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Cliques diario (col span 3 — full width) */}
-      <Card className="lg:col-span-3">
-        <CardHeader>
-          <CardTitle className="text-base">Gasto diário</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {hasInsights ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="data" tick={{ fontSize: 11 }} />
-                <YAxis tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => fmtBRL(v)} />
-                <Bar dataKey="gasto" name="Gasto" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              Sem dados.
             </p>
           )}
         </CardContent>
