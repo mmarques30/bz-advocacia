@@ -85,55 +85,77 @@ export function ConversasList({ selectedId, onSelect }: Props) {
       if (error) throw error;
       const leads = (data || []) as ConversaItem[];
 
-      const enriched = await Promise.all(
-        leads.map(async (lead) => {
-          const { data: ultima } = await (supabase as any)
-            .from("mensagens_sdr")
-            .select("conteudo")
-            .eq("lead_id", lead.id)
-            .order("enviada_em", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      if (leads.length === 0) return leads;
 
-          let unread = 0;
-          if (lead.ultima_leitura_humano) {
-            const { count } = await (supabase as any)
-              .from("mensagens_sdr")
-              .select("id", { count: "exact", head: true })
-              .eq("lead_id", lead.id)
-              .eq("origem", "lead")
-              .gt("enviada_em", lead.ultima_leitura_humano);
-            unread = count || 0;
-          } else {
-            const { count } = await (supabase as any)
-              .from("mensagens_sdr")
-              .select("id", { count: "exact", head: true })
-              .eq("lead_id", lead.id)
-              .eq("origem", "lead");
-            unread = count || 0;
-          }
+      // Antes era N+1: pra cada lead a gente disparava 2 queries (preview +
+      // count unread). Com 200 leads isso virava 400 requests por refetch
+      // e o refetch roda a cada 30s + invalidate em cada mensagem realtime.
+      //
+      // Agora: 1 query unica trazendo todas mensagens dos ultimos 30 dias
+      // pros leads visiveis. Group client-side pra computar preview e
+      // unread. Custo desta query e ~O(leads * msgs_por_lead) que ainda
+      // e muito menor que N+1 round-trips.
+      const leadIds = leads.map((l) => l.id);
+      const corte30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-          return { ...lead, preview: ultima?.conteudo || null, unread };
-        })
-      );
+      const { data: msgs } = await (supabase as any)
+        .from("mensagens_sdr")
+        .select("lead_id, conteudo, origem, enviada_em")
+        .in("lead_id", leadIds)
+        .gte("enviada_em", corte30d)
+        .order("enviada_em", { ascending: false });
 
-      return enriched;
+      // Mapa lead_id → ultima mensagem (qualquer origem)
+      const previewMap = new Map<string, string>();
+      // Mapa lead_id → array de timestamps das msgs do lead (pra contar unread)
+      const leadMsgsMap = new Map<string, string[]>();
+
+      for (const m of (msgs ?? []) as any[]) {
+        if (!previewMap.has(m.lead_id)) previewMap.set(m.lead_id, m.conteudo);
+        if (m.origem === "lead") {
+          const arr = leadMsgsMap.get(m.lead_id) ?? [];
+          arr.push(m.enviada_em);
+          leadMsgsMap.set(m.lead_id, arr);
+        }
+      }
+
+      return leads.map((lead) => {
+        const leadMsgs = leadMsgsMap.get(lead.id) ?? [];
+        const unread = lead.ultima_leitura_humano
+          ? leadMsgs.filter((t) => t > lead.ultima_leitura_humano!).length
+          : leadMsgs.length;
+        return { ...lead, preview: previewMap.get(lead.id) ?? null, unread };
+      });
     },
     enabled: filtro === "todas" || !!meuAdvogadoId,
+    staleTime: 15_000,
     refetchInterval: 30000,
   });
 
   useEffect(() => {
+    // Debounce de 2s: rajadas de mensagens (lead que manda 5 fragmentos
+    // em sequencia, bot que dispara M0 + qualif, etc) viravam 5 invalidacoes
+    // = 5 refetches do listing completo. Agora todas caem numa invalidacao
+    // unica apos 2s sem novos eventos.
+    let invalidateTimer: ReturnType<typeof setTimeout> | null = null;
+    const agendaInvalidate = () => {
+      if (invalidateTimer) clearTimeout(invalidateTimer);
+      invalidateTimer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["atendimento-conversas"] });
+      }, 2000);
+    };
+
     const channel = supabase
       .channel("atendimento-mensagens-stream")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "mensagens_sdr" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["atendimento-conversas"] });
+        agendaInvalidate();
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads_geral" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["atendimento-conversas"] });
+        agendaInvalidate();
       })
       .subscribe();
     return () => {
+      if (invalidateTimer) clearTimeout(invalidateTimer);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);

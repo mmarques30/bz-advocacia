@@ -29,7 +29,10 @@ export const useUserPagePermissions = (userId: string) => {
   });
 };
 
-// Buscar permissões do usuário logado
+// Buscar permissões do usuário logado.
+// Lido por PermissionGate (cada rota) E AppSidebar (cada navegacao). Sem
+// staleTime decente isso virava 4+ chamadas Supabase a cada page-nav.
+// Permissoes nao mudam quase nunca em sessao, entao 5 min de cache e seguro.
 export const useMyPagePermissions = () => {
   return useQuery({
     queryKey: ["my-page-permissions"],
@@ -61,6 +64,8 @@ export const useMyPagePermissions = () => {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 };
 
