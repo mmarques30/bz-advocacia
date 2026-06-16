@@ -90,8 +90,7 @@ const menuItems: MenuItem[] = [
     label: "Pesquisas",
     icon: Search,
     submenu: [
-      { title: "Visão Geral", url: "/dashboard/pesquisas" },
-      { title: "Consultar Empresa", url: "/dashboard/pesquisas/cnpj" },
+      { title: "Consultar Empresa", url: "/dashboard/pesquisas" },
       { title: "Histórico", url: "/dashboard/pesquisas/historico" },
     ]
   },
