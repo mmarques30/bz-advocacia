@@ -37,12 +37,10 @@ import FinanceiroRelatorios from "./pages/financeiro/Relatorios";
 import FinanceiroHistorico from "./pages/financeiro/Historico";
 import FinanceiroPagamentos from "./pages/financeiro/Pagamentos";
 
-// Pesquisas
+// Pesquisas (apenas Consulta gratuita BrasilAPI + Historico ate contratarmos APIs pagas)
 import PesquisasIndex from "./pages/pesquisas/Index";
-import PesquisasProcessos from "./pages/pesquisas/Processos";
 import PesquisasHistorico from "./pages/pesquisas/Historico";
 import PesquisasCNPJ from "./pages/pesquisas/CNPJ";
-import PesquisasCPF from "./pages/pesquisas/CPF";
 
 // Comunicação
 import ComunicacaoTemplates from "./pages/comunicacao/Templates";
@@ -284,38 +282,25 @@ const App = () => {
           </ProtectedRoute>
         } 
       />
-      <Route 
-        path="/dashboard/pesquisas/cnpj" 
+      <Route
+        path="/dashboard/pesquisas/cnpj"
         element={
           <ProtectedRoute>
             <PesquisasCNPJ />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/pesquisas/cpf" 
-        element={
-          <ProtectedRoute>
-            <PesquisasCPF />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/dashboard/pesquisas/historico" 
+      <Route
+        path="/dashboard/pesquisas/historico"
         element={
           <ProtectedRoute>
             <PesquisasHistorico />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/dashboard/pesquisas/processos" 
-        element={
-          <ProtectedRoute>
-            <PesquisasProcessos />
-          </ProtectedRoute>
-        } 
-      />
+      {/* CPF (Apify) e Processos (Datajud) sao pagos — redireciono pra Consulta de Empresa enquanto nao contratamos */}
+      <Route path="/dashboard/pesquisas/cpf" element={<Navigate to="/dashboard/pesquisas/cnpj" replace />} />
+      <Route path="/dashboard/pesquisas/processos" element={<Navigate to="/dashboard/pesquisas/cnpj" replace />} />
       
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
