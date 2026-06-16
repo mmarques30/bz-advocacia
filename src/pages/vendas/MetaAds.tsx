@@ -1,86 +1,89 @@
 import { useState } from "react";
-import { MarketingDashboardKPIs } from "@/components/meta-ads/MarketingDashboardKPIs";
-import { MarketingPerformanceChart } from "@/components/meta-ads/MarketingPerformanceChart";
-import { MarketingFunnelChart } from "@/components/meta-ads/MarketingFunnelChart";
-import { MarketingServiceDistribution } from "@/components/meta-ads/MarketingServiceDistribution";
-import { MarketingCampanhasCustos } from "@/components/meta-ads/MarketingCampanhasCustos";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LayoutDashboard, Target, Layers, ImageIcon, GitBranch } from "lucide-react";
+
 import { useMetaMetrics } from "@/hooks/useMetaMetrics";
 import { useMetaCampaigns } from "@/hooks/useMetaCampaigns";
-import { useMarketingCsvAnalytics } from "@/hooks/useMarketingCsvAnalytics";
-import { useServiceDistribution, usePlatformDistribution, useFunnelUnificado } from "@/hooks/useServiceDistribution";
+import { useMetaAdSets } from "@/hooks/useMetaAdSets";
+import { useMetaAds } from "@/hooks/useMetaAds";
+import { useMetaSyncStatus } from "@/hooks/useMetaSyncStatus";
 import { PeriodoFiltro } from "@/types/meta-ads";
 
+import { MetaAdsHeader } from "@/components/meta-ads/MetaAdsHeader";
+import { MetaAdsVisaoGeralTab } from "@/components/meta-ads/MetaAdsVisaoGeralTab";
+import { MetaAdsCampanhasTab } from "@/components/meta-ads/MetaAdsCampanhasTab";
+import { MetaAdsAdSetsTab } from "@/components/meta-ads/MetaAdsAdSetsTab";
+import { MetaAdsAnunciosTab } from "@/components/meta-ads/MetaAdsAnunciosTab";
+import { MetaAdsFunilTab } from "@/components/meta-ads/MetaAdsFunilTab";
+
+/**
+ * Dashboard de Marketing — fiel a hierarquia do Meta Ads:
+ *  Conta -> Campanhas -> Ad Sets -> Ads (Criativos).
+ *
+ * Dados:
+ *  - Header: useMetaMetrics (meta_insights_daily + v_meta_lead_funnel)
+ *  - Visao Geral: chartData + campanhas (donut por objetivo)
+ *  - Campanhas: useMetaCampaigns
+ *  - Ad Sets:   useMetaAdSets
+ *  - Anuncios:  useMetaAds (com criativos)
+ *  - Funil:     v_meta_lead_funnel agrupado por status_sdr
+ */
 export default function MetaAds() {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>("90d");
-  const { kpis, isLoading: isLoadingMetrics } = useMetaMetrics(periodo);
-  const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns(periodo);
-  const csvAnalytics = useMarketingCsvAnalytics(periodo);
-  const mergedServices = useServiceDistribution(csvAnalytics.serviceDistribution);
-  const mergedPlatforms = usePlatformDistribution(csvAnalytics.platformKPIs);
-  const unifiedFunnel = useFunnelUnificado(csvAnalytics.funnel);
 
-  const investimentoTotal = kpis && kpis.gasto > 0
-    ? `R$ ${kpis.gasto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-    : "R$ 0,00";
+  const { kpis, chartData } = useMetaMetrics(periodo);
+  const { campanhas, isLoading: isLoadingCampaigns } = useMetaCampaigns(periodo);
+  const { adSets, isLoading: isLoadingAdSets } = useMetaAdSets(periodo);
+  const { ads, isLoading: isLoadingAds } = useMetaAds(periodo);
+  const { data: syncStatus } = useMetaSyncStatus();
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-seasons text-primary">Dashboard de Marketing</h1>
-          <p className="text-muted-foreground">
-            Acompanhe a performance das suas campanhas e análises de conversão
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">Período completo</p>
-            <p className="text-2xl font-bold">{investimentoTotal}</p>
-          </div>
-          <Select value={periodo} onValueChange={(value) => setPeriodo(value as PeriodoFiltro)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Últimos 7 dias</SelectItem>
-              <SelectItem value="30d">Últimos 30 dias</SelectItem>
-              <SelectItem value="90d">Últimos 90 dias</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <MetaAdsHeader
+        kpis={kpis}
+        periodo={periodo}
+        onPeriodoChange={setPeriodo}
+        ultimaStructure={syncStatus?.ultima_structure ?? null}
+        ultimaInsights={syncStatus?.ultima_insights ?? null}
+      />
 
-      <Tabs defaultValue="performance" className="space-y-6">
+      <Tabs defaultValue="visao-geral">
         <TabsList>
-          <TabsTrigger value="performance">Performance & ROI</TabsTrigger>
-          <TabsTrigger value="campanhas">Campanhas & Custos</TabsTrigger>
+          <TabsTrigger value="visao-geral" className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" /> Visão Geral
+          </TabsTrigger>
+          <TabsTrigger value="campanhas" className="flex items-center gap-2">
+            <Target className="h-4 w-4" /> Campanhas
+          </TabsTrigger>
+          <TabsTrigger value="adsets" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" /> Ad Sets
+          </TabsTrigger>
+          <TabsTrigger value="anuncios" className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" /> Anúncios
+          </TabsTrigger>
+          <TabsTrigger value="funil" className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" /> Funil
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="performance" className="space-y-6">
-          {/* KPI Cards */}
-          <MarketingDashboardKPIs analytics={csvAnalytics} metaKpis={kpis} />
-
-          {/* Performance Chart */}
-          <MarketingPerformanceChart data={csvAnalytics.dailyConversions} />
-
-          {/* Funnel + Service Distribution side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MarketingFunnelChart data={unifiedFunnel} />
-            <MarketingServiceDistribution data={mergedServices} />
-          </div>
+        <TabsContent value="visao-geral" className="mt-4">
+          <MetaAdsVisaoGeralTab chartData={chartData} campanhas={campanhas} />
         </TabsContent>
 
-        <TabsContent value="campanhas" className="space-y-6">
-          <MarketingCampanhasCustos
-            analytics={csvAnalytics}
-            metaKpis={kpis}
-            campanhas={campanhas}
-            isLoadingCampaigns={isLoadingCampaigns}
-            mergedPlatformData={mergedPlatforms}
-          />
+        <TabsContent value="campanhas" className="mt-4">
+          <MetaAdsCampanhasTab campanhas={campanhas} isLoading={isLoadingCampaigns} />
+        </TabsContent>
+
+        <TabsContent value="adsets" className="mt-4">
+          <MetaAdsAdSetsTab adSets={adSets} isLoading={isLoadingAdSets} />
+        </TabsContent>
+
+        <TabsContent value="anuncios" className="mt-4">
+          <MetaAdsAnunciosTab ads={ads} isLoading={isLoadingAds} />
+        </TabsContent>
+
+        <TabsContent value="funil" className="mt-4">
+          <MetaAdsFunilTab periodo={periodo} />
         </TabsContent>
       </Tabs>
     </div>
