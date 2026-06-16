@@ -59,6 +59,10 @@ export interface Lead {
   // Mais confiavel que `origem` (contact_submissions) pra separar
   // pipeline Organico vs Anuncios.
   is_organic?: boolean | null;
+  // Classificacao do contato. Default 'lead' (entra no funil). Outros
+  // valores ('fornecedor', 'parceiro', 'institucional', 'pessoal') sao
+  // filtrados do Kanban principal.
+  tipo_contato?: "lead" | "fornecedor" | "parceiro" | "institucional" | "pessoal" | string | null;
   campanha_envio?: {
     enviada_em: string | null;
     respondida_em: string | null;

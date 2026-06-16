@@ -192,7 +192,10 @@ function LeadsTab({
   // como 'fechado' e poluiam Convertido com clientes que nao sao do funil.
   const originFilteredLeads = useMemo(() => {
     if (!leads) return undefined;
+    // Filtra do pipeline: clientes importados e leads marcados como
+    // nao-lead (fornecedor / parceiro / institucional / pessoal).
     let result = leads.filter(l => l.como_conheceu !== 'importacao');
+    result = result.filter(l => !l.tipo_contato || l.tipo_contato === 'lead');
     if (filterOrigins) {
       // Aba "Anuncios": queremos leads que o bot marcou como NAO-organico
       // (is_organic=false). Fallback: origem em filterOrigins.

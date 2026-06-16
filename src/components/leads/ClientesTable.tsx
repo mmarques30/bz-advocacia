@@ -24,6 +24,7 @@ import { useDeleteLead } from "@/hooks/useLeads";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/lib/toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -67,20 +68,25 @@ export function ClientesTable({ leads, isLoading, onViewDetails, onEdit }: Clien
   };
 
   const navigate = useNavigate();
-  const openWhatsApp = (lead: Lead) => {
-    // Abre o atendimento interno — pra manter historico da conversa.
-    // Se o lead nunca passou pelo bot (sem lead_geral_id), aviso porque
-    // nao ha conversa pra continuar; ai cabe abrir manualmente na aba.
+  const openWhatsApp = async (lead: Lead) => {
     const msg = `Olá ${lead.nome_completo.split(" ")[0]}, tudo bem?`;
-    if (!lead.lead_geral_id) {
-      toast({
-        title: "Cliente sem conversa no bot",
-        description: "Esse cliente ainda nao tem conversa registrada. Abra na aba Atendimento manualmente.",
-        variant: "destructive",
+    // Garante lead_geral_id (RPC cria sob demanda se necessario).
+    let leadGeralId = lead.lead_geral_id ?? null;
+    if (!leadGeralId) {
+      const { data, error } = await supabase.rpc("garantir_lead_geral_para_contact", {
+        p_contact_submission_id: lead.id,
       });
-      return;
+      if (error || !data) {
+        toast({
+          title: "Não consegui abrir o atendimento",
+          description: error?.message ?? "Tente abrir manualmente.",
+          variant: "destructive",
+        });
+        return;
+      }
+      leadGeralId = data as string;
     }
-    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(lead.lead_geral_id)}&msg=${encodeURIComponent(msg)}`);
+    navigate(`/dashboard/atendimento?lead=${encodeURIComponent(leadGeralId)}&msg=${encodeURIComponent(msg)}`);
   };
 
   const sortedLeads = useMemo(() => {
