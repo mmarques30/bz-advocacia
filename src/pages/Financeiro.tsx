@@ -86,6 +86,10 @@ export default function Financeiro() {
 
   // Admin
   const [clearDataOpen, setClearDataOpen] = useState(false);
+  // Botao "Limpar transacoes" apaga TUDO de transacoes_financeiras. Pra
+  // evitar clique acidental (ja aconteceu uma vez de lancamentos do mes
+  // sumirem), o admin precisa digitar "LIMPAR" antes de confirmar.
+  const [clearConfirmText, setClearConfirmText] = useState("");
   const clearTransacoes = useClearTransacoes();
   const { data: isAdmin } = useCheckIsAdmin();
   const { data: anosDisponiveis } = useAnosDisponiveis();
@@ -166,8 +170,10 @@ export default function Financeiro() {
   };
 
   const handleClearData = () => {
+    if (clearConfirmText !== "LIMPAR") return;
     clearTransacoes.mutate();
     setClearDataOpen(false);
+    setClearConfirmText("");
   };
 
   return (
@@ -205,7 +211,10 @@ export default function Financeiro() {
         </div>
       </div>
 
-      <AlertDialog open={clearDataOpen} onOpenChange={setClearDataOpen}>
+      <AlertDialog open={clearDataOpen} onOpenChange={(open) => {
+        setClearDataOpen(open);
+        if (!open) setClearConfirmText("");
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -213,16 +222,30 @@ export default function Financeiro() {
               Limpar tabela de transações?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação apaga todos os registros da tabela <strong>transacoes_financeiras</strong> (todos os anos).
+              Esta ação apaga <strong>todos</strong> os registros da tabela <strong>transacoes_financeiras</strong> (todos os anos).
               Não apaga despesas, acordos, parcelas, créditos condicionais nem metas — essas tabelas têm
               seus próprios fluxos de exclusão. Não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm text-muted-foreground">
+              Pra confirmar, digite <strong>LIMPAR</strong> abaixo:
+            </p>
+            <input
+              type="text"
+              value={clearConfirmText}
+              onChange={(e) => setClearConfirmText(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
+              placeholder="LIMPAR"
+              autoFocus
+            />
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
               onClick={handleClearData}
+              disabled={clearConfirmText !== "LIMPAR"}
             >
               Sim, limpar transações
             </AlertDialogAction>
