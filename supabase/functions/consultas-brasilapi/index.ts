@@ -220,20 +220,29 @@ serve(async (req) => {
       };
     }
 
-    // Log successful consultation
-    await supabase.from("consultas_realizadas").insert({
-      id: consultaId,
-      tipo_consulta: tipoConsulta,
-      parametro_busca: valorLimpo,
-      processo_id: processo_id || null,
-      usuario_id: user.id,
-      motivo,
-      justificativa,
-      resultado: formattedData,
-      status: "sucesso",
-      custo: 0, // BrasilAPI is free
-      id_consulta_externa: consultaId,
-    });
+    // Log successful consultation. Antes o erro era silenciado e a
+    // pagina Historico mostrava zero consultas mesmo apos o usuario
+    // executar varias buscas (o CHECK constraint da tabela rejeitava
+    // 'cnpj'/'cep'). Agora capturamos e logamos pra ficar visivel se
+    // RLS, schema cache ou outro motivo bloquear o insert.
+    const { error: insertSuccessErr } = await supabase
+      .from("consultas_realizadas")
+      .insert({
+        id: consultaId,
+        tipo_consulta: tipoConsulta,
+        parametro_busca: valorLimpo,
+        processo_id: processo_id || null,
+        usuario_id: user.id,
+        motivo,
+        justificativa,
+        resultado: formattedData,
+        status: "sucesso",
+        custo: 0,
+        id_consulta_externa: consultaId,
+      });
+    if (insertSuccessErr) {
+      console.error("[BrasilAPI] insert consultas_realizadas falhou:", insertSuccessErr);
+    }
 
     return new Response(
       JSON.stringify(formattedData),

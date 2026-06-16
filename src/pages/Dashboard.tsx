@@ -24,7 +24,6 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { DashboardCargaEquipeCard } from "@/components/dashboard/DashboardCargaEquipeCard";
 import { useDashboardPrincipal } from "@/hooks/useDashboardPrincipal";
 import { useDashboardVisual } from "@/hooks/useDashboardVisual";
 import { useProcessosEvolucao } from "@/hooks/useProcessosEvolucao";
@@ -73,8 +72,6 @@ export default function Dashboard() {
 
   const tarefas = visual?.tarefas || { urgentes: 0, atrasadas: 0, concluidasSemana: 0, pendentes: 0, totalAtivas: 0 };
   const prazos = visual?.prazos || { atrasados: 0, hoje: 0, estaSemana: 0, dias30: 0 };
-  const proximosPrazos = visual?.proximosPrazos || [];
-  const heatmap = visual?.heatmap || [];
 
   const processosAtivos = data?.processosAtivos || 0;
   const processosConcluidos = data?.processosConcluídosMes || 0;
@@ -298,140 +295,65 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Row 3: Pipeline (1/2) + Carga equipe (1/2) */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Pipeline inline */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-bold">Pipeline de leads</CardTitle>
-              <button
-                onClick={() => navigate("/dashboard/leads")}
-                className="text-xs text-primary hover:underline flex items-center gap-0.5"
-              >
-                Ver leads <ArrowRight className="w-3 h-3" />
-              </button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {loading ? (
-              <Skeleton className="h-[180px] w-full" />
-            ) : (
-              <>
-                <div className="space-y-2">
-                  {PIPELINE_STAGES.map((s) => {
-                    const val = funil[s.key];
-                    const width = Math.max((val / funilMax) * 100, val > 0 ? 12 : 0);
-                    return (
-                      <div key={s.key} className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16 text-right">{s.label}</span>
-                        <div className="relative flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: "hsl(var(--muted))" }}>
-                          <div
-                            className="h-full rounded-md flex items-center justify-center text-[11px] font-bold text-white transition-all"
-                            style={{ width: `${width}%`, backgroundColor: val > 0 ? s.color : "transparent", minWidth: val > 0 ? 28 : 0 }}
-                          >
-                            {val > 0 && val}
-                          </div>
-                          {val === 0 && (
-                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-medium text-muted-foreground">0</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Conversão do mês</span>
-                    <span className="font-semibold" style={{ color: "#3B6D11" }}>{taxaConversao}%</span>
-                  </div>
-                  <Progress value={taxaConversao} className="h-1.5" />
-                </div>
-                {leadsParadosList.length > 0 && (
-                  <div className="rounded-lg p-2 flex items-start gap-2" style={{ backgroundColor: "#FAEEDA" }}>
-                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: "#854F0B" }} />
-                    <div className="text-[11px]" style={{ color: "#854F0B" }}>
-                      <span className="font-semibold">{leadsParadosList[0].nome}</span> parado há {leadsParadosList[0].dias_parado} dias
-                      {leadsParadosList.length > 1 && ` (+${leadsParadosList.length - 1} outros)`}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Carga da equipe */}
-        <DashboardCargaEquipeCard data={heatmap} loading={loading} />
-      </div>
-
-      {/* Row 4: Prazos processuais — full width */}
+      {/* Row 3: Pipeline de leads — agora ocupa a linha inteira. Carga da
+          equipe e Prazos processuais foram removidos a pedido pra deixar
+          o Painel B&Z mais enxuto (topo + tarefas + evolucao + pipeline). */}
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-bold">Prazos processuais</CardTitle>
+            <CardTitle className="text-sm font-bold">Pipeline de leads</CardTitle>
             <button
-              onClick={() => navigate("/dashboard/processos/calendario")}
+              onClick={() => navigate("/dashboard/leads")}
               className="text-xs text-primary hover:underline flex items-center gap-0.5"
             >
-              Calendário <ArrowRight className="w-3 h-3" />
+              Ver leads <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           {loading ? (
-            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-[180px] w-full" />
           ) : (
-            <div className="flex flex-col lg:flex-row gap-5">
-              {/* Badges resumo */}
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: "Atrasados", value: prazos.atrasados, bg: "#FCEBEB", color: "#A32D2D" },
-                  { label: "Hoje", value: prazos.hoje, bg: "#FAEEDA", color: "#854F0B" },
-                  { label: "Esta semana", value: prazos.estaSemana, bg: "#EAF3DE", color: "#3B6D11" },
-                  { label: "30 dias", value: prazos.dias30, bg: "hsl(var(--muted))", color: "hsl(var(--foreground))" },
-                ].map((b) => (
-                  <button
-                    key={b.label}
-                    onClick={() => navigate("/dashboard/processos/calendario")}
-                    className="rounded-lg px-4 py-2.5 text-center transition-colors hover:opacity-80 min-w-[90px]"
-                    style={{ backgroundColor: b.value > 0 ? b.bg : "hsl(var(--muted))" }}
-                  >
-                    <p className="text-xl font-bold" style={{ color: b.value > 0 ? b.color : "hsl(var(--foreground))" }}>
-                      {b.value}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{b.label}</p>
-                  </button>
-                ))}
-              </div>
-
-              {/* Timeline próximos prazos */}
-              {proximosPrazos.length > 0 && (
-                <div className="flex-1 border-l-2 border-border pl-4 space-y-2.5">
-                  {proximosPrazos.map((p) => (
-                    <div key={p.id} className="flex items-center gap-2.5">
-                      <span
-                        className="w-2 h-2 rounded-full shrink-0"
-                        style={{
-                          backgroundColor: p.dias_restantes <= 1 ? "#A32D2D" : p.dias_restantes <= 3 ? "#854F0B" : "#3B6D11",
-                        }}
-                      />
-                      <span className="text-xs font-medium truncate max-w-[140px]">{p.cliente_nome || "Processo"}</span>
-                      <span className="text-[11px] text-muted-foreground truncate flex-1">{p.descricao}</span>
-                      <span
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap"
-                        style={{
-                          backgroundColor: p.dias_restantes <= 1 ? "#FCEBEB" : p.dias_restantes <= 3 ? "#FAEEDA" : "#EAF3DE",
-                          color: p.dias_restantes <= 1 ? "#A32D2D" : p.dias_restantes <= 3 ? "#854F0B" : "#3B6D11",
-                        }}
-                      >
-                        {p.dias_restantes}d
-                      </span>
+            <>
+              <div className="space-y-2">
+                {PIPELINE_STAGES.map((s) => {
+                  const val = funil[s.key];
+                  const width = Math.max((val / funilMax) * 100, val > 0 ? 12 : 0);
+                  return (
+                    <div key={s.key} className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground w-16 text-right">{s.label}</span>
+                      <div className="relative flex-1 h-6 rounded-md overflow-hidden" style={{ backgroundColor: "hsl(var(--muted))" }}>
+                        <div
+                          className="h-full rounded-md flex items-center justify-center text-[11px] font-bold text-white transition-all"
+                          style={{ width: `${width}%`, backgroundColor: val > 0 ? s.color : "transparent", minWidth: val > 0 ? 28 : 0 }}
+                        >
+                          {val > 0 && val}
+                        </div>
+                        {val === 0 && (
+                          <span className="absolute inset-0 flex items-center justify-center text-[11px] font-medium text-muted-foreground">0</span>
+                        )}
+                      </div>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+              <div>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-muted-foreground">Conversão do mês</span>
+                  <span className="font-semibold" style={{ color: "#3B6D11" }}>{taxaConversao}%</span>
+                </div>
+                <Progress value={taxaConversao} className="h-1.5" />
+              </div>
+              {leadsParadosList.length > 0 && (
+                <div className="rounded-lg p-2 flex items-start gap-2" style={{ backgroundColor: "#FAEEDA" }}>
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: "#854F0B" }} />
+                  <div className="text-[11px]" style={{ color: "#854F0B" }}>
+                    <span className="font-semibold">{leadsParadosList[0].nome}</span> parado há {leadsParadosList[0].dias_parado} dias
+                    {leadsParadosList.length > 1 && ` (+${leadsParadosList.length - 1} outros)`}
+                  </div>
                 </div>
               )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>
