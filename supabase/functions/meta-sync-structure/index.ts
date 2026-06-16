@@ -11,17 +11,29 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 const META_TOKEN = Deno.env.get("META_USER_TOKEN_TEMPORARY") ?? "";
 const META_GRAPH_VERSION = Deno.env.get("META_GRAPH_VERSION") ?? "v25.0";
 const META_GRAPH = `https://graph.facebook.com/${META_GRAPH_VERSION}`;
-const WEBHOOK_SECRET = Deno.env.get("SDR_WEBHOOK_SECRET") ?? "";
 
 const FN_NAME = "meta-sync-structure";
 
-function verifyWebhookSecret(req: Request): Response | null {
-  if (!WEBHOOK_SECRET) return null;
+// Le o secret do vault (mesma fonte que o cron pg_cron usa). Evita
+// divergencia entre SDR_WEBHOOK_SECRET (envs da edge function) e o
+// valor armazenado no vault. Usa a funcao publica
+// public.get_sdr_webhook_secret() que so e chamavel pelo service role.
+async function getWebhookSecret(sb: SupabaseClient): Promise<string> {
+  const { data, error } = await sb.rpc("get_sdr_webhook_secret");
+  if (error) {
+    console.error("[meta-sync-structure] falha lendo webhook secret:", error.message);
+    return "";
+  }
+  return (data as string) ?? "";
+}
+
+async function verifyWebhookSecret(req: Request, sb: SupabaseClient): Promise<Response | null> {
+  const expected = await getWebhookSecret(sb);
+  if (!expected) return null; // sem secret no vault → libera (modo dev)
   const sec = req.headers.get("x-webhook-secret") ?? "";
-  if (sec !== WEBHOOK_SECRET) {
+  if (sec !== expected) {
     return new Response(JSON.stringify({ error: "unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
+      status: 401, headers: { "Content-Type": "application/json" },
     });
   }
   return null;
@@ -94,14 +106,15 @@ async function upsertBatch(sb: SupabaseClient, table: string, rows: any[], onCon
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
-  const w = verifyWebhookSecret(req);
-  if (w) return w;
 
   const sb = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
+
+  const w = await verifyWebhookSecret(req, sb);
+  if (w) return w;
   const runId = await startRun(sb);
 
   try {
