@@ -54,8 +54,8 @@ serve(async (req) => {
     // Validate input
     if (!valor || !motivo || !justificativa) {
       return new Response(
-        JSON.stringify({ error: "Parâmetros obrigatórios não informados" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ status: "erro", error: "Parâmetros obrigatórios não informados" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -68,8 +68,8 @@ serve(async (req) => {
     if (tipo === "cnpj") {
       if (valorLimpo.length !== 14) {
         return new Response(
-          JSON.stringify({ error: "CNPJ deve ter 14 dígitos" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ status: "erro", error: "CNPJ deve ter 14 dígitos" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       apiUrl = `https://brasilapi.com.br/api/cnpj/v1/${valorLimpo}`;
@@ -77,28 +77,45 @@ serve(async (req) => {
     } else if (tipo === "cep") {
       if (valorLimpo.length !== 8) {
         return new Response(
-          JSON.stringify({ error: "CEP deve ter 8 dígitos" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ status: "erro", error: "CEP deve ter 8 dígitos" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       apiUrl = `https://brasilapi.com.br/api/cep/v2/${valorLimpo}`;
       tipoConsulta = "cep";
     } else {
       return new Response(
-        JSON.stringify({ error: "Tipo de consulta inválido" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ status: "erro", error: "Tipo de consulta inválido" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     console.log(`[BrasilAPI] Fetching: ${apiUrl}`);
 
-    // Make request to BrasilAPI
-    const apiResponse = await fetch(apiUrl, {
-      method: "GET",
-      headers: {
-        "Accept": "application/json",
-      },
-    });
+    // Make request to BrasilAPI with 15s timeout. Sem timeout, brasilapi
+    // pode pendurar a edge function por minutos quando esta lenta.
+    const ctrl = new AbortController();
+    const timeoutId = setTimeout(() => ctrl.abort(), 15_000);
+    let apiResponse: Response;
+    try {
+      apiResponse = await fetch(apiUrl, {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal: ctrl.signal,
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      const isAbort = (fetchErr as any)?.name === "AbortError";
+      const msg = isAbort
+        ? "BrasilAPI demorou demais pra responder. Tente de novo em alguns segundos."
+        : `Falha ao conectar com BrasilAPI: ${(fetchErr as Error).message}`;
+      console.error("[BrasilAPI] fetch threw:", fetchErr);
+      return new Response(
+        JSON.stringify({ status: "erro", error: msg }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    clearTimeout(timeoutId);
 
     const consultaId = crypto.randomUUID();
     const consultadoEm = new Date().toISOString();
@@ -135,8 +152,11 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: "Erro ao consultar BrasilAPI" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          status: "erro",
+          error: `BrasilAPI retornou erro HTTP ${apiResponse.status}. Tente de novo em alguns minutos.`,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
