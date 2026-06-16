@@ -84,30 +84,37 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   }
 
   async function handleTipoContato(value: string) {
-    if (!lead?.lead_geral_id) {
-      toast({
-        title: "Lead sem vínculo no bot",
-        description: "Este registro ainda não tem entrada em leads_geral. Edite via formulário completo.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!lead) return;
     setSavingField("tipo_contato");
-    const patch: Record<string, unknown> = { tipo_contato: value };
-    if (value !== "lead") patch.bot_pausado = true;
-    const { error } = await (supabase as any)
-      .from("leads_geral")
-      .update(patch)
-      .eq("id", lead.lead_geral_id);
-    setSavingField(null);
-    if (error) {
-      toast({ title: "Erro ao classificar", description: error.message, variant: "destructive" });
-      return;
+    try {
+      // Garante lead_geral pra registros antigos (form do site, importacao)
+      // que nao tem vinculo com o bot. Sem isso o update silenciosamente
+      // nao faz nada e o lead continua no pipeline.
+      let leadGeralId = lead.lead_geral_id;
+      if (!leadGeralId) {
+        const { data: novoId, error: rpcErr } = await (supabase as any).rpc(
+          "garantir_lead_geral_para_contact",
+          { p_contact_submission_id: lead.id },
+        );
+        if (rpcErr) throw rpcErr;
+        leadGeralId = novoId as string;
+      }
+      const patch: Record<string, unknown> = { tipo_contato: value };
+      if (value !== "lead") patch.bot_pausado = true;
+      const { error } = await (supabase as any)
+        .from("leads_geral")
+        .update(patch)
+        .eq("id", leadGeralId);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      queryClient.invalidateQueries({ queryKey: ["leads-kanban"] });
+      queryClient.invalidateQueries({ queryKey: ["lead-info", leadGeralId] });
+      toast({ title: value === "lead" ? "Voltou pro pipeline" : "Reclassificado como nao-lead" });
+    } catch (err: any) {
+      toast({ title: "Erro ao classificar", description: err?.message, variant: "destructive" });
+    } finally {
+      setSavingField(null);
     }
-    queryClient.invalidateQueries({ queryKey: ["leads"] });
-    queryClient.invalidateQueries({ queryKey: ["leads-kanban"] });
-    queryClient.invalidateQueries({ queryKey: ["lead-info", lead.lead_geral_id] });
-    toast({ title: value === "lead" ? "Voltou pro pipeline" : "Reclassificado como nao-lead" });
   }
 
   async function handleEstagio(value: string) {

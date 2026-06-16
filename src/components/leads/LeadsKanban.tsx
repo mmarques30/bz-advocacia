@@ -443,16 +443,26 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={async () => {
-                if (!leadNaoLead?.lead_geral_id) {
-                  setLeadNaoLead(null);
-                  return;
-                }
+                if (!leadNaoLead) return;
                 try {
-                  await (supabase as any)
+                  // Garante lead_geral pra qualquer registro — inclusive os
+                  // antigos do formulario do site que nao tem vinculo com o bot.
+                  let leadGeralId = leadNaoLead.lead_geral_id;
+                  if (!leadGeralId) {
+                    const { data: novoId, error: rpcErr } = await (supabase as any).rpc(
+                      "garantir_lead_geral_para_contact",
+                      { p_contact_submission_id: leadNaoLead.id },
+                    );
+                    if (rpcErr) throw rpcErr;
+                    leadGeralId = novoId as string;
+                  }
+                  const { error: updErr } = await (supabase as any)
                     .from("leads_geral")
                     .update({ tipo_contato: tipoNaoLead, bot_pausado: true })
-                    .eq("id", leadNaoLead.lead_geral_id);
+                    .eq("id", leadGeralId);
+                  if (updErr) throw updErr;
                   queryClient.invalidateQueries({ queryKey: ["leads"] });
+                  queryClient.invalidateQueries({ queryKey: ["leads-kanban"] });
                   toast({ title: `Marcado como ${tipoNaoLead}` });
                 } catch (err: any) {
                   toast({ title: "Erro ao marcar", description: err?.message, variant: "destructive" });
