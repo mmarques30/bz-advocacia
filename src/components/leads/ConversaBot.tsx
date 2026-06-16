@@ -29,9 +29,15 @@ interface Props {
   fullHeight?: boolean;
 }
 
-const podeEnviar = (status: string | null | undefined, bot_pausado: boolean | null | undefined) => {
-  if (bot_pausado) return true;
-  return ["assumido_humano", "agendado", "cliente"].includes(status || "");
+// Antes a regra bloqueava envio quando o bot ainda estava ativo, o que
+// travava o atendimento humano em casos onde o lead voltava a conversar
+// e o status_sdr nao estava em assumido_humano/agendado/cliente. A edge
+// function enviar-msg-humano ja pausa o bot automaticamente no envio
+// (supabase/functions/enviar-msg-humano:84-86), entao deixar a UI sempre
+// permitir e seguro. O aviso visual abaixo indica quando o bot esta ativo.
+const botAtivo = (status: string | null | undefined, bot_pausado: boolean | null | undefined) => {
+  if (bot_pausado) return false;
+  return !["assumido_humano", "agendado", "cliente", "perdido"].includes(status || "");
 };
 
 export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, autoFocus = false, fullHeight = false }: Props) {
@@ -92,7 +98,10 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
     }
   }, [mensagens.length]);
 
-  const envioPermitido = podeEnviar(status_sdr, bot_pausado);
+  // Envio sempre permitido (o backend pausa o bot ao enviar). Apenas exibe
+  // aviso quando o bot ainda esta ativo, pra alertar o humano que esta
+  // entrando antes do tempo.
+  const botEstaAtivo = botAtivo(status_sdr, bot_pausado);
 
   const handleEnviar = async () => {
     if (enviando) return; // guarda dura contra duplo-disparo
@@ -176,11 +185,11 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
       </div>
 
       <div className="border-t bg-background p-3 space-y-2">
-        {!envioPermitido && (
+        {botEstaAtivo && (
           <div className="flex items-start gap-2 rounded bg-amber-50 border border-amber-200 px-2 py-1.5 text-xs text-amber-900">
             <Pause className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>
-              Bot SDR conversando — clique em <strong>Atender agora</strong> antes de enviar mensagem.
+              Bot SDR ainda conversando — enviar agora vai pausar o bot e assumir o atendimento.
             </span>
           </div>
         )}
@@ -191,13 +200,13 @@ export function ConversaBot({ leadGeralId, status_sdr, bot_pausado, className, a
           onChange={(e) => setMensagem(e.target.value)}
           onKeyDown={onKey}
           rows={3}
-          disabled={!envioPermitido || enviando}
+          disabled={enviando}
           className="resize-none"
         />
         <div className="flex justify-end">
           <Button
             onClick={handleEnviar}
-            disabled={!envioPermitido || enviando || !mensagem.trim()}
+            disabled={enviando || !mensagem.trim()}
             className="gap-2"
           >
             {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}

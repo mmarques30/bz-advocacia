@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetaKPIs, PeriodoFiltro } from "@/types/meta-ads";
@@ -9,6 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/lib/toast";
+import { MiniCard } from "./MiniCard";
 
 interface Props {
   kpis: MetaKPIs;
@@ -127,21 +127,11 @@ export function MetaAdsHeader({
         </div>
       </div>
 
-      {/* Linha 2: 4 KPIs compactos */}
+      {/* Linha 2: 4 KPIs compactos (MiniCard padronizado) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-        {cards.map((c) => {
-          const Icon = c.Icon;
-          return (
-            <Card key={c.label} className="p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-medium text-muted-foreground truncate">{c.label}</p>
-                <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              </div>
-              <p className="text-lg font-bold mt-1 leading-none">{c.value}</p>
-              {c.sub && <p className="text-[10px] text-muted-foreground mt-1">{c.sub}</p>}
-            </Card>
-          );
-        })}
+        {cards.map((c) => (
+          <MiniCard key={c.label} label={c.label} value={c.value} sub={c.sub} Icon={c.Icon} />
+        ))}
       </div>
 
       {/* Linha 3: status sincronizacao */}
