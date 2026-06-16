@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.get_sdr_webhook_secret() TO service_role;
