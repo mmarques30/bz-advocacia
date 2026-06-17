@@ -22,6 +22,7 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { EditParcelaValorDialog } from "./EditParcelaValorDialog";
 import { AddParcelaDialog } from "./AddParcelaDialog";
+import { EditAcordoDialog } from "./EditAcordoDialog";
 
 interface AcordoDetailsDialogProps {
   acordoId: string | null;
@@ -41,6 +42,7 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
   const [editParcela, setEditParcela] = useState<{ id: string; valor: number; numero_parcela: number; data_vencimento?: string; status?: string; data_pagamento?: string | null } | null>(null);
   const [desfazerParcelaId, setDesfazerParcelaId] = useState<string | null>(null);
   const [addParcelaOpen, setAddParcelaOpen] = useState(false);
+  const [editAcordoOpen, setEditAcordoOpen] = useState(false);
 
   if (!acordo) return null;
 
@@ -114,7 +116,18 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Detalhes do Contrato Financeiro</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Detalhes do Contrato Financeiro</DialogTitle>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setEditAcordoOpen(true)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Editar contrato
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -301,6 +314,12 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
 
       {/* Add Parcela Dialog */}
       <AddParcelaDialog acordoId={acordoId} open={addParcelaOpen} onClose={() => setAddParcelaOpen(false)} />
+
+      <EditAcordoDialog
+        acordo={acordo}
+        open={editAcordoOpen}
+        onClose={() => setEditAcordoOpen(false)}
+      />
 
       {/* Confirm Undo Payment */}
       <AlertDialog open={!!desfazerParcelaId} onOpenChange={() => setDesfazerParcelaId(null)}>

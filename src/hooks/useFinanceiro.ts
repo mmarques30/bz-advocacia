@@ -32,6 +32,7 @@ export {
   useAcordos,
   useAcordoDetalhes,
   useCreateAcordo,
+  useUpdateAcordo,
 } from "./financeiro/acordos";
 
 export {
