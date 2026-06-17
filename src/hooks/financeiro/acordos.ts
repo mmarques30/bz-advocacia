@@ -208,3 +208,45 @@ export function useCreateAcordo() {
   });
 }
 
+// Edita os campos de header do acordo (cliente, valor, status, tipo, etc).
+// Parcelas tem fluxo proprio via useEditParcela / useAddParcela.
+export function useUpdateAcordo() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (params: {
+      id: string;
+      tipo_servico?: string;
+      valor_total?: number;
+      status?: string;
+      conta?: string;
+      observacoes?: string | null;
+    }) => {
+      const { id, ...patch } = params;
+      const { data, error } = await supabase
+        .from("acordos_financeiros")
+        .update(patch)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_data, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["acordos-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["acordo-detalhes", vars.id] });
+      queryClient.invalidateQueries({ queryKey: ["kpis-financeiros"] });
+      queryClient.invalidateQueries({ queryKey: ["fluxo-caixa"] });
+      queryClient.invalidateQueries({ queryKey: ["receita-mensal"] });
+      toast({ title: "Contrato atualizado" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao atualizar contrato",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
