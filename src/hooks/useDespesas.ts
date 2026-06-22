@@ -291,11 +291,20 @@ export function useCreateDespesa() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['despesas'] });
       queryClient.invalidateQueries({ queryKey: ['kpis-despesas'] });
       queryClient.invalidateQueries({ queryKey: ['despesas-por-categoria'] });
-      toast.success('Despesa cadastrada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['historico-unificado'] });
+      // Toast com descricao + valor pra ficar visivel que persistiu.
+      const valor = Number((data as any)?.valor ?? 0);
+      const valorFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+      const descricao = ((data as any)?.descricao ?? '').toString();
+      toast.success(
+        descricao
+          ? `Despesa salva: ${descricao} (${valorFmt})`
+          : `Despesa salva (${valorFmt})`,
+      );
     },
     onError: (error: Error) => {
       toast.error('Erro ao cadastrar despesa: ' + error.message);

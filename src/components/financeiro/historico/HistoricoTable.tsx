@@ -19,7 +19,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MoreHorizontal, Trash2, TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
-import { useTransacoes, useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
+import { useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
+import { useHistoricoUnificado } from "@/hooks/financeiro/historicoUnificado";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import type { HistoricoFiltersState } from "./HistoricoFilters";
@@ -41,7 +42,11 @@ export function HistoricoTable({ filters, mode = "full" }: Props) {
   const navigate = useNavigate();
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const { data: transacoes, isLoading, error } = useTransacoes({
+  // Historico unificado: mescla transacoes_financeiras (legacy) + despesas
+  // (lancamentos atuais) + parcelas pagas (recebiveis). Antes a tabela so
+  // mostrava transacoes_financeiras, que esta vazia — usuario via "0
+  // transacoes" mesmo com lancamentos recentes.
+  const { data: transacoes, isLoading, error } = useHistoricoUnificado({
     anos: filters.ano ? [filters.ano] : undefined,
     dataInicio: filters.dataInicio || undefined,
     dataFim: filters.dataFim || undefined,
