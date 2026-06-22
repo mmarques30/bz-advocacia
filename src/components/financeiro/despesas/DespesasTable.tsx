@@ -8,7 +8,15 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Pencil, Trash2, ChevronDown, ChevronUp, CalendarClock, Copy, Columns3 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
@@ -26,7 +34,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+// Colunas opcionais (Data / Descricao / Acoes ficam sempre visiveis pra
+// a tabela continuar utilizavel). Preferencia persiste em localStorage.
+const COLUNAS_OPCIONAIS = [
+  { key: "categoria", label: "Categoria" },
+  { key: "valor", label: "Valor" },
+  { key: "conta", label: "Conta" },
+  { key: "status", label: "Status" },
+] as const;
+type ColunaOpcionalKey = (typeof COLUNAS_OPCIONAIS)[number]["key"];
+const STORAGE_KEY = "despesas-tabela-colunas-v1";
 
 interface DespesasTableProps {
   filters: DespesasFilters;
@@ -49,6 +68,19 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [colunasVisiveis, setColunasVisiveis] = useState<Record<ColunaOpcionalKey, boolean>>(() => {
+    if (typeof window === "undefined") return { categoria: true, valor: true, conta: true, status: true };
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved) return { categoria: true, valor: true, conta: true, status: true, ...JSON.parse(saved) };
+    } catch { /* ignore */ }
+    return { categoria: true, valor: true, conta: true, status: true };
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(colunasVisiveis)); } catch { /* ignore */ }
+  }, [colunasVisiveis]);
+  const toggleColuna = (key: ColunaOpcionalKey) =>
+    setColunasVisiveis((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const despesasExibidas = isExpanded 
     ? despesas 
@@ -100,16 +132,42 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
 
   return (
     <>
+      <div className="flex justify-end mb-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Columns3 className="h-3.5 w-3.5" />
+              Colunas
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel>Exibir colunas</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {COLUNAS_OPCIONAIS.map((c) => (
+              <label
+                key={c.key}
+                className="flex items-center gap-2 px-2 py-1.5 text-sm cursor-pointer hover:bg-accent rounded-sm"
+              >
+                <Checkbox
+                  checked={colunasVisiveis[c.key]}
+                  onCheckedChange={() => toggleColuna(c.key)}
+                />
+                {c.label}
+              </label>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>Descrição</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Conta</TableHead>
-              <TableHead>Status</TableHead>
+              {colunasVisiveis.categoria && <TableHead>Categoria</TableHead>}
+              {colunasVisiveis.valor && <TableHead className="text-right">Valor</TableHead>}
+              {colunasVisiveis.conta && <TableHead>Conta</TableHead>}
+              {colunasVisiveis.status && <TableHead>Status</TableHead>}
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -137,27 +195,35 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
-                  <span className="text-sm">
-                    {getCategoriaLabel(despesa.categoria)}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {new Intl.NumberFormat('pt-BR', {
-                    style: 'currency',
-                    currency: 'BRL',
-                  }).format(despesa.valor)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {CONTA_LABELS[despesa.conta || 'escritorio'] || 'Escritório'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getStatusBadgeVariant(despesa.status)}>
-                    {STATUS_DESPESA_LABELS[despesa.status]}
-                  </Badge>
-                </TableCell>
+                {colunasVisiveis.categoria && (
+                  <TableCell>
+                    <span className="text-sm">
+                      {getCategoriaLabel(despesa.categoria)}
+                    </span>
+                  </TableCell>
+                )}
+                {colunasVisiveis.valor && (
+                  <TableCell className="text-right font-medium">
+                    {new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL',
+                    }).format(despesa.valor)}
+                  </TableCell>
+                )}
+                {colunasVisiveis.conta && (
+                  <TableCell>
+                    <Badge variant="outline">
+                      {CONTA_LABELS[despesa.conta || 'escritorio'] || 'Escritório'}
+                    </Badge>
+                  </TableCell>
+                )}
+                {colunasVisiveis.status && (
+                  <TableCell>
+                    <Badge variant={getStatusBadgeVariant(despesa.status)}>
+                      {STATUS_DESPESA_LABELS[despesa.status]}
+                    </Badge>
+                  </TableCell>
+                )}
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button
