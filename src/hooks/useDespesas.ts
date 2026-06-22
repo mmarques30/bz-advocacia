@@ -421,22 +421,19 @@ export function useKPIsDespesas(filters?: DespesasGlobalFiltersState) {
     queryFn: async () => {
       const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
 
+      // KPIs leem da tabela `despesas` (mesma fonte da DespesasTable e do
+      // grafico de Evolucao Mensal). Antes leia de transacoes_financeiras
+      // que estava vazia, entao o topo mostrava R$ 0,00 enquanto a tabela
+      // e o grafico mostravam dados reais — inconsistencia visivel.
       let query = supabase
-        .from('transacoes_financeiras')
-        .select('valor, data_transacao, categoria_codigo, subcategoria_codigo')
-        .eq('tipo_codigo', 'despesa');
+        .from('despesas')
+        .select('valor, data, status, categoria');
 
-      // Aplicar filtros de data apenas se definidos
-      if (inicio) {
-        query = query.gte('data_transacao', format(inicio, 'yyyy-MM-dd'));
-      }
-      if (fim) {
-        query = query.lte('data_transacao', format(fim, 'yyyy-MM-dd'));
-      }
+      if (inicio) query = query.gte('data', format(inicio, 'yyyy-MM-dd'));
+      if (fim) query = query.lte('data', format(fim, 'yyyy-MM-dd'));
 
-      // Filtrar por categoria se especificado
       if (filters?.categoria && filters.categoria !== 'todos') {
-        query = query.eq('categoria_codigo', filters.categoria);
+        query = query.eq('categoria', filters.categoria as any);
       }
 
       const { data, error } = await query.limit(10000);
@@ -444,12 +441,24 @@ export function useKPIsDespesas(filters?: DespesasGlobalFiltersState) {
       if (error) throw error;
 
       const despesas = data || [];
+      const hojeIso = format(new Date(), 'yyyy-MM-dd');
 
-      // Todas as despesas de transacoes_financeiras são pagas (histórico)
-      const total_mes = despesas.reduce((sum, d) => sum + Math.abs(Number(d.valor)), 0);
-      const total_pago_mes = total_mes; // Todas são pagas
-      const total_pendente = 0;
-      const total_atrasado = 0;
+      let total_mes = 0;
+      let total_pago_mes = 0;
+      let total_pendente = 0;
+      let total_atrasado = 0;
+
+      for (const d of despesas) {
+        const valor = Math.abs(Number(d.valor) || 0);
+        total_mes += valor;
+        if (d.status === 'pago') {
+          total_pago_mes += valor;
+        } else if (d.status === 'atrasado' || (d.status === 'pendente' && d.data < hojeIso)) {
+          total_atrasado += valor;
+        } else if (d.status === 'pendente') {
+          total_pendente += valor;
+        }
+      }
 
       return {
         total_mes,
