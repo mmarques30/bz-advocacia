@@ -113,7 +113,7 @@ export default function FinanceiroRelatorios() {
                 <SelectContent>
                   <SelectItem value="todos">Todas as Contas</SelectItem>
                   <SelectItem value="juliana">Conta Juliana</SelectItem>
-                  <SelectItem value="liziane">Conta Liziane</SelectItem>
+                  <SelectItem value="liziane">Conta Eliziane</SelectItem>
                   <SelectItem value="escritorio">Conta Escritório</SelectItem>
                 </SelectContent>
               </Select>
