@@ -15,8 +15,8 @@ export type ContaFinanceira = 'juliana' | 'liziane' | 'escritorio';
 
 export const CONTA_LABELS: Record<string, string> = {
   juliana: 'Conta Juliana',
-  // Chave 'liziane' mantida (valor no banco); label corrige o typo para 'Lisiane'.
-  liziane: 'Conta Lisiane',
+  // Chave 'liziane' mantida (valor no banco); label correto eh 'Eliziane'.
+  liziane: 'Conta Eliziane',
   escritorio: 'Conta Escritório',
 };
 
