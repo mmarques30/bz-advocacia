@@ -9,7 +9,7 @@ export const TEXTOS_CAMPANHA: Record<AreaCampanha, string[]> = {
 
 Há algumas semanas você buscou nosso anúncio interessada(o) em inventário ou sucessão. Vi aqui que ainda não tivemos chance de conversar.
 
-Espero que esteja tudo bem por aí. Se ainda precisa de orientação pra cuidar disso, é só me responder por aqui — direciono pra nossa advogada especialista em sucessões.
+Espero que esteja tudo bem por aí. Se ainda precisa de orientação pra cuidar disso, é só me responder por aqui que direciono pra nossa advogada especialista em sucessões.
 
 Se já resolveu ou prefere não seguir, fica tudo certo, é só me avisar.`,
 
