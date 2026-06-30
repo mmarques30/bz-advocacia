@@ -39,10 +39,10 @@ export default function MetaAds() {
       <Tabs defaultValue="visao-geral">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="campanhas">Campanhas</TabsTrigger>
           <TabsTrigger value="anuncios">Anúncios</TabsTrigger>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="mt-4 space-y-4">
@@ -50,10 +50,6 @@ export default function MetaAds() {
               logo abaixo, o funil (distribuição por estágio). */}
           <MetaAdsVisaoGeralTab chartData={chartData} />
           <MetaAdsFunilTab periodo={periodo} />
-        </TabsContent>
-
-        <TabsContent value="insights" className="mt-4">
-          <MetaAdsInsightsTab campanhas={campanhas} periodo={periodo} />
         </TabsContent>
 
         <TabsContent value="performance" className="mt-4">
@@ -66,6 +62,10 @@ export default function MetaAds() {
 
         <TabsContent value="anuncios" className="mt-4">
           <MetaAdsAnunciosTab ads={ads} isLoading={isLoadingAds} />
+        </TabsContent>
+
+        <TabsContent value="insights" className="mt-4">
+          <MetaAdsInsightsTab campanhas={campanhas} periodo={periodo} />
         </TabsContent>
       </Tabs>
     </div>
