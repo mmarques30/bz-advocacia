@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Plus, Pencil, XCircle, RefreshCw } from "lucide-react";
 import { useDespesasFixas, useDesativarDespesaFixa, useGerarDespesasFixasMes } from "@/hooks/useDespesasFixas";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CONTA_LABELS } from "@/types/financeiro";
 import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 import type { DespesaFixa } from "@/types/financeiro";
@@ -61,31 +62,49 @@ export function DespesasFixasDialog({ open, onClose }: DespesasFixasDialogProps)
 
           {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
 
-          {fixas && fixas.length === 0 && (
+          {fixas && fixas.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhuma despesa fixa cadastrada.</p>
+          ) : (
+            <div className="rounded-lg border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Conta</TableHead>
+                    <TableHead className="text-center">Vencimento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {fixas?.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="font-medium">{f.descricao}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {getCategoriaLabel(f.categoria)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {CONTA_LABELS[f.conta || "escritorio"]}
+                      </TableCell>
+                      <TableCell className="text-center text-sm">Dia {f.dia_vencimento}</TableCell>
+                      <TableCell className="text-right font-semibold">{formatCurrency(f.valor)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar despesa fixa" onClick={() => setEditItem(f)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label="Desativar despesa fixa" onClick={() => setDesativarId(f.id)}>
+                            <XCircle className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            {fixas?.map((f) => (
-              <div key={f.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{f.descricao}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {getCategoriaLabel(f.categoria)} · {CONTA_LABELS[f.conta || "escritorio"]} · Dia {f.dia_vencimento}
-                  </p>
-                  <p className="text-sm font-semibold mt-1">{formatCurrency(f.valor)}</p>
-                </div>
-                <div className="flex gap-1 ml-2">
-                  <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Editar despesa fixa" onClick={() => setEditItem(f)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label="Desativar despesa fixa" onClick={() => setDesativarId(f.id)}>
-                    <XCircle className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
         </DialogContent>
       </Dialog>
 
