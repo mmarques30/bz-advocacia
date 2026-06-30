@@ -43,7 +43,7 @@ Se quiser retomar, é só me responder. Caso já tenha resolvido, fica tudo cert
 
     `Oi {primeiro_nome}, tudo bem? Aqui é a Claudia, do escritório Borges & Zembruski Advocacia.
 
-Sei que faz um tempinho que você buscou a gente sobre uma questão de saúde — plano, medicamento ou tratamento. Espero que esteja tudo bem.
+Sei que faz um tempinho que você buscou a gente sobre uma questão de saúde (plano, medicamento ou tratamento). Espero que esteja tudo bem.
 
 Se ainda precisa de orientação jurídica sobre isso, estou aqui pra te conectar com nossa advogada especialista. É só me responder por aqui 😊`,
   ],
