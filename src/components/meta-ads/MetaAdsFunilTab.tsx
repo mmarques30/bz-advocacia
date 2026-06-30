@@ -1,11 +1,11 @@
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MetaCampanha, PeriodoFiltro } from "@/types/meta-ads";
-import { subDays, format } from "date-fns";
+import { PeriodoFiltro } from "@/types/meta-ads";
+import { subDays } from "date-fns";
 import { useMemo } from "react";
+
 interface Props {
-  campanhas: MetaCampanha[];
   periodo: PeriodoFiltro;
 }
 
@@ -41,17 +41,11 @@ const STAGES_ORDER = [
   "cliente",
 ];
 
-function brl(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
-}
-
-export function MetaAdsFunilTab({ campanhas, periodo }: Props) {
+export function MetaAdsFunilTab({ periodo }: Props) {
   const dias = periodo === "7d" ? 7 : periodo === "90d" ? 90 : 30;
   const dataInicioISO = subDays(new Date(), dias).toISOString();
-  const dataInicioStr = format(subDays(new Date(), dias), "yyyy-MM-dd");
 
-  // Funil completo: leads + status_sdr + converted + campaign_id.
-  const { data: funnel = [], isLoading: loadingFunnel } = useQuery({
+  const { data: funnel = [], isLoading } = useQuery({
     queryKey: ["meta-funil-unificado", periodo],
     queryFn: async (): Promise<FunilRow[]> => {
       const { data, error } = await (supabase as any)
@@ -63,35 +57,8 @@ export function MetaAdsFunilTab({ campanhas, periodo }: Props) {
     },
   });
 
-  // Leads atribuidos pelo Meta por campanha (pra calcular aderência).
-  const { data: metaLeadsByCampaign = new Map<string, number>() } = useQuery({
-    queryKey: ["meta-funil-meta-leads", periodo],
-    queryFn: async () => {
-      const { data: ads } = await supabase.from("meta_ads").select("id, campaign_id");
-      const adMap = new Map<string, string>(
-        (ads ?? []).filter((a: any) => a.campaign_id).map((a: any) => [a.id, a.campaign_id]),
-      );
-      const { data: ins } = await supabase
-        .from("meta_insights_daily")
-        .select("object_id, leads")
-        .eq("level", "ad")
-        .gte("date", dataInicioStr)
-        .not("leads", "is", null);
-      const m = new Map<string, number>();
-      for (const r of (ins ?? []) as any[]) {
-        const cid = adMap.get(r.object_id);
-        if (!cid) continue;
-        m.set(cid, (m.get(cid) ?? 0) + Number(r.leads ?? 0));
-      }
-      return m;
-    },
-  });
-
-  // Agregados (usados internamente nas barras + lista por campanha;
-  // os totais ja aparecem no header da pagina e nao sao repetidos aqui).
   const totalLeads = funnel.length;
 
-  // Por estágio
   const byStage = useMemo(() => {
     const m = new Map<string, number>();
     for (const f of funnel) {
@@ -100,125 +67,62 @@ export function MetaAdsFunilTab({ campanhas, periodo }: Props) {
     }
     return m;
   }, [funnel]);
+
   const stagesOrdered = [
     ...STAGES_ORDER.filter((s) => byStage.has(s)),
     ...Array.from(byStage.keys()).filter((s) => !STAGES_ORDER.includes(s)).sort(),
   ];
 
-  // Por campanha — pra comparar CPL Meta x CPL Pipe
-  const porCampanha = useMemo(() => {
-    const pipeBy = new Map<string, { total: number; conv: number }>();
-    for (const f of funnel) {
-      if (!f.campaign_id) continue;
-      const c = pipeBy.get(f.campaign_id) ?? { total: 0, conv: 0 };
-      c.total++;
-      if (f.converted) c.conv++;
-      pipeBy.set(f.campaign_id, c);
-    }
-    return campanhas
-      .map((c) => {
-        const pipe = pipeBy.get(c.id) ?? { total: 0, conv: 0 };
-        const lMeta = metaLeadsByCampaign.get(c.id) ?? 0;
-        const cplPipe = pipe.total > 0 ? c.gasto / pipe.total : 0;
-        return {
-          id: c.id,
-          nome: c.nome,
-          gasto: c.gasto,
-          leads_meta: lMeta,
-          leads_pipe: pipe.total,
-          convertidos: pipe.conv,
-          cpl_meta: c.custo_lead,
-          cpl_pipe: cplPipe,
-        };
-      })
-      .filter((r) => r.gasto > 0 || r.leads_pipe > 0 || r.leads_meta > 0)
-      .sort((a, b) => b.gasto - a.gasto)
-      .slice(0, 10);
-  }, [campanhas, funnel, metaLeadsByCampaign]);
+  const maxCount = Math.max(1, ...Array.from(byStage.values()));
 
   return (
-    <div className="space-y-4">
-      {/* Distribuicao por estagio (barras horizontais) */}
-      <div className="rounded-lg border bg-muted/40 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">Funil — distribuição por estágio</h3>
-        </div>
-        {loadingFunnel ? (
-          <p className="text-xs text-muted-foreground">Carregando…</p>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center justify-between gap-2">
+          <span>Funil — distribuição por estágio</span>
+          {totalLeads > 0 && (
+            <span className="text-xs font-normal text-muted-foreground">
+              {totalLeads} {totalLeads === 1 ? "lead de anúncio" : "leads de anúncio"} no período
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground py-6 text-center">Carregando…</p>
         ) : totalLeads === 0 ? (
-          <p className="text-xs text-muted-foreground">Sem leads de anúncio no período.</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">
+            Sem leads de anúncio no período.
+          </p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {stagesOrdered.map((s) => {
               const count = byStage.get(s) ?? 0;
               const pct = (count / totalLeads) * 100;
+              // Largura relativa ao maior estágio, para o funil "afunilar"
+              // visualmente em vez de todas as barras parecerem cheias.
+              const width = (count / maxCount) * 100;
               return (
                 <div key={s}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span>{STATUS_LABEL[s] ?? s}</span>
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="font-medium">{STATUS_LABEL[s] ?? s}</span>
                     <span className="text-muted-foreground tabular-nums">
-                      {count} <span className="text-[10px]">({pct.toFixed(1)}%)</span>
+                      {count}
+                      <span className="text-xs text-muted-foreground/70"> ({pct.toFixed(1)}%)</span>
                     </span>
                   </div>
-                  <div className="h-1.5 bg-background rounded-full overflow-hidden">
-                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                  <div className="h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${width}%` }}
+                    />
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
-
-      {/* Top 10 campanhas — Meta x Pipe */}
-      <div className="rounded-lg border bg-muted/40 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="font-semibold text-sm">Top campanhas — Meta × Pipe</h3>
-            <p className="text-[11px] text-muted-foreground">
-              Compara o que o Meta atribuiu com o que de fato entrou no bot.
-            </p>
-          </div>
-        </div>
-        {porCampanha.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Sem dados.</p>
-        ) : (
-          <div className="space-y-2">
-            {porCampanha.map((l) => (
-              <div key={l.id} className="rounded-md border bg-background p-3">
-                <div className="flex items-center justify-between gap-3 mb-1">
-                  <p className="font-medium text-sm truncate" title={l.nome}>{l.nome}</p>
-                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                    {brl(l.gasto)}
-                  </span>
-                </div>
-                <div className="grid grid-cols-4 gap-2 text-[11px]">
-                  <div>
-                    <p className="text-muted-foreground">Leads Meta</p>
-                    <p className="font-semibold tabular-nums">{l.leads_meta}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Leads Pipe</p>
-                    <p className="font-semibold tabular-nums">{l.leads_pipe}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">CPL Meta</p>
-                    <p className="font-semibold tabular-nums">
-                      {l.cpl_meta > 0 ? brl(l.cpl_meta) : "—"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">CPL Pipe</p>
-                    <p className="font-semibold tabular-nums">
-                      {l.cpl_pipe > 0 ? brl(l.cpl_pipe) : "—"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
