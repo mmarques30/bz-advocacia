@@ -40,41 +40,12 @@ const tipoDespesaOptions = [
   { value: "variavel", label: "Variável" },
 ];
 
-const anoAtual = new Date().getFullYear();
-const anosDisponiveis = [anoAtual, anoAtual - 1, anoAtual - 2, anoAtual - 3];
-
-const getAnoFromRange = (range: DateRange | undefined): string => {
-  if (!range?.from || !range?.to) return "todos";
-  const fromYear = range.from.getFullYear();
-  const toYear = range.to.getFullYear();
-  if (
-    fromYear === toYear &&
-    range.from.getMonth() === 0 && range.from.getDate() === 1 &&
-    range.to.getMonth() === 11 && range.to.getDate() === 31
-  ) {
-    return fromYear.toString();
-  }
-  return "personalizado";
-};
-
 export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFiltersProps) {
   const { options: categoriaOptions, getLabel: getCategoriaLabel } = useCategoriasDespesa();
   const categoriasEntries = categoriaOptions.map((o) => [o.value, o.label] as [string, string]);
 
   const handleChange = (key: keyof DespesasGlobalFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
-  };
-
-  const handleAnoChange = (value: string) => {
-    if (value === "todos") {
-      handleChange("dateRange", undefined);
-    } else if (value !== "personalizado") {
-      const ano = parseInt(value);
-      handleChange("dateRange", {
-        from: new Date(ano, 0, 1),
-        to: new Date(ano, 11, 31),
-      });
-    }
   };
 
   const clearFilters = () => {
@@ -86,8 +57,6 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
       conta: "todos",
     });
   };
-
-  const selectedAno = getAnoFromRange(filters.dateRange);
 
   const hasActiveFilters = 
     filters.tipoDespesa !== "todos" ||
@@ -120,115 +89,108 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 
   return (
     <div className="space-y-3 mb-6">
-      <div className="flex flex-wrap gap-2 items-center">
-        <Select value={selectedAno} onValueChange={handleAnoChange}>
-          <SelectTrigger className="h-9 text-xs w-[100px]">
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            {anosDisponiveis.map((ano) => (
-              <SelectItem key={ano} value={ano.toString()}>
-                {ano}
-              </SelectItem>
-            ))}
-            {selectedAno === "personalizado" && (
-              <SelectItem value="personalizado" disabled>
-                Personalizado
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "h-9 text-xs w-auto min-w-[180px] justify-start text-left font-normal",
-                !filters.dateRange?.from && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dateRange?.from ? (
-                filters.dateRange.to ? (
-                  <>
-                    {format(filters.dateRange.from, "dd/MM/yyyy")} - {format(filters.dateRange.to, "dd/MM/yyyy")}
-                  </>
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Período (personalizado)</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-9 text-xs w-auto min-w-[190px] justify-start text-left font-normal",
+                  !filters.dateRange?.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filters.dateRange?.from ? (
+                  filters.dateRange.to ? (
+                    <>
+                      {format(filters.dateRange.from, "dd/MM/yyyy")} - {format(filters.dateRange.to, "dd/MM/yyyy")}
+                    </>
+                  ) : (
+                    format(filters.dateRange.from, "dd/MM/yyyy")
+                  )
                 ) : (
-                  format(filters.dateRange.from, "dd/MM/yyyy")
-                )
-              ) : (
-                <span>Selecionar período</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={filters.dateRange}
-              onSelect={(range) => handleChange("dateRange", range)}
-              numberOfMonths={2}
-              locale={ptBR}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
+                  <span>Usar o ano do topo</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={filters.dateRange}
+                onSelect={(range) => handleChange("dateRange", range)}
+                numberOfMonths={2}
+                locale={ptBR}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-        <Select
-          value={filters.categoria}
-          onValueChange={(value) => handleChange("categoria", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Categoria" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as Categorias</SelectItem>
-            {categoriasEntries.map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Categoria</span>
+          <Select
+            value={filters.categoria}
+            onValueChange={(value) => handleChange("categoria", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as Categorias</SelectItem>
+              {categoriasEntries.map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={filters.status}
-          onValueChange={(value) => handleChange("status", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os Status</SelectItem>
-            {Object.entries(STATUS_DESPESA_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Status</span>
+          <Select
+            value={filters.status}
+            onValueChange={(value) => handleChange("status", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Status</SelectItem>
+              {Object.entries(STATUS_DESPESA_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={filters.conta}
-          onValueChange={(value) => handleChange("conta", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Conta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as Contas</SelectItem>
-            {Object.entries(CONTA_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Conta</span>
+          <Select
+            value={filters.conta}
+            onValueChange={(value) => handleChange("conta", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as Contas</SelectItem>
+              {Object.entries(CONTA_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
             <X className="h-4 w-4 mr-1" />
             Limpar
           </Button>
@@ -250,15 +212,12 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
 }
 
 export const getDefaultDespesasGlobalFilters = (): DespesasGlobalFiltersState => {
-  // Default: periodo = mes corrente. Evita que o usuario veja todas as
-  // despesas historicas por engano e cubra o caso reportado de "nao
-  // consegue filtrar despesas do mes".
-  const hoje = new Date();
-  const from = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-  const to = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  // Sem período custom por padrão: o ano vem do seletor do topo (header),
+  // evitando ter dois controles de ano. Para recortes específicos (mês,
+  // intervalo), o usuário usa o "Período (personalizado)".
   return {
     tipoDespesa: "todos",
-    dateRange: { from, to },
+    dateRange: undefined,
     categoria: "todos",
     status: "todos",
     conta: "todos",
