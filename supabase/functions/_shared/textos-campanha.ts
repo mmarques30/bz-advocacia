@@ -53,7 +53,7 @@ Se ainda precisa de orientação jurídica sobre isso, estou aqui pra te conecta
 
 Há algumas semanas você buscou nosso anúncio interessada(o) em orientação jurídica. Vi aqui que ainda não tivemos chance de conversar.
 
-Espero que esteja tudo bem por aí. Se ainda precisa de ajuda, é só me responder por aqui — direciono pra advogada especialista certa.
+Espero que esteja tudo bem por aí. Se ainda precisa de ajuda, é só me responder por aqui que direciono pra advogada especialista certa.
 
 Se já resolveu ou prefere não seguir, fica tudo certo, é só me avisar.`,
 
