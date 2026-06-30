@@ -9,7 +9,7 @@ export const TEXTOS_CAMPANHA: Record<AreaCampanha, string[]> = {
 
 Há algumas semanas você buscou nosso anúncio interessada(o) em inventário ou sucessão. Vi aqui que ainda não tivemos chance de conversar.
 
-Espero que esteja tudo bem por aí. Se ainda precisa de orientação pra cuidar disso, é só me responder por aqui — direciono pra nossa advogada especialista em sucessões.
+Espero que esteja tudo bem por aí. Se ainda precisa de orientação pra cuidar disso, é só me responder por aqui que direciono pra nossa advogada especialista em sucessões.
 
 Se já resolveu ou prefere não seguir, fica tudo certo, é só me avisar.`,
 
@@ -31,7 +31,7 @@ Se ainda precisa de orientação jurídica sobre isso, estou aqui pra te conecta
 
 Há algumas semanas você buscou nosso anúncio interessada(o) em uma questão de saúde (plano negando cobertura, medicamento de alto custo, terapia ou tratamento). Vi aqui que ainda não tivemos chance de conversar.
 
-Espero que esteja tudo bem por aí. Se ainda precisa de orientação, é só me responder por aqui — direciono pra nossa advogada especialista em direito à saúde.
+Espero que esteja tudo bem por aí. Se ainda precisa de orientação, é só me responder por aqui que direciono pra nossa advogada especialista em direito à saúde.
 
 Se já resolveu ou prefere não seguir, fica tudo certo, é só me avisar.`,
 
@@ -43,7 +43,7 @@ Se quiser retomar, é só me responder. Caso já tenha resolvido, fica tudo cert
 
     `Oi {primeiro_nome}, tudo bem? Aqui é a Claudia, do escritório Borges & Zembruski Advocacia.
 
-Sei que faz um tempinho que você buscou a gente sobre uma questão de saúde — plano, medicamento ou tratamento. Espero que esteja tudo bem.
+Sei que faz um tempinho que você buscou a gente sobre uma questão de saúde (plano, medicamento ou tratamento). Espero que esteja tudo bem.
 
 Se ainda precisa de orientação jurídica sobre isso, estou aqui pra te conectar com nossa advogada especialista. É só me responder por aqui 😊`,
   ],
@@ -53,7 +53,7 @@ Se ainda precisa de orientação jurídica sobre isso, estou aqui pra te conecta
 
 Há algumas semanas você buscou nosso anúncio interessada(o) em orientação jurídica. Vi aqui que ainda não tivemos chance de conversar.
 
-Espero que esteja tudo bem por aí. Se ainda precisa de ajuda, é só me responder por aqui — direciono pra advogada especialista certa.
+Espero que esteja tudo bem por aí. Se ainda precisa de ajuda, é só me responder por aqui que direciono pra advogada especialista certa.
 
 Se já resolveu ou prefere não seguir, fica tudo certo, é só me avisar.`,
 
