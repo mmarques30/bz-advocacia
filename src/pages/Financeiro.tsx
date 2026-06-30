@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, History, ChevronDown, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Upload, History, ChevronDown, Trash2, AlertTriangle, Target } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -35,7 +35,7 @@ import { FaturamentoKPIs } from "@/components/financeiro/FaturamentoKPIs";
 import { FaturamentoCharts } from "@/components/financeiro/FaturamentoCharts";
 import { FaturamentoFilters, getDefaultFaturamentoFilters, type FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { ImportFaturamentoDialog } from "@/components/financeiro/ImportFaturamentoDialog";
-import { MetaMensalBar } from "@/components/financeiro/MetaMensalBar";
+import { ConfigurarMetaDialog } from "@/components/dashboard/ConfigurarMetaDialog";
 
 // Despesas
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
@@ -309,7 +309,6 @@ export default function Financeiro() {
 
         {/* Aba Faturamento (Lançamentos+Projeção unificados, Acordos como sub-aba) */}
         <TabsContent value="faturamento" className="space-y-6">
-          <MetaMensalBar />
           <Tabs value={faturamentoSubTab} onValueChange={setFaturamentoSubTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
@@ -321,7 +320,15 @@ export default function Financeiro() {
                 <div className="flex-1">
                   <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <ConfigurarMetaDialog
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        <Target className="h-4 w-4 mr-2" />
+                        Meta
+                      </Button>
+                    }
+                  />
                   <Button variant="outline" size="sm" onClick={() => setImportFaturamentoOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Importar
