@@ -51,40 +51,11 @@ const tipoServicoOptions = [
   { value: "divorcio", label: "Divórcio" },
 ];
 
-const anoAtual = new Date().getFullYear();
-const anosDisponiveis = [anoAtual, anoAtual - 1, anoAtual - 2, anoAtual - 3];
-
-const getAnoFromRange = (range: DateRange | undefined): string => {
-  if (!range?.from || !range?.to) return "todos";
-  const fromYear = range.from.getFullYear();
-  const toYear = range.to.getFullYear();
-  if (
-    fromYear === toYear &&
-    range.from.getMonth() === 0 && range.from.getDate() === 1 &&
-    range.to.getMonth() === 11 && range.to.getDate() === 31
-  ) {
-    return fromYear.toString();
-  }
-  return "personalizado";
-};
-
 export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProps) {
   const { data: clientes = [] } = useClientesReceitas();
 
   const handleChange = (key: keyof FaturamentoFiltersState, value: any) => {
     onChange({ ...filters, [key]: value });
-  };
-
-  const handleAnoChange = (value: string) => {
-    if (value === "todos") {
-      handleChange("dateRange", undefined);
-    } else if (value !== "personalizado") {
-      const ano = parseInt(value);
-      handleChange("dateRange", {
-        from: new Date(ano, 0, 1),
-        to: new Date(ano, 11, 31),
-      });
-    }
   };
 
   const clearFilters = () => {
@@ -96,8 +67,6 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
       conta: "todos",
     });
   };
-
-  const selectedAno = getAnoFromRange(filters.dateRange);
 
   const hasActiveFilters = 
     filters.cliente !== "todos" ||
@@ -130,130 +99,126 @@ export function FaturamentoFilters({ filters, onChange }: FaturamentoFiltersProp
 
   return (
     <div className="space-y-3 mb-6">
-      <div className="flex flex-wrap gap-2 items-center">
-        <Select value={selectedAno} onValueChange={handleAnoChange}>
-          <SelectTrigger className="h-9 text-xs w-[100px]">
-            <SelectValue placeholder="Ano" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos</SelectItem>
-            {anosDisponiveis.map((ano) => (
-              <SelectItem key={ano} value={ano.toString()}>
-                {ano}
-              </SelectItem>
-            ))}
-            {selectedAno === "personalizado" && (
-              <SelectItem value="personalizado" disabled>
-                Personalizado
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Cliente</span>
+          <Select
+            value={filters.cliente}
+            onValueChange={(value) => handleChange("cliente", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os Clientes</SelectItem>
+              {clientes.map((cliente) => (
+                <SelectItem key={cliente} value={cliente}>
+                  {cliente}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={filters.cliente}
-          onValueChange={(value) => handleChange("cliente", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[140px]">
-            <SelectValue placeholder="Cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os Clientes</SelectItem>
-            {clientes.map((cliente) => (
-              <SelectItem key={cliente} value={cliente}>
-                {cliente}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "h-9 text-xs w-auto min-w-[180px] justify-start text-left font-normal",
-                !filters.dateRange?.from && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {filters.dateRange?.from ? (
-                filters.dateRange.to ? (
-                  <>
-                    {format(filters.dateRange.from, "dd/MM/yyyy")} - {format(filters.dateRange.to, "dd/MM/yyyy")}
-                  </>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Período (personalizado)</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-9 text-xs w-auto min-w-[190px] justify-start text-left font-normal",
+                  !filters.dateRange?.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {filters.dateRange?.from ? (
+                  filters.dateRange.to ? (
+                    <>
+                      {format(filters.dateRange.from, "dd/MM/yyyy")} - {format(filters.dateRange.to, "dd/MM/yyyy")}
+                    </>
+                  ) : (
+                    format(filters.dateRange.from, "dd/MM/yyyy")
+                  )
                 ) : (
-                  format(filters.dateRange.from, "dd/MM/yyyy")
-                )
-              ) : (
-                <span>Selecionar período</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={filters.dateRange}
-              onSelect={(range) => handleChange("dateRange", range)}
-              numberOfMonths={2}
-              locale={ptBR}
-              initialFocus
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
+                  <span>Usar o ano do topo</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={filters.dateRange}
+                onSelect={(range) => handleChange("dateRange", range)}
+                numberOfMonths={2}
+                locale={ptBR}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
 
-        <Select
-          value={filters.status}
-          onValueChange={(value) => handleChange("status", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            {statusOptions.map((status) => (
-              <SelectItem key={status.value} value={status.value}>
-                {status.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Status do contrato</span>
+          <Select
+            value={filters.status}
+            onValueChange={(value) => handleChange("status", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              {statusOptions.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={filters.tipoServico}
-          onValueChange={(value) => handleChange("tipoServico", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Serviço" />
-          </SelectTrigger>
-          <SelectContent>
-            {tipoServicoOptions.map((tipo) => (
-              <SelectItem key={tipo.value} value={tipo.value}>
-                {tipo.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Tipo de serviço</span>
+          <Select
+            value={filters.tipoServico}
+            onValueChange={(value) => handleChange("tipoServico", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Serviço" />
+            </SelectTrigger>
+            <SelectContent>
+              {tipoServicoOptions.map((tipo) => (
+                <SelectItem key={tipo.value} value={tipo.value}>
+                  {tipo.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
-        <Select
-          value={filters.conta}
-          onValueChange={(value) => handleChange("conta", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Conta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as Contas</SelectItem>
-            {Object.entries(CONTA_LABELS).map(([value, label]) => (
-              <SelectItem key={value} value={value}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium text-muted-foreground">Conta</span>
+          <Select
+            value={filters.conta}
+            onValueChange={(value) => handleChange("conta", value)}
+          >
+            <SelectTrigger className="h-9 text-xs w-[150px]">
+              <SelectValue placeholder="Conta" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as Contas</SelectItem>
+              {Object.entries(CONTA_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">
             <X className="h-4 w-4 mr-1" />
             Limpar
           </Button>
