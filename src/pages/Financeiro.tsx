@@ -305,7 +305,7 @@ export default function Financeiro() {
                 selectedMes={faturamentoSelectedMes}
                 onSelectMonth={handleSelectFaturamentoMes}
               />
-              <FaturamentoTable filters={effectiveFaturamentoFilters} />
+              <FaturamentoTable filters={effectiveFaturamentoFilters} onOpenAcordo={setSelectedAcordoId} />
 
             </TabsContent>
 

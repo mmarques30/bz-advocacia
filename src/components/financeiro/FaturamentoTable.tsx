@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2, Copy } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, MoreHorizontal, Pencil, Trash2, Copy, FileText } from "lucide-react";
 import { useFaturamentoDetalhado } from "@/hooks/useFinanceiro";
 import { useDeleteTransacao } from "@/hooks/useTransacoesFinanceiras";
 import { EditTransacaoDialog } from "./transacoes/EditTransacaoDialog";
@@ -34,6 +34,7 @@ import {
 
 interface FaturamentoTableProps {
   filters?: FaturamentoFiltersState;
+  onOpenAcordo?: (acordoId: string) => void;
 }
 
 const INITIAL_ITEMS = 3;
@@ -45,7 +46,7 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-export function FaturamentoTable({ filters }: FaturamentoTableProps) {
+export function FaturamentoTable({ filters, onOpenAcordo }: FaturamentoTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isExpanded, setIsExpanded] = useState(false);
   const [editingTransacao, setEditingTransacao] = useState<TransacaoFinanceira | null>(null);
@@ -199,24 +200,36 @@ export function FaturamentoTable({ filters }: FaturamentoTableProps) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-popover">
-                        <DropdownMenuItem onClick={() => handleEdit(item)}>
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(item)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => {
-                            setTransacaoToDelete(item.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Excluir
-                        </DropdownMenuItem>
+                        {item.source === "contrato" ? (
+                          <DropdownMenuItem
+                            onClick={() => item.acordo_id && onOpenAcordo?.(item.acordo_id)}
+                            disabled={!item.acordo_id || !onOpenAcordo}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Ver contrato
+                          </DropdownMenuItem>
+                        ) : (
+                          <>
+                            <DropdownMenuItem onClick={() => handleEdit(item)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(item)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Duplicar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => {
+                                setTransacaoToDelete(item.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
