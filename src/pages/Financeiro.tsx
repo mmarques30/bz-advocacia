@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Upload, History, ChevronDown, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Upload, History, ChevronDown, Trash2, AlertTriangle, Target } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   AlertDialog,
@@ -35,7 +35,7 @@ import { FaturamentoKPIs } from "@/components/financeiro/FaturamentoKPIs";
 import { FaturamentoCharts } from "@/components/financeiro/FaturamentoCharts";
 import { FaturamentoFilters, getDefaultFaturamentoFilters, type FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
 import { ImportFaturamentoDialog } from "@/components/financeiro/ImportFaturamentoDialog";
-import { MetaMensalBar } from "@/components/financeiro/MetaMensalBar";
+import { ConfigurarMetaDialog } from "@/components/dashboard/ConfigurarMetaDialog";
 
 // Despesas
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
@@ -196,11 +196,11 @@ export default function Financeiro() {
   return (
     <div className="space-y-6">
       {/* Header com seletor de ano */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-seasons text-primary">Gestão Financeira</h1>
+          <h1 className="text-2xl md:text-3xl font-seasons text-primary">Gestão Financeira</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {activeTab === "visao-geral" && (
             <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
               <SelectTrigger className="w-[140px]">
@@ -309,7 +309,6 @@ export default function Financeiro() {
 
         {/* Aba Faturamento (Lançamentos+Projeção unificados, Acordos como sub-aba) */}
         <TabsContent value="faturamento" className="space-y-6">
-          <MetaMensalBar />
           <Tabs value={faturamentoSubTab} onValueChange={setFaturamentoSubTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="lancamentos">Lançamentos</TabsTrigger>
@@ -321,7 +320,15 @@ export default function Financeiro() {
                 <div className="flex-1">
                   <FaturamentoFilters filters={faturamentoFilters} onChange={setFaturamentoFilters} />
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <ConfigurarMetaDialog
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        <Target className="h-4 w-4 mr-2" />
+                        Meta
+                      </Button>
+                    }
+                  />
                   <Button variant="outline" size="sm" onClick={() => setImportFaturamentoOpen(true)}>
                     <Upload className="h-4 w-4 mr-2" />
                     Importar

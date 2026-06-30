@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <AppSidebar />
         <SidebarInset className="flex-1 flex flex-col">
           <AppHeader />
-          <main id="main-content" tabIndex={-1} className="flex-1 p-6">
+          <main id="main-content" tabIndex={-1} className="flex-1 p-4 md:p-6 overflow-x-hidden">
             {children}
           </main>
         </SidebarInset>

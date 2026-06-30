@@ -1,10 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from "recharts";
-import { useDistribuicaoTipo } from "@/hooks/useFinanceiro";
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  Cell,
+} from "recharts";
+import { useFaturamentoMensal } from "@/hooks/useFinanceiro";
 import type { FaturamentoFiltersState } from "./FaturamentoFilters";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMemo } from "react";
 
 interface FaturamentoChartsProps {
   filters?: FaturamentoFiltersState;
@@ -12,24 +22,18 @@ interface FaturamentoChartsProps {
   onSelectMonth?: (mes: string) => void;
 }
 
+const COR_NOVOS = "hsl(var(--primary))";
+const COR_ENTRADAS = "#94a3b8"; // slate-400
+const COR_META = "#f59e0b"; // amber-500
+
 export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: FaturamentoChartsProps) {
-  const { data: distribuicao } = useDistribuicaoTipo(filters);
+  const { data: chartData = [] } = useFaturamentoMensal(filters);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(value);
 
   const formatCurrencyFull = (value: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-
-  // Soma todos os tipos/responsaveis de cada mes num total unico por mes.
-  const chartData = useMemo(() => {
-    if (!distribuicao) return [];
-    return distribuicao.map((row: any) => {
-      const tipos: string[] = row._tipos || [];
-      const total = tipos.reduce((sum, tipo) => sum + (Number(row[tipo]) || 0), 0);
-      return { mes: row.mes as string, total };
-    });
-  }, [distribuicao]);
 
   const formatXAxis = (mesStr: string) => {
     try {
@@ -49,20 +53,26 @@ export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: Fatur
     }
   };
 
+  const nomeSerie = (key: string) =>
+    key === "novos" ? "Contratos novos" : key === "entradas" ? "Entradas (existentes)" : "Meta";
+
+  const temDados = chartData.some((d) => d.novos > 0 || d.entradas > 0 || d.meta > 0);
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
           <span>Faturamento por mês</span>
           <span className="text-xs font-normal text-muted-foreground">
-            {onSelectMonth ? "Clique numa barra para filtrar o mês" : "Evolução mensal"}
+            Contratos novos + entradas de contratos existentes vs meta
+            {onSelectMonth ? " • clique numa barra para filtrar" : ""}
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
+        {temDados ? (
+          <ResponsiveContainer width="100%" height={320}>
+            <ComposedChart
               data={chartData}
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               onClick={(state: any) => {
@@ -82,7 +92,7 @@ export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: Fatur
               />
               <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} className="text-muted-foreground" />
               <Tooltip
-                formatter={(value: number) => [formatCurrencyFull(value), "Faturamento"]}
+                formatter={(value: number, name: string) => [formatCurrencyFull(value), nomeSerie(name)]}
                 labelFormatter={formatTooltipLabel}
                 cursor={{ fill: 'hsl(var(--muted) / 0.3)' }}
                 contentStyle={{
@@ -91,24 +101,48 @@ export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: Fatur
                   borderRadius: '8px'
                 }}
               />
+              <Legend formatter={(value: string) => nomeSerie(value)} />
               <Bar
-                dataKey="total"
-                name="Faturamento"
+                dataKey="novos"
+                stackId="fat"
+                fill={COR_NOVOS}
+                cursor={onSelectMonth ? "pointer" : undefined}
+              >
+                {chartData.map((entry) => (
+                  <Cell
+                    key={entry.mes}
+                    fill={COR_NOVOS}
+                    opacity={selectedMes && entry.mes !== selectedMes ? 0.4 : 1}
+                  />
+                ))}
+              </Bar>
+              <Bar
+                dataKey="entradas"
+                stackId="fat"
+                fill={COR_ENTRADAS}
                 radius={[4, 4, 0, 0]}
                 cursor={onSelectMonth ? "pointer" : undefined}
               >
                 {chartData.map((entry) => (
                   <Cell
                     key={entry.mes}
-                    fill={entry.mes === selectedMes ? 'hsl(var(--primary))' : 'hsl(var(--chart-1))'}
+                    fill={COR_ENTRADAS}
                     opacity={selectedMes && entry.mes !== selectedMes ? 0.4 : 1}
                   />
                 ))}
               </Bar>
-            </BarChart>
+              <Line
+                type="monotone"
+                dataKey="meta"
+                stroke={COR_META}
+                strokeWidth={2}
+                dot={{ r: 3, fill: COR_META }}
+                activeDot={{ r: 5 }}
+              />
+            </ComposedChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+          <div className="flex items-center justify-center h-[320px] text-muted-foreground">
             Nenhum dado disponível para o período selecionado
           </div>
         )}

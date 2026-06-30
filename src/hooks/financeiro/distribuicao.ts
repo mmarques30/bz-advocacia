@@ -4,12 +4,129 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/lib/toast";
-import { format, subMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { format, subMonths, addMonths, differenceInDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import type { FaturamentoFiltersState } from "@/components/financeiro/FaturamentoFilters";
-import { applyDateRangeFromFilters } from "./_shared";
+import { applyDateRangeFromFilters, getDateRangeFromFilters } from "./_shared";
 import { warnIfTruncated } from "@/lib/queryGuards";
 
 import type { DistribuicaoTipo, DistribuicaoTipoAgregado } from "@/types/financeiro";
+
+export interface FaturamentoMensalPonto {
+  mes: string; // yyyy-MM
+  novos: number; // valor de contratos criados no mês (faturamento novo)
+  entradas: number; // recebimentos no mês de contratos antigos + receitas avulsas
+  meta: number; // meta do mês (metas_mensais)
+}
+
+function buildMonths(inicio: Date | null, fim: Date | null) {
+  const start = inicio ? startOfMonth(inicio) : startOfMonth(subMonths(new Date(), 11));
+  const end = fim ? startOfMonth(fim) : startOfMonth(new Date());
+  const meses: { key: string }[] = [];
+  let cur = start;
+  let guard = 0;
+  while (cur <= end && guard < 36) {
+    meses.push({ key: format(cur, "yyyy-MM") });
+    cur = addMonths(cur, 1);
+    guard++;
+  }
+  return meses;
+}
+
+/**
+ * Série mensal para o gráfico de Faturamento, separando:
+ *  - `novos`: valor dos contratos (acordos) criados no mês — faturamento novo.
+ *  - `entradas`: recebimentos do mês vindos de contratos criados em meses
+ *    anteriores + receitas avulsas (transações). Recebimentos de contratos
+ *    criados no próprio mês não são somados aqui para não duplicar o valor
+ *    já contado em `novos`.
+ *  - `meta`: meta do mês (metas_mensais), exibida como linha para checar
+ *    aderência.
+ */
+export function useFaturamentoMensal(filters?: FaturamentoFiltersState) {
+  return useQuery({
+    queryKey: ["faturamento-mensal", filters],
+    queryFn: async (): Promise<FaturamentoMensalPonto[]> => {
+      const { inicio, fim } = getDateRangeFromFilters(filters);
+      const meses = buildMonths(inicio, fim);
+      const map = new Map<string, FaturamentoMensalPonto>(
+        meses.map((m) => [m.key, { mes: m.key, novos: 0, entradas: 0, meta: 0 }]),
+      );
+
+      // Contratos novos (acordos criados no mês).
+      let acordosQuery = supabase
+        .from("acordos_financeiros")
+        .select("valor_total, created_at, status, tipo_servico, conta");
+      if (filters?.status && filters.status !== "todos") {
+        acordosQuery = acordosQuery.eq("status", filters.status);
+      }
+      if (filters?.tipoServico && filters.tipoServico !== "todos") {
+        acordosQuery = acordosQuery.eq("tipo_servico", filters.tipoServico);
+      }
+      if (filters?.conta && filters.conta !== "todos") {
+        acordosQuery = acordosQuery.eq("conta", filters.conta);
+      }
+      acordosQuery = applyDateRangeFromFilters(acordosQuery, "created_at", filters);
+      const { data: acordos } = await acordosQuery.limit(10000);
+
+      (acordos || []).forEach((a) => {
+        const key = format(new Date(a.created_at), "yyyy-MM");
+        const ponto = map.get(key);
+        if (ponto) ponto.novos += Number(a.valor_total || 0);
+      });
+
+      // Entradas: parcelas pagas no mês de contratos criados antes.
+      let parcelasQuery = supabase
+        .from("parcelas_financeiras")
+        .select("valor_pago, data_pagamento, acordo:acordos_financeiros!acordo_id(created_at)")
+        .eq("status", "pago");
+      parcelasQuery = applyDateRangeFromFilters(parcelasQuery, "data_pagamento", filters);
+      const { data: parcelas } = await parcelasQuery.limit(10000);
+
+      (parcelas || []).forEach((p: any) => {
+        if (!p.data_pagamento) return;
+        const key = format(new Date(p.data_pagamento), "yyyy-MM");
+        const ponto = map.get(key);
+        if (!ponto) return;
+        const acordo = Array.isArray(p.acordo) ? p.acordo[0] : p.acordo;
+        const criadoKey = acordo?.created_at
+          ? format(new Date(acordo.created_at), "yyyy-MM")
+          : null;
+        // Só conta como "entrada de contrato existente" se o contrato foi
+        // criado num mês anterior ao do pagamento (senão já está em `novos`).
+        if (!criadoKey || criadoKey < key) {
+          ponto.entradas += Number(p.valor_pago || 0);
+        }
+      });
+
+      // Receitas avulsas (transações de receita) entram como entradas.
+      let transQuery = supabase
+        .from("transacoes_financeiras")
+        .select("valor, data_transacao")
+        .or("tipo_codigo.eq.receita,tipo_codigo.eq.REC");
+      transQuery = applyDateRangeFromFilters(transQuery, "data_transacao", filters);
+      const { data: transacoes } = await transQuery.limit(10000);
+
+      (transacoes || []).forEach((t) => {
+        if (!t.data_transacao) return;
+        const key = format(new Date(t.data_transacao), "yyyy-MM");
+        const ponto = map.get(key);
+        if (ponto) ponto.entradas += Number(t.valor || 0);
+      });
+
+      // Metas mensais (linha).
+      const { data: metas } = await supabase
+        .from("metas_mensais")
+        .select("mes, ano, valor");
+      (metas || []).forEach((m: any) => {
+        const key = `${m.ano}-${String(m.mes).padStart(2, "0")}`;
+        const ponto = map.get(key);
+        if (ponto) ponto.meta = Number(m.valor || 0);
+      });
+
+      return meses.map((m) => map.get(m.key)!);
+    },
+  });
+}
 
 export function useDistribuicaoTipo(filters?: FaturamentoFiltersState) {
   return useQuery({

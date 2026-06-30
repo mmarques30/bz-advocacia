@@ -56,6 +56,8 @@ export function useMetasMensais() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["metas-mensais"] });
       queryClient.invalidateQueries({ queryKey: ["revenue"] });
+      queryClient.invalidateQueries({ queryKey: ["faturamento-mensal"] });
+      queryClient.invalidateQueries({ queryKey: ["projetado-vs-realizado"] });
       toast.success("Meta salva com sucesso!");
     },
     onError: (error) => {
@@ -75,6 +77,8 @@ export function useMetasMensais() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["metas-mensais"] });
       queryClient.invalidateQueries({ queryKey: ["revenue"] });
+      queryClient.invalidateQueries({ queryKey: ["faturamento-mensal"] });
+      queryClient.invalidateQueries({ queryKey: ["projetado-vs-realizado"] });
       toast.success("Meta removida com sucesso!");
     },
     onError: (error) => {

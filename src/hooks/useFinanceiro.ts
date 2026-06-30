@@ -45,6 +45,7 @@ export {
   useDistribuicaoTipo,
   useDistribuicaoTipoAgregado,
   useTopSubcategorias,
+  useFaturamentoMensal,
 } from "./financeiro/distribuicao";
 
 export {

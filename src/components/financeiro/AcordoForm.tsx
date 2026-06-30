@@ -391,8 +391,8 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
                   Edite valor e vencimento de cada parcela
                 </span>
               </div>
-              <div className="border rounded-lg p-3 max-h-64 overflow-y-auto">
-                <table className="w-full text-sm">
+              <div className="border rounded-lg p-3 max-h-64 overflow-y-auto overflow-x-auto">
+                <table className="w-full min-w-[420px] text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-2 w-10">Nº</th>

@@ -23,7 +23,12 @@ const MESES = [
   { value: 12, label: "Dezembro" },
 ];
 
-export function ConfigurarMetaDialog() {
+interface ConfigurarMetaDialogProps {
+  /** Gatilho customizado. Se ausente, usa o ícone de engrenagem padrão. */
+  trigger?: React.ReactNode;
+}
+
+export function ConfigurarMetaDialog({ trigger }: ConfigurarMetaDialogProps = {}) {
   const [open, setOpen] = useState(false);
   const [mes, setMes] = useState<number>(new Date().getMonth() + 1);
   const [ano, setAno] = useState<number>(new Date().getFullYear());
@@ -58,9 +63,11 @@ export function ConfigurarMetaDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Configurar metas">
-          <Settings className="h-4 w-4" />
-        </Button>
+        {trigger ?? (
+          <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Configurar metas">
+            <Settings className="h-4 w-4" />
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
