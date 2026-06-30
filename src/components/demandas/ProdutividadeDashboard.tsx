@@ -139,24 +139,22 @@ export function ProdutividadeDashboard() {
                     <span className="font-semibold text-sm">{grupo.advogada}</span>
                     <Badge variant="outline" className="text-xs">{grupo.total} tarefa{grupo.total > 1 ? 's' : ''}</Badge>
                   </div>
-                  <div className="space-y-1 max-h-32 overflow-y-auto">
-                    {grupo.demandas.slice(0, 5).map((d) => (
-                      <div key={d.id} className="text-xs flex items-center gap-2 py-1 px-2 rounded bg-background/60">
-                        <span className="text-muted-foreground">•</span>
-                        <span className="truncate flex-1">{d.titulo}</span>
-                        <span className="text-muted-foreground shrink-0">({d.responsavel_nome})</span>
-                        {d.data_limite && (
-                          <span className="text-muted-foreground shrink-0 text-[10px]">
-                            até {new Date(d.data_limite).toLocaleDateString('pt-BR')}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                    {grupo.demandas.length > 5 && (
-                      <p className="text-xs text-muted-foreground pl-2">
-                        +{grupo.demandas.length - 5} mais...
-                      </p>
-                    )}
+                  <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+                    {grupo.demandas.map((d) => {
+                      const atrasada = !!d.data_limite && new Date(d.data_limite) < new Date();
+                      return (
+                        <div key={d.id} className="text-xs flex items-center gap-2 py-1 px-2 rounded bg-background/60">
+                          <span className={atrasada ? "text-destructive" : "text-muted-foreground"}>•</span>
+                          <span className="truncate flex-1">{d.titulo}</span>
+                          <span className="text-muted-foreground shrink-0">({d.responsavel_nome})</span>
+                          {d.data_limite && (
+                            <span className={`shrink-0 text-[10px] ${atrasada ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                              até {new Date(d.data_limite).toLocaleDateString('pt-BR')}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
