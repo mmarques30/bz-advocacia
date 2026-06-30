@@ -31,7 +31,7 @@ Se ainda precisa de orientação jurídica sobre isso, estou aqui pra te conecta
 
 Há algumas semanas você buscou nosso anúncio interessada(o) em uma questão de saúde (plano negando cobertura, medicamento de alto custo, terapia ou tratamento). Vi aqui que ainda não tivemos chance de conversar.
 
-Espero que esteja tudo bem por aí. Se ainda precisa de orientação, é só me responder por aqui — direciono pra nossa advogada especialista em direito à saúde.
+Espero que esteja tudo bem por aí. Se ainda precisa de orientação, é só me responder por aqui que direciono pra nossa advogada especialista em direito à saúde.
 
 Se já resolveu ou prefere não seguir, fica tudo certo, é só me avisar.`,
 
