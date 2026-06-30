@@ -47,11 +47,13 @@ export default function MetaAds() {
           <TabsTrigger value="campanhas">Campanhas</TabsTrigger>
           <TabsTrigger value="adsets">Ad Sets</TabsTrigger>
           <TabsTrigger value="anuncios">Anúncios</TabsTrigger>
-          <TabsTrigger value="funil">Funil</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="visao-geral" className="mt-4">
+        <TabsContent value="visao-geral" className="mt-4 space-y-4">
+          {/* Visão Geral + Funil unificados: o gráfico de performance e,
+              logo abaixo, o funil (distribuição por estágio + Meta × Pipe). */}
           <MetaAdsVisaoGeralTab chartData={chartData} />
+          <MetaAdsFunilTab campanhas={campanhas} periodo={periodo} />
         </TabsContent>
 
         <TabsContent value="insights" className="mt-4">
@@ -72,10 +74,6 @@ export default function MetaAds() {
 
         <TabsContent value="anuncios" className="mt-4">
           <MetaAdsAnunciosTab ads={ads} isLoading={isLoadingAds} />
-        </TabsContent>
-
-        <TabsContent value="funil" className="mt-4">
-          <MetaAdsFunilTab campanhas={campanhas} periodo={periodo} />
         </TabsContent>
       </Tabs>
     </div>
