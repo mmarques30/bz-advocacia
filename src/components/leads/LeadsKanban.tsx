@@ -211,16 +211,20 @@ function CollapsedColumn({
       onClick={onExpand}
       title={`Expandir ${titulo}`}
       className={cn(
-        "flex w-12 shrink-0 flex-col items-center gap-2 rounded-lg border border-t-4 bg-muted/30 py-3 transition-colors hover:bg-accent",
+        "flex shrink-0 items-center gap-2 rounded-lg border border-t-4 bg-muted/30 transition-colors hover:bg-accent",
+        // Mobile (colunas empilhadas): barra horizontal de largura total.
+        "w-full justify-between px-3 py-2",
+        // Desktop: faixa estreita vertical.
+        "md:w-12 md:flex-col md:justify-start md:px-0 md:py-3",
         color,
         isOver && "bg-accent/50 ring-2 ring-primary/30",
       )}
     >
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-      <span className="flex-1 text-xs font-semibold [writing-mode:vertical-rl] rotate-180">
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="text-xs font-semibold md:flex-1 md:[writing-mode:vertical-rl] md:rotate-180">
         {titulo}
       </span>
-      <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+      <span className="shrink-0 rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
         {count}
       </span>
     </button>

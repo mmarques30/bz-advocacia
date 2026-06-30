@@ -196,11 +196,11 @@ export default function Financeiro() {
   return (
     <div className="space-y-6">
       {/* Header com seletor de ano */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-seasons text-primary">Gestão Financeira</h1>
+          <h1 className="text-2xl md:text-3xl font-seasons text-primary">Gestão Financeira</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {activeTab === "visao-geral" && (
             <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
               <SelectTrigger className="w-[140px]">
