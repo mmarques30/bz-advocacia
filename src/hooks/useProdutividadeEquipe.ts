@@ -77,38 +77,80 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
     queryKey: ['produtividade-equipe', periodo, responsavelId, tipo],
     queryFn: async (): Promise<ProdutividadeData> => {
       const { start, end } = getDateRange(periodo);
+      const now = new Date();
 
-      // Fetch concluídas no período
+      // Janela fixa de 6 meses para o gráfico de evolução (independe do
+      // período selecionado nos filtros).
+      const evoInicio = startOfMonth(subMonths(now, 5));
+      const evoFim = endOfMonth(now);
+
+      // Concluídas no período (KPIs + ranking). Só as colunas usadas.
       let concluidasQuery = supabase
         .from('demandas_internas')
-        .select('*')
+        .select('responsavel_id, concluida_em, created_at')
         .eq('status', 'concluido')
         .is('parent_id', null);
-
       if (start && end) {
         concluidasQuery = concluidasQuery.gte('data_conclusao', start.split('T')[0]).lte('data_conclusao', end.split('T')[0]);
       }
       if (responsavelId) concluidasQuery = concluidasQuery.eq('responsavel_id', responsavelId);
       if (tipo) concluidasQuery = concluidasQuery.eq('tipo', tipo);
 
-      const { data: concluidas, error: e1 } = await concluidasQuery;
-      if (e1) throw e1;
-
-      // Fetch ativas (pendentes + em_andamento)
+      // Ativas (pendentes + em_andamento). Só as colunas usadas.
       let ativasQuery = supabase
         .from('demandas_internas')
-        .select('*')
+        .select('id, titulo, status, responsavel_id, advogada_responsavel, data_limite')
         .in('status', ['pendente', 'em_andamento'])
         .is('parent_id', null);
-
       if (responsavelId) ativasQuery = ativasQuery.eq('responsavel_id', responsavelId);
       if (tipo) ativasQuery = ativasQuery.eq('tipo', tipo);
 
-      const { data: ativas, error: e2 } = await ativasQuery;
-      if (e2) throw e2;
+      // Janela de evolução em 2 queries (concluídas por data_conclusao +
+      // criadas por created_at). Antes eram 12 queries sequenciais dentro
+      // de um for — a principal causa da lentidão ao abrir a aba.
+      const evoConcluidasQuery = supabase
+        .from('demandas_internas')
+        .select('data_conclusao')
+        .eq('status', 'concluido')
+        .is('parent_id', null)
+        .gte('data_conclusao', evoInicio.toISOString().split('T')[0])
+        .lte('data_conclusao', evoFim.toISOString().split('T')[0]);
 
-      // Fetch all profiles
-      const { data: profiles } = await supabase.from('profiles').select('id, nome_completo').eq('ativo', true);
+      const evoCriadasQuery = supabase
+        .from('demandas_internas')
+        .select('status, created_at')
+        .is('parent_id', null)
+        .gte('created_at', evoInicio.toISOString())
+        .lte('created_at', evoFim.toISOString());
+
+      const profilesQuery = supabase
+        .from('profiles')
+        .select('id, nome_completo')
+        .eq('ativo', true);
+
+      // Tudo em paralelo (1 round-trip de rede em vez de ~15 sequenciais).
+      const [
+        concluidasRes,
+        ativasRes,
+        evoConcluidasRes,
+        evoCriadasRes,
+        profilesRes,
+      ] = await Promise.all([
+        concluidasQuery,
+        ativasQuery,
+        evoConcluidasQuery,
+        evoCriadasQuery,
+        profilesQuery,
+      ]);
+
+      if (concluidasRes.error) throw concluidasRes.error;
+      if (ativasRes.error) throw ativasRes.error;
+
+      const concluidas = concluidasRes.data;
+      const ativas = ativasRes.data;
+      const profiles = profilesRes.data;
+      const evoConcluidas = evoConcluidasRes.data;
+      const evoCriadas = evoCriadasRes.data;
 
       const nameMap = new Map<string, string>();
       profiles?.forEach(p => nameMap.set(p.id, p.nome_completo?.split(' ')[0] || 'Sem nome'));
@@ -212,33 +254,31 @@ export const useProdutividadeEquipe = (filtros: ProdutividadeFiltros = {}) => {
         .sort((a, b) => b.total - a.total);
 
       // --- Evolução Mensal Expandida (últimos 6 meses) ---
-      const now = new Date();
+      // Agrupa em memória os dados já buscados (chave yyyy-MM via prefixo da
+      // data, evitando deslocamento de fuso).
+      const evoConcMap = new Map<string, number>();
+      (evoConcluidas || []).forEach(d => {
+        if (!d.data_conclusao) return;
+        const k = String(d.data_conclusao).slice(0, 7);
+        evoConcMap.set(k, (evoConcMap.get(k) || 0) + 1);
+      });
+      const evoEmAndMap = new Map<string, number>();
+      const evoPendMap = new Map<string, number>();
+      (evoCriadas || []).forEach(d => {
+        if (!d.created_at) return;
+        const k = String(d.created_at).slice(0, 7);
+        if (d.status === 'em_andamento') evoEmAndMap.set(k, (evoEmAndMap.get(k) || 0) + 1);
+        else if (d.status === 'pendente') evoPendMap.set(k, (evoPendMap.get(k) || 0) + 1);
+      });
+
       const evolucaoMensal: EvolucaoMensalExpanded[] = [];
       for (let i = 5; i >= 0; i--) {
         const monthDate = subMonths(now, i);
-        const mStart = startOfMonth(monthDate);
-        const mEnd = endOfMonth(monthDate);
+        const k = format(monthDate, 'yyyy-MM');
         const label = format(monthDate, 'MMM/yy', { locale: ptBR });
-
-        const { data: monthConcluidas } = await supabase
-          .from('demandas_internas')
-          .select('id')
-          .eq('status', 'concluido')
-          .is('parent_id', null)
-          .gte('data_conclusao', mStart.toISOString().split('T')[0])
-          .lte('data_conclusao', mEnd.toISOString().split('T')[0]);
-
-        const { data: monthCriadas } = await supabase
-          .from('demandas_internas')
-          .select('id, status')
-          .is('parent_id', null)
-          .gte('created_at', mStart.toISOString())
-          .lte('created_at', mEnd.toISOString());
-
-        const conc = monthConcluidas?.length || 0;
-        const emAnd = monthCriadas?.filter(d => d.status === 'em_andamento').length || 0;
-        const pend = monthCriadas?.filter(d => d.status === 'pendente').length || 0;
-
+        const conc = evoConcMap.get(k) || 0;
+        const emAnd = evoEmAndMap.get(k) || 0;
+        const pend = evoPendMap.get(k) || 0;
         evolucaoMensal.push({
           mes: label,
           concluidas: conc,
