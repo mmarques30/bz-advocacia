@@ -15,6 +15,7 @@ export interface FaturamentoMensalPonto {
   mes: string; // yyyy-MM
   novos: number; // valor de contratos criados no mês (faturamento novo)
   entradas: number; // recebimentos no mês de contratos antigos + receitas avulsas
+  projecao: number; // parcelas pendentes a receber, pelo mês de vencimento
   meta: number; // meta do mês (metas_mensais)
 }
 
@@ -49,7 +50,7 @@ export function useFaturamentoMensal(filters?: FaturamentoFiltersState) {
       const { inicio, fim } = getDateRangeFromFilters(filters);
       const meses = buildMonths(inicio, fim);
       const map = new Map<string, FaturamentoMensalPonto>(
-        meses.map((m) => [m.key, { mes: m.key, novos: 0, entradas: 0, meta: 0 }]),
+        meses.map((m) => [m.key, { mes: m.key, novos: 0, entradas: 0, projecao: 0, meta: 0 }]),
       );
 
       // Contratos novos (acordos criados no mês).
@@ -111,6 +112,25 @@ export function useFaturamentoMensal(filters?: FaturamentoFiltersState) {
         const key = format(new Date(t.data_transacao), "yyyy-MM");
         const ponto = map.get(key);
         if (ponto) ponto.entradas += Number(t.valor || 0);
+      });
+
+      // Projeção de receitas a entrar: parcelas ainda não pagas, pelo mês
+      // de vencimento (inclui vencidas/a vencer dentro da janela).
+      let pendentesQuery = supabase
+        .from("parcelas_financeiras")
+        .select("valor, valor_pago, data_vencimento")
+        .neq("status", "pago");
+      pendentesQuery = applyDateRangeFromFilters(pendentesQuery, "data_vencimento", filters);
+      const { data: pendentes } = await pendentesQuery.limit(10000);
+
+      (pendentes || []).forEach((p: any) => {
+        if (!p.data_vencimento) return;
+        const key = format(new Date(p.data_vencimento), "yyyy-MM");
+        const ponto = map.get(key);
+        if (!ponto) return;
+        // Saldo em aberto (desconta o que já foi pago parcialmente).
+        const saldo = Math.max(Number(p.valor || 0) - Number(p.valor_pago || 0), 0);
+        ponto.projecao += saldo;
       });
 
       // Metas mensais (linha).

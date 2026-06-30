@@ -24,6 +24,7 @@ interface FaturamentoChartsProps {
 
 const COR_NOVOS = "hsl(var(--primary))";
 const COR_ENTRADAS = "#94a3b8"; // slate-400
+const COR_PROJECAO = "#38bdf8"; // sky-400 (a receber / futuro)
 const COR_META = "#f59e0b"; // amber-500
 
 export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: FaturamentoChartsProps) {
@@ -54,9 +55,17 @@ export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: Fatur
   };
 
   const nomeSerie = (key: string) =>
-    key === "novos" ? "Contratos novos" : key === "entradas" ? "Entradas (existentes)" : "Meta";
+    key === "novos"
+      ? "Contratos novos"
+      : key === "entradas"
+        ? "Entradas (existentes)"
+        : key === "projecao"
+          ? "A receber (projeção)"
+          : "Meta";
 
-  const temDados = chartData.some((d) => d.novos > 0 || d.entradas > 0 || d.meta > 0);
+  const temDados = chartData.some(
+    (d) => d.novos > 0 || d.entradas > 0 || d.projecao > 0 || d.meta > 0,
+  );
 
   return (
     <Card>
@@ -64,7 +73,7 @@ export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: Fatur
         <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
           <span>Faturamento por mês</span>
           <span className="text-xs font-normal text-muted-foreground">
-            Contratos novos + entradas de contratos existentes vs meta
+            Contratos novos + entradas + projeção a receber vs meta
             {onSelectMonth ? " • clique numa barra para filtrar" : ""}
           </span>
         </CardTitle>
@@ -127,6 +136,21 @@ export function FaturamentoCharts({ filters, selectedMes, onSelectMonth }: Fatur
                   <Cell
                     key={entry.mes}
                     fill={COR_ENTRADAS}
+                    opacity={selectedMes && entry.mes !== selectedMes ? 0.4 : 1}
+                  />
+                ))}
+              </Bar>
+              <Bar
+                dataKey="projecao"
+                stackId="proj"
+                fill={COR_PROJECAO}
+                radius={[4, 4, 0, 0]}
+                cursor={onSelectMonth ? "pointer" : undefined}
+              >
+                {chartData.map((entry) => (
+                  <Cell
+                    key={entry.mes}
+                    fill={COR_PROJECAO}
                     opacity={selectedMes && entry.mes !== selectedMes ? 0.4 : 1}
                   />
                 ))}
