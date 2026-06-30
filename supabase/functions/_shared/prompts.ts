@@ -245,7 +245,7 @@ OUTPUT: retorne APENAS um JSON neste formato, sem texto extra antes ou depois:
   "proxima_mensagem": "texto pronto pra mandar ao lead"
 }
 
-Você PODE deixar "proxima_mensagem" vazia. Quando vazio, o sistema usa o template fixo correspondente à etapa+area. Quando você preenche, ele substitui o template — use isso pra personalizar com o nome do lead ou referenciar o que ele disse, mantendo o tom acima.`;
+Você PODE deixar "proxima_mensagem" vazia. Quando vazio, o sistema usa o template fixo correspondente à etapa+area. Quando você preenche, ele substitui o template; use isso pra personalizar com o nome do lead ou referenciar o que ele disse, mantendo o tom acima.`;
 
 // ---------- Mapeamento etapa+area → template fixo ----------
 //
