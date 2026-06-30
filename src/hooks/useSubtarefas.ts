@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { Demanda } from "@/types/demandas";
+import { invalidateTarefasQueries } from "@/hooks/useDemandas";
 
 export const useSubtarefas = (parentId: string | null) => {
   return useQuery({
@@ -71,9 +72,8 @@ export const useCreateSubtarefa = () => {
       return data;
     },
     onSuccess: (_data, variables) => {
+      invalidateTarefasQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['subtarefas', variables.parent_id] });
-      queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-by-status'] });
       toast.success('Subtarefa criada com sucesso!');
     },
     onError: (error: any) => {
@@ -102,10 +102,8 @@ export const useUpdateSubtarefaStatus = () => {
       return data;
     },
     onSuccess: (_data, variables) => {
+      invalidateTarefasQueries(queryClient);
       queryClient.invalidateQueries({ queryKey: ['subtarefas', variables.parentId] });
-      queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-by-status'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-stats'] });
     },
     onError: (error: any) => {
       toast.error('Erro ao atualizar subtarefa: ' + error.message);
