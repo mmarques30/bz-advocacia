@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCreateAcordo } from "@/hooks/useFinanceiro";
 import { useLeads } from "@/hooks/useLeads";
@@ -24,9 +25,8 @@ import {
   type TipoEntradaFaturamento,
   type FormaPagamentoRecebido 
 } from "@/types/financeiro";
-import { NewAcordoDialog } from "./NewAcordoDialog";
-import { FileText, Receipt, DollarSign, RotateCcw, ArrowLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { AcordoForm } from "./AcordoForm";
+import { FileText, Receipt, DollarSign, RotateCcw } from "lucide-react";
 
 interface NewEntradaFaturamentoDialogProps {
   open: boolean;
@@ -34,10 +34,10 @@ interface NewEntradaFaturamentoDialogProps {
 }
 
 const TIPO_ICONS: Record<TipoEntradaFaturamento, React.ReactNode> = {
-  acordo: <FileText className="h-8 w-8" />,
-  receita_avulsa: <Receipt className="h-8 w-8" />,
-  adiantamento: <DollarSign className="h-8 w-8" />,
-  reembolso: <RotateCcw className="h-8 w-8" />,
+  acordo: <FileText className="h-4 w-4" />,
+  receita_avulsa: <Receipt className="h-4 w-4" />,
+  adiantamento: <DollarSign className="h-4 w-4" />,
+  reembolso: <RotateCcw className="h-4 w-4" />,
 };
 
 const TIPO_DESCRIPTIONS: Record<TipoEntradaFaturamento, string> = {
@@ -48,106 +48,66 @@ const TIPO_DESCRIPTIONS: Record<TipoEntradaFaturamento, string> = {
 };
 
 export function NewEntradaFaturamentoDialog({ open, onClose }: NewEntradaFaturamentoDialogProps) {
-  const [tipoSelecionado, setTipoSelecionado] = useState<TipoEntradaFaturamento | null>(null);
-  const [acordoDialogOpen, setAcordoDialogOpen] = useState(false);
+  // Fluxo único: abre o card, escolhe o tipo no seletor de cima e o
+  // formulário correspondente aparece logo abaixo (sem telas intermediárias
+  // nem modal separado para contrato).
+  const [tipo, setTipo] = useState<TipoEntradaFaturamento>("acordo");
 
   const handleClose = () => {
-    setTipoSelecionado(null);
+    setTipo("acordo");
     onClose();
   };
 
-  const handleSelectTipo = (tipo: TipoEntradaFaturamento) => {
-    if (tipo === 'acordo') {
-      setAcordoDialogOpen(true);
-      onClose();
-    } else {
-      setTipoSelecionado(tipo);
-    }
-  };
-
-  const handleBack = () => {
-    setTipoSelecionado(null);
-  };
-
-  const handleAcordoClose = () => {
-    setAcordoDialogOpen(false);
-    setTipoSelecionado(null);
-  };
-
   return (
-    <>
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              {tipoSelecionado && (
-                <Button variant="ghost" size="icon" onClick={handleBack} className="h-8 w-8">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              <div>
-                <DialogTitle>
-                  {tipoSelecionado 
-                    ? TIPO_ENTRADA_FATURAMENTO_LABELS[tipoSelecionado]
-                    : "Nova Entrada de Faturamento"
-                  }
-                </DialogTitle>
-                <DialogDescription>
-                  {tipoSelecionado 
-                    ? TIPO_DESCRIPTIONS[tipoSelecionado]
-                    : "Selecione o tipo de entrada que deseja registrar"
-                  }
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nova Entrada de Faturamento</DialogTitle>
+          <DialogDescription>
+            Selecione o tipo de entrada e preencha os dados
+          </DialogDescription>
+        </DialogHeader>
 
-          {!tipoSelecionado ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
-              {(Object.keys(TIPO_ENTRADA_FATURAMENTO_LABELS) as TipoEntradaFaturamento[]).map((tipo) => (
-                <button
-                  key={tipo}
-                  onClick={() => handleSelectTipo(tipo)}
-                  className={cn(
-                    "flex flex-col items-center gap-3 p-6 rounded-lg border-2 transition-all",
-                    "hover:border-primary hover:bg-accent",
-                    "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                  )}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tipo de entrada</Label>
+            <ToggleGroup
+              type="single"
+              value={tipo}
+              onValueChange={(v) => v && setTipo(v as TipoEntradaFaturamento)}
+              variant="outline"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+            >
+              {(Object.keys(TIPO_ENTRADA_FATURAMENTO_LABELS) as TipoEntradaFaturamento[]).map((t) => (
+                <ToggleGroupItem
+                  key={t}
+                  value={t}
+                  className="flex h-auto flex-col items-center gap-1.5 py-3 data-[state=on]:border-primary data-[state=on]:bg-primary/10"
                 >
-                  <div className="text-primary">
-                    {TIPO_ICONS[tipo]}
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium">{TIPO_ENTRADA_FATURAMENTO_LABELS[tipo]}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {TIPO_DESCRIPTIONS[tipo]}
-                    </p>
-                  </div>
-                </button>
+                  <span className="text-primary">{TIPO_ICONS[t]}</span>
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {TIPO_ENTRADA_FATURAMENTO_LABELS[t]}
+                  </span>
+                </ToggleGroupItem>
               ))}
-            </div>
-          ) : (
-            <EntradaSimplesForm 
-              tipo={tipoSelecionado} 
-              onClose={handleClose}
-              onBack={handleBack}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+            </ToggleGroup>
+            <p className="text-xs text-muted-foreground">{TIPO_DESCRIPTIONS[tipo]}</p>
+          </div>
 
-      <NewAcordoDialog 
-        open={acordoDialogOpen} 
-        onClose={handleAcordoClose} 
-      />
-    </>
+          {tipo === "acordo" ? (
+            <AcordoForm onClose={handleClose} />
+          ) : (
+            <EntradaSimplesForm key={tipo} tipo={tipo} onClose={handleClose} />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
 interface EntradaSimplesFormProps {
   tipo: TipoEntradaFaturamento;
   onClose: () => void;
-  onBack: () => void;
 }
 
 function EntradaSimplesForm({ tipo, onClose }: EntradaSimplesFormProps) {

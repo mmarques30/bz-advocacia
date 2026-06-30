@@ -46,7 +46,11 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
 
   if (!acordo) return null;
 
-  const parcelas = acordo.parcelas || [];
+  // Ordena por número da parcela (o relacionamento vem sem ordem garantida,
+  // então sem isso a tabela aparecia bagunçada: 3, 1, 2...).
+  const parcelas = [...(acordo.parcelas || [])].sort(
+    (a, b) => a.numero_parcela - b.numero_parcela,
+  );
   const now = new Date();
 
   const counts = {
@@ -96,6 +100,18 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
     if (diasAtraso > 0) return `Atrasado há ${diasAtraso} dias`;
     return "Pendente";
   };
+
+  // Ordena os pagamentos do mais recente para o mais antigo, usando a data
+  // do pagamento (e o created_at como desempate) — antes a ordem ficava
+  // confusa quando vários pagamentos caíam no mesmo dia.
+  const historicoOrdenado = [...(historico || [])].sort((a: any, b: any) => {
+    const da = new Date(a.data_pagamento).getTime();
+    const db = new Date(b.data_pagamento).getTime();
+    if (db !== da) return db - da;
+    const ca = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const cb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return cb - ca;
+  });
 
   const handleDesfazer = () => {
     if (!desfazerParcelaId) return;
@@ -282,26 +298,35 @@ export function AcordoDetailsDialog({ acordoId, open, onClose, onRegistrarPagame
             </div>
 
             {/* Histórico de Pagamentos */}
-            {historico && historico.length > 0 && (
+            {historicoOrdenado.length > 0 && (
               <div>
                 <h4 className="font-semibold mb-3">Histórico de Pagamentos</h4>
-                <div className="space-y-2">
-                  {historico.map((item: any) => (
-                    <div key={item.id} className="flex items-center justify-between border-b pb-2">
-                      <div>
-                        <p className="text-sm font-medium">Parcela {item.parcela?.numero_parcela}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(item.data_pagamento), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">
+                <div className="rounded-lg border divide-y">
+                  {historicoOrdenado.map((item: any) => {
+                    const parcela = Array.isArray(item.parcela) ? item.parcela[0] : item.parcela;
+                    return (
+                      <div key={item.id} className="flex items-center justify-between gap-3 px-3 py-2">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Badge variant="outline" className="shrink-0">
+                            Parcela {parcela?.numero_parcela ?? "—"}
+                          </Badge>
+                          <div className="min-w-0">
+                            <p className="text-sm">
+                              {format(new Date(item.data_pagamento), "dd/MM/yyyy", { locale: ptBR })}
+                            </p>
+                            {item.forma_pagamento && (
+                              <p className="text-xs text-muted-foreground capitalize truncate">
+                                {item.forma_pagamento}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm font-semibold text-green-600 shrink-0">
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.valor)}
                         </p>
-                        <p className="text-xs text-muted-foreground">{item.forma_pagamento}</p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
