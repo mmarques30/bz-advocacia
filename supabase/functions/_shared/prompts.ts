@@ -186,7 +186,7 @@ export const PERGUNTA_TEXTO_POR_CODIGO: Record<string, string> = {
   familia_m1: "Caso consensual ou divergente?",
   familia_m2: "Bens em comum / filhos / proposta de guarda?",
   familia_m3: "Podemos agendar a reunião com a advogada?",
-  fora_escopo: "Tema fora do escopo — handoff direto pra triagem.",
+  fora_escopo: "Tema fora do escopo, handoff direto pra triagem.",
 };
 
 // ---------- SYSTEM PROMPT do classificador (Claudia) ----------
