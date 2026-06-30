@@ -1691,6 +1691,7 @@ export type Database = {
           status_sdr: string | null
           telefone_digits: string | null
           tentativas_etapa: number
+          tipo_contato: string
           tipo_servico: string | null
           ultima_leitura_humano: string | null
           ultima_mensagem_em: string | null
@@ -1736,6 +1737,7 @@ export type Database = {
           status_sdr?: string | null
           telefone_digits?: string | null
           tentativas_etapa?: number
+          tipo_contato?: string
           tipo_servico?: string | null
           ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
@@ -1781,6 +1783,7 @@ export type Database = {
           status_sdr?: string | null
           telefone_digits?: string | null
           tentativas_etapa?: number
+          tipo_contato?: string
           tipo_servico?: string | null
           ultima_leitura_humano?: string | null
           ultima_mensagem_em?: string | null
@@ -4313,6 +4316,10 @@ export type Database = {
       }
     }
     Functions: {
+      garantir_lead_geral_para_contact: {
+        Args: { p_contact_submission_id: string }
+        Returns: string
+      }
       get_sdr_webhook_secret: { Args: never; Returns: string }
       has_page_access: {
         Args: { _page_key: string; _user_id: string }
@@ -4325,6 +4332,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      trigger_meta_sync: { Args: { target: string }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "advogado" | "assistente" | "financeiro"
