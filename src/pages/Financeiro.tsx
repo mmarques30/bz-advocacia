@@ -40,7 +40,6 @@ import { MetaMensalBar } from "@/components/financeiro/MetaMensalBar";
 // Despesas
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
-import { DespesasFixasManager } from "@/components/financeiro/despesas/DespesasFixasManager";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
@@ -317,7 +316,6 @@ export default function Financeiro() {
 
         {/* Aba Despesas (Lançamentos+Projeção unificados numa tela só) */}
         <TabsContent value="despesas" className="space-y-6">
-          <DespesasFixasManager />
           <DespesasAlerts />
           <div className="flex items-start gap-4">
             <div className="flex-1">

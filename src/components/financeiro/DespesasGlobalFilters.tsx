@@ -140,22 +140,6 @@ export function DespesasGlobalFilters({ filters, onChange }: DespesasGlobalFilte
           </SelectContent>
         </Select>
 
-        <Select
-          value={filters.tipoDespesa}
-          onValueChange={(value) => handleChange("tipoDespesa", value)}
-        >
-          <SelectTrigger className="h-9 text-xs w-[130px]">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            {tipoDespesaOptions.map((tipo) => (
-              <SelectItem key={tipo.value} value={tipo.value}>
-                {tipo.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         <Popover>
           <PopoverTrigger asChild>
             <Button
