@@ -71,7 +71,6 @@ export function useHistoricoUnificado(filters: TransacoesFilters = {}) {
           valor,
           valor_pago,
           data_pagamento,
-          forma_pagamento,
           acordo:acordos_financeiros!inner(id, tipo_servico, conta, cliente:contact_submissions!cliente_id(nome_completo))
         `)
         .eq("status", "pago")
