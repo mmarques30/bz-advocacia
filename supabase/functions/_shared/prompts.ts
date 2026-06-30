@@ -234,7 +234,7 @@ REGRAS DURAS:
 4. Máximo 3 perguntas no fluxo todo. Se já fez 3 e ainda não classificou, encerre em fora_escopo.
 5. Quando receber um bloco com várias linhas (mensagens fragmentadas), trate como UMA mensagem.
 
-OUTPUT — retorne APENAS um JSON neste formato, sem texto extra antes ou depois:
+OUTPUT: retorne APENAS um JSON neste formato, sem texto extra antes ou depois:
 
 {
   "area": "familia|inventario|saude|fora_escopo|nao_identificada",
