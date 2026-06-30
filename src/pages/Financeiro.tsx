@@ -171,6 +171,22 @@ export default function Financeiro() {
     if (r?.from && r?.to && mesKey(r.from) === mesKey(r.to)) return mesKey(r.from);
     return null;
   })();
+
+  // Igual ao Faturamento: quando não há período custom, o ano do header
+  // define o intervalo das despesas (evita ter dois seletores de ano).
+  const effectiveDespesasFilters: DespesasGlobalFiltersState = (() => {
+    if (despesasGlobalFilters.dateRange?.from || despesasGlobalFilters.dateRange?.to) {
+      return despesasGlobalFilters;
+    }
+    if (anoNumero === null) return despesasGlobalFilters;
+    return {
+      ...despesasGlobalFilters,
+      dateRange: {
+        from: new Date(anoNumero, 0, 1),
+        to: new Date(anoNumero, 11, 31, 23, 59, 59, 999),
+      },
+    };
+  })();
   const handleSelectDespesaMes = (mes: string) => {
     if (despesasSelectedMes === mes) {
       setDespesasGlobalFilters({ ...despesasGlobalFilters, dateRange: undefined });
@@ -216,19 +232,21 @@ export default function Financeiro() {
               </SelectContent>
             </Select>
           )}
-          <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {anosParaSelect.map((ano) => (
-                <SelectItem key={ano} value={String(ano)}>
-                  {ano}
-                </SelectItem>
-              ))}
-              <SelectItem value="todos">Todos</SelectItem>
-            </SelectContent>
-          </Select>
+          {activeTab !== "historico" && (
+            <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {anosParaSelect.map((ano) => (
+                  <SelectItem key={ano} value={String(ano)}>
+                    {ano}
+                  </SelectItem>
+                ))}
+                <SelectItem value="todos">Todos</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           {isAdmin && (
             <Button
               variant="ghost"
@@ -373,20 +391,20 @@ export default function Financeiro() {
               </Button>
             </div>
           </div>
-          <DespesasKPIs filters={despesasGlobalFilters} />
+          <DespesasKPIs filters={effectiveDespesasFilters} />
           <DespesasProjecaoTab
             selectedMes={despesasSelectedMes}
             onSelectMonth={handleSelectDespesaMes}
-            dateRange={despesasGlobalFilters.dateRange}
+            dateRange={effectiveDespesasFilters.dateRange}
           />
           <DespesasTable
             filters={{
-              categoria: despesasGlobalFilters.categoria !== "todos" ? [despesasGlobalFilters.categoria as any] : undefined,
-              status: despesasGlobalFilters.status !== "todos" ? [despesasGlobalFilters.status as any] : undefined,
+              categoria: effectiveDespesasFilters.categoria !== "todos" ? [effectiveDespesasFilters.categoria as any] : undefined,
+              status: effectiveDespesasFilters.status !== "todos" ? [effectiveDespesasFilters.status as any] : undefined,
               // Propaga periodo (antes o filtro global "período" so afetava KPIs/charts e a
               // tabela ignorava, fazendo parecer que o filtro "nao funcionava").
-              data_inicio: despesasGlobalFilters.dateRange?.from,
-              data_fim: despesasGlobalFilters.dateRange?.to,
+              data_inicio: effectiveDespesasFilters.dateRange?.from,
+              data_fim: effectiveDespesasFilters.dateRange?.to,
             }}
             onSelectDespesa={setSelectedDespesaId}
             onDuplicateDespesa={(d) => {
