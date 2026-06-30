@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MetaKPIs, PeriodoFiltro } from "@/types/meta-ads";
-import { DollarSign, Users, Target, TrendingUp, RefreshCw, Loader2 } from "lucide-react";
+import { DollarSign, Users, Target, TrendingUp, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +46,17 @@ export function MetaAdsHeader({
 
   const ago = (iso: string | null) =>
     iso ? formatDistanceToNow(new Date(iso), { addSuffix: true, locale: ptBR }) : "nunca";
+
+  // Sync esperado: insights de hora em hora, estrutura diária. Se passou
+  // muito do esperado, sinaliza que parou de atualizar (token expirado,
+  // secret do vault, ou edge function com erro — ver meta_execution_log).
+  const horasDesde = (iso: string | null): number | null =>
+    iso ? (Date.now() - new Date(iso).getTime()) / 36e5 : null;
+  const insightsHoras = horasDesde(ultimaInsights);
+  const structureHoras = horasDesde(ultimaStructure);
+  const insightsStale = insightsHoras === null || insightsHoras > 3;
+  const structureStale = structureHoras === null || structureHoras > 48;
+  const algumStale = insightsStale || structureStale;
 
   async function sincronizar() {
     setSyncing(true);
@@ -135,10 +146,21 @@ export function MetaAdsHeader({
       </div>
 
       {/* Linha 3: status sincronizacao */}
-      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-        <span>Estrutura: {ago(ultimaStructure)}</span>
-        <span>•</span>
-        <span>Insights: {ago(ultimaInsights)}</span>
+      <div className="flex items-center gap-3 text-[11px] flex-wrap">
+        <span className={structureStale ? "text-destructive font-medium" : "text-muted-foreground"}>
+          Estrutura: {ago(ultimaStructure)}
+        </span>
+        <span className="text-muted-foreground">•</span>
+        <span className={insightsStale ? "text-destructive font-medium" : "text-muted-foreground"}>
+          Insights: {ago(ultimaInsights)}
+        </span>
+        {algumStale && (
+          <span className="flex items-center gap-1 text-destructive">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Sincronização atrasada — clique em "Sincronizar". Se o erro persistir, a conexão com o
+            Meta pode ter expirado (verifique o token e o log de execução).
+          </span>
+        )}
       </div>
     </div>
   );
