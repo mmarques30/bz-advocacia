@@ -1,12 +1,4 @@
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Receipt, ChevronRight } from "lucide-react";
 import { VisaoGeralKPIs } from "./VisaoGeralKPIs";
@@ -17,23 +9,10 @@ import { useTotalParcelasPendentes } from "@/hooks/useVisaoGeralFinanceiro";
 
 interface Props {
   ano: number | null;
+  // Mês selecionado no header (ao lado do ano). null = todos os meses.
+  mes: number | null;
   onNavigateToAcordos: () => void;
 }
-
-const MESES = [
-  { value: "1", label: "Janeiro" },
-  { value: "2", label: "Fevereiro" },
-  { value: "3", label: "Março" },
-  { value: "4", label: "Abril" },
-  { value: "5", label: "Maio" },
-  { value: "6", label: "Junho" },
-  { value: "7", label: "Julho" },
-  { value: "8", label: "Agosto" },
-  { value: "9", label: "Setembro" },
-  { value: "10", label: "Outubro" },
-  { value: "11", label: "Novembro" },
-  { value: "12", label: "Dezembro" },
-];
 
 const fmtCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -67,39 +46,17 @@ function TotalParcelasPendentesCard({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function VisaoGeralTab({ ano, onNavigateToAcordos }: Props) {
-  const mesAtual = new Date().getMonth() + 1;
-  const [mesSelecionado, setMesSelecionado] = useState<string>(String(mesAtual));
-  const mesNumero = mesSelecionado === "todos" ? null : Number(mesSelecionado);
-
+export function VisaoGeralTab({ ano, mes, onNavigateToAcordos }: Props) {
   return (
     <div className="space-y-6">
-      {/* Filtro de mês (o ano vem do seletor global do header) */}
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-muted-foreground">Mês:</span>
-        <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os meses</SelectItem>
-            {MESES.map((m) => (
-              <SelectItem key={m.value} value={m.value}>
-                {m.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Card de total de parcelas pendentes — clique navega para aba Acordos e Parcelas */}
       <TotalParcelasPendentesCard onClick={onNavigateToAcordos} />
 
-      <VisaoGeralKPIs ano={ano} mes={mesNumero} />
+      <VisaoGeralKPIs ano={ano} mes={mes} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ReceitasDespesasChart ano={ano} />
-        <DespesasPorCategoriaChart ano={ano} mes={mesNumero} />
+        <DespesasPorCategoriaChart ano={ano} mes={mes} />
       </div>
 
       <ResultadoPeriodoCard ano={ano} />

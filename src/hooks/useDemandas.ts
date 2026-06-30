@@ -1,7 +1,34 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/lib/toast";
 import { Demanda, DemandasFilters } from "@/types/demandas";
+
+/**
+ * Invalida TODAS as queries que dependem de demandas/tarefas.
+ *
+ * Antes, as mutations só invalidavam ['demandas'], ['demandas-stats'] e
+ * ['demandas-by-status']. Por isso, ao mudar o status de uma tarefa, os
+ * cards da tela inicial (Dashboard) e outras visões (tarefas do cliente,
+ * do processo, contadores de subtarefas, produtividade, pendências do
+ * usuário) continuavam mostrando o valor antigo — exatamente o sintoma
+ * "mudo o status mas não atualiza / na tela inicial continua igual".
+ */
+export const invalidateTarefasQueries = (queryClient: QueryClient) => {
+  [
+    "demandas",
+    "demandas-stats",
+    "demandas-by-status",
+    "demandas-by-lead",
+    "subtarefas",
+    "subtask-counts",
+    "processo-tarefas",
+    "dashboard-visual",
+    "dashboard-principal-v2",
+    "user-pendencias",
+    "produtividade-equipe",
+    "demandas-performance",
+  ].forEach((key) => queryClient.invalidateQueries({ queryKey: [key] }));
+};
 
 export const useDemandas = (filters?: DemandasFilters) => {
   return useQuery({
@@ -243,9 +270,7 @@ export const useCreateDemanda = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-by-status'] });
+      invalidateTarefasQueries(queryClient);
       toast.success('Demanda criada com sucesso!');
     },
     onError: (error: any) => {
@@ -270,9 +295,7 @@ export const useUpdateDemanda = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-by-status'] });
+      invalidateTarefasQueries(queryClient);
       toast.success('Demanda atualizada com sucesso!');
     },
     onError: (error: any) => {
@@ -294,9 +317,7 @@ export const useDeleteDemanda = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['demandas'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-stats'] });
-      queryClient.invalidateQueries({ queryKey: ['demandas-by-status'] });
+      invalidateTarefasQueries(queryClient);
       toast.success('Demanda excluída com sucesso!');
     },
     onError: (error: any) => {

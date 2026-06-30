@@ -40,7 +40,6 @@ import { MetaMensalBar } from "@/components/financeiro/MetaMensalBar";
 // Despesas
 import { DespesasTable } from "@/components/financeiro/despesas/DespesasTable";
 import { NewDespesaDialog } from "@/components/financeiro/despesas/NewDespesaDialog";
-import { DespesasFixasManager } from "@/components/financeiro/despesas/DespesasFixasManager";
 import { DespesaDetailsDialog } from "@/components/financeiro/despesas/DespesaDetailsDialog";
 import { DespesasAlerts } from "@/components/financeiro/DespesasAlerts";
 import { DespesasKPIs } from "@/components/financeiro/DespesasKPIs";
@@ -61,8 +60,25 @@ import { HistoricoTable } from "@/components/financeiro/historico/HistoricoTable
 
 const currentYear = new Date().getFullYear();
 
+const MESES = [
+  { value: "1", label: "Janeiro" },
+  { value: "2", label: "Fevereiro" },
+  { value: "3", label: "Março" },
+  { value: "4", label: "Abril" },
+  { value: "5", label: "Maio" },
+  { value: "6", label: "Junho" },
+  { value: "7", label: "Julho" },
+  { value: "8", label: "Agosto" },
+  { value: "9", label: "Setembro" },
+  { value: "10", label: "Outubro" },
+  { value: "11", label: "Novembro" },
+  { value: "12", label: "Dezembro" },
+];
+
 export default function Financeiro() {
   const [anoSelecionado, setAnoSelecionado] = useState<string>(String(currentYear));
+  // Mês da aba Visão Geral — fica ao lado do seletor de ano no header.
+  const [mesSelecionado, setMesSelecionado] = useState<string>(String(new Date().getMonth() + 1));
   const [activeTab, setActiveTab] = useState<string>("visao-geral");
   // Sub-aba do Faturamento (Acordos foi trazido pra ca como sub-aba).
   const [faturamentoSubTab, setFaturamentoSubTab] = useState<string>("lancamentos");
@@ -101,6 +117,7 @@ export default function Financeiro() {
   })();
 
   const anoNumero = anoSelecionado === "todos" ? null : Number(anoSelecionado);
+  const mesVisaoGeralNumero = mesSelecionado === "todos" ? null : Number(mesSelecionado);
 
   // Filtro de mes do Faturamento: deriva o mes selecionado quando o periodo
   // cobre exatamente um mes, e permite clicar numa barra do grafico pra
@@ -184,6 +201,21 @@ export default function Financeiro() {
           <h1 className="text-3xl font-seasons text-primary">Gestão Financeira</h1>
         </div>
         <div className="flex items-center gap-2">
+          {activeTab === "visao-geral" && (
+            <Select value={mesSelecionado} onValueChange={setMesSelecionado}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os meses</SelectItem>
+                {MESES.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={anoSelecionado} onValueChange={setAnoSelecionado}>
             <SelectTrigger className="w-[120px]">
               <SelectValue />
@@ -267,6 +299,7 @@ export default function Financeiro() {
         <TabsContent value="visao-geral">
           <VisaoGeralTab
             ano={anoNumero}
+            mes={mesVisaoGeralNumero}
             onNavigateToAcordos={() => {
               setActiveTab("faturamento");
               setFaturamentoSubTab("acordos");
@@ -317,7 +350,6 @@ export default function Financeiro() {
 
         {/* Aba Despesas (Lançamentos+Projeção unificados numa tela só) */}
         <TabsContent value="despesas" className="space-y-6">
-          <DespesasFixasManager />
           <DespesasAlerts />
           <div className="flex items-start gap-4">
             <div className="flex-1">

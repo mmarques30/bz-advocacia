@@ -85,7 +85,10 @@ export function CalendarioView() {
         titulo: d.titulo,
         subtitulo: d.tipo,
         data: d.data_limite,
-        status: d.status === "concluida" ? "cumprido" : "pendente",
+        // O valor no banco é "concluido" (masculino, sem acento). Antes
+        // comparava com "concluida" e tarefas concluídas apareciam sempre
+        // como pendentes no calendário.
+        status: d.status === "concluido" ? "cumprido" : "pendente",
         prioridade: d.prioridade,
         diasRestantes: dias,
         original: d,

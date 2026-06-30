@@ -22,7 +22,10 @@ import { ptBR } from "date-fns/locale";
 import type { Despesa, DespesasFilters } from "@/types/financeiro";
 import { STATUS_DESPESA_LABELS, CONTA_LABELS } from "@/types/financeiro";
 import { useDespesas, useDeleteDespesa } from "@/hooks/useDespesas";
+import { useDespesasFixas, useGerarDespesasFixasMes } from "@/hooks/useDespesasFixas";
 import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { DespesasFixasDialog } from "./DespesasFixasDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog,
@@ -61,13 +64,31 @@ interface DespesasTableProps {
 
 const INITIAL_ITEMS = 3;
 
+type TipoFiltro = "todas" | "fixas" | "variaveis";
+
 export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: DespesasTableProps) {
   const { data: despesas, isLoading } = useDespesas(filters);
   const deleteDespesa = useDeleteDespesa();
   const { getLabel: getCategoriaLabel } = useCategoriasDespesa();
+
+  // Gestão de despesas fixas/recorrentes integrada à tabela (antes era um
+  // card separado no topo). Mantém a geração automática das ocorrências do
+  // mês ao abrir a aba.
+  const { data: fixas } = useDespesasFixas();
+  const gerarMes = useGerarDespesasFixasMes();
+  const [fixasDialogOpen, setFixasDialogOpen] = useState(false);
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todas");
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [despesaToDelete, setDespesaToDelete] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (fixas && fixas.length > 0) {
+      gerarMes.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fixas?.length]);
   const [colunasVisiveis, setColunasVisiveis] = useState<Record<ColunaOpcionalKey, boolean>>(() => {
     if (typeof window === "undefined") return { categoria: true, valor: true, conta: true, status: true };
     try {
@@ -82,12 +103,20 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
   const toggleColuna = (key: ColunaOpcionalKey) =>
     setColunasVisiveis((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const despesasExibidas = isExpanded 
-    ? despesas 
-    : despesas?.slice(0, INITIAL_ITEMS);
-  
-  const temMaisItens = (despesas?.length || 0) > INITIAL_ITEMS;
-  const itensRestantes = (despesas?.length || 0) - INITIAL_ITEMS;
+  // Fixa = ocorrência gerada de uma despesa fixa (tem despesa_fixa_id).
+  // Variável = lançamento avulso (sem vínculo com modelo recorrente).
+  const despesasFiltradas = (despesas || []).filter((d) => {
+    if (tipoFiltro === "fixas") return !!d.despesa_fixa_id;
+    if (tipoFiltro === "variaveis") return !d.despesa_fixa_id;
+    return true;
+  });
+
+  const despesasExibidas = isExpanded
+    ? despesasFiltradas
+    : despesasFiltradas.slice(0, INITIAL_ITEMS);
+
+  const temMaisItens = despesasFiltradas.length > INITIAL_ITEMS;
+  const itensRestantes = despesasFiltradas.length - INITIAL_ITEMS;
 
   const handleDelete = () => {
     if (despesaToDelete) {
@@ -120,19 +149,34 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
     );
   }
 
-  if (!despesas || despesas.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed p-12 text-center">
-        <p className="text-muted-foreground">
-          Nenhuma despesa encontrada.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="flex justify-end mb-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            type="single"
+            value={tipoFiltro}
+            onValueChange={(v) => v && setTipoFiltro(v as TipoFiltro)}
+            variant="outline"
+            size="sm"
+          >
+            <ToggleGroupItem value="todas" className="text-xs">Todas</ToggleGroupItem>
+            <ToggleGroupItem value="fixas" className="text-xs">Fixas</ToggleGroupItem>
+            <ToggleGroupItem value="variaveis" className="text-xs">Variáveis</ToggleGroupItem>
+          </ToggleGroup>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setFixasDialogOpen(true)}
+          >
+            <CalendarClock className="h-3.5 w-3.5" />
+            Despesas fixas
+            {fixas && fixas.length > 0 && (
+              <Badge variant="secondary" className="ml-1">{fixas.length}</Badge>
+            )}
+          </Button>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1.5">
@@ -158,6 +202,16 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {despesasFiltradas.length === 0 ? (
+        <div className="rounded-lg border border-dashed p-12 text-center">
+          <p className="text-muted-foreground">
+            {!despesas || despesas.length === 0
+              ? "Nenhuma despesa encontrada."
+              : "Nenhuma despesa para este filtro."}
+          </p>
+        </div>
+      ) : (
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
@@ -265,6 +319,7 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
           </TableBody>
         </Table>
       </div>
+      )}
 
       {temMaisItens && (
         <Button
@@ -300,6 +355,8 @@ export function DespesasTable({ filters, onSelectDespesa, onDuplicateDespesa }: 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DespesasFixasDialog open={fixasDialogOpen} onClose={() => setFixasDialogOpen(false)} />
     </>
   );
 }

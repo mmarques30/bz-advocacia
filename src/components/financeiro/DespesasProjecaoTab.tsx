@@ -1,10 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from "recharts";
+import {
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, startOfMonth, endOfMonth, addMonths, differenceInCalendarMonths, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
+
+const COR_FIXA = "hsl(var(--primary))";
+const COR_VARIAVEL = "#94a3b8"; // slate-400
+const COR_TOTAL = "#f59e0b"; // amber-500
 
 interface DespesasProjecaoTabProps {
   selectedMes?: string | null;
@@ -65,45 +80,52 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
       const janelaInicio = janela[0].inicio;
       const janelaFim = janela[janela.length - 1].fim;
 
-      // Filtro server-side: garante que SO buscamos linhas dentro do periodo
-      // exibido. Antes baixava 10k linhas e filtrava client-side, o que
-      // permitia que cache stale ou logica de janela errada vazasse meses
-      // de outros anos no grafico.
+      // Despesas da tabela rica — têm despesa_fixa_id, que separa
+      // fixas/recorrentes de variáveis.
       const { data: despesas } = await supabase
         .from("despesas")
-        .select("valor, data, status")
+        .select("valor, data, despesa_fixa_id")
         .gte("data", janelaInicio.toISOString().slice(0, 10))
         .lte("data", janelaFim.toISOString().slice(0, 10))
         .limit(10000);
 
-      const { data: transacoes } = await supabase
+      // Transações de despesa (import/legado). As que são espelho de uma
+      // despesa (origem_despesa_id preenchido) já estão contadas acima —
+      // pulamos para não duplicar. As demais entram como variáveis.
+      const { data: transacoes } = await (supabase as any)
         .from("transacoes_financeiras")
-        .select("valor, data_transacao, tipo_codigo")
+        .select("valor, data_transacao, tipo_codigo, origem_despesa_id")
         .in("tipo_codigo", ["despesa", "DESP"])
         .gte("data_transacao", janelaInicio.toISOString())
         .lte("data_transacao", janelaFim.toISOString())
         .limit(10000);
 
       return janela.map(({ inicio, fim }) => {
-        const despesasMes = (despesas || [])
-          .filter(d => {
-            const dd = new Date(d.data);
-            return dd >= inicio && dd <= fim;
-          })
-          .reduce((sum, d) => sum + Number(d.valor), 0);
+        let fixa = 0;
+        let variavel = 0;
 
-        const transacoesDespMes = (transacoes || [])
-          .filter(t => {
-            if (!t.data_transacao) return false;
-            const dt = new Date(t.data_transacao);
-            return dt >= inicio && dt <= fim;
-          })
-          .reduce((sum, t) => sum + (t.valor || 0), 0);
+        (despesas || []).forEach((d) => {
+          const dd = new Date(d.data);
+          if (dd < inicio || dd > fim) return;
+          const valor = Math.abs(Number(d.valor) || 0);
+          if ((d as any).despesa_fixa_id) fixa += valor;
+          else variavel += valor;
+        });
+
+        (transacoes || []).forEach((t: any) => {
+          if (!t.data_transacao) return;
+          if (t.origem_despesa_id) return; // espelho de despesa já contado
+          const dt = new Date(t.data_transacao);
+          if (dt < inicio || dt > fim) return;
+          variavel += Math.abs(Number(t.valor) || 0);
+        });
 
         return {
           mes: format(inicio, "MMM/yy", { locale: ptBR }),
           mesKey: format(inicio, "yyyy-MM"),
-          despesas: despesasMes + transacoesDespMes,
+          fixa,
+          variavel,
+          total: fixa + variavel,
         };
       });
     },
@@ -116,9 +138,9 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
   const formatCurrencyFull = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
-  const mesesComValor = (evolucaoDespesas || []).filter(d => d.despesas > 0);
+  const mesesComValor = (evolucaoDespesas || []).filter(d => d.total > 0);
   const media = mesesComValor.length > 0
-    ? mesesComValor.reduce((sum, d) => sum + d.despesas, 0) / mesesComValor.length
+    ? mesesComValor.reduce((sum, d) => sum + d.total, 0) / mesesComValor.length
     : 0;
 
   const periodoLabel = getPeriodoLabel(dateRange);
@@ -140,8 +162,8 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
         </CardHeader>
         <CardContent>
           {evolucaoDespesas && evolucaoDespesas.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
+            <ResponsiveContainer width="100%" height={320}>
+              <ComposedChart
                 data={evolucaoDespesas}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                 onClick={(state: any) => {
@@ -153,7 +175,11 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} className="text-muted-foreground" />
                 <Tooltip
-                  formatter={(value: number) => [formatCurrencyFull(value), "Despesas"]}
+                  formatter={(value: number, name: string) => {
+                    const label =
+                      name === "fixa" ? "Fixas" : name === "variavel" ? "Variáveis" : "Total";
+                    return [formatCurrencyFull(value), label];
+                  }}
                   cursor={{ fill: "hsl(var(--primary) / 0.08)" }}
                   contentStyle={{
                     backgroundColor: "hsl(var(--background))",
@@ -161,28 +187,50 @@ export function DespesasProjecaoTab({ selectedMes, onSelectMonth, dateRange }: D
                     borderRadius: "8px",
                   }}
                 />
-                <Legend formatter={() => "Despesas"} />
+                <Legend
+                  formatter={(value) =>
+                    value === "fixa" ? "Fixas" : value === "variavel" ? "Variáveis" : "Total"
+                  }
+                />
                 <Bar
-                  dataKey="despesas"
+                  dataKey="fixa"
+                  stackId="despesas"
+                  fill={COR_FIXA}
+                  cursor={onSelectMonth ? "pointer" : undefined}
+                >
+                  {evolucaoDespesas.map((entry) => {
+                    const isDimmed = selectedMes && entry.mesKey !== selectedMes;
+                    return (
+                      <Cell key={entry.mesKey} fill={COR_FIXA} opacity={isDimmed ? 0.35 : 1} />
+                    );
+                  })}
+                </Bar>
+                <Bar
+                  dataKey="variavel"
+                  stackId="despesas"
+                  fill={COR_VARIAVEL}
                   radius={[4, 4, 0, 0]}
                   cursor={onSelectMonth ? "pointer" : undefined}
                 >
                   {evolucaoDespesas.map((entry) => {
-                    const isSelected = entry.mesKey === selectedMes;
-                    const isDimmed = selectedMes && !isSelected;
+                    const isDimmed = selectedMes && entry.mesKey !== selectedMes;
                     return (
-                      <Cell
-                        key={entry.mesKey}
-                        fill="hsl(var(--primary))"
-                        opacity={isDimmed ? 0.35 : isSelected ? 1 : 0.85}
-                      />
+                      <Cell key={entry.mesKey} fill={COR_VARIAVEL} opacity={isDimmed ? 0.35 : 1} />
                     );
                   })}
                 </Bar>
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="total"
+                  stroke={COR_TOTAL}
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: COR_TOTAL }}
+                  activeDot={{ r: 5 }}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+            <div className="flex items-center justify-center h-[320px] text-muted-foreground">
               Nenhum dado disponível
             </div>
           )}

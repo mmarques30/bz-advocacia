@@ -54,6 +54,23 @@ export default function ProcessosDemandas() {
   const { data: demandasByStatus, isLoading: kanbanLoading } = useDemandasByStatus();
   const deleteDemanda = useDeleteDemanda();
 
+  // Mantém a demanda aberta no diálogo sincronizada com os dados recém
+  // buscados. Sem isso, o objeto guardado em `selectedDemanda` era um
+  // snapshot do clique e continuava mostrando o status antigo mesmo
+  // depois de salvar a alteração.
+  useEffect(() => {
+    if (!selectedDemanda) return;
+    const candidatos: Demanda[] = [
+      ...(demandas || []),
+      ...Object.values(demandasByStatus || {}).flat(),
+    ];
+    const atualizada = candidatos.find((d) => d.id === selectedDemanda.id);
+    if (atualizada && atualizada !== selectedDemanda) {
+      setSelectedDemanda(atualizada);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demandas, demandasByStatus]);
+
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };

@@ -29,6 +29,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface LeadsKanbanProps {
   leads: Lead[] | undefined;
@@ -38,6 +41,21 @@ interface LeadsKanbanProps {
 }
 
 type ColunaId = "novo" | "enviado" | "qualificado" | "proposta" | "convertido" | "perdido";
+
+// Persistência das colunas recolhidas do pipeline (mesmo padrão de
+// localStorage usado em DespesasTable). Permite ocultar etapas para
+// dimensionar melhor a visão e dar mais espaço às colunas em foco.
+const COLLAPSED_STORAGE_KEY = "leads-kanban-colunas-v1";
+
+function loadCollapsed(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const saved = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  } catch {
+    return {};
+  }
+}
 
 const columns: { id: ColunaId; titulo: string; color: string }[] = [
   { id: "novo", titulo: "Novo", color: "border-t-blue-500" },
@@ -170,6 +188,45 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
   );
 }
 
+// Coluna recolhida: faixa estreita que continua sendo alvo de drop (para
+// não quebrar o arrastar-e-soltar) e expande ao clicar.
+function CollapsedColumn({
+  id,
+  titulo,
+  count,
+  color,
+  onExpand,
+}: {
+  id: ColunaId;
+  titulo: string;
+  count: number;
+  color: string;
+  onExpand: () => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <button
+      type="button"
+      ref={setNodeRef}
+      onClick={onExpand}
+      title={`Expandir ${titulo}`}
+      className={cn(
+        "flex w-12 shrink-0 flex-col items-center gap-2 rounded-lg border border-t-4 bg-muted/30 py-3 transition-colors hover:bg-accent",
+        color,
+        isOver && "bg-accent/50 ring-2 ring-primary/30",
+      )}
+    >
+      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <span className="flex-1 text-xs font-semibold [writing-mode:vertical-rl] rotate-180">
+        {titulo}
+      </span>
+      <span className="rounded-full bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+        {count}
+      </span>
+    </button>
+  );
+}
+
 export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: LeadsKanbanProps) {
   const queryClient = useQueryClient();
   const deleteLead = useDeleteLead();
@@ -179,6 +236,18 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
   const [leadNaoLead, setLeadNaoLead] = useState<Lead | null>(null);
   const [tipoNaoLead, setTipoNaoLead] = useState<string>("institucional");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [collapsedColumns, setCollapsedColumns] = useState<Record<string, boolean>>(loadCollapsed);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(COLLAPSED_STORAGE_KEY, JSON.stringify(collapsedColumns));
+    } catch {
+      /* ignore */
+    }
+  }, [collapsedColumns]);
+
+  const toggleColuna = (id: ColunaId) =>
+    setCollapsedColumns((prev) => ({ ...prev, [id]: !prev[id] }));
 
   // activationConstraint.distance: so inicia drag depois de mover 8px,
   // permitindo que clicks simples no card propaguem pra abrir o detalhe
@@ -332,14 +401,43 @@ export function LeadsKanban({ leads, isLoading, onViewDetails, onAssumed }: Lead
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:flex-wrap">
         {columns.map((coluna) => {
           const colLeads = leadsGrouped[coluna.id] || [];
+
+          if (collapsedColumns[coluna.id]) {
+            return (
+              <CollapsedColumn
+                key={coluna.id}
+                id={coluna.id}
+                titulo={coluna.titulo}
+                count={colLeads.length}
+                color={coluna.color}
+                onExpand={() => toggleColuna(coluna.id)}
+              />
+            );
+          }
+
           return (
-            <div key={coluna.id} className={`border rounded-lg ${coluna.color} border-t-4 bg-muted/30`}>
-              <div className="p-3 border-b">
-                <h3 className="font-semibold text-sm">{coluna.titulo}</h3>
-                <span className="text-xs text-muted-foreground">{colLeads.length} leads</span>
+            <div
+              key={coluna.id}
+              className={`flex-1 md:min-w-[240px] border rounded-lg ${coluna.color} border-t-4 bg-muted/30`}
+            >
+              <div className="flex items-start justify-between gap-2 p-3 border-b">
+                <div>
+                  <h3 className="font-semibold text-sm">{coluna.titulo}</h3>
+                  <span className="text-xs text-muted-foreground">{colLeads.length} leads</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 text-muted-foreground"
+                  onClick={() => toggleColuna(coluna.id)}
+                  title={`Ocultar ${coluna.titulo}`}
+                  aria-label={`Ocultar coluna ${coluna.titulo}`}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
               </div>
               <DroppableColumn id={coluna.id}>
                 {colLeads.map((lead) => (
