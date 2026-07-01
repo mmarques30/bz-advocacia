@@ -50,7 +50,7 @@ function formatValue(v: unknown): string {
 }
 
 function labelFor(k: string): string {
-  return FIELD_LABEL[k] ?? k.replaceAll("_", " ").replace(/^./, (c) => c.toUpperCase());
+  return FIELD_LABEL[k] ?? k.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 }
 
 interface Props {
