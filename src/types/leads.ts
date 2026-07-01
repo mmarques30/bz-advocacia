@@ -59,6 +59,13 @@ export interface Lead {
   // Mais confiavel que `origem` (contact_submissions) pra separar
   // pipeline Organico vs Anuncios.
   is_organic?: boolean | null;
+  // Subtipo capturado pelo bot (ex: "medicamento", "cirurgia",
+  // "divorcio_consensual", "inventario_extrajudicial"). Diferente
+  // de tipo_processo (que e a area vinda do form/CRM).
+  tipo_servico_bot?: string | null;
+  urgencia?: "alta" | "media" | "baixa" | null;
+  // Blob acumulado de tudo que a Claudia extraiu durante a conversa.
+  dados_capturados?: Record<string, any> | null;
   // Classificacao do contato. Default 'lead' (entra no funil). Outros
   // valores ('fornecedor', 'parceiro', 'institucional', 'pessoal') sao
   // filtrados do Kanban principal.
