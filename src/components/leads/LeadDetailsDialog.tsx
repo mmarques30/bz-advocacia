@@ -26,6 +26,7 @@ import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { ClienteFinanceiroTab } from "./ClienteFinanceiroTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { LeadQualificacaoTab } from "./LeadQualificacaoTab";
 import { ConversaBot } from "./ConversaBot";
 import { Bot } from "lucide-react";
 import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
