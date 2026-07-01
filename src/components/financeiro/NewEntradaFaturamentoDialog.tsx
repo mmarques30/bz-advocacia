@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { cn } from "@/lib/utils";
 import { useCreateAcordo } from "@/hooks/useFinanceiro";
 import { useLeads } from "@/hooks/useLeads";
 import { useProcessos } from "@/hooks/useProcessos";
@@ -82,10 +83,16 @@ export function NewEntradaFaturamentoDialog({ open, onClose }: NewEntradaFaturam
                 <ToggleGroupItem
                   key={t}
                   value={t}
-                  className="flex h-auto flex-col items-center gap-1.5 py-3 data-[state=on]:border-primary data-[state=on]:bg-primary/10"
+                  // Estados invisiveis: sem override, o texto default do
+                  // ToggleGroupItem virava quase transparente sobre bg-primary/10.
+                  // Fixamos cor de texto pro foreground em ambos os estados.
+                  className={cn(
+                    "flex h-auto flex-col items-center gap-1.5 py-3 text-foreground",
+                    "data-[state=on]:border-primary data-[state=on]:bg-primary/10 data-[state=on]:text-foreground",
+                  )}
                 >
                   <span className="text-primary">{TIPO_ICONS[t]}</span>
-                  <span className="text-xs font-medium text-center leading-tight">
+                  <span className="text-xs font-medium text-center leading-tight text-foreground">
                     {TIPO_ENTRADA_FATURAMENTO_LABELS[t]}
                   </span>
                 </ToggleGroupItem>
