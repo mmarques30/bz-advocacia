@@ -631,6 +631,18 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} dataNascimento={lead.data_nascimento} />
               </TabsContent>
 
+              <TabsContent value="qualificacao" className="mt-4">
+                <LeadQualificacaoTab
+                  leadGeralId={(lead as any).lead_geral_id ?? lead.id}
+                  dadosCapturados={lead.dados_capturados}
+                  area={lead.area_normalizada}
+                  score={lead.score}
+                  urgencia={lead.urgencia}
+                  etapa={lead.etapa_qualificacao}
+                  tipoServicoBot={lead.tipo_servico_bot}
+                />
+              </TabsContent>
+
               <TabsContent value="documentos" className="mt-4">
                 {lead.documentos && lead.documentos.length > 0 ? (
                   <div className="space-y-2">
