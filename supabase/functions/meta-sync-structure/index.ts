@@ -232,6 +232,7 @@ Deno.serve(async (req) => {
           ads: ads.length,
           forms: forms.length,
         },
+        forms_warning: formsWarning,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
