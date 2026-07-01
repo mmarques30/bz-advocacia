@@ -414,6 +414,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   <MessageCircle className="h-3.5 w-3.5" />
                   Mensagens
                 </TabsTrigger>
+                <TabsTrigger value="qualificacao" className="flex items-center gap-1">
+                  <Bot className="h-3.5 w-3.5" />
+                  Qualificação
+                </TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 <TabsTrigger value="notas">Notas</TabsTrigger>
               </TabsList>
