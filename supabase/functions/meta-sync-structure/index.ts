@@ -188,22 +188,30 @@ Deno.serve(async (req) => {
       synced_at: now,
     }));
 
-    // Leadgen forms (B&Z usa CTWA, mas sincroniza pra futuro)
-    const formsRaw = await pagedFetch(graphUrl(`${cred.page_id}/leadgen_forms`, {
-      fields: "id,name,status,leads_count,questions,created_time",
-      limit: "100",
-    }));
-    const forms = formsRaw.map((f: any) => ({
-      id: f.id,
-      page_id: cred.page_id,
-      name: f.name ?? null,
-      status: f.status ?? null,
-      leads_count: f.leads_count ?? null,
-      questions: f.questions ?? null,
-      created_time: f.created_time ?? null,
-      raw: f,
-      synced_at: now,
-    }));
+    // Leadgen forms — endpoint exige Page Access Token. B&Z usa CTWA (WhatsApp),
+    // entao isso e best-effort: se falhar, loga aviso e segue.
+    let forms: any[] = [];
+    let formsWarning: string | null = null;
+    try {
+      const formsRaw = await pagedFetch(graphUrl(`${cred.page_id}/leadgen_forms`, {
+        fields: "id,name,status,leads_count,questions,created_time",
+        limit: "100",
+      }));
+      forms = formsRaw.map((f: any) => ({
+        id: f.id,
+        page_id: cred.page_id,
+        name: f.name ?? null,
+        status: f.status ?? null,
+        leads_count: f.leads_count ?? null,
+        questions: f.questions ?? null,
+        created_time: f.created_time ?? null,
+        raw: f,
+        synced_at: now,
+      }));
+    } catch (e: any) {
+      formsWarning = e?.message ?? String(e);
+      console.warn(`[${FN_NAME}] leadgen_forms skipped:`, formsWarning);
+    }
 
     const total =
       (await upsertBatch(sb, "meta_campaigns", campaigns, "id")) +
@@ -224,6 +232,7 @@ Deno.serve(async (req) => {
           ads: ads.length,
           forms: forms.length,
         },
+        forms_warning: formsWarning,
       }),
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
