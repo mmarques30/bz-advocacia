@@ -959,24 +959,51 @@ Decida a próxima etapa seguindo as regras do system prompt e retorne o JSON.`;
   const areaValida = ["familia", "inventario", "saude", "fora_escopo"].includes((r.area ?? "").toLowerCase());
   const areaParaPersistir = areaValida ? r.area : (lead.area_normalizada ?? null);
 
-  // Atualiza area normalizada, fluxo e score (so sobrescreve area se valida)
-  await supabase
+  // Normaliza dados capturados nesta rodada
+  const capturadosAgora: Record<string, unknown> = { ...(r.dados_capturados ?? {}) };
+  const subtipoAgora = (capturadosAgora.subtipo ?? capturadosAgora.tipo ?? null) as string | null;
+  const urgenciaBruta = String(capturadosAgora.urgencia ?? "").toLowerCase().trim();
+  const urgenciaAgora = ["alta", "media", "média", "baixa"].includes(urgenciaBruta)
+    ? (urgenciaBruta === "média" ? "media" : urgenciaBruta)
+    : null;
+
+  // Merge acumulativo com o que ja tinha em leads_geral.dados_capturados
+  const { data: leadAtual } = await supabase
     .from("leads_geral")
-    .update({
-      area_normalizada: areaParaPersistir,
-      fluxo_sdr: fluxoFromArea(areaParaPersistir),
-      score: r.score,
-      motivo_qualificacao: r.motivo,
-    })
-    .eq("id", lead.id);
+    .select("dados_capturados, tipo_servico, urgencia")
+    .eq("id", lead.id)
+    .maybeSingle();
+  const dadosMerge = {
+    ...((leadAtual as any)?.dados_capturados ?? {}),
+    ...capturadosAgora,
+    ...(areaParaPersistir ? { area: areaParaPersistir } : {}),
+  };
+
+  // Atualiza leads_geral com area, fluxo, score, subtipo, urgencia e blob completo
+  const patchLead: Record<string, unknown> = {
+    area_normalizada: areaParaPersistir,
+    fluxo_sdr: fluxoFromArea(areaParaPersistir),
+    score: r.score,
+    motivo_qualificacao: r.motivo,
+    dados_capturados: dadosMerge,
+  };
+  if (subtipoAgora && !((leadAtual as any)?.tipo_servico)) {
+    patchLead.tipo_servico = subtipoAgora;
+  } else if (subtipoAgora) {
+    patchLead.tipo_servico = subtipoAgora;
+  }
+  if (urgenciaAgora) patchLead.urgencia = urgenciaAgora;
+
+  await supabase.from("leads_geral").update(patchLead).eq("id", lead.id);
 
   // ============================================================
-  // Persiste a resposta do lead em qualificacoes_sdr.
-  // Codigo semantico = etapa anterior + area (saude_m1, familia_m2, etc).
+  // Persiste a resposta do lead em qualificacoes_sdr (upsert por
+  // (lead_id, pergunta_codigo) — o mesmo codigo pode ser respondido
+  // novamente se o lead reformular).
   // ============================================================
   {
     let perguntaCodigo: string;
-    let estruturada: Record<string, unknown> = { ...(r.dados_capturados ?? {}) };
+    let estruturada: Record<string, unknown> = { ...capturadosAgora };
 
     if (etapaAnterior === "M0") {
       perguntaCodigo = "area";
@@ -999,13 +1026,13 @@ Decida a próxima etapa seguindo as regras do system prompt e retorne o JSON.`;
     const perguntaTexto = PERGUNTA_TEXTO_POR_CODIGO[perguntaCodigo]
       ?? `[${etapaAnterior}] ${r.etapa_proxima}`;
 
-    const { error: qErr } = await supabase.from("qualificacoes_sdr").insert({
+    const { error: qErr } = await supabase.from("qualificacoes_sdr").upsert({
       lead_id: lead.id,
       pergunta_codigo: perguntaCodigo,
       pergunta_texto: perguntaTexto,
       resposta_texto: textoAgrupado,
       resposta_estruturada: estruturada,
-    });
+    }, { onConflict: "lead_id,pergunta_codigo" });
     if (qErr) console.error("[qualificacoes_sdr] erro:", qErr);
   }
 

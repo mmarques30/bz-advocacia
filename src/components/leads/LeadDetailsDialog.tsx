@@ -26,6 +26,7 @@ import { ClienteProcessosTab } from "./ClienteProcessosTab";
 import { ClienteTarefasTab } from "./ClienteTarefasTab";
 import { ClienteFinanceiroTab } from "./ClienteFinanceiroTab";
 import { LeadMensagensTab } from "./LeadMensagensTab";
+import { LeadQualificacaoTab } from "./LeadQualificacaoTab";
 import { ConversaBot } from "./ConversaBot";
 import { Bot } from "lucide-react";
 import { ProcessoDetailsInline } from "@/components/processos/ProcessoDetailsInline";
@@ -413,6 +414,10 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                   <MessageCircle className="h-3.5 w-3.5" />
                   Mensagens
                 </TabsTrigger>
+                <TabsTrigger value="qualificacao" className="flex items-center gap-1">
+                  <Bot className="h-3.5 w-3.5" />
+                  Qualificação
+                </TabsTrigger>
                 <TabsTrigger value="documentos">Documentos</TabsTrigger>
                 <TabsTrigger value="notas">Notas</TabsTrigger>
               </TabsList>
@@ -624,6 +629,18 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
 
               <TabsContent value="mensagens" className="mt-4">
                 <LeadMensagensTab leadId={lead.id} telefone={lead.telefone} nomeCompleto={lead.nome_completo} email={lead.email} dataNascimento={lead.data_nascimento} />
+              </TabsContent>
+
+              <TabsContent value="qualificacao" className="mt-4">
+                <LeadQualificacaoTab
+                  leadGeralId={(lead as any).lead_geral_id ?? lead.id}
+                  dadosCapturados={lead.dados_capturados}
+                  area={lead.area_normalizada}
+                  score={lead.score}
+                  urgencia={lead.urgencia}
+                  etapa={lead.etapa_qualificacao}
+                  tipoServicoBot={lead.tipo_servico_bot}
+                />
               </TabsContent>
 
               <TabsContent value="documentos" className="mt-4">

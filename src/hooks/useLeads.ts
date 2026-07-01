@@ -66,7 +66,7 @@ export function useLeads(filters: LeadsFilters) {
       if (leadGeralIds.length > 0) {
         const { data: botData } = await supabase
           .from("leads_geral")
-          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr, is_organic, tipo_contato")
+          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr, is_organic, tipo_contato, tipo_servico, urgencia, dados_capturados")
           .in("id", leadGeralIds);
         botMap = Object.fromEntries((botData || []).map((b: any) => [b.id, b]));
 
@@ -108,6 +108,9 @@ export function useLeads(filters: LeadsFilters) {
           // quando o contact_submissions ja existia antes do bot linkar).
           is_organic: (bot as any)?.is_organic ?? null,
           tipo_contato: (bot as any)?.tipo_contato ?? null,
+          tipo_servico_bot: (bot as any)?.tipo_servico ?? null,
+          urgencia: (bot as any)?.urgencia ?? null,
+          dados_capturados: (bot as any)?.dados_capturados ?? null,
           campanha_envio: camp ?? null,
         } as Lead;
       });

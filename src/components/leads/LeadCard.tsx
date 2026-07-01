@@ -191,15 +191,35 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost, onMar
         <div className="flex flex-wrap gap-1">
           <LeadCampanhaBadge lead={lead} />
           <LeadBotBadge lead={lead} />
+          {lead.area_normalizada && (
+            <span className="inline-flex items-center rounded border border-indigo-200 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-medium text-indigo-800">
+              {AREA_LABEL[lead.area_normalizada] ?? lead.area_normalizada}
+            </span>
+          )}
+          {typeof lead.score === "number" && lead.score > 0 && (
+            <span className="inline-flex items-center rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+              Score {lead.score}
+            </span>
+          )}
+          {lead.urgencia && (
+            <span className={cn(
+              "inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium border",
+              lead.urgencia === "alta" && "border-red-200 bg-red-50 text-red-800",
+              lead.urgencia === "media" && "border-orange-200 bg-orange-50 text-orange-800",
+              lead.urgencia === "baixa" && "border-slate-200 bg-slate-50 text-slate-700",
+            )}>
+              Urg. {lead.urgencia}
+            </span>
+          )}
         </div>
         {isHot && (
           <AtenderAgoraButton lead={lead} className="w-full h-8 text-xs px-2" onAssumed={onAssumed} />
         )}
 
-        {tipoServico && (
+        {(lead.tipo_servico_bot || tipoServico) && (
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <Briefcase className="h-3 w-3 flex-shrink-0" />
-            <span className="text-xs truncate">{tipoServico}</span>
+            <span className="text-xs truncate">{lead.tipo_servico_bot ?? tipoServico}</span>
           </div>
         )}
 
@@ -214,3 +234,11 @@ export function LeadCard({ lead, onClick, onAssumed, onDelete, onMarkLost, onMar
     </Card>
   );
 }
+
+const AREA_LABEL: Record<string, string> = {
+  familia: "Família",
+  inventario: "Inventário",
+  saude: "Saúde",
+  fora_escopo: "Fora do escopo",
+  nao_identificada: "A identificar",
+};
