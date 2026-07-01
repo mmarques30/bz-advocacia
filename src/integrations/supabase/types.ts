@@ -1666,6 +1666,7 @@ export type Database = {
           campaign_name: string | null
           contato_whatsapp: string | null
           created_time: string | null
+          dados_capturados: Json
           dias_sem_contato: number
           etapa_qualificacao: string | null
           fluxo_sdr: string | null
@@ -1697,6 +1698,7 @@ export type Database = {
           ultima_mensagem_em: string | null
           ultima_msg_cliente_em: string | null
           updated_at: string | null
+          urgencia: string | null
         }
         Insert: {
           ad_id?: string | null
@@ -1712,6 +1714,7 @@ export type Database = {
           campaign_name?: string | null
           contato_whatsapp?: string | null
           created_time?: string | null
+          dados_capturados?: Json
           dias_sem_contato?: number
           etapa_qualificacao?: string | null
           fluxo_sdr?: string | null
@@ -1743,6 +1746,7 @@ export type Database = {
           ultima_mensagem_em?: string | null
           ultima_msg_cliente_em?: string | null
           updated_at?: string | null
+          urgencia?: string | null
         }
         Update: {
           ad_id?: string | null
@@ -1758,6 +1762,7 @@ export type Database = {
           campaign_name?: string | null
           contato_whatsapp?: string | null
           created_time?: string | null
+          dados_capturados?: Json
           dias_sem_contato?: number
           etapa_qualificacao?: string | null
           fluxo_sdr?: string | null
@@ -1789,6 +1794,7 @@ export type Database = {
           ultima_mensagem_em?: string | null
           ultima_msg_cliente_em?: string | null
           updated_at?: string | null
+          urgencia?: string | null
         }
         Relationships: [
           {
