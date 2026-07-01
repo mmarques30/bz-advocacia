@@ -66,7 +66,7 @@ export function useLeads(filters: LeadsFilters) {
       if (leadGeralIds.length > 0) {
         const { data: botData } = await supabase
           .from("leads_geral")
-          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr, is_organic, tipo_contato")
+          .select("id, status_sdr, fluxo_sdr, area_normalizada, score, etapa_qualificacao, bot_pausado, ultima_mensagem_em, origem_sdr, is_organic, tipo_contato, tipo_servico, urgencia, dados_capturados")
           .in("id", leadGeralIds);
         botMap = Object.fromEntries((botData || []).map((b: any) => [b.id, b]));
 
