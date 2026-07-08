@@ -55,6 +55,15 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
   const [conta, setConta] = useState("escritorio");
   const [comEntrada, setComEntrada] = useState(false);
   const [valorEntrada, setValorEntrada] = useState("");
+  // Data em que a entrada foi recebida. Antes era hardcoded como hoje;
+  // agora eh explicito porque cenario real: cliente paga entrada
+  // adiantado (assinatura) e a primeira parcela vence no mes seguinte.
+  const [dataEntrada, setDataEntrada] = useState(format(new Date(), "yyyy-MM-dd"));
+  // Estrategia de calculo das parcelas: iguais (divisao automatica) ou
+  // variaveis (usuario edita linha a linha). O 'variaveis' e ativado
+  // automaticamente ao primeiro edit manual; o botao "Redistribuir"
+  // volta pra iguais recalculando tudo.
+  const [modoParcelas, setModoParcelas] = useState<"iguais" | "variaveis">("iguais");
   const [comExito, setComExito] = useState(false);
   const [exitoPercentual, setExitoPercentual] = useState("");
   const [exitoBase, setExitoBase] = useState("");
@@ -78,6 +87,8 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
     setConta("escritorio");
     setComEntrada(false);
     setValorEntrada("");
+    setDataEntrada(format(new Date(), "yyyy-MM-dd"));
+    setModoParcelas("iguais");
     setComExito(false);
     setExitoPercentual("");
     setExitoBase("");
@@ -132,7 +143,7 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
         const ultimaParcelaValor = parcelas > 0 ? Math.round((restante - somaParcelasRegulares) * 100) / 100 : 0;
 
         const preview: ParcelaPreview[] = [
-          { numero: 1, valor: entrada, data: format(new Date(), "yyyy-MM-dd"), isEntrada: true },
+          { numero: 1, valor: entrada, data: dataEntrada || format(new Date(), "yyyy-MM-dd"), isEntrada: true },
           ...Array.from({ length: parcelas }, (_, i) => ({
             numero: i + 2,
             valor: i === parcelas - 1 ? ultimaParcelaValor : valorParcela,
@@ -157,7 +168,7 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
     } else {
       setParcelasPreview([]);
     }
-  }, [formaPagamento, valorTotal, numeroParcelas, dataPrimeiroVencimento, comEntrada, valorEntrada, parcelasManuais]);
+  }, [formaPagamento, valorTotal, numeroParcelas, dataPrimeiroVencimento, comEntrada, valorEntrada, dataEntrada, parcelasManuais]);
 
   // Ao mexer nos campos que definem a estrutura das parcelas, retomamos a
   // geração automática (descartando edições manuais anteriores).
@@ -168,9 +179,16 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
 
   const updateParcelaPreview = (index: number, patch: Partial<ParcelaPreview>) => {
     setParcelasManuais(true);
+    // Primeira edicao manual liga o modo variavel automaticamente.
+    setModoParcelas("variaveis");
     setParcelasPreview((prev) =>
       prev.map((p, i) => (i === index ? { ...p, ...patch } : p)),
     );
+  };
+
+  const redistribuirIgualmente = () => {
+    setParcelasManuais(false);
+    setModoParcelas("iguais");
   };
 
   const somaParcelas = parcelasPreview.reduce((s, p) => s + (Number(p.valor) || 0), 0);
@@ -321,21 +339,33 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
           </div>
 
           {comEntrada && (
-            <div className="space-y-2">
-              <Label htmlFor="valor_entrada">Valor da Entrada *</Label>
-              <Input
-                id="valor_entrada"
-                type="number"
-                step="0.01"
-                min="0"
-                max={valorTotal || undefined}
-                value={valorEntrada}
-                onChange={(e) => handleEstruturaChange(() => setValorEntrada(e.target.value))}
-                required
-                placeholder="0.00"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="valor_entrada">Valor da Entrada *</Label>
+                <Input
+                  id="valor_entrada"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max={valorTotal || undefined}
+                  value={valorEntrada}
+                  onChange={(e) => handleEstruturaChange(() => setValorEntrada(e.target.value))}
+                  required
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="data_entrada">Data da Entrada *</Label>
+                <Input
+                  id="data_entrada"
+                  type="date"
+                  value={dataEntrada}
+                  onChange={(e) => handleEstruturaChange(() => setDataEntrada(e.target.value))}
+                  required
+                />
+              </div>
               {valorTotal && valorEntrada && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground sm:col-span-2">
                   Restante: {fmtBRL(parseFloat(valorTotal) - parseFloat(valorEntrada))} em {numeroParcelas}x de {fmtBRL((parseFloat(valorTotal) - parseFloat(valorEntrada)) / (parseInt(numeroParcelas) || 1))}
                 </p>
               )}
@@ -385,12 +415,52 @@ export function AcordoForm({ onClose }: AcordoFormProps) {
 
           {parcelasPreview.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <Label>Parcelas (previsão de recebimento)</Label>
-                <span className="text-xs text-muted-foreground">
-                  Edite valor e vencimento de cada parcela
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex rounded-md border overflow-hidden text-xs">
+                    <button
+                      type="button"
+                      onClick={redistribuirIgualmente}
+                      className={
+                        modoParcelas === "iguais"
+                          ? "px-3 py-1 bg-primary text-primary-foreground"
+                          : "px-3 py-1 hover:bg-accent"
+                      }
+                    >
+                      Iguais
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModoParcelas("variaveis")}
+                      className={
+                        modoParcelas === "variaveis"
+                          ? "px-3 py-1 bg-primary text-primary-foreground"
+                          : "px-3 py-1 hover:bg-accent"
+                      }
+                      title="Habilita edicao linha a linha (mesma coisa que acontece se voce digitar direto na tabela)"
+                    >
+                      Variáveis
+                    </button>
+                  </div>
+                  {modoParcelas === "variaveis" && parcelasManuais && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={redistribuirIgualmente}
+                    >
+                      Redistribuir igualmente
+                    </Button>
+                  )}
+                </div>
               </div>
+              <span className="text-xs text-muted-foreground block">
+                {modoParcelas === "iguais"
+                  ? "Modo iguais: os valores sao recalculados quando voce mexe nos campos acima. Editar direto na tabela muda pra modo variavel."
+                  : "Modo variavel: edite valor e vencimento de cada linha livremente. Clique 'Iguais' pra recalcular."}
+              </span>
               <div className="border rounded-lg p-3 max-h-64 overflow-y-auto overflow-x-auto">
                 <table className="w-full min-w-[420px] text-sm">
                   <thead>
