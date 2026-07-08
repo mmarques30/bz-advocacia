@@ -16,6 +16,7 @@ import { CalendarIcon, X } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useCategoriasDespesa } from "@/hooks/useCategoriasDespesa";
 
 export interface HistoricoFiltersState {
   ano: number | null;
@@ -44,6 +45,10 @@ export function HistoricoFilters({ filters, onChange }: Props) {
   const currentYear = new Date().getFullYear();
   // Anos de 2020 até o ano atual
   const years = Array.from({ length: currentYear - 2020 + 1 }, (_, i) => currentYear - i);
+  // Fonte unica de categorias — mesma que Despesas usa. Antes o Histórico
+  // tinha só pf/pj hardcoded, entao nem Marketing nem outros codigos reais
+  // apareciam no filtro.
+  const { options: categoriasOpts } = useCategoriasDespesa();
 
   const handleClear = () => {
     onChange(getDefaultHistoricoFilters());
@@ -160,13 +165,16 @@ export function HistoricoFilters({ filters, onChange }: Props) {
           onChange({ ...filters, categoria: value === "all" ? null : value })
         }
       >
-        <SelectTrigger className="h-9 text-xs w-[120px]">
+        <SelectTrigger className="h-9 text-xs w-[160px]">
           <SelectValue placeholder="Categoria" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="pf">Pessoa Física</SelectItem>
-          <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+          {categoriasOpts.map((opt) => (
+            <SelectItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
