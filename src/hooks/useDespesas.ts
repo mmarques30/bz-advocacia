@@ -486,18 +486,15 @@ export function useDespesasPorCategoria(filters?: DespesasGlobalFiltersState) {
     queryFn: async () => {
       const { inicio, fim } = getDateRangeFromDespesasFilters(filters);
 
+      // Le da tabela `despesas` (mesma fonte de KPIs e HistoricoUnificado).
+      // Antes lia de transacoes_financeiras (vazia), entao o grafico
+      // aparecia vazio mesmo com lancamentos ativos.
       let query = supabase
-        .from('transacoes_financeiras')
-        .select('categoria_codigo, subcategoria_codigo, valor')
-        .eq('tipo_codigo', 'despesa');
+        .from('despesas')
+        .select('categoria, valor');
 
-      // Aplicar filtros de data apenas se definidos
-      if (inicio) {
-        query = query.gte('data_transacao', format(inicio, 'yyyy-MM-dd'));
-      }
-      if (fim) {
-        query = query.lte('data_transacao', format(fim, 'yyyy-MM-dd'));
-      }
+      if (inicio) query = query.gte('data', format(inicio, 'yyyy-MM-dd'));
+      if (fim) query = query.lte('data', format(fim, 'yyyy-MM-dd'));
 
       const { data, error } = await query.limit(10000);
 
@@ -506,12 +503,10 @@ export function useDespesasPorCategoria(filters?: DespesasGlobalFiltersState) {
       const despesas = data || [];
       const total = despesas.reduce((sum, d) => sum + Math.abs(Number(d.valor)), 0);
 
-      // Agrupar pelo LABEL resolvido (nao pelo codigo bruto). Isso evita que
-      // varias subcategorias desconhecidas virem multiplas entradas todas
-      // colapsadas em "Outros" no grafico — o bug original fazia 4 fatias
-      // com o mesmo rotulo mas valores diferentes.
+      // Agrupa pelo LABEL resolvido. Codigos desconhecidos caem em "Outros"
+      // via resolveCategoriaLabel — evita fatias duplicadas do mesmo rotulo.
       const porCategoria = despesas.reduce((acc, d) => {
-        const label = resolveCategoriaLabel(d.subcategoria_codigo || d.categoria_codigo);
+        const label = resolveCategoriaLabel(d.categoria);
         if (!acc[label]) {
           acc[label] = { total: 0, quantidade: 0 };
         }

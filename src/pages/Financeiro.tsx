@@ -351,7 +351,11 @@ export default function Financeiro() {
                     <Upload className="h-4 w-4 mr-2" />
                     Importar
                   </Button>
-                  <Button size="sm" onClick={() => setNewEntradaOpen(true)}>
+                  <Button
+                    size="sm"
+                    onClick={() => setNewEntradaOpen(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                  >
                     <Plus className="h-4 w-4 mr-2" />
                     Nova Entrada
                   </Button>

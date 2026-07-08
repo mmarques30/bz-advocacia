@@ -4,6 +4,7 @@ import { Receipt, ChevronRight } from "lucide-react";
 import { VisaoGeralKPIs } from "./VisaoGeralKPIs";
 import { ReceitasDespesasChart } from "./ReceitasDespesasChart";
 import { DespesasPorCategoriaChart } from "./DespesasPorCategoriaChart";
+import { DespesasDistribuicaoDonut } from "./DespesasDistribuicaoDonut";
 import { ResultadoPeriodoCard } from "./ResultadoPeriodoCard";
 import { useTotalParcelasPendentes } from "@/hooks/useVisaoGeralFinanceiro";
 
@@ -58,6 +59,9 @@ export function VisaoGeralTab({ ano, mes, onNavigateToAcordos }: Props) {
         <ReceitasDespesasChart ano={ano} />
         <DespesasPorCategoriaChart ano={ano} mes={mes} />
       </div>
+
+      {/* Donut de distribuicao percentual — complementa o bar chart acima. */}
+      <DespesasDistribuicaoDonut ano={ano} mes={mes} />
 
       <ResultadoPeriodoCard ano={ano} />
     </div>
