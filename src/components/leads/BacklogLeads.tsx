@@ -53,6 +53,8 @@ const MOTIVO_LABEL: Record<string, string> = {
   humano_iniciou: "Humano iniciou conversa",
   // backlog_triagem.motivo (mensagens recebidas que o bot detectou como caso especial)
   cliente_em_atendimento: "Cliente em atendimento",
+  cliente_existente: "Cliente existente",
+  cliente_existente_bot_silenciado: "Cliente existente (bot silenciado)",
   contato_em_andamento: "Contato em andamento",
   processo_ativo: "Processo ativo",
   duvida_classificacao: "Bot não classificou",
@@ -61,6 +63,8 @@ const MOTIVO_LABEL: Record<string, string> = {
 const MOTIVO_COLOR: Record<string, string> = {
   humano_iniciou: "bg-blue-100 text-blue-800 border-blue-200",
   cliente_em_atendimento: "bg-amber-100 text-amber-800 border-amber-300",
+  cliente_existente: "bg-amber-100 text-amber-800 border-amber-300",
+  cliente_existente_bot_silenciado: "bg-amber-100 text-amber-800 border-amber-300",
   contato_em_andamento: "bg-cyan-100 text-cyan-800 border-cyan-300",
   processo_ativo: "bg-emerald-100 text-emerald-800 border-emerald-300",
   duvida_classificacao: "bg-purple-100 text-purple-800 border-purple-300",
