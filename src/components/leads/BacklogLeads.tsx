@@ -68,7 +68,7 @@ const MOTIVO_COLOR: Record<string, string> = {
 
 export function BacklogLeads() {
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "rejeitado" | "resolvido">(
+  const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "rejeitado" | "resolvido" | "silenciados">(
     "pendente",
   );
   const [rejectTarget, setRejectTarget] = useState<BacklogRow | null>(null);
@@ -79,9 +79,9 @@ export function BacklogLeads() {
   const { data: backlogRows, isLoading: loadingBacklog } = useQuery({
     queryKey: ["leads_backlog", statusFilter],
     queryFn: async () => {
-      // backlog antigo nao tem 'resolvido' — quando o filtro for "resolvido",
-      // retorna vazio.
-      if (statusFilter === "resolvido") return [];
+      // backlog antigo nao tem 'resolvido' — quando o filtro for "resolvido"
+      // ou "silenciados", retorna vazio.
+      if (statusFilter === "resolvido" || statusFilter === "silenciados") return [];
       const { data, error } = await supabase
         .from("leads_backlog")
         .select("*")
@@ -99,6 +99,26 @@ export function BacklogLeads() {
   const { data: triagemRows, isLoading: loadingTriagem } = useQuery({
     queryKey: ["backlog_triagem", statusFilter],
     queryFn: async () => {
+      // "silenciados": prova social — casos em que o bot silenciou por detectar
+      // cliente/contato/processo ativo nas últimas 48h (resolvido ou não).
+      if (statusFilter === "silenciados") {
+        const desde = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data, error } = await supabase
+          .from("backlog_triagem")
+          .select("*")
+          .in("motivo", [
+            "cliente_em_atendimento",
+            "cliente_existente",
+            "cliente_existente_bot_silenciado",
+            "contato_em_andamento",
+            "processo_ativo",
+          ])
+          .gte("created_at", desde)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        return (data ?? []) as TriagemRow[];
+      }
       // backlog_triagem so tem o conceito de "resolvido": pendentes
       // = resolvido=false; arquivados = resolvido=true. Os filtros
       // 'aprovado' / 'rejeitado' (so leads_backlog) nao se aplicam.
