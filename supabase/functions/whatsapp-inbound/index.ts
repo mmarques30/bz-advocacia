@@ -817,6 +817,59 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ============================================================
+  // CAMADA 2 — GUARD EM TEMPO REAL (lead JÁ existente)
+  // Consulta contact_submissions linkado + processos ativos ANTES
+  // de responder. Cobre o caso "advogada assumiu no CRM mas o bot
+  // não sabe" (status_sdr desatualizado).
+  // ============================================================
+  {
+    const { data: csLinked } = await supabase
+      .from("contact_submissions")
+      .select("id, estagio, status, responsavel_id, nome_completo")
+      .eq("lead_geral_id", lead.id)
+      .maybeSingle();
+
+    if (csLinked) {
+      const cs: any = csLinked;
+      const ESTAGIOS_ATIVOS = ["contato_inicial", "em_analise", "proposta_enviada", "fechado"];
+      const estagioAtivo = ESTAGIOS_ATIVOS.includes(cs.estagio);
+      const temResponsavel = !!cs.responsavel_id;
+
+      if (estagioAtivo || temResponsavel) {
+        // Sincroniza leads_geral pra próximos webhooks pularem antes
+        await supabase.from("leads_geral")
+          .update({ bot_pausado: true, status_sdr: "assumido_humano" })
+          .eq("id", lead.id);
+
+        try {
+          await supabase.from("backlog_triagem").insert({
+            motivo: "contato_em_andamento",
+            telefone,
+            telefone_digits: telefone.replace(/\D/g, ""),
+            nome_capturado: cs.nome_completo ?? nomePrimeiro(lead),
+            msg_recebida: texto,
+            contact_submission_id: cs.id,
+            lead_existente_id: lead.id,
+          });
+        } catch (_e) { /* ignore dup */ }
+
+        await registrarEvento(supabase, lead.id, "bot_silenciado_crm_ativo_realtime", {
+          telefone,
+          contact_submission_id: cs.id,
+          estagio: cs.estagio,
+          tem_responsavel: temResponsavel,
+        });
+        return new Response(
+          JSON.stringify({ ignored: "crm_ativo_realtime", backlog: true }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+    }
+  }
+
+
+
   // Comando "parar"
   if (/^\s*parar\s*$/i.test(texto)) {
     await supabase
