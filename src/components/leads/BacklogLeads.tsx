@@ -319,7 +319,7 @@ export function BacklogLeads() {
       </Card>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {(["pendente", "aprovado", "rejeitado", "resolvido"] as const).map((s) => (
+        {(["pendente", "aprovado", "rejeitado", "resolvido", "silenciados"] as const).map((s) => (
           <Button
             key={s}
             size="sm"
