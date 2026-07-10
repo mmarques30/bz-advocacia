@@ -4322,6 +4322,10 @@ export type Database = {
       }
     }
     Functions: {
+      auto_bloquear_telefone_bot: {
+        Args: { p_motivo: string; p_nome?: string; p_telefone: string }
+        Returns: undefined
+      }
       garantir_lead_geral_para_contact: {
         Args: { p_contact_submission_id: string }
         Returns: string
