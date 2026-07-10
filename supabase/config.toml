@@ -101,3 +101,7 @@ verify_jwt = false
 
 
 
+
+[functions.reativar-bot-contato]
+verify_jwt = true
+

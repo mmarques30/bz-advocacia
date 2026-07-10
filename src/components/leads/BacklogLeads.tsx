@@ -53,6 +53,8 @@ const MOTIVO_LABEL: Record<string, string> = {
   humano_iniciou: "Humano iniciou conversa",
   // backlog_triagem.motivo (mensagens recebidas que o bot detectou como caso especial)
   cliente_em_atendimento: "Cliente em atendimento",
+  cliente_existente: "Cliente existente",
+  cliente_existente_bot_silenciado: "Cliente existente (bot silenciado)",
   contato_em_andamento: "Contato em andamento",
   processo_ativo: "Processo ativo",
   duvida_classificacao: "Bot não classificou",
@@ -61,6 +63,8 @@ const MOTIVO_LABEL: Record<string, string> = {
 const MOTIVO_COLOR: Record<string, string> = {
   humano_iniciou: "bg-blue-100 text-blue-800 border-blue-200",
   cliente_em_atendimento: "bg-amber-100 text-amber-800 border-amber-300",
+  cliente_existente: "bg-amber-100 text-amber-800 border-amber-300",
+  cliente_existente_bot_silenciado: "bg-amber-100 text-amber-800 border-amber-300",
   contato_em_andamento: "bg-cyan-100 text-cyan-800 border-cyan-300",
   processo_ativo: "bg-emerald-100 text-emerald-800 border-emerald-300",
   duvida_classificacao: "bg-purple-100 text-purple-800 border-purple-300",
@@ -68,7 +72,7 @@ const MOTIVO_COLOR: Record<string, string> = {
 
 export function BacklogLeads() {
   const qc = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "rejeitado" | "resolvido">(
+  const [statusFilter, setStatusFilter] = useState<"pendente" | "aprovado" | "rejeitado" | "resolvido" | "silenciados">(
     "pendente",
   );
   const [rejectTarget, setRejectTarget] = useState<BacklogRow | null>(null);
@@ -79,9 +83,9 @@ export function BacklogLeads() {
   const { data: backlogRows, isLoading: loadingBacklog } = useQuery({
     queryKey: ["leads_backlog", statusFilter],
     queryFn: async () => {
-      // backlog antigo nao tem 'resolvido' — quando o filtro for "resolvido",
-      // retorna vazio.
-      if (statusFilter === "resolvido") return [];
+      // backlog antigo nao tem 'resolvido' — quando o filtro for "resolvido"
+      // ou "silenciados", retorna vazio.
+      if (statusFilter === "resolvido" || statusFilter === "silenciados") return [];
       const { data, error } = await supabase
         .from("leads_backlog")
         .select("*")
@@ -99,6 +103,26 @@ export function BacklogLeads() {
   const { data: triagemRows, isLoading: loadingTriagem } = useQuery({
     queryKey: ["backlog_triagem", statusFilter],
     queryFn: async () => {
+      // "silenciados": prova social — casos em que o bot silenciou por detectar
+      // cliente/contato/processo ativo nas últimas 48h (resolvido ou não).
+      if (statusFilter === "silenciados") {
+        const desde = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+        const { data, error } = await supabase
+          .from("backlog_triagem")
+          .select("*")
+          .in("motivo", [
+            "cliente_em_atendimento",
+            "cliente_existente",
+            "cliente_existente_bot_silenciado",
+            "contato_em_andamento",
+            "processo_ativo",
+          ])
+          .gte("created_at", desde)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        if (error) throw error;
+        return (data ?? []) as TriagemRow[];
+      }
       // backlog_triagem so tem o conceito de "resolvido": pendentes
       // = resolvido=false; arquivados = resolvido=true. Os filtros
       // 'aprovado' / 'rejeitado' (so leads_backlog) nao se aplicam.
@@ -299,7 +323,7 @@ export function BacklogLeads() {
       </Card>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {(["pendente", "aprovado", "rejeitado", "resolvido"] as const).map((s) => (
+        {(["pendente", "aprovado", "rejeitado", "resolvido", "silenciados"] as const).map((s) => (
           <Button
             key={s}
             size="sm"

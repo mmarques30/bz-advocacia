@@ -36,6 +36,19 @@ import { processarTemplate } from "@/types/whatsapp";
 import { openWhatsAppLink } from "@/lib/whatsappUtils";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/hooks/useReatribuirLead";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { BotIcon, Unlock } from "lucide-react";
 
 interface LeadDetailsDialogProps {
   open: boolean;
@@ -69,7 +82,39 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
   const [markingConcluido, setMarkingConcluido] = useState(false);
   const [selectedProcessoId, setSelectedProcessoId] = useState<string | null>(null);
   const [savingField, setSavingField] = useState<string | null>(null);
+  const [showReativarBot, setShowReativarBot] = useState(false);
+  const [reativarMotivo, setReativarMotivo] = useState("");
+  const [reativandoBot, setReativandoBot] = useState(false);
   const queryClient = useQueryClient();
+  const { data: isAdmin } = useIsAdmin();
+
+  async function handleReativarBot() {
+    if (!lead?.telefone) {
+      toast({ title: "Contato sem telefone", variant: "destructive" });
+      return;
+    }
+    if (!reativarMotivo.trim()) {
+      toast({ title: "Informe o motivo da reativação", variant: "destructive" });
+      return;
+    }
+    setReativandoBot(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reativar-bot-contato", {
+        body: { telefone: lead.telefone, motivo: reativarMotivo.trim(), contato_id: lead.id },
+      });
+      if (error) throw error;
+      toast({
+        title: "Bot reativado",
+        description: "Novas mensagens deste contato serão processadas pela Claudia.",
+      });
+      setShowReativarBot(false);
+      setReativarMotivo("");
+    } catch (err: any) {
+      toast({ title: "Erro ao reativar bot", description: err?.message, variant: "destructive" });
+    } finally {
+      setReativandoBot(false);
+    }
+  }
 
   async function updateContactSubmission(patch: Record<string, unknown>) {
     if (!lead) return;
@@ -345,7 +390,49 @@ export function LeadDetailsDialog({ open, onClose, lead, onEdit, isCliente = fal
                 </Button>
               )}
               <Button size="sm" onClick={() => onEdit(lead)}>{isCliente ? 'Editar Cliente' : 'Editar Lead'}</Button>
+              {isAdmin && lead.telefone && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5 text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowReativarBot(true)}
+                  title="Permite que o bot Claudia volte a responder este contato"
+                >
+                  <Unlock className="h-3.5 w-3.5" />
+                  Reativar bot pra este contato
+                </Button>
+              )}
             </div>
+
+            <AlertDialog open={showReativarBot} onOpenChange={setShowReativarBot}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <BotIcon className="h-4 w-4" /> Reativar bot Claudia
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Isso vai permitir que o bot Claudia volte a responder mensagens deste número.
+                    Use apenas em casos específicos (ex: cliente antigo com demanda nova,
+                    falso positivo, número familiar reaproveitado).
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium">Motivo da reativação</label>
+                  <Textarea
+                    value={reativarMotivo}
+                    onChange={(e) => setReativarMotivo(e.target.value)}
+                    placeholder="Ex: cliente antigo voltou com demanda nova de outra área"
+                    rows={3}
+                  />
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={reativandoBot}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReativarBot} disabled={reativandoBot}>
+                    {reativandoBot ? "Reativando..." : "Confirmar reativação"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
 
             {atendente && (
               <div className="mt-3 flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
